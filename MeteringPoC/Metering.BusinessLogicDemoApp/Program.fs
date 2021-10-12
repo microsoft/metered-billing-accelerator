@@ -1,5 +1,4 @@
-﻿
-open System
+﻿open System
 open Metering.Types
 
 // Plan
@@ -37,10 +36,23 @@ let main argv =
             PlanID = plan.Id
             Dimension = 
                 plan.BillingDimensions
+                |> Seq.find (fun a -> a.DimensionIdentifier = "MachineLearningJob")
+                |> (fun a -> a.DimensionIdentifier)
+            Timestamp =  DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(2.0))
+            Quantity = 1UL
+            Properties = [
+                ("Department", "Data Science")
+                ("Project ID", "Skunkworks vNext")
+                ] |> Map.ofList |> Some
+        }
+        {
+            PlanID = plan.Id
+            Dimension = 
+                plan.BillingDimensions
                 |> Seq.find (fun a -> a.DimensionIdentifier = "EMailCampaign")
                 |> (fun a -> a.DimensionIdentifier)
             Timestamp =  DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(2.0))
-            Quantity = Int 3_000UL
+            Quantity = 3_000UL
             Properties = [
                 ("Email Campaign", "User retention")
                 ("Department", "Marketing")
@@ -53,7 +65,7 @@ let main argv =
                 |> Seq.find (fun a -> a.DimensionIdentifier = "MachineLearningJob")
                 |> (fun a -> a.DimensionIdentifier)
             Timestamp =  DateTime.UtcNow.Subtract(TimeSpan.FromMinutes(2.0))
-            Quantity = Int 1UL
+            Quantity = 12UL
             Properties = [
                 ("Department", "Data Science")
                 ("Project ID", "Skunkworks vNext")
@@ -61,22 +73,25 @@ let main argv =
         }
     ]
     
-    let state = {
+    let oldBalance  = {
         Plans = [ plan ]
         InitialPurchase = {
             PlanId = plan.Id
             PurchaseTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromHours(26.0)) }
         CurrentCredits =
             [
-                ("EMailCampaign", ConsumedCredits(100UL))
-                ("MachineLearningJob", RemainingCredits(10UL))
+                ("EMailCampaign", ConsumedQuantity(100UL))
+                ("MachineLearningJob", RemainingQuantity(10UL))
             ] |> Map.ofList
     }
 
     let newBalance =
         usageEvents
-        |> BusinessLogic.applyUsageEvents state
+        |> BusinessLogic.applyUsageEvents oldBalance 
 
-    printfn "usageEvents %A" usageEvents
-    printfn "newBalance %A" (Newtonsoft.Json.JsonConvert.SerializeObject(newBalance))
+    printfn "oldBalance %A" oldBalance.CurrentCredits
+    printfn "newBalance %A" newBalance.CurrentCredits
+
+    //printfn "newBalance %A" (Newtonsoft.Json.JsonConvert.SerializeObject(newBalance))
     0
+

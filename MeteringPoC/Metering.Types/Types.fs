@@ -11,10 +11,6 @@ type SequenceNumber = SequenceNumber of int64
 
 type PartitionID = PartitionID of string
 
-type Dimension = Dimension of string
-
-type Unit = Unit of int
-
 type MessagePosition = 
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber }
@@ -27,11 +23,6 @@ type SeekPosition =
 type Message<'payload> =
     { Payload: 'payload 
       MessagePosition: MessagePosition }
-
-type MeteringValue =
-    { Timestamp: DateTime
-      Dimension: Dimension
-      Unit: Unit }
 
 type EventHubConnectionDetails =
     { Credential: TokenCredential 
@@ -95,7 +86,7 @@ type UsageEvent =
     { PlanID: PlanID
       Timestamp: DateTime
       Dimension: DimensionIdentifier
-      Quantity: IntOrFloat
+      Quantity: Quantity
       Properties: Map<string, string> option}
 
 type PlanPurchaseInformation =
@@ -106,8 +97,8 @@ type RemainingQuantity = Quantity
 type ConsumedQuantity = Quantity
 
 type CurrentConsumptionBillingPeriod =
-    | RemainingCredits of RemainingQuantity: RemainingQuantity
-    | ConsumedCredits of ConsumedQuantity: ConsumedQuantity
+    | RemainingQuantity of RemainingQuantity
+    | ConsumedQuantity of ConsumedQuantity
 
 type CurrentCredits =
     Map<DimensionIdentifier, CurrentConsumptionBillingPeriod> 
@@ -118,8 +109,26 @@ type CurrentBillingState =
       CurrentCredits: CurrentCredits }
 
 module BusinessLogic =
+    let deduct (q: Quantity) (c: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
+        match c with
+        | RemainingQuantity(rq) -> 
+            if (rq > q)
+            then RemainingQuantity(rq - q)
+            else ConsumedQuantity(q - rq)
+        | ConsumedQuantity(cc) -> 
+            ConsumedQuantity(cc + q)
+        |> Some
+    
+    let applyConsumption (amount: Quantity) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
+        Option.bind (deduct amount) current
+
     let applyUsageEvent (current: CurrentBillingState) (event: UsageEvent) : CurrentBillingState =
-        current
+        let newCredits = 
+            current.CurrentCredits |> Map.change event.Dimension (applyConsumption event.Quantity)
+            
+        { current 
+            with CurrentCredits = newCredits}
 
     let applyUsageEvents (state: CurrentBillingState) (usageEvents: UsageEvent list) :CurrentBillingState =
         usageEvents |> List.fold applyUsageEvent state
+
