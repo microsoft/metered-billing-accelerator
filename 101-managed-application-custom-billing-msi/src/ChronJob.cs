@@ -1,6 +1,7 @@
 namespace ManagedWebhook
 {
     using System;
+    using System.IO;
     using System.Net;
     using System.Net.Http;
     using System.Text;
@@ -8,7 +9,9 @@ namespace ManagedWebhook
     using System.Web;
     using Microsoft.Azure.WebJobs;
     using Microsoft.Extensions.Configuration;
+    using Microsoft.Extensions.Hosting;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.DependencyInjection;
     using Newtonsoft.Json;
 
     public record DimensionConfig(string Dimension, double Quantity);
@@ -147,6 +150,27 @@ namespace ManagedWebhook
             armHttpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {armToken}");
             log.LogInformation($"Authorization bearer token: {armToken}");
             return armHttpClient;
+        }
+
+        public static void Main()
+        {
+            var host = new HostBuilder()
+                .ConfigureFunctionsWorkerDefaults()
+                .ConfigureAppConfiguration(config => config
+                    .SetBasePath(Directory.GetCurrentDirectory())
+                    .AddJsonFile("local.settings.json")
+                    .AddEnvironmentVariables())
+                .ConfigureServices(services =>
+                {
+                    //services.AddSingleton(sp =>
+                    //{
+                    //    IConfiguration configuration = sp.GetService<IConfiguration>();
+                    //    return new CosmosClient(configuration["CosmosDBConnectionString"]);
+                    //});
+                })
+                .Build();
+
+            host.Run();
         }
     }
 }
