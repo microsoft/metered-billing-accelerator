@@ -7,13 +7,14 @@ open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 
-type SequenceNumber = SequenceNumber of int64
+type SequenceNumber = SequenceNumber of uint64
 
 type PartitionID = PartitionID of string
 
 type MessagePosition = 
     { PartitionID: PartitionID
-      SequenceNumber: SequenceNumber }
+      SequenceNumber: SequenceNumber
+      PartitionTimestamp: DateTime }
 
 type SeekPosition =
     | FromSequenceNumber of SequenceNumber: SequenceNumber 
@@ -45,8 +46,8 @@ type EventHubProcessorEvent =
 // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
 
 type IntOrFloat =
-    | Int of uint64
-    | Float of float
+    | Int of uint32 // ? :-)
+    | Float of double
     
 type PlanId = string
 
@@ -112,35 +113,30 @@ type PlanDimension =
 type CurrentCredits =
     Map<PlanDimension, CurrentConsumptionBillingPeriod> 
 
+type UsageEventDefinition =
+    { ResourceId: string 
+      Quantity: double 
+      PlanDimension: PlanDimension
+      EffectiveStartTime: DateTime }
+    
 type CurrentBillingState =
     { Plans: Plan seq
       InitialPurchase: PlanPurchaseInformation
-      CurrentCredits: CurrentCredits }
+      CurrentCredits: CurrentCredits
+      UsageToBeReported: UsageEventDefinition list
+      LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace API
 
 module BusinessLogic =
-    let deduct (event: UsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
-        let inspect msg a =
-            printf "%s: %A | " msg a
-            a
-        let inspectn msg a =
-            printfn "%s: %A" msg a
-            a
-
-
-        event.Quantity
-        |> inspect "reported"
-        |> ignore
+    let deduct ({ Quantity = reported}: UsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
 
         state
-        |> inspect "before"
         |> function
-            | RemainingQuantity(remaining) -> 
-                if remaining.Quantity > event.Quantity
-                then RemainingQuantity({ Quantity = remaining.Quantity - event.Quantity})
-                else ConsumedQuantity({ Quantity = event.Quantity - remaining.Quantity})
+            | RemainingQuantity({ Quantity = remaining}) -> 
+                if remaining > reported
+                then RemainingQuantity({ Quantity = remaining - reported})
+                else ConsumedQuantity({ Quantity = reported - remaining})
             | ConsumedQuantity(consumed) ->
-                ConsumedQuantity({ Quantity = consumed.Quantity + event.Quantity })
-        |> inspectn "after"
+                ConsumedQuantity({ Quantity = consumed.Quantity + reported })
         |> Some
     
     let applyConsumption (event: UsageEvent) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
@@ -155,6 +151,6 @@ module BusinessLogic =
         { current 
             with CurrentCredits = newCredits}
 
-    let applyUsageEvents (state: CurrentBillingState) (usageEvents: UsageEvent list) :CurrentBillingState =
+    let applyUsageEvents (state: CurrentBillingState) (usageEvents: UsageEvent list) : CurrentBillingState =
         usageEvents |> List.fold applyUsageEvent state
 
