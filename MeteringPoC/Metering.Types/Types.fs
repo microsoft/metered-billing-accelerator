@@ -79,9 +79,6 @@ type Plan =
     { PlanId: PlanId
       BillingDimensions: BillingDimension seq }
 
-type Plans = 
-    Plan seq
-
 type UsageEvent =
     { Timestamp: DateTime
       PlanId: PlanId
@@ -93,9 +90,13 @@ type PlanPurchaseInformation =
     { PlanId: PlanId 
       PurchaseTimestamp: DateTime }
 
-type RemainingQuantity = Quantity
+type RemainingQuantity = 
+    { Quantity: Quantity }
 
-type ConsumedQuantity = Quantity
+type ConsumedQuantity =
+    { Quantity: Quantity }
+
+type LastUpdateTimestamp = DateTime
 
 type CurrentConsumptionBillingPeriod =
     | RemainingQuantity of RemainingQuantity
@@ -112,12 +113,12 @@ type CurrentCredits =
     Map<PlanDimension, CurrentConsumptionBillingPeriod> 
 
 type CurrentBillingState =
-    { Plans: Plans
+    { Plans: Plan seq
       InitialPurchase: PlanPurchaseInformation
       CurrentCredits: CurrentCredits }
 
 module BusinessLogic =
-    let deduct (reported: Quantity) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
+    let deduct (event: UsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
         let inspect msg a =
             printf "%s: %A | " msg a
             a
@@ -125,7 +126,8 @@ module BusinessLogic =
             printfn "%s: %A" msg a
             a
 
-        reported
+
+        event.Quantity
         |> inspect "reported"
         |> ignore
 
@@ -133,22 +135,22 @@ module BusinessLogic =
         |> inspect "before"
         |> function
             | RemainingQuantity(remaining) -> 
-                if remaining > reported 
-                then RemainingQuantity(remaining - reported)
-                else ConsumedQuantity(reported - remaining)
+                if remaining.Quantity > event.Quantity
+                then RemainingQuantity({ Quantity = remaining.Quantity - event.Quantity})
+                else ConsumedQuantity({ Quantity = event.Quantity - remaining.Quantity})
             | ConsumedQuantity(consumed) ->
-                ConsumedQuantity(consumed + reported)
+                ConsumedQuantity({ Quantity = consumed.Quantity + event.Quantity })
         |> inspectn "after"
         |> Some
     
-    let applyConsumption (amount: Quantity) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
-        Option.bind (deduct amount) current
+    let applyConsumption (event: UsageEvent) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
+        Option.bind (deduct event) current
 
     let applyUsageEvent (current: CurrentBillingState) (event: UsageEvent) : CurrentBillingState =
 
         let newCredits = 
             current.CurrentCredits
-            |> Map.change { PlanId = event.PlanId; DimensionId = event.DimensionId } (applyConsumption event.Quantity)
+            |> Map.change { PlanId = event.PlanId; DimensionId = event.DimensionId } (applyConsumption event)
             
         { current 
             with CurrentCredits = newCredits}

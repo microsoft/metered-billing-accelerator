@@ -105,8 +105,8 @@ let main argv =
             PurchaseTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromHours(26.0)) }
         CurrentCredits =
             [
-                ({ PlanId = "plan2"; DimensionId = "EMailCampaign" }, ConsumedQuantity(100UL))
-                ({ PlanId = "plan2"; DimensionId = "MachineLearningJob"}, RemainingQuantity(10UL))
+                ({ PlanId = "plan2"; DimensionId = "EMailCampaign" }, ConsumedQuantity({ Quantity = 100UL }))
+                ({ PlanId = "plan2"; DimensionId = "MachineLearningJob"}, RemainingQuantity({ Quantity = 10UL }))
             ] |> Map.ofList
     }
 
