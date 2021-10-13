@@ -8,11 +8,9 @@
 
 ### Pseudo algorithm, just representing the data structure which aggregates
 
-- Each state transition is triggered by an incoming event. 
 - Certain maintenance operations must happen before the event in question can be deducted from the state
 - Maintenance
-
-  - If the event's timestamp indicates that a new billing hour has started since the last processed events
+  - If the event's timestamp (or the current time) indicates that a new billing hour has started since the last processed events
     - copy all meter aggregates from the last hour into the `UsageToBeReported` collection, and
     - reset the meter aggregates
   - If the event's timestamp indicates that a new billing period (month) has started since the last processed event, reset the quantity for all meters which have included quantities
