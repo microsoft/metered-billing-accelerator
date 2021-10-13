@@ -61,23 +61,21 @@ let parseUsageEvents events =
             |> Map.ofList
             |> Some
 
-        s.Split([|'|'|], 5)
+        s.Split([|'|'|], 4)
         |> Array.toList
         |> List.map (fun s -> s.Trim())
         |> function
-            | [datestr; planId; name; amountstr; props] -> 
+            | [datestr; name; amountstr; props] -> 
                 Some {
                     Timestamp = datestr |> parseDate
-                    PlanId = planId
-                    DimensionId = name
+                    MeterName = name
                     Quantity = amountstr |> UInt64.Parse
                     Properties = props |> parseProps
                 }
-            | [datestr; planId; name; amountstr] -> 
+            | [datestr; name; amountstr] -> 
                 Some {
                     Timestamp = datestr |> parseDate
-                    PlanId = planId
-                    DimensionId = name
+                    MeterName = name
                     Quantity = amountstr |> UInt64.Parse
                     Properties = None
                 }
@@ -100,14 +98,19 @@ let main argv =
 
     let oldBalance  = {
         Plans = plans
+        InternalMetersMapping = 
+            [
+                ("email", { PlanId = "plan2"; DimensionId = "EMailCampaign" })
+                ("ml", { PlanId = "plan2"; DimensionId = "MachineLearningJob" })
+            ] |> Map.ofList
         InitialPurchase = {
             PlanId = "plan2"
             PurchaseTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromHours(26.0)) }
         // LastProcessedEventSequenceID = 237492749,
         CurrentCredits =
             [
-                ({ PlanId = "plan2"; DimensionId = "EMailCampaign" }, ConsumedQuantity({ Quantity = 100UL }))
-                ({ PlanId = "plan2"; DimensionId = "MachineLearningJob"}, RemainingQuantity({ Quantity = 10UL }))
+                ("email", ConsumedQuantity({ Quantity = 100UL }))
+                ("ml", RemainingQuantity({ Quantity = 10UL }))
             ] |> Map.ofList
         UsageToBeReported = List.empty // HTTP Call payload which still needs to be sent to MeteringAPI
         LastProcessedMessage = { 
@@ -120,10 +123,10 @@ let main argv =
     // Position read pointer in EventHub to 237492750, and start applying 
     let eventsFromEventHub = 
         [
-            "2021-10-13--14-12-02 | plan2 | MachineLearningJob |   1 | Department=Data Science, Project ID=Skunkworks vNext"
-            "2021-10-13--15-12-03 | plan2 | MachineLearningJob |   2                                                       "
-            "2021-10-13--15-13-02 | plan2 | EMailCampaign      | 300 | Email Campaign=User retention, Department=Marketing "
-            "2021-10-13--15-12-08 | plan2 | MachineLearningJob |   20                                                       "
+            "2021-10-13--14-12-02 | ml    |   1 | Department=Data Science, Project ID=Skunkworks vNext"
+            "2021-10-13--15-12-03 | ml    |   2                                                       "
+            "2021-10-13--15-13-02 | email | 300 | Email Campaign=User retention, Department=Marketing "
+            "2021-10-13--15-12-08 | ml    |  20                                                       "
         ]
         |> parseUsageEvents
 

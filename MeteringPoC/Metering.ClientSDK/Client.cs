@@ -13,9 +13,8 @@
             await Task.Delay(1);
 
             UsageEvent _ = new(
-                timestamp: DateTime.UtcNow,
-                planId: "someplan",
-                dimensionId: "dimension",
+                timestamp: DateTime.UtcNow, 
+                meterName: "meter1",
                 quantity: 2,
                 properties: FSharpOption<FSharpMap<string, string>>.None);
         }

@@ -80,13 +80,6 @@ type Plan =
     { PlanId: PlanId
       BillingDimensions: BillingDimension seq }
 
-type UsageEvent =
-    { Timestamp: DateTime
-      PlanId: PlanId
-      DimensionId: DimensionId      
-      Quantity: Quantity
-      Properties: Map<string, string> option}
-
 type PlanPurchaseInformation =
     { PlanId: PlanId 
       PurchaseTimestamp: DateTime }
@@ -104,16 +97,26 @@ type CurrentConsumptionBillingPeriod =
     | ConsumedQuantity of ConsumedQuantity
 
 //type BillingPeriod =
-    
-
+   
 type PlanDimension =
     { PlanId: PlanId
       DimensionId: DimensionId }
 
-type CurrentCredits =
-    Map<PlanDimension, CurrentConsumptionBillingPeriod> 
+type ApplicationInternalMeterName = string // A meter name used between app and aggregator
 
-type UsageEventDefinition =
+type InternalMetersMapping = // The mapping table used by the aggregator to translate an ApplicationInternalMeterName to the plan and dimension configured in Azure marketplace
+    Map<ApplicationInternalMeterName, PlanDimension>
+
+type CurrentCredits =
+    Map<ApplicationInternalMeterName, CurrentConsumptionBillingPeriod> 
+
+type UsageEvent = // From app to aggregator
+    { Timestamp: DateTime
+      MeterName: ApplicationInternalMeterName
+      Quantity: Quantity
+      Properties: Map<string, string> option}
+      
+type UsageEventDefinition = // From aggregator to metering API
     { ResourceId: string 
       Quantity: double 
       PlanDimension: PlanDimension
@@ -122,6 +125,7 @@ type UsageEventDefinition =
 type CurrentBillingState =
     { Plans: Plan seq
       InitialPurchase: PlanPurchaseInformation
+      InternalMetersMapping: InternalMetersMapping
       CurrentCredits: CurrentCredits
       UsageToBeReported: UsageEventDefinition list
       LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace API
@@ -143,10 +147,9 @@ module BusinessLogic =
         Option.bind (deduct event) current
 
     let applyUsageEvent (current: CurrentBillingState) (event: UsageEvent) : CurrentBillingState =
-
         let newCredits = 
             current.CurrentCredits
-            |> Map.change { PlanId = event.PlanId; DimensionId = event.DimensionId } (applyConsumption event)
+            |> Map.change event.MeterName (applyConsumption event)
             
         { current 
             with CurrentCredits = newCredits}
