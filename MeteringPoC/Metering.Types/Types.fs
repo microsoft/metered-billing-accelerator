@@ -109,22 +109,38 @@ type CurrentBillingState =
       CurrentCredits: CurrentCredits }
 
 module BusinessLogic =
-    let deduct (q: Quantity) (c: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
-        match c with
-        | RemainingQuantity(rq) -> 
-            if (rq > q)
-            then RemainingQuantity(rq - q)
-            else ConsumedQuantity(q - rq)
-        | ConsumedQuantity(cc) -> 
-            ConsumedQuantity(cc + q)
+    let deduct (reported: Quantity) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
+        let inspect msg a =
+            printf "%s: %A | " msg a
+            a
+        let inspectn msg a =
+            printfn "%s: %A" msg a
+            a
+
+        reported
+        |> inspect "reported"
+        |> ignore
+
+        state
+        |> inspect "before"
+        |> function
+            | RemainingQuantity(remaining) -> 
+                if remaining > reported 
+                then RemainingQuantity(remaining - reported)
+                else ConsumedQuantity(reported - remaining)
+            | ConsumedQuantity(consumed) ->
+                ConsumedQuantity(consumed + reported)
+        |> inspectn "after"
         |> Some
     
     let applyConsumption (amount: Quantity) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
         Option.bind (deduct amount) current
 
     let applyUsageEvent (current: CurrentBillingState) (event: UsageEvent) : CurrentBillingState =
+
         let newCredits = 
-            current.CurrentCredits |> Map.change event.Dimension (applyConsumption event.Quantity)
+            current.CurrentCredits
+            |> Map.change event.Dimension (applyConsumption event.Quantity)
             
         { current 
             with CurrentCredits = newCredits}
