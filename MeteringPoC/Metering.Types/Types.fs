@@ -63,7 +63,7 @@ type BillingDimension =
     { DimensionIdentifier: DimensionIdentifier
       DimensionName: string 
       UnitOfMeasure: UnitOfMeasure
-      IncludedQuantityMonthly: IncludedQuantityMonthly }
+      IncludedQuantityMonthly: IncludedQuantityMonthly option }
 
 type MeteredBillingSingleUsageEvent =
     { ResourceID: string // unique identifier of the resource against which usage is emitted. 

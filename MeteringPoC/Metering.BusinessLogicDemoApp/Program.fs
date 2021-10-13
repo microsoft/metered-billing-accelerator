@@ -20,13 +20,37 @@ let main argv =
                 DimensionIdentifier = "MachineLearningJob"
                 DimensionName = "An expensive machine learning job" 
                 UnitOfMeasure = "machine learning jobs"
-                IncludedQuantityMonthly = 10UL
+                IncludedQuantityMonthly = Some 10UL
             }
             { 
                 DimensionIdentifier = "EMailCampaign"
                 DimensionName = "An e-mail sent for campaign usage" 
                 UnitOfMeasure = "e-mails"
-                IncludedQuantityMonthly = 250_000UL
+                IncludedQuantityMonthly = Some 250_000UL
+            }
+            {
+                DimensionIdentifier = "nodecharge"
+                DimensionName = "Per Node Connected"
+                UnitOfMeasure = "node/hour"
+                IncludedQuantityMonthly = None
+            }
+            {
+                DimensionIdentifier = "cpucharge"
+                DimensionName = "Per CPU urage"
+                UnitOfMeasure = "cpu/hour"
+                IncludedQuantityMonthly = None
+            }
+            {
+                DimensionIdentifier = "datasourcecharge"
+                DimensionName = "Per DataSource Integration"
+                UnitOfMeasure = "ds/hour"
+                IncludedQuantityMonthly = None
+            }
+            {
+                DimensionIdentifier = "messagecharge"
+                DimensionName = "Per Message Transmitted"
+                UnitOfMeasure = "message/hour"
+                IncludedQuantityMonthly = None
             }
         ]
     }
