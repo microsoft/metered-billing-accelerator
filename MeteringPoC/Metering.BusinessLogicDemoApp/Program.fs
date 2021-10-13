@@ -45,8 +45,8 @@ let parsePlans planStrings =
     |> Seq.map(fun (planid, billingDims) -> { PlanId = planid; BillingDimensions = billingDims })
 
 let parseUsageEvents events =
-    let parseUsageEvent (s: string) : UsageEvent option =
-        let parseDate (p: string) : DateTime =
+    let parseUsageEvent (s: string) =
+        let parseDate (p: string) =
             DateTime.ParseExact(p, [|"yyyy-MM-dd--HH-mm-ss"|], CultureInfo.CurrentCulture, DateTimeStyles.AssumeUniversal)
 
         let parseProps (p: string) =

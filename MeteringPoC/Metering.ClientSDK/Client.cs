@@ -12,7 +12,7 @@
         {
             await Task.Delay(1);
 
-            UsageEvent _ = new(
+            InternalUsageEvent _ = new(
                 timestamp: DateTime.UtcNow, 
                 meterName: "meter1",
                 quantity: 2,

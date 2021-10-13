@@ -110,7 +110,7 @@ type InternalMetersMapping = // The mapping table used by the aggregator to tran
 type CurrentCredits =
     Map<ApplicationInternalMeterName, CurrentConsumptionBillingPeriod> 
 
-type UsageEvent = // From app to aggregator
+type InternalUsageEvent = // From app to aggregator
     { Timestamp: DateTime
       MeterName: ApplicationInternalMeterName
       Quantity: Quantity
@@ -123,15 +123,17 @@ type UsageEventDefinition = // From aggregator to metering API
       EffectiveStartTime: DateTime }
     
 type CurrentBillingState =
-    { Plans: Plan seq
-      InitialPurchase: PlanPurchaseInformation
-      InternalMetersMapping: InternalMetersMapping
-      CurrentCredits: CurrentCredits
-      UsageToBeReported: UsageEventDefinition list
-      LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace API
+    {
+        Plans: Plan seq // The list of all plans. Certainly not needed in the aggregator?
+        InitialPurchase: PlanPurchaseInformation // The purchase information of the subscription
+        InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
+        CurrentCredits: CurrentCredits // The current values in the aggregator
+        UsageToBeReported: UsageEventDefinition list // a list of usage elements which hasn't been reported yet to the metering API
+        LastProcessedMessage: MessagePosition // Pending HTTP calls to the marketplace API
+    } 
 
 module BusinessLogic =
-    let deduct ({ Quantity = reported}: UsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
+    let deduct ({ Quantity = reported}: InternalUsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
 
         state
         |> function
@@ -143,10 +145,10 @@ module BusinessLogic =
                 ConsumedQuantity({ Quantity = consumed.Quantity + reported })
         |> Some
     
-    let applyConsumption (event: UsageEvent) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
+    let applyConsumption (event: InternalUsageEvent) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
         Option.bind (deduct event) current
 
-    let applyUsageEvent (current: CurrentBillingState) (event: UsageEvent) : CurrentBillingState =
+    let applyUsageEvent (current: CurrentBillingState) (event: InternalUsageEvent) : CurrentBillingState =
         let newCredits = 
             current.CurrentCredits
             |> Map.change event.MeterName (applyConsumption event)
@@ -154,6 +156,6 @@ module BusinessLogic =
         { current 
             with CurrentCredits = newCredits}
 
-    let applyUsageEvents (state: CurrentBillingState) (usageEvents: UsageEvent list) : CurrentBillingState =
+    let applyUsageEvents (state: CurrentBillingState) (usageEvents: InternalUsageEvent list) : CurrentBillingState =
         usageEvents |> List.fold applyUsageEvent state
 
