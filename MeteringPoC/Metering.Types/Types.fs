@@ -50,7 +50,7 @@ type IntOrFloat =
     
 type PlanId = string
 
-type DimensionIdentifier = string
+type DimensionId = string
 
 type UnitOfMeasure = string
 
@@ -60,7 +60,7 @@ type IncludedQuantityAnnually = Quantity
 
 // https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
 type BillingDimension =
-    { DimensionIdentifier: DimensionIdentifier
+    { DimensionId: DimensionId
       DimensionName: string 
       UnitOfMeasure: UnitOfMeasure
       IncludedQuantityMonthly: IncludedQuantityMonthly option }
@@ -68,7 +68,7 @@ type BillingDimension =
 type MeteredBillingSingleUsageEvent =
     { ResourceID: string // unique identifier of the resource against which usage is emitted. 
       Quantity: IntOrFloat // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
-      Dimension: DimensionIdentifier // custom dimension identifier
+      DimensionId: DimensionId // custom dimension identifier
       EffectiveStartTime: DateTime // time in UTC when the usage event occurred, from now and until 24 hours back
       PlanId: PlanId } // id of the plan purchased for the offer
     
@@ -85,7 +85,7 @@ type Plans =
 type UsageEvent =
     { Timestamp: DateTime
       PlanId: PlanId
-      DimensionIdentifier: DimensionIdentifier      
+      DimensionId: DimensionId      
       Quantity: Quantity
       Properties: Map<string, string> option}
 
@@ -106,7 +106,7 @@ type CurrentConsumptionBillingPeriod =
 
 type PlanDimension =
     { PlanId: PlanId
-      DimensionIdentifier: DimensionIdentifier }
+      DimensionId: DimensionId }
 
 type CurrentCredits =
     Map<PlanDimension, CurrentConsumptionBillingPeriod> 
@@ -148,7 +148,7 @@ module BusinessLogic =
 
         let newCredits = 
             current.CurrentCredits
-            |> Map.change { PlanId = event.PlanId; DimensionIdentifier = event.DimensionIdentifier } (applyConsumption event.Quantity)
+            |> Map.change { PlanId = event.PlanId; DimensionId = event.DimensionId } (applyConsumption event.Quantity)
             
         { current 
             with CurrentCredits = newCredits}

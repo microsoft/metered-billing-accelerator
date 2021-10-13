@@ -24,14 +24,14 @@ let parsePlans planStrings =
         |> function
             | [planId; dimensionId; name; unitOfMeasure; includedQuantity] -> 
                 (planId, {
-                    DimensionIdentifier = dimensionId
+                    DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
                     IncludedQuantityMonthly = includedQuantity |> parseQuantity
                 })
             | [planId; dimensionId; name; unitOfMeasure] -> 
                 (planId, {
-                    DimensionIdentifier = dimensionId
+                    DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
                     IncludedQuantityMonthly = None
@@ -67,17 +67,17 @@ let parseUsageEvents events =
         |> function
             | [datestr; planId; name; amountstr; props] -> 
                 Some {
-                    PlanId = planId
-                    DimensionIdentifier = name
                     Timestamp = datestr |> parseDate
+                    PlanId = planId
+                    DimensionId = name
                     Quantity = amountstr |> UInt64.Parse
                     Properties = props |> parseProps
                 }
             | [datestr; planId; name; amountstr] -> 
                 Some {
-                    PlanId = planId
-                    DimensionIdentifier = name
                     Timestamp = datestr |> parseDate
+                    PlanId = planId
+                    DimensionId = name
                     Quantity = amountstr |> UInt64.Parse
                     Properties = None
                 }
@@ -105,8 +105,8 @@ let main argv =
             PurchaseTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromHours(26.0)) }
         CurrentCredits =
             [
-                ({ PlanId = "plan2"; DimensionIdentifier = "EMailCampaign" }, ConsumedQuantity(100UL))
-                ({ PlanId = "plan2"; DimensionIdentifier = "MachineLearningJob"}, RemainingQuantity(10UL))
+                ({ PlanId = "plan2"; DimensionId = "EMailCampaign" }, ConsumedQuantity(100UL))
+                ({ PlanId = "plan2"; DimensionId = "MachineLearningJob"}, RemainingQuantity(10UL))
             ] |> Map.ofList
     }
 

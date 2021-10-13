@@ -15,7 +15,7 @@
             UsageEvent _ = new(
                 timestamp: DateTime.UtcNow,
                 planId: "someplan",
-                dimensionIdentifier: "dimension",
+                dimensionId: "dimension",
                 quantity: 2,
                 properties: FSharpOption<FSharpMap<string, string>>.None);
         }
