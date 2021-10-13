@@ -48,7 +48,7 @@ type IntOrFloat =
     | Int of uint64
     | Float of float
     
-type PlanID = string
+type PlanId = string
 
 type DimensionIdentifier = string
 
@@ -70,38 +70,46 @@ type MeteredBillingSingleUsageEvent =
       Quantity: IntOrFloat // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
       Dimension: DimensionIdentifier // custom dimension identifier
       EffectiveStartTime: DateTime // time in UTC when the usage event occurred, from now and until 24 hours back
-      PlanID: PlanID } // id of the plan purchased for the offer
+      PlanId: PlanId } // id of the plan purchased for the offer
     
 type MeteredBillingBatchUsageEvent = 
     MeteredBillingSingleUsageEvent seq
 
 type Plan =
-    { Id: PlanID
+    { PlanId: PlanId
       BillingDimensions: BillingDimension seq }
 
 type Plans = 
     Plan seq
 
 type UsageEvent =
-    { PlanID: PlanID
-      Timestamp: DateTime
-      Dimension: DimensionIdentifier
+    { Timestamp: DateTime
+      PlanId: PlanId
+      DimensionIdentifier: DimensionIdentifier      
       Quantity: Quantity
       Properties: Map<string, string> option}
 
 type PlanPurchaseInformation =
-    { PlanId: PlanID 
+    { PlanId: PlanId 
       PurchaseTimestamp: DateTime }
 
 type RemainingQuantity = Quantity
+
 type ConsumedQuantity = Quantity
 
 type CurrentConsumptionBillingPeriod =
     | RemainingQuantity of RemainingQuantity
     | ConsumedQuantity of ConsumedQuantity
 
+//type BillingPeriod =
+    
+
+type PlanDimension =
+    { PlanId: PlanId
+      DimensionIdentifier: DimensionIdentifier }
+
 type CurrentCredits =
-    Map<DimensionIdentifier, CurrentConsumptionBillingPeriod> 
+    Map<PlanDimension, CurrentConsumptionBillingPeriod> 
 
 type CurrentBillingState =
     { Plans: Plans
@@ -140,7 +148,7 @@ module BusinessLogic =
 
         let newCredits = 
             current.CurrentCredits
-            |> Map.change event.Dimension (applyConsumption event.Quantity)
+            |> Map.change { PlanId = event.PlanId; DimensionIdentifier = event.DimensionIdentifier } (applyConsumption event.Quantity)
             
         { current 
             with CurrentCredits = newCredits}

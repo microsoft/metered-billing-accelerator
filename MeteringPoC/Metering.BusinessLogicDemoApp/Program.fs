@@ -13,7 +13,7 @@ open System.Globalization
 // - Once "included widgets" for current billing period are consumed, start counting hourly
 
 let parsePlans planStrings =
-    let parseBillingDimension (s: string) : PlanID * BillingDimension =
+    let parseBillingDimension (s: string) : PlanId * BillingDimension =
         let parseQuantity(p: string) : IncludedQuantityMonthly option =
             UInt64.Parse(p)
             |> Some
@@ -42,7 +42,7 @@ let parsePlans planStrings =
     |> Seq.map parseBillingDimension
     |> Seq.groupBy(fun (plan, _) -> plan)
     |> Seq.map(fun (plan, elems) -> (plan, (elems |> Seq.map(fun (p, e) -> e) ) ))
-    |> Seq.map(fun (planid, billingDims) -> { Id = planid; BillingDimensions = billingDims })
+    |> Seq.map(fun (planid, billingDims) -> { PlanId = planid; BillingDimensions = billingDims })
 
 let parseUsageEvents events =
     let parseUsageEvent (s: string) : UsageEvent option =
@@ -65,18 +65,18 @@ let parseUsageEvents events =
         |> Array.toList
         |> List.map (fun s -> s.Trim())
         |> function
-            | [datestr; plan; name; amountstr; props] -> 
+            | [datestr; planId; name; amountstr; props] -> 
                 Some {
-                    PlanID = plan
-                    Dimension = name
+                    PlanId = planId
+                    DimensionIdentifier = name
                     Timestamp = datestr |> parseDate
                     Quantity = amountstr |> UInt64.Parse
                     Properties = props |> parseProps
                 }
-            | [datestr; plan; name; amountstr] -> 
+            | [datestr; planId; name; amountstr] -> 
                 Some {
-                    PlanID = plan
-                    Dimension = name
+                    PlanId = planId
+                    DimensionIdentifier = name
                     Timestamp = datestr |> parseDate
                     Quantity = amountstr |> UInt64.Parse
                     Properties = None
@@ -96,29 +96,26 @@ let main argv =
             "plan1 | messagecharge      | Per Message Transmitted           | message/hour"
             "plan2 | MachineLearningJob | An expensive machine learning job | machine learning jobs | 10"
             "plan2 | EMailCampaign      | An e-mail sent for campaign usage | e-mails               | 250000"
-        ]
-        
-    let usageEvents = 
-        [
-            "2021-10-13--14-12-02 | plan2 | MachineLearningJob |   1 | Department=Data Science, Project ID=Skunkworks vNext"
-            "2021-10-13--15-12-02 | plan2 | MachineLearningJob |   2                                                       "
-            "2021-10-13--15-13-02 | plan2 | EMailCampaign      | 300 | Email Campaign=User retention, Department=Marketing "
-        ]
+        ] |> parsePlans
         
     let oldBalance  = {
-        Plans = plans |> parsePlans
+        Plans = plans
         InitialPurchase = {
             PlanId = "plan2"
             PurchaseTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromHours(26.0)) }
         CurrentCredits =
             [
-                ("EMailCampaign", ConsumedQuantity(100UL))
-                ("MachineLearningJob", RemainingQuantity(10UL))
+                ({ PlanId = "plan2"; DimensionIdentifier = "EMailCampaign" }, ConsumedQuantity(100UL))
+                ({ PlanId = "plan2"; DimensionIdentifier = "MachineLearningJob"}, RemainingQuantity(10UL))
             ] |> Map.ofList
     }
 
     let newBalance =
-        usageEvents
+        [
+            "2021-10-13--14-12-02 | plan2 | MachineLearningJob |   1 | Department=Data Science, Project ID=Skunkworks vNext"
+            "2021-10-13--15-12-02 | plan2 | MachineLearningJob |   2                                                       "
+            "2021-10-13--15-13-02 | plan2 | EMailCampaign      | 300 | Email Campaign=User retention, Department=Marketing "
+        ]
         |> parseUsageEvents
         |> BusinessLogic.applyUsageEvents oldBalance 
 
