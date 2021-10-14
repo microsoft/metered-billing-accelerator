@@ -25,6 +25,10 @@ The ARM template under the **templates/sample** folder deploys the following res
 
 ## Deployment ##
 
-You can use the **deploy-infra.sh** script under the **scripts** folder to deploy the infrastructure necessary to run and monitor the solution. The following figure shows the resources deployed by the ARM template in the target resource group.
+You can use the **deploy-infra.sh** script under the **scripts** folder to deploy the infrastructure necessary to run and monitor the solution. The following figure shows the resources deployed by the ARM template in the **MeteringInfraRG** resource group.
 
 ![Resource Group](../images/infra-resource-group.png)
+
+You can use the **deploy-sample.sh** script under the **scripts** folder to deploy the infrastructure necessary to run and monitor the solution. The following figure shows the resources deployed by the ARM template in the **MeteringSampleRG** resource group.
+
+![Resource Group](../images/sample-resource-group.png)
