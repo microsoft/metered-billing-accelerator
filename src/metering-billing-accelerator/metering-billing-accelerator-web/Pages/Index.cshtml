@@ -7,9 +7,20 @@
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
     <p>Learn more about <a href="https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing">Metered Billing<a></p>
-    <button>nodecharge </button>
-    <button>cpucharge </button>
-    <button>datasourcecharge</button>
-    <button>messagecharge</button>
-    <button>objectcharge</button>
+ 
+
+
+
+    <form method="post" asp-page="Index">
+        <input type="submit" value="nodeCharge" asp-page-handler="Work1" />
+        <input type="submit" value="cpuCharge" asp-page-handler="Work2" />
+        <input type="submit" value="dataSourceCharge" asp-page-handler="Work3" />
+        <input type="submit" value="messageCharge" asp-page-handler="Work4" />
+        <input type="submit" value="objectCharge" asp-page-handler="Work5" />
+    </form>
+    <br />
+    @Model.Msg
+
+
 </div>
+
