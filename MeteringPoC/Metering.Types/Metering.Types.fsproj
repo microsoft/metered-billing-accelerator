@@ -6,7 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Types.fs" />
-    <Compile Include="Billing.fs" />
+    <Compile Include="BusinessLogic.fs" />
     <Compile Include="FSharpFuncUtil.fs" />
   </ItemGroup>
   <ItemGroup>

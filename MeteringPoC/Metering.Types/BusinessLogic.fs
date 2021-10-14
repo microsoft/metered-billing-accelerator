@@ -1,39 +1,26 @@
-﻿module Metering.Billing
+﻿namespace Metering
 
 open NodaTime
+open Metering.Types
 
-type BusinessError =
-    | DayBeforeSubscription
-    | NewDateFromPreviousBillingPeriod     
+module PlanRenewalInterval =
+    let duration pre =
+        match pre with
+        | Monthly -> Period.FromMonths(1)
+        | Yearly -> Period.FromYears(1)
 
-type PlanRenewalInterval =
-    | Monthly
-    | Yearly
-
-module PlanRenewalInterval =    
     let add pre (i: uint) =
         match pre with
         | Monthly -> Period.FromMonths(int i)
         | Yearly -> Period.FromYears(int i)
 
-type Subscription =
-    {
-        PlanRenewalInterval: PlanRenewalInterval 
-        SubscriptionStart: LocalDate
-    }
-
 module Subscription =
     let create pri subscriptionStart = 
         { PlanRenewalInterval = pri ; SubscriptionStart = subscriptionStart }
 
-type BillingPeriod =
-    { 
-        FirstDay: LocalDate
-        LastDay: LocalDate
-        Index: uint
-    }
-
 module BillingPeriod =
+    open Metering.Types
+
     let localDateToStr (x: LocalDate) = x.ToString("yyyy-MM-dd", null)
     
     let toString { FirstDay = firstDay; LastDay = lastDay } =        
@@ -47,7 +34,7 @@ module BillingPeriod =
 
     let determineBillingPeriod { SubscriptionStart = subscriptionStart ; PlanRenewalInterval = pri} (day: LocalDate) : Result<BillingPeriod, BusinessError> =
         if subscriptionStart > day 
-        then Error(DayBeforeSubscription)
+        then DayBeforeSubscription |> Result.Error
         else 
             let diff = day - subscriptionStart
             let idx = 
@@ -65,10 +52,36 @@ module BillingPeriod =
     let getBillingPeriodDelta(subscription: Subscription) (previous: LocalDate) (current: LocalDate) : Result<uint, BusinessError> =
         let check = determineBillingPeriod subscription
         match (check previous, check current) with
-            | (Error(e), _) -> Error(e) 
-            | (_, Error(e)) -> Error(e)
+            | (Result.Error(e), _) -> Result.Error(e) 
+            | (_, Result.Error(e)) -> Result.Error(e)
             | Ok(p), Ok(c) -> 
                 match (p,c) with
                     | (p,c) when p <= c -> Ok(c.Index - p.Index)
-                    | _ -> Error(NewDateFromPreviousBillingPeriod)
+                    | _ -> Result.Error(NewDateFromPreviousBillingPeriod)
+
+module BusinessLogic =
+    let deduct ({ Quantity = reported}: InternalUsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
+        state
+        |> function
+            | IncludedQuantity ({ Quantity = remaining}) -> 
+                if remaining > reported
+                then IncludedQuantity ({ Quantity = remaining - reported})
+                else ConsumedQuantity({ Quantity = reported - remaining})
+            | ConsumedQuantity(consumed) ->
+                ConsumedQuantity({ Quantity = consumed.Quantity + reported })
+        |> Some
+
+    let applyConsumption (event: InternalUsageEvent) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
+        Option.bind (deduct event) current
+
+    let applyUsageEvent (current: CurrentBillingState) (event: InternalUsageEvent) : CurrentBillingState =
+        let newCredits = 
+            current.CurrentCredits
+            |> Map.change event.MeterName (applyConsumption event)
+        
+        { current 
+            with CurrentCredits = newCredits}
+
+    let applyUsageEvents (state: CurrentBillingState) (usageEvents: InternalUsageEvent list) : CurrentBillingState =
+        usageEvents |> List.fold applyUsageEvent state
 

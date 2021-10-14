@@ -6,10 +6,9 @@
     using System;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using static Types;
+    using Types;
 
     public class EventHubObservableClient
     {

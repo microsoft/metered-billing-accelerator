@@ -3,7 +3,8 @@ module Metering.NUnitTests.Billing
 open System
 open NUnit.Framework
 open NodaTime
-open Metering.Billing
+open Metering
+open Metering.Types
 
 [<SetUp>]
 let Setup () =

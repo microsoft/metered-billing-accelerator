@@ -3,11 +3,11 @@
     using Azure.Messaging.EventHubs.Consumer;
     using Azure.Messaging.EventHubs.Processor;
     using Azure.Storage.Blobs;
-    using Metering.Messaging;
-    using static Metering.Types;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using Messaging;
+    using Types;
 
     class ObservableProcessorProgram
     { 

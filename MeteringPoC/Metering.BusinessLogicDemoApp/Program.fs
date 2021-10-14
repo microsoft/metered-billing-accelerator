@@ -1,6 +1,7 @@
 ﻿open System
 open Metering.Types
 open System.Globalization
+open Metering
 
 // Plan
 // - Containing information about how many widgets are included per month

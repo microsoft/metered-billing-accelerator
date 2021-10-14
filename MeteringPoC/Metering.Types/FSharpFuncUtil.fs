@@ -1,4 +1,4 @@
-﻿namespace Mercury.Fundamentals
+﻿namespace Metering
 
 open System
 open System.Collections.Generic

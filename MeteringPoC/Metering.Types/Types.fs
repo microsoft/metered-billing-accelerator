@@ -1,12 +1,16 @@
-﻿module Metering.Types
+﻿namespace Metering.Types
 
 open System
-open NodaTime
 open Azure.Core
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
+open NodaTime
+
+type BusinessError =
+    | DayBeforeSubscription
+    | NewDateFromPreviousBillingPeriod     
 
 type SequenceNumber = SequenceNumber of uint64
 
@@ -84,14 +88,6 @@ type Plan =
 type PlanRenewalInterval =
     | Monthly
     | Yearly
-    | Custom of TimeSpan
-
-module PlanRenewalInterval =
-    let duration pre =
-        match pre with
-        | Monthly -> Period.FromMonths(1)
-        | Yearly -> Period.FromYears(1)
-        | Custom(x) -> Period.FromSeconds(int64 x.TotalSeconds)
 
 type PlanPurchaseInformation =
     { PlanId: PlanId 
@@ -144,29 +140,15 @@ type CurrentBillingState =
         LastProcessedMessage: MessagePosition // Pending HTTP calls to the marketplace API
     } 
 
-module BusinessLogic =
-    let deduct ({ Quantity = reported}: InternalUsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
-        state
-        |> function
-            | IncludedQuantity ({ Quantity = remaining}) -> 
-                if remaining > reported
-                then IncludedQuantity ({ Quantity = remaining - reported})
-                else ConsumedQuantity({ Quantity = reported - remaining})
-            | ConsumedQuantity(consumed) ->
-                ConsumedQuantity({ Quantity = consumed.Quantity + reported })
-        |> Some
-    
-    let applyConsumption (event: InternalUsageEvent) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
-        Option.bind (deduct event) current
+type Subscription =
+    {
+        PlanRenewalInterval: PlanRenewalInterval 
+        SubscriptionStart: LocalDate
+    }
 
-    let applyUsageEvent (current: CurrentBillingState) (event: InternalUsageEvent) : CurrentBillingState =
-        let newCredits = 
-            current.CurrentCredits
-            |> Map.change event.MeterName (applyConsumption event)
-            
-        { current 
-            with CurrentCredits = newCredits}
-
-    let applyUsageEvents (state: CurrentBillingState) (usageEvents: InternalUsageEvent list) : CurrentBillingState =
-        usageEvents |> List.fold applyUsageEvent state
-
+type BillingPeriod =
+    { 
+        FirstDay: LocalDate
+        LastDay: LocalDate
+        Index: uint
+    }
