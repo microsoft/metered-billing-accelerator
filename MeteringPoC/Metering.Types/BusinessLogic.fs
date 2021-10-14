@@ -86,8 +86,17 @@ module MeterValue =
                             then IncludedQuantity({ Annual =  Some { Quantity = remainingAnnually - deductFromAnnual }; Monthly = None })
                             else ConsumedQuantity({ Quantity = (deductFromAnnual - remainingAnnually) } )
 
-    //let topupMonthlyCredits (reported: Quantity) (meterValue: MeterValue) : MeterValue =
-
+    let topupMonthlyCredits (quantity: Quantity) (pri: PlanRenewalInterval) (meterValue: MeterValue) : MeterValue =
+        match meterValue with 
+        | (ConsumedQuantity(_)) -> 
+            match pri with
+                | Monthly -> IncludedQuantity { Annual = None; Monthly = Some { Quantity = quantity } }
+                | Yearly -> IncludedQuantity { Annual = Some { Quantity = quantity }; Monthly = None } 
+        | (IncludedQuantity(m)) -> 
+            match pri with
+                | Monthly -> IncludedQuantity { m with Monthly = Some { Quantity = quantity } }
+                | Yearly -> IncludedQuantity { m with Annual = Some { Quantity = quantity } }
+                                   
 
 module BusinessLogic =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =

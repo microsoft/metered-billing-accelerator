@@ -142,3 +142,26 @@ let Test_MeterValue_deduct() =
     ] 
     |> List.map(fun { State=state; Quantity=quantity; Expected=expected} -> Assert.AreEqual(expected, MeterValue.deduct state quantity))
     |> ignore
+
+
+type MeterValue_topupMonthlyCredits_Vector = { Meter: MeterValue; Quantity: Quantity; PlanRenewalInterval: PlanRenewalInterval; Expected: MeterValue}
+
+[<Test>]
+let Test_MeterValue_topupMonthlyCredits() =
+    [
+        {
+            Meter = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = None } 
+            Quantity = 9UL
+            PlanRenewalInterval = Monthly
+            Expected = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 9UL } } 
+        }
+        {
+            Meter = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 2UL }  } 
+            Quantity = 9UL
+            PlanRenewalInterval = Monthly
+            Expected = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 9UL } } 
+        }
+    ]
+    |> List.map(fun { Quantity=q; PlanRenewalInterval=p; Meter=m; Expected=expected} -> 
+        Assert.AreEqual(expected, MeterValue.topupMonthlyCredits q p m))
+    |> ignore
