@@ -1,10 +1,14 @@
 on:
   workflow_dispatch:
     inputs:
-      name:
+      username:
         description: 'Name of the user that starts the workflow'
         required: true
         default: 'Paolo Salvatori'
+    location:
+        description: 'Azure region where deploy resources'
+        required: true
+        default: 'WestEurope'
 
 name: Metering Sample ARM Template Deployment
 jobs:
@@ -14,7 +18,7 @@ jobs:
 
       # Print user name
     - run: |
-        echo "Workflow started by ${{ github.event.inputs.logLevel }}"
+        echo "Workflow started by ${{ github.event.inputs.username }}"
 
       # Checkout code
     - uses: actions/checkout@main
@@ -25,13 +29,13 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       # Deploy ARM template
-    - name: Run ARM deploy
+    - name: deploy
       uses: azure/arm-deploy@v1
       with:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
         resourceGroupName: ${{ secrets.AZURE_SAMPLE_RG }}
         template: ./arm/templates/sample/azuredeploy.json
-        parameters: location=WestEurope
+        parameters: ./arm/template/sample/azuredeploy.parameters.json location=${{ github.event.inputs.location }}
 
       # output containerName variable from template
     - run: echo "WebAppName=${{ steps.deploy.outputs.webAppName }}"
