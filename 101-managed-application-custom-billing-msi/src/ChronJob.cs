@@ -43,7 +43,7 @@ namespace ManagedWebhook
             ILogger log,
             ExecutionContext context)
         {
-            log.LogCritical("Fuuuck");
+     
             Config config = GetAppConfig(context);
             log.LogTrace($"Dimension configs: {JsonConvert.SerializeObject(config.Dimensions)}");
 
