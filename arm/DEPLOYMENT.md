@@ -33,6 +33,8 @@ You can use the **deploy-sample.sh** script under the **scripts** folder to depl
 
 ![Resource Group](../images/sample-resource-group.png)
 
+## GitHub Actions Workflows ##
+
 You can even use the GitHub Actions workflows under the **github/workflows** folder to deploy both the **MeteringInfraRG** and **MeteringSampleRG** resource groups. For more information on how to deploy ARM templates using GitHub Actions, see the following resources:
 
 - [Deploy ARM templates by using GitHub Actions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-github-actions)
