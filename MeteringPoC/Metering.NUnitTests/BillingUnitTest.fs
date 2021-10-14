@@ -29,7 +29,7 @@ let bp (s: string) : BillingPeriod =
 
 [<Test>]
 let Test_BillingPeriod_createFromIndex () =
-    let sub = Subscription.create Monthly (LocalDate(2021, 5, 13))
+    let sub = Subscription.create Monthly (d "2021-05-13")
           
     Assert.AreEqual(
         (bp "2|2021-07-13|2021-08-12"),
@@ -37,17 +37,28 @@ let Test_BillingPeriod_createFromIndex () =
 
 [<Test>]
 let Test_Subscription_determineBillingPeriod () =
-    let subscriptionStart = d "2021-05-13"
-    let monthlySub = Subscription.create Monthly subscriptionStart
-    let yearlySub = Subscription.create Yearly subscriptionStart
-
-    let vectors : (Subscription * Result<BillingPeriod, BusinessError> * LocalDate) list= [
-        (monthlySub, Error(DayBeforeSubscription), (LocalDate(2021, 1, 1)))
-        (monthlySub, Ok(bp "0|2021-05-13|2021-06-12"), (d "2021-05-30"))
-        (monthlySub, Ok(bp "2|2021-07-13|2021-08-12"), (d "2021-08-01"))
-        (yearlySub,  Ok(bp "0|2021-05-13|2022-05-12"), (d "2021-08-01"))
-        (yearlySub,  Ok(bp "1|2022-05-13|2023-05-12"), (d "2022-08-01"))
+    let vectors = [
+        (Monthly, "2021-05-13", "0|2021-05-13|2021-06-12", "2021-05-30")
+        (Monthly, "2021-05-13", "2|2021-07-13|2021-08-12", "2021-08-01")
+        (Yearly,  "2021-05-13", "0|2021-05-13|2022-05-12", "2021-08-01")
+        (Yearly,  "2021-05-13", "1|2022-05-13|2023-05-12", "2022-08-01")
     ]
 
-    for (sub, expected, input) in vectors do
-        Assert.AreEqual(expected, Subscription.determineBillingPeriod sub input);
+    for (interval, startStr, billingPeriodStr, inputStr) in vectors do
+        let startDate = d startStr
+        let dateToCheck = d inputStr
+        let sub = Subscription.create interval startDate
+        let expected : Result<BillingPeriod, BusinessError> = Ok(bp billingPeriodStr)
+        let compute = Subscription.determineBillingPeriod sub dateToCheck
+        Assert.AreEqual(expected, compute);
+
+[<Test>]
+let Test_BillingPeriod_isInBillingPeriod () =
+    let sub = Subscription.create Monthly (d "2021-05-13")
+    let bp = BillingPeriod.createFromIndex sub 
+    Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-08-13"))
+    Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-08-15"))
+    Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-09-12"))
+    Assert.IsFalse(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-09-13"))
+    Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 4u) (d "2021-09-13"))
+    
