@@ -89,10 +89,12 @@ type PlanRenewalInterval =
     | Monthly
     | Yearly
 
-type PlanPurchaseInformation =
-    { PlanId: PlanId 
-      PurchaseTimestamp: DateTime // The point of initial activation
-      PlanRenewalInterval: PlanRenewalInterval }
+type Subscription = // When a certain plan was purchased
+    { PlanId: PlanId
+      PlanRenewalInterval: PlanRenewalInterval 
+      SubscriptionStart: LocalDate }
+
+
 
 type IncludedQuantity  = 
     { Quantity: Quantity }
@@ -133,18 +135,14 @@ type UsageEventDefinition = // From aggregator to metering API
 type CurrentBillingState =
     {
         Plans: Plan seq // The list of all plans. Certainly not needed in the aggregator?
-        InitialPurchase: PlanPurchaseInformation // The purchase information of the subscription
+        InitialPurchase: Subscription // The purchase information of the subscription
         InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
         CurrentCredits: CurrentCredits // The current values in the aggregator
         UsageToBeReported: UsageEventDefinition list // a list of usage elements which hasn't been reported yet to the metering API
         LastProcessedMessage: MessagePosition // Pending HTTP calls to the marketplace API
     } 
 
-type Subscription =
-    {
-        PlanRenewalInterval: PlanRenewalInterval 
-        SubscriptionStart: LocalDate
-    }
+
 
 type BillingPeriod =
     { 

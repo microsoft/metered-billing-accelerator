@@ -29,7 +29,8 @@ let bp (s: string) : BillingPeriod =
 
 [<Test>]
 let Test_BillingPeriod_createFromIndex () =
-    let sub = Subscription.create Monthly (d "2021-05-13")
+    let sub = Subscription.create "planId" Monthly (d "2021-05-13") 
+
           
     Assert.AreEqual(
         (bp "2|2021-07-13|2021-08-12"),
@@ -47,14 +48,14 @@ let Test_Subscription_determineBillingPeriod () =
     for (interval, startStr, billingPeriodStr, inputStr) in vectors do
         let startDate = d startStr
         let dateToCheck = d inputStr
-        let sub = Subscription.create interval startDate
+        let sub = Subscription.create "planId" interval startDate 
         let expected : Result<BillingPeriod, BusinessError> = Ok(bp billingPeriodStr)
         let compute = BillingPeriod.determineBillingPeriod sub dateToCheck
         Assert.AreEqual(expected, compute);
 
 [<Test>]
 let Test_BillingPeriod_isInBillingPeriod () =
-    let sub = Subscription.create Monthly (d "2021-05-13")
+    let sub = Subscription.create "planId" Monthly (d "2021-05-13") 
     let bp = BillingPeriod.createFromIndex sub 
     Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-08-13"))
     Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-08-15"))
@@ -69,7 +70,7 @@ let Test_BillingPeriod_isNewBillingPeriod () =
         let computed = BillingPeriod.getBillingPeriodDelta sub (d previous) (d current)
         Assert.IsTrue((expected = computed))
 
-    let sub = "2021-05-13" |> d |> Subscription.create Monthly 
+    let sub = "2021-05-13" |> d |> Subscription.create "planId" Monthly 
     check sub 0u "2021-05-13" "2021-05-13" // on start day
     check sub 0u "2021-08-13" "2021-08-15" // same period
     check sub 0u "2021-08-17" "2021-09-12" // same period

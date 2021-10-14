@@ -15,8 +15,8 @@ module PlanRenewalInterval =
         | Yearly -> Period.FromYears(int i)
 
 module Subscription =
-    let create pri subscriptionStart = 
-        { PlanRenewalInterval = pri ; SubscriptionStart = subscriptionStart }
+    let create planId pri subscriptionStart = 
+        { PlanRenewalInterval = pri ; SubscriptionStart = subscriptionStart ; PlanId = planId }
 
 module BillingPeriod =
     open Metering.Types
@@ -26,25 +26,24 @@ module BillingPeriod =
     let toString { FirstDay = firstDay; LastDay = lastDay } =        
         sprintf "%s--%s" (localDateToStr firstDay) (localDateToStr lastDay)
 
-    let createFromIndex ({ SubscriptionStart = subscriptionStart ; PlanRenewalInterval = pri} : Subscription) (n: uint) : BillingPeriod =
-        let periods : (uint -> Period) = PlanRenewalInterval.add pri
-        { FirstDay = subscriptionStart + (periods (n))
-          LastDay = subscriptionStart + (periods (n+1u)) - Period.FromDays(1)
+    let createFromIndex (subscription : Subscription) (n: uint) : BillingPeriod =
+        let periods : (uint -> Period) = PlanRenewalInterval.add subscription.PlanRenewalInterval
+        { FirstDay = subscription.SubscriptionStart + (periods (n))
+          LastDay = subscription.SubscriptionStart + (periods (n+1u)) - Period.FromDays(1)
           Index = n }
 
-    let determineBillingPeriod { SubscriptionStart = subscriptionStart ; PlanRenewalInterval = pri} (day: LocalDate) : Result<BillingPeriod, BusinessError> =
-        if subscriptionStart > day 
+    let determineBillingPeriod (subscription : Subscription) (day: LocalDate) : Result<BillingPeriod, BusinessError> =
+        if subscription.SubscriptionStart > day 
         then DayBeforeSubscription |> Result.Error
         else 
-            let diff = day - subscriptionStart
+            let diff = day - subscription.SubscriptionStart
             let idx = 
-                match pri with
+                match subscription.PlanRenewalInterval with
                     | Monthly -> diff.Years * 12 + diff.Months
                     | Yearly -> diff.Years
                 |> uint
 
-            createFromIndex { SubscriptionStart = subscriptionStart ; PlanRenewalInterval = pri} idx 
-            |> Ok
+            Ok(createFromIndex subscription idx)
     
     let isInBillingPeriod { FirstDay = firstDay; LastDay = lastDay } (day: LocalDate) : bool =
         firstDay <= day && day <= lastDay

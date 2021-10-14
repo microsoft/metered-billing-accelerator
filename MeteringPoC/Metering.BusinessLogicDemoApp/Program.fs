@@ -2,7 +2,7 @@
 open Metering.Types
 open System.Globalization
 open Metering
-
+open NodaTime
 // Plan
 // - Containing information about how many widgets are included per month
 //
@@ -106,7 +106,7 @@ let main argv =
             ] |> Map.ofList
         InitialPurchase = {
             PlanId = "plan2"
-            PurchaseTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromHours(26.0))
+            SubscriptionStart = LocalDate(2021, 10, 01)
             PlanRenewalInterval = Monthly }
         // LastProcessedEventSequenceID = 237492749,
         CurrentCredits =
