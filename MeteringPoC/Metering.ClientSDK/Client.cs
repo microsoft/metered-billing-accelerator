@@ -4,7 +4,7 @@
     using Microsoft.FSharp.Core;
     using System;
     using System.Threading.Tasks;
-    using Types;
+    using static Types;
 
     public class Client
     {

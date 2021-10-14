@@ -1,4 +1,4 @@
-﻿namespace Metering.Types
+﻿module Metering.Types
 
 open System
 open NodaTime
@@ -93,9 +93,6 @@ module PlanRenewalInterval =
         | Yearly -> Period.FromYears(1)
         | Custom(x) -> Period.FromSeconds(int64 x.TotalSeconds)
 
-
-
-
 type PlanPurchaseInformation =
     { PlanId: PlanId 
       PurchaseTimestamp: DateTime // The point of initial activation
@@ -112,8 +109,6 @@ type LastUpdateTimestamp = DateTime
 type CurrentConsumptionBillingPeriod =
     | IncludedQuantity of IncludedQuantity 
     | ConsumedQuantity of ConsumedQuantity
-
-//type BillingPeriod =
    
 type PlanDimension =
     { PlanId: PlanId

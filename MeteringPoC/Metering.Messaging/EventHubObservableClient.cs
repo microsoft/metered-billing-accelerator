@@ -9,7 +9,7 @@
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using Types;
+    using static Types;
 
     public class EventHubObservableClient
     {
