@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31702.278
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "metering-billing-accelerator-web", "metering-billing-accelerator-web\metering-billing-accelerator-web.csproj", "{3A1BE277-9CC9-43BA-B61D-088348C03732}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3A1BE277-9CC9-43BA-B61D-088348C03732}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A1BE277-9CC9-43BA-B61D-088348C03732}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A1BE277-9CC9-43BA-B61D-088348C03732}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A1BE277-9CC9-43BA-B61D-088348C03732}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {6C0FD946-AF72-4D25-9D08-8BE7067976F9}
+	EndGlobalSection
+EndGlobal
