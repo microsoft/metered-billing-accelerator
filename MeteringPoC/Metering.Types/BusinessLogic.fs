@@ -59,7 +59,7 @@ module BillingPeriod =
                     | _ -> Result.Error(NewDateFromPreviousBillingPeriod)
 
 module BusinessLogic =
-    let deduct ({ Quantity = reported}: InternalUsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
+    let deduct ({ Quantity = reported}: InternalUsageEvent) (state: MeterValue) : MeterValue option =
         state
         |> function
             | IncludedQuantity ({ Quantity = remaining}) -> 
@@ -70,16 +70,16 @@ module BusinessLogic =
                 ConsumedQuantity({ Quantity = consumed.Quantity + reported })
         |> Some
 
-    let applyConsumption (event: InternalUsageEvent) (current: CurrentConsumptionBillingPeriod option) : CurrentConsumptionBillingPeriod option =
+    let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =
         Option.bind (deduct event) current
 
     let applyUsageEvent (current: CurrentBillingState) (event: InternalUsageEvent) : CurrentBillingState =
         let newCredits = 
-            current.CurrentCredits
+            current.CurrentMeterValues
             |> Map.change event.MeterName (applyConsumption event)
         
         { current 
-            with CurrentCredits = newCredits}
+            with CurrentMeterValues = newCredits}
 
     let applyUsageEvents (state: CurrentBillingState) (usageEvents: InternalUsageEvent list) : CurrentBillingState =
         usageEvents |> List.fold applyUsageEvent state

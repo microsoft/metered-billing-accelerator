@@ -26,10 +26,6 @@ type SeekPosition =
     | Earliest
     | FromTail
 
-type Message<'payload> =
-    { Payload: 'payload 
-      MessagePosition: MessagePosition }
-
 type EventHubConnectionDetails =
     { Credential: TokenCredential 
       EventHubNamespace: string
@@ -94,20 +90,11 @@ type Subscription = // When a certain plan was purchased
       PlanRenewalInterval: PlanRenewalInterval 
       SubscriptionStart: LocalDate }
 
+type BillingPeriod =
+    { FirstDay: LocalDate
+      LastDay: LocalDate
+      Index: uint }
 
-
-type IncludedQuantity  = 
-    { Quantity: Quantity }
-
-type ConsumedQuantity =
-    { Quantity: Quantity }
-
-type LastUpdateTimestamp = DateTime
-
-type CurrentConsumptionBillingPeriod =
-    | IncludedQuantity of IncludedQuantity 
-    | ConsumedQuantity of ConsumedQuantity
-   
 type PlanDimension =
     { PlanId: PlanId
       DimensionId: DimensionId }
@@ -117,8 +104,16 @@ type ApplicationInternalMeterName = string // A meter name used between app and 
 type InternalMetersMapping = // The mapping table used by the aggregator to translate an ApplicationInternalMeterName to the plan and dimension configured in Azure marketplace
     Map<ApplicationInternalMeterName, PlanDimension>
 
-type CurrentCredits =
-    Map<ApplicationInternalMeterName, CurrentConsumptionBillingPeriod> 
+type IncludedQuantity = { Quantity: Quantity }
+
+type ConsumedQuantity = { Quantity: Quantity }
+
+type MeterValue =
+    | IncludedQuantity of IncludedQuantity 
+    | ConsumedQuantity of ConsumedQuantity
+   
+type CurrentMeterValues =
+    Map<ApplicationInternalMeterName, MeterValue> 
 
 type InternalUsageEvent = // From app to aggregator
     { Timestamp: DateTime
@@ -126,7 +121,7 @@ type InternalUsageEvent = // From app to aggregator
       Quantity: Quantity
       Properties: Map<string, string> option}
       
-type UsageEventDefinition = // From aggregator to metering API
+type MeteringAPIUsageEventDefinition = // From aggregator to metering API
     { ResourceId: string 
       Quantity: double 
       PlanDimension: PlanDimension
@@ -137,16 +132,8 @@ type CurrentBillingState =
         Plans: Plan seq // The list of all plans. Certainly not needed in the aggregator?
         InitialPurchase: Subscription // The purchase information of the subscription
         InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
-        CurrentCredits: CurrentCredits // The current values in the aggregator
-        UsageToBeReported: UsageEventDefinition list // a list of usage elements which hasn't been reported yet to the metering API
+        CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
+        UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which hasn't been reported yet to the metering API
         LastProcessedMessage: MessagePosition // Pending HTTP calls to the marketplace API
     } 
 
-
-
-type BillingPeriod =
-    { 
-        FirstDay: LocalDate
-        LastDay: LocalDate
-        Index: uint
-    }

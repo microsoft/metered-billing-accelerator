@@ -109,7 +109,7 @@ let main argv =
             SubscriptionStart = LocalDate(2021, 10, 01)
             PlanRenewalInterval = Monthly }
         // LastProcessedEventSequenceID = 237492749,
-        CurrentCredits =
+        CurrentMeterValues =
             [
                 ("email", ConsumedQuantity({ Quantity = 100UL }))
                 ("ml", IncludedQuantity({ Quantity = 10UL }))
@@ -138,7 +138,7 @@ let main argv =
 
     //printfn "plan %A" plan
     //printfn "usageEvents %A" usageEvents
-    printfn "oldBalance %A" oldBalance.CurrentCredits
+    printfn "oldBalance %A" oldBalance.CurrentMeterValues
     printfn "newBalance %A" newBalance
 
     //printfn "newBalance %A" (Newtonsoft.Json.JsonConvert.SerializeObject(newBalance))

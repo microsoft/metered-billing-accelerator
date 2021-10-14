@@ -39,8 +39,14 @@ let Test_BillingPeriod_createFromIndex () =
 [<Test>]
 let Test_Subscription_determineBillingPeriod () =
     let vectors = [
+        //           start              // interval          a date in the interval
         (Monthly, "2021-05-13", "0|2021-05-13|2021-06-12", "2021-05-30")
         (Monthly, "2021-05-13", "2|2021-07-13|2021-08-12", "2021-08-01")
+
+        // if I purchase on the 29th of Feb in a leap year, 
+        // my billing renews on 28th of Feb the next year, 
+        // therefore last day of the current billing period is 27th next year
+        (Yearly,  "2004-02-29", "0|2004-02-29|2005-02-27", "2004-03-29") 
         (Yearly,  "2021-05-13", "0|2021-05-13|2022-05-12", "2021-08-01")
         (Yearly,  "2021-05-13", "1|2022-05-13|2023-05-12", "2022-08-01")
     ]
