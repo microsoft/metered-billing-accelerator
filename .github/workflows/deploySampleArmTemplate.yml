@@ -5,7 +5,7 @@ on:
         description: 'Name of the user that starts the workflow'
         required: true
         default: 'Paolo Salvatori'
-    location:
+      location:
         description: 'Azure region where deploy resources'
         required: true
         default: 'WestEurope'
