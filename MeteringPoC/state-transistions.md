@@ -2,7 +2,7 @@
 
 ### terms
 
-- `RemainingQuantity` refers to quantities which are included in the monthly plan, and are not yet fully consumed. As long as there is `RemainingQuantity`, we don't report to the metering API.
+- `IncludedQuantity` refers to quantities which are included in the monthly plan, and are not yet fully consumed. As long as there is `IncludedQuantity`, we don't report to the metering API.
 - `ConsumedQuantity` is something the customer needs to pay for, and which needs to be sliced into these 1-hour-aggregates.
 - The `UsageToBeReported` collection in the state is essentially a TODO-list of HTTP calls which must be made, i.e. each successful POST to the metering API later can remove the entry from the `UsageToBeReported` collection.
 
@@ -22,9 +22,9 @@
 ### Sample code for applying a single event after maintenance
 
 ```F#
-  | RemainingQuantity(remaining) -> 
+  | IncludedQuantity(remaining) -> 
       if remaining > reported
-      then RemainingQuantity({ Quantity = remaining - reported})
+      then IncludedQuantity({ Quantity = remaining - reported})
       else ConsumedQuantity({ Quantity = reported - remaining})
   | ConsumedQuantity(consumed) ->
       ConsumedQuantity({ Quantity = consumed + reported })

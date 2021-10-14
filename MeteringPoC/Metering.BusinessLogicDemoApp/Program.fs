@@ -110,7 +110,7 @@ let main argv =
         CurrentCredits =
             [
                 ("email", ConsumedQuantity({ Quantity = 100UL }))
-                ("ml", RemainingQuantity({ Quantity = 10UL }))
+                ("ml", IncludedQuantity({ Quantity = 10UL }))
             ] |> Map.ofList
         UsageToBeReported = List.empty // HTTP Call payload which still needs to be sent to MeteringAPI
         LastProcessedMessage = { 

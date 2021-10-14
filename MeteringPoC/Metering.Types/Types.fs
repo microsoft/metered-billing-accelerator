@@ -84,7 +84,7 @@ type PlanPurchaseInformation =
     { PlanId: PlanId 
       PurchaseTimestamp: DateTime }
 
-type RemainingQuantity = 
+type IncludedQuantity  = 
     { Quantity: Quantity }
 
 type ConsumedQuantity =
@@ -93,7 +93,7 @@ type ConsumedQuantity =
 type LastUpdateTimestamp = DateTime
 
 type CurrentConsumptionBillingPeriod =
-    | RemainingQuantity of RemainingQuantity
+    | IncludedQuantity of IncludedQuantity 
     | ConsumedQuantity of ConsumedQuantity
 
 //type BillingPeriod =
@@ -137,9 +137,9 @@ module BusinessLogic =
 
         state
         |> function
-            | RemainingQuantity({ Quantity = remaining}) -> 
+            | IncludedQuantity ({ Quantity = remaining}) -> 
                 if remaining > reported
-                then RemainingQuantity({ Quantity = remaining - reported})
+                then IncludedQuantity ({ Quantity = remaining - reported})
                 else ConsumedQuantity({ Quantity = reported - remaining})
             | ConsumedQuantity(consumed) ->
                 ConsumedQuantity({ Quantity = consumed.Quantity + reported })
