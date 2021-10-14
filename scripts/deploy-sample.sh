@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Variables
-resourceGroupName="MeteringInfraRG"
+resourceGroupName="MeteringSampleRG"
 location="WestEurope"
 deploy=1
 
 # ARM template and parameters files
-template="../arm/templates/infra/azuredeploy.json"
-parameters="../arm/templates/infra/azuredeploy.parameters.json"
+template="../arm/templates/sample/azuredeploy.json"
+parameters="../arm/templates/sample/azuredeploy.parameters.json"
 
 # SubscriptionId of the current subscription
 subscriptionId=$(az account show --query id --output tsv)
