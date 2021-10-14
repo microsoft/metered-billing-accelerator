@@ -34,4 +34,4 @@ jobs:
         parameters: location=WestEurope
 
       # output containerName variable from template
-    - run: echo "FunctionAppName=${{ steps.deploy.outputs.webAppName }}"
+    - run: echo "WebAppName=${{ steps.deploy.outputs.webAppName }}"

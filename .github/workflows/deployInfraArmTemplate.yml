@@ -14,7 +14,7 @@ jobs:
 
       # Print user name
     - run: |
-        echo "Workflow started by ${{ github.event.inputs.logLevel }}"
+        echo "Workflow started by " ${{ github.event.inputs.logLevel }}
 
       # Checkout code
     - uses: actions/checkout@main
