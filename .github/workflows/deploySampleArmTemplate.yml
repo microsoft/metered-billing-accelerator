@@ -35,7 +35,7 @@ jobs:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
         resourceGroupName: ${{ secrets.AZURE_SAMPLE_RG }}
         template: ./arm/templates/sample/azuredeploy.json
-        parameters: ./arm/template/sample/azuredeploy.parameters.json location=${{ github.event.inputs.location }}
+        parameters: ./arm/templates/sample/azuredeploy.parameters.json location=${{ github.event.inputs.location }}
 
       # output containerName variable from template
     - run: echo "WebAppName=${{ steps.deploy.outputs.webAppName }}"

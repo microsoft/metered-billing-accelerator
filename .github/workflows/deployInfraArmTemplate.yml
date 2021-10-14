@@ -35,7 +35,7 @@ jobs:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
         resourceGroupName: ${{ secrets.AZURE_INFRA_RG }}
         template: ./arm/templates/infra/azuredeploy.json
-        parameters: ./arm/template/infra/azuredeploy.parameters.json location=${{ github.event.inputs.location }}
+        parameters: ./arm/templates/infra/azuredeploy.parameters.json location=${{ github.event.inputs.location }}
 
       # output containerName variable from template
     - run: echo "FunctionAppName=${{ steps.deploy.outputs.functionAppName }}"
