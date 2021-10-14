@@ -18,6 +18,15 @@ namespace EHMeterCLI
 
             if (string.IsNullOrEmpty(connectionString)) //verify there is a connection string
             {
+                Console.Error.WriteLine("Can't find EVENT_HUB_CONNECTION_STRING environmantal variable.");
+                Environment.Exit(-1);
+            }
+
+            Console.WriteLine("Setting up emitter...");
+            var meterLib = new MeteringAcceleratorLib.MeteringAcceleratorLib(connectionString);  // This uses the defail EventHub name: meter-billing-accelerator      
+
+            try // emit one single record.
+            {
                 await meterLib.EmitAsync("subscription1", "plan1", "dimension1", 1, "");
                 Console.WriteLine("One meter record submitted.");
             }
