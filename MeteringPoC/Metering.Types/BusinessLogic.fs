@@ -59,15 +59,13 @@ module BillingPeriod =
                     | _ -> Result.Error(NewDateFromPreviousBillingPeriod)
 
 module MeterValue =
-    let deduct (reported: Quantity) (meterValue: MeterValue) : MeterValue =
+    let deduct (meterValue: MeterValue) (reported: Quantity) : MeterValue =
         meterValue
         |> function
-            | ConsumedQuantity consumed -> 
-                ConsumedQuantity({ Quantity = consumed.Quantity + reported })
-            | IncludedQuantity({ Annual = annual; Monthly = monthly }) ->
+           | ConsumedQuantity consumed -> ConsumedQuantity({ Quantity = consumed.Quantity + reported })
+           | IncludedQuantity({ Annual = annual; Monthly = monthly }) ->
                 match (annual, monthly) with
-                | (None, None) -> 
-                        ConsumedQuantity({ Quantity = reported })
+                | (None, None) -> ConsumedQuantity({ Quantity = reported })
                 | (None, Some {Quantity = remainingMonthly}) -> 
                         // if there's only monthly stuff, deduct from the monthly side
                         if remainingMonthly > reported
@@ -88,9 +86,12 @@ module MeterValue =
                             then IncludedQuantity({ Annual =  Some { Quantity = remainingAnnually - deductFromAnnual }; Monthly = None })
                             else ConsumedQuantity({ Quantity = (deductFromAnnual - remainingAnnually) } )
 
+    //let topupMonthlyCredits (reported: Quantity) (meterValue: MeterValue) : MeterValue =
+
+
 module BusinessLogic =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =
-        Option.bind ((fun r m -> Some (MeterValue.deduct r m)) event.Quantity) current
+        Option.bind ((fun r m -> Some (r |> MeterValue.deduct m )) event.Quantity) current
 
     let applyUsageEvent (current: CurrentBillingState) (event: InternalUsageEvent) : CurrentBillingState =
         let newCredits = 

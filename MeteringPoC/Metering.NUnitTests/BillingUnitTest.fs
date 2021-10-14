@@ -7,8 +7,7 @@ open Metering
 open Metering.Types
 
 [<SetUp>]
-let Setup () =
-    ()
+let Setup () = ()
 
 let d (s: string) : LocalDate =
     LocalDate.FromDateTime(DateTime.ParseExact(s, "yyyy-MM-dd", null))
@@ -26,12 +25,10 @@ let bp (s: string) : BillingPeriod =
             }
         | _ -> failwith "parsing error"
 
-
 [<Test>]
 let Test_BillingPeriod_createFromIndex () =
     let sub = Subscription.create "planId" Monthly (d "2021-05-13") 
 
-          
     Assert.AreEqual(
         (bp "2|2021-07-13|2021-08-12"),
         (BillingPeriod.createFromIndex sub 2u))
@@ -82,3 +79,66 @@ let Test_BillingPeriod_isNewBillingPeriod () =
     check sub 0u "2021-08-17" "2021-09-12" // same period
     check sub 1u "2021-08-17" "2021-09-13" // next period
     check sub 2u "2021-08-17" "2021-10-13" // 2 periods down the road
+
+
+type MeterValue_deductVector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
+[<Test>]
+let Test_MeterValue_deduct() =
+    [ 
+        {
+            // if Monthly is sufficient, don't touch annual
+            State = IncludedQuantity { 
+                Annual = Some { Quantity = 30UL } 
+                Monthly = Some { Quantity = 10UL } }
+            Quantity = 8UL
+            Expected = IncludedQuantity { 
+                Annual = Some { Quantity = 30UL }
+                Monthly = Some { Quantity = 2UL } }
+        }
+        {
+            // if Monthly is not sufficient, also deduct from annual
+            State = IncludedQuantity { 
+                Annual = Some { Quantity = 30UL }
+                Monthly = Some { Quantity = 10UL } }
+            Quantity = 13UL
+            Expected = IncludedQuantity { 
+                Annual = Some { Quantity = 27UL }
+                Monthly = None}
+        }
+        {
+            // if both Monthly and Annual are not sufficient, it costs money
+            State = IncludedQuantity { 
+                Annual = Some { Quantity = 30UL }
+                Monthly = Some { Quantity = 10UL } }
+            Quantity = 43UL
+            Expected = ConsumedQuantity { 
+                Quantity = 3UL }
+        }
+        {
+            // If there's nothing, it costs money
+            State = IncludedQuantity { 
+                Annual = None
+                Monthly = None}
+            Quantity = 2UL
+            Expected = ConsumedQuantity { 
+                Quantity = 2UL }
+        }
+        {
+            // If there's nothing, it costs money
+            State = ConsumedQuantity { 
+                Quantity = 0UL }
+            Quantity = 2UL
+            Expected = ConsumedQuantity { 
+                Quantity = 2UL }
+        }
+        {
+            // If there's nothing, it costs money
+            State = ConsumedQuantity { 
+                Quantity = 10UL }
+            Quantity = 2UL
+            Expected = ConsumedQuantity { 
+                Quantity = 12UL }
+        }
+    ] 
+    |> List.map(fun { State=state; Quantity=quantity; Expected=expected} -> Assert.AreEqual(expected, MeterValue.deduct state quantity))
+    |> ignore
