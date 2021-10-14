@@ -54,24 +54,43 @@ module BillingPeriod =
             | (Result.Error(e), _) -> Result.Error(e) 
             | (_, Result.Error(e)) -> Result.Error(e)
             | Ok(p), Ok(c) -> 
-                match (p,c) with
-                    | (p,c) when p <= c -> Ok(c.Index - p.Index)
+                match (p, c) with
+                    | (p, c) when p <= c -> Ok(c.Index - p.Index)
                     | _ -> Result.Error(NewDateFromPreviousBillingPeriod)
 
-module BusinessLogic =
-    let deduct ({ Quantity = reported}: InternalUsageEvent) (state: MeterValue) : MeterValue option =
-        state
+module MeterValue =
+    let deduct (reported: Quantity) (meterValue: MeterValue) : MeterValue =
+        meterValue
         |> function
-            | IncludedQuantity ({ Quantity = remaining}) -> 
-                if remaining > reported
-                then IncludedQuantity ({ Quantity = remaining - reported})
-                else ConsumedQuantity({ Quantity = reported - remaining})
-            | ConsumedQuantity(consumed) ->
+            | ConsumedQuantity consumed -> 
                 ConsumedQuantity({ Quantity = consumed.Quantity + reported })
-        |> Some
+            | IncludedQuantity({ Annual = annual; Monthly = monthly }) ->
+                match (annual, monthly) with
+                | (None, None) -> 
+                        ConsumedQuantity({ Quantity = reported })
+                | (None, Some {Quantity = remainingMonthly}) -> 
+                        // if there's only monthly stuff, deduct from the monthly side
+                        if remainingMonthly > reported
+                        then IncludedQuantity({ Annual = None; Monthly = Some { Quantity = (remainingMonthly - reported) } })
+                        else ConsumedQuantity({ Quantity = (reported - remainingMonthly) } )
+                | (Some {Quantity = remainingAnnually}, None) -> 
+                        // if there's only annual stuff, deduct from the monthly side
+                        if remainingAnnually > reported
+                        then IncludedQuantity({ Annual =  Some { Quantity = (remainingAnnually - reported) } ; Monthly = None})
+                        else ConsumedQuantity({ Quantity = (reported - remainingAnnually) } )
+                | (Some {Quantity = remainingAnnually}, Some {Quantity = remainingMonthly}) -> 
+                        // if there's both annual and monthly credits, first take from monthly, them from annual
+                        if remainingMonthly > reported
+                        then IncludedQuantity({ Annual =  Some { Quantity = remainingAnnually }; Monthly = Some { Quantity = (remainingMonthly - reported) } })
+                        else 
+                            let deductFromAnnual = reported - remainingMonthly
+                            if remainingAnnually > deductFromAnnual
+                            then IncludedQuantity({ Annual =  Some { Quantity = remainingAnnually - deductFromAnnual }; Monthly = None })
+                            else ConsumedQuantity({ Quantity = (deductFromAnnual - remainingAnnually) } )
 
+module BusinessLogic =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =
-        Option.bind (deduct event) current
+        Option.bind ((fun r m -> Some (MeterValue.deduct r m)) event.Quantity) current
 
     let applyUsageEvent (current: CurrentBillingState) (event: InternalUsageEvent) : CurrentBillingState =
         let newCredits = 

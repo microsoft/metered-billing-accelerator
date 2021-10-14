@@ -104,14 +104,20 @@ type ApplicationInternalMeterName = string // A meter name used between app and 
 type InternalMetersMapping = // The mapping table used by the aggregator to translate an ApplicationInternalMeterName to the plan and dimension configured in Azure marketplace
     Map<ApplicationInternalMeterName, PlanDimension>
 
-type IncludedQuantity = { Quantity: Quantity }
+type IncludedMonthlyQuantity = { Quantity: Quantity }
+
+type IncludedAnnualQuantity = { Quantity: Quantity }
+
+type IncludedQuantity =
+    { Monthly: IncludedMonthlyQuantity option
+      Annual: IncludedAnnualQuantity option}
 
 type ConsumedQuantity = { Quantity: Quantity }
 
 type MeterValue =
-    | IncludedQuantity of IncludedQuantity 
+    | IncludedQuantity of IncludedQuantity
     | ConsumedQuantity of ConsumedQuantity
-   
+
 type CurrentMeterValues =
     Map<ApplicationInternalMeterName, MeterValue> 
 

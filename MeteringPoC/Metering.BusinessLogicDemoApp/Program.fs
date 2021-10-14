@@ -112,7 +112,9 @@ let main argv =
         CurrentMeterValues =
             [
                 ("email", ConsumedQuantity({ Quantity = 100UL }))
-                ("ml", IncludedQuantity({ Quantity = 10UL }))
+                ("ml", IncludedQuantity({ 
+                    Monthly = Some { Quantity = 10UL }
+                    Annual = None }))
             ] |> Map.ofList
         UsageToBeReported = List.empty // HTTP Call payload which still needs to be sent to MeteringAPI
         LastProcessedMessage = { 
