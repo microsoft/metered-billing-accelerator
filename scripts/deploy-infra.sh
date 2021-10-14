@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Variables
-resourceGroupName="HackathonRG"
+resourceGroupName="MeteringInfraRG"
 location="WestEurope"
 deploy=1
 
 # ARM template and parameters files
-template="../templates/azuredeploy.json"
-parameters="../templates/azuredeploy.parameters.json"
+template="../templates/infra/azuredeploy.json"
+parameters="../templates/infra/azuredeploy.parameters.json"
 
 # SubscriptionId of the current subscription
 subscriptionId=$(az account show --query id --output tsv)
