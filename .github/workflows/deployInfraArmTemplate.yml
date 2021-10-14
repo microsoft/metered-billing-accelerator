@@ -1,0 +1,37 @@
+on:
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Name of the user that manually starts the workflow'
+        required: true
+        default: 'Paolo Salvatori'
+
+name: Metering Infra ARM Template Deployment
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+
+      # Print user name
+    - run: |
+        echo "Workflow started by ${{ github.event.inputs.logLevel }}"
+
+      # Checkout code
+    - uses: actions/checkout@main
+
+      # Log into Azure
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Deploy ARM template
+    - name: Run ARM deploy
+      uses: azure/arm-deploy@v1
+      with:
+        subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
+        resourceGroupName: ${{ secrets.AZURE_INFRA_RG }}
+        template: ./arm/templates/infra/azuredeploy.json
+        parameters: location=WestEurope
+
+      # output containerName variable from template
+    - run: echo "FunctionAppName=${{ steps.deploy.outputs.functionAppName }}"
