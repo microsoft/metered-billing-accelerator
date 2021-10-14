@@ -32,3 +32,8 @@ You can use the **deploy-infra.sh** script under the **scripts** folder to deplo
 You can use the **deploy-sample.sh** script under the **scripts** folder to deploy the infrastructure necessary to run and monitor the solution. The following figure shows the resources deployed by the ARM template in the **MeteringSampleRG** resource group.
 
 ![Resource Group](../images/sample-resource-group.png)
+
+You can even use the GitHub Actions workflows under the **github/workflows** folder to deploy both the **MeteringInfraRG** and **MeteringSampleRG** resource groups. For more information on how to deploy ARM templates using GitHub Actions, see the following resources:
+
+- [Deploy ARM templates by using GitHub Actions](https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deploy-github-actions)
+- [Automate the deployment of JSON ARM templates by using GitHub Actions](https://docs.microsoft.com/en-us/learn/modules/deploy-templates-command-line-github-actions/)
