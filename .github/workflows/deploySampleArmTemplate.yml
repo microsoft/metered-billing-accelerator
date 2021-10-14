@@ -2,7 +2,7 @@ on:
   workflow_dispatch:
     inputs:
       name:
-        description: 'Name of the user that manually starts the workflow'
+        description: 'Name of the user that starts the workflow'
         required: true
         default: 'Paolo Salvatori'
 
