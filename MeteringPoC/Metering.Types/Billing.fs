@@ -2,19 +2,36 @@
 
 open NodaTime
 
+type BusinessError =
+    | DayBeforeSubscription
+    | NewDateFromPreviousBillingPeriod     
+
 type PlanRenewalInterval =
     | Monthly
     | Yearly
-
-type BillingPeriod = { FirstDay: LocalDate ; LastDay: LocalDate ; Index: uint }
-
-type Subscription = { SubscriptionStart: LocalDate ; PlanRenewalInterval: PlanRenewalInterval }
 
 module PlanRenewalInterval =    
     let add pre (i: uint) =
         match pre with
         | Monthly -> Period.FromMonths(int i)
         | Yearly -> Period.FromYears(int i)
+
+type Subscription =
+    {
+        PlanRenewalInterval: PlanRenewalInterval 
+        SubscriptionStart: LocalDate
+    }
+
+module Subscription =
+    let create pri subscriptionStart = 
+        { PlanRenewalInterval = pri ; SubscriptionStart = subscriptionStart }
+
+type BillingPeriod =
+    { 
+        FirstDay: LocalDate
+        LastDay: LocalDate
+        Index: uint
+    }
 
 module BillingPeriod =
     let localDateToStr (x: LocalDate) = x.ToString("yyyy-MM-dd", null)
@@ -28,21 +45,6 @@ module BillingPeriod =
           LastDay = subscriptionStart + (periods (n+1u)) - Period.FromDays(1)
           Index = n }
 
-    let isInBillingPeriod { FirstDay = firstDay; LastDay = lastDay } (day: LocalDate) : bool =
-        firstDay <= day && day <= lastDay
-
-type BusinessError =
-    | DayBeforeSubscription
-    | NewDateFromPreviousBillingPeriod
-
-type BillingPeriodComparison =
-    | SameBillingPeriod
-    | NewerBillingPeriod
-
-module Subscription =
-    let create pri subscriptionStart =
-        { SubscriptionStart = subscriptionStart ; PlanRenewalInterval = pri}
-
     let determineBillingPeriod { SubscriptionStart = subscriptionStart ; PlanRenewalInterval = pri} (day: LocalDate) : Result<BillingPeriod, BusinessError> =
         if subscriptionStart > day 
         then Error(DayBeforeSubscription)
@@ -54,17 +56,19 @@ module Subscription =
                     | Yearly -> diff.Years
                 |> uint
 
-            BillingPeriod.createFromIndex { SubscriptionStart = subscriptionStart ; PlanRenewalInterval = pri} idx 
+            createFromIndex { SubscriptionStart = subscriptionStart ; PlanRenewalInterval = pri} idx 
             |> Ok
+    
+    let isInBillingPeriod { FirstDay = firstDay; LastDay = lastDay } (day: LocalDate) : bool =
+        firstDay <= day && day <= lastDay
 
-    let isNewBillingPeriod (subscription: Subscription) (previous: LocalDate) (current: LocalDate) : Result<BillingPeriodComparison, BusinessError> =
+    let getBillingPeriodDelta(subscription: Subscription) (previous: LocalDate) (current: LocalDate) : Result<uint, BusinessError> =
         let check = determineBillingPeriod subscription
         match (check previous, check current) with
             | (Error(e), _) -> Error(e) 
             | (_, Error(e)) -> Error(e)
             | Ok(p), Ok(c) -> 
                 match (p,c) with
-                    | (p,c) when p < c -> Ok(NewerBillingPeriod)
-                    | (p,c) when p = c -> Ok(SameBillingPeriod)
+                    | (p,c) when p <= c -> Ok(c.Index - p.Index)
                     | _ -> Error(NewDateFromPreviousBillingPeriod)
 
