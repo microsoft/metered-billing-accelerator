@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.ObservableProcesso
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Types", "Metering.Types\Metering.Types.fsproj", "{226EDFF4-5827-4DE8-B534-119A8ABA3B85}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Tests", "Metering.Tests\Metering.Tests.fsproj", "{D487AAC4-EBC6-47DB-B03E-D7469150C8B1}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.ClientSDK", "Metering.ClientSDK\Metering.ClientSDK.csproj", "{4BCCB70B-9A19-4311-BC6B-096634AC63EF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.Messaging", "Metering.Messaging\Metering.Messaging.csproj", "{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}"
@@ -23,8 +21,11 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BusinessLogicDemoA
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BE422FBF-7D05-4571-AAFA-874471D110F2}"
 	ProjectSection(SolutionItems) = preProject
+		File1.fsx = File1.fsx
 		state-transistions.md = state-transistions.md
 	EndProjectSection
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Metering.NUnitTests", "Metering.NUnitTests\Metering.NUnitTests.fsproj", "{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,10 +45,6 @@ Global
 		{226EDFF4-5827-4DE8-B534-119A8ABA3B85}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{226EDFF4-5827-4DE8-B534-119A8ABA3B85}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{226EDFF4-5827-4DE8-B534-119A8ABA3B85}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D487AAC4-EBC6-47DB-B03E-D7469150C8B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D487AAC4-EBC6-47DB-B03E-D7469150C8B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D487AAC4-EBC6-47DB-B03E-D7469150C8B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D487AAC4-EBC6-47DB-B03E-D7469150C8B1}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4BCCB70B-9A19-4311-BC6B-096634AC63EF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4BCCB70B-9A19-4311-BC6B-096634AC63EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4BCCB70B-9A19-4311-BC6B-096634AC63EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -64,6 +61,10 @@ Global
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

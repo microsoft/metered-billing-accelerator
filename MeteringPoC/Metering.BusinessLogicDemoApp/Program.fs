@@ -105,7 +105,8 @@ let main argv =
             ] |> Map.ofList
         InitialPurchase = {
             PlanId = "plan2"
-            PurchaseTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromHours(26.0)) }
+            PurchaseTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromHours(26.0))
+            PlanRenewalInterval = Monthly }
         // LastProcessedEventSequenceID = 237492749,
         CurrentCredits =
             [

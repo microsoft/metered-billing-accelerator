@@ -1,6 +1,7 @@
 ﻿namespace Metering.Types
 
 open System
+open NodaTime
 open Azure.Core
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
@@ -80,9 +81,25 @@ type Plan =
     { PlanId: PlanId
       BillingDimensions: BillingDimension seq }
 
+type PlanRenewalInterval =
+    | Monthly
+    | Yearly
+    | Custom of TimeSpan
+
+module PlanRenewalInterval =
+    let duration pre =
+        match pre with
+        | Monthly -> Period.FromMonths(1)
+        | Yearly -> Period.FromYears(1)
+        | Custom(x) -> Period.FromSeconds(int64 x.TotalSeconds)
+
+
+
+
 type PlanPurchaseInformation =
     { PlanId: PlanId 
-      PurchaseTimestamp: DateTime }
+      PurchaseTimestamp: DateTime // The point of initial activation
+      PlanRenewalInterval: PlanRenewalInterval }
 
 type IncludedQuantity  = 
     { Quantity: Quantity }
@@ -134,7 +151,6 @@ type CurrentBillingState =
 
 module BusinessLogic =
     let deduct ({ Quantity = reported}: InternalUsageEvent) (state: CurrentConsumptionBillingPeriod) : CurrentConsumptionBillingPeriod option =
-
         state
         |> function
             | IncludedQuantity ({ Quantity = remaining}) -> 
