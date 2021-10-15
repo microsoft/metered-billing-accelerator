@@ -5,6 +5,7 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="EventHub.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="BusinessLogic.fs" />
     <Compile Include="FSharpFuncUtil.fs" />

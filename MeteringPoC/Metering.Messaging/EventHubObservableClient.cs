@@ -3,12 +3,12 @@
     using Azure.Messaging.EventHubs;
     using Azure.Messaging.EventHubs.Consumer;
     using Azure.Messaging.EventHubs.Processor;
+    using Metering.Types.EventHub;
     using System;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using Types;
 
     public class EventHubObservableClient
     {

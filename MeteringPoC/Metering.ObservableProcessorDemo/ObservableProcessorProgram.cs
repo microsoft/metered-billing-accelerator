@@ -7,7 +7,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Messaging;
-    using Types;
+    using Metering.Types.EventHub;
 
     class ObservableProcessorProgram
     { 

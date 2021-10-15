@@ -7,12 +7,12 @@ module PlanRenewalInterval =
     let duration pre =
         match pre with
         | Monthly -> Period.FromMonths(1)
-        | Yearly -> Period.FromYears(1)
+        | Annually -> Period.FromYears(1)
 
     let add pre (i: uint) =
         match pre with
         | Monthly -> Period.FromMonths(int i)
-        | Yearly -> Period.FromYears(int i)
+        | Annually -> Period.FromYears(int i)
 
 module Subscription =
     let create planId pri subscriptionStart = 
@@ -40,7 +40,7 @@ module BillingPeriod =
             let idx = 
                 match subscription.PlanRenewalInterval with
                     | Monthly -> diff.Years * 12 + diff.Months
-                    | Yearly -> diff.Years
+                    | Annually -> diff.Years
                 |> uint
 
             Ok(createFromIndex subscription idx)
@@ -63,40 +63,39 @@ module MeterValue =
         meterValue
         |> function
            | ConsumedQuantity(consumed) -> ConsumedQuantity(consumed + reported)
-           | IncludedQuantity({ Annual = annual; Monthly = monthly }) ->
-                match (annual, monthly) with
+           | IncludedQuantity({ Annually = annually; Monthly = monthly }) ->
+                match (annually, monthly) with
                 | (None, None) -> ConsumedQuantity reported
                 | (None, Some remainingMonthly) -> 
                         // if there's only monthly stuff, deduct from the monthly side
                         if remainingMonthly > reported
-                        then IncludedQuantity { Annual = None; Monthly = Some (remainingMonthly - reported) }
+                        then IncludedQuantity { Annually = None; Monthly = Some (remainingMonthly - reported) }
                         else ConsumedQuantity (reported - remainingMonthly)
                 | (Some remainingAnnually, None) -> 
                         // if there's only annual stuff, deduct from the monthly side
                         if remainingAnnually > reported
-                        then IncludedQuantity { Annual =  Some (remainingAnnually - reported); Monthly = None}
+                        then IncludedQuantity { Annually = Some (remainingAnnually - reported); Monthly = None}
                         else ConsumedQuantity (reported - remainingAnnually)
                 | (Some remainingAnnually, Some remainingMonthly) -> 
                         // if there's both annual and monthly credits, first take from monthly, them from annual
                         if remainingMonthly > reported
-                        then IncludedQuantity { Annual =  Some remainingAnnually; Monthly = Some (remainingMonthly - reported) }
+                        then IncludedQuantity { Annually =  Some remainingAnnually; Monthly = Some (remainingMonthly - reported) }
                         else 
                             let deductFromAnnual = reported - remainingMonthly
                             if remainingAnnually > deductFromAnnual
-                            then IncludedQuantity { Annual = Some (remainingAnnually - deductFromAnnual); Monthly = None }
+                            then IncludedQuantity { Annually = Some (remainingAnnually - deductFromAnnual); Monthly = None }
                             else ConsumedQuantity (deductFromAnnual - remainingAnnually)
 
     let topupMonthlyCredits (meterValue: MeterValue) ((quantity, pri): (Quantity * PlanRenewalInterval)) : MeterValue =
         match meterValue with 
         | (ConsumedQuantity(_)) -> 
             match pri with
-                | Monthly -> IncludedQuantity { Annual = None; Monthly = Some quantity }
-                | Yearly -> IncludedQuantity { Annual = Some quantity; Monthly = None } 
+                | Monthly -> IncludedQuantity { Annually = None; Monthly = Some quantity }
+                | Annually -> IncludedQuantity { Annually = Some quantity; Monthly = None } 
         | (IncludedQuantity(m)) -> 
             match pri with
                 | Monthly -> IncludedQuantity { m with Monthly = Some quantity }
-                | Yearly -> IncludedQuantity { m with Annual = Some quantity }
-                                   
+                | Annually -> IncludedQuantity { m with Annually = Some quantity }
 
 module BusinessLogic =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =

@@ -4,6 +4,7 @@ open System.Globalization
 open NodaTime
 open Metering
 open Metering.Types.MarketPlaceAPI
+open Metering.Types.EventHub
 
 // Plan
 // - Containing information about how many widgets are included per month
@@ -29,14 +30,14 @@ let parsePlans planStrings =
                     DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = { Annual = None; Monthly = Some (includedQuantity |> parseQuantity) }
+                    IncludedQuantity = { Annually = None; Monthly = Some (includedQuantity |> parseQuantity) }
                 })
             | [planId; dimensionId; name; unitOfMeasure] -> 
                 (planId, {
                     DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = { Annual = None; Monthly = None }
+                    IncludedQuantity = { Annually = None; Monthly = None }
                 })
             | _ -> failwith "parsing error"
 
@@ -115,7 +116,7 @@ let main argv =
                 ("email", ConsumedQuantity 100UL)
                 ("ml", IncludedQuantity({ 
                     Monthly = Some 10UL
-                    Annual = None }))
+                    Annually = None }))
             ] |> Map.ofList
         UsageToBeReported = List.empty // HTTP Call payload which still needs to be sent to MeteringAPI
         LastProcessedMessage = { 

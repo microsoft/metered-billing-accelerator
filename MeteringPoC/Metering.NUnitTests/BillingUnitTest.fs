@@ -43,9 +43,9 @@ let Test_Subscription_determineBillingPeriod () =
         // if I purchase on the 29th of Feb in a leap year, 
         // my billing renews on 28th of Feb the next year, 
         // therefore last day of the current billing period is 27th next year
-        (Yearly,  "2004-02-29", "0|2004-02-29|2005-02-27", "2004-03-29") 
-        (Yearly,  "2021-05-13", "0|2021-05-13|2022-05-12", "2021-08-01")
-        (Yearly,  "2021-05-13", "1|2022-05-13|2023-05-12", "2022-08-01")
+        (Annually,  "2004-02-29", "0|2004-02-29|2005-02-27", "2004-03-29") 
+        (Annually,  "2021-05-13", "0|2021-05-13|2022-05-12", "2021-08-01")
+        (Annually,  "2021-05-13", "1|2022-05-13|2023-05-12", "2022-08-01")
     ]
 
     for (interval, startStr, billingPeriodStr, inputStr) in vectors do
@@ -87,37 +87,29 @@ let Test_MeterValue_deduct() =
     [ 
         {
             // if Monthly is sufficient, don't touch annual
-            State = IncludedQuantity { 
-                Annual = Some 30UL
-                Monthly = Some 10UL }
+            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL }
             Quantity = 8UL
             Expected = IncludedQuantity { 
-                Annual = Some 30UL
+                Annually = Some 30UL
                 Monthly = Some 2UL }
         }
         {
             // if Monthly is not sufficient, also deduct from annual
-            State = IncludedQuantity { 
-                Annual = Some 30UL
-                Monthly = Some 10UL}
+            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL}
             Quantity = 13UL
             Expected = IncludedQuantity { 
-                Annual = Some 27UL
+                Annually = Some 27UL
                 Monthly = None}
         }
         {
             // if both Monthly and Annual are not sufficient, it costs money
-            State = IncludedQuantity { 
-                Annual = Some 30UL
-                Monthly = Some 10UL }
+            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL }
             Quantity = 43UL
             Expected = ConsumedQuantity 3UL
         }
         {
             // If there's nothing, it costs money
-            State = IncludedQuantity { 
-                Annual = None
-                Monthly = None}
+            State = IncludedQuantity { Annually = None; Monthly = None}
             Quantity = 2UL
             Expected = ConsumedQuantity 2UL
         }
@@ -144,42 +136,42 @@ type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quant
 let Test_MeterValue_topupMonthlyCredits() =
     [
         {
-            Input = IncludedQuantity { Annual = Some 1UL; Monthly = None } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = None } 
             Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annual = Some 1UL; Monthly = Some 9UL } 
+            Expected = IncludedQuantity { Annually = Some 1UL; Monthly = Some 9UL } 
         }
         {
-            Input = IncludedQuantity { Annual = Some 1UL; Monthly = Some 2UL } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL } 
             Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annual = Some 1UL; Monthly = Some 9UL } 
+            Expected = IncludedQuantity { Annually = Some 1UL; Monthly = Some 9UL } 
         }
         {
             Input = ConsumedQuantity 100_000UL
             Values = [(1000UL, Monthly)]
-            Expected = IncludedQuantity { Annual = None; Monthly = Some 1000UL } 
+            Expected = IncludedQuantity { Annually = None; Monthly = Some 1000UL } 
         }
         {
-            Input = IncludedQuantity { Annual = Some 1UL; Monthly = None } 
-            Values = [(9UL, Yearly)]
-            Expected = IncludedQuantity { Annual = Some 9UL; Monthly = None } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = None } 
+            Values = [(9UL, Annually)]
+            Expected = IncludedQuantity { Annually = Some 9UL; Monthly = None } 
         }
         {
-            Input = IncludedQuantity { Annual = Some 1UL; Monthly = Some 2UL } 
-            Values = [(9UL, Yearly)]
-            Expected = IncludedQuantity { Annual = Some 9UL ; Monthly = Some 2UL } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL } 
+            Values = [(9UL, Annually)]
+            Expected = IncludedQuantity { Annually = Some 9UL ; Monthly = Some 2UL } 
         }
         {
             Input = ConsumedQuantity 100_000UL
-            Values = [(1000UL, Yearly)]
-            Expected = IncludedQuantity { Annual = Some 1000UL ; Monthly = None } 
+            Values = [(1000UL, Annually)]
+            Expected = IncludedQuantity { Annually = Some 1000UL ; Monthly = None } 
         }
         {
-            Input = IncludedQuantity { Annual = Some 1UL; Monthly = Some 2UL } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL } 
             Values = [
-                (10_000UL, Yearly)
+                (10_000UL, Annually)
                 (500UL, Monthly)
             ]
-            Expected = IncludedQuantity { Annual = Some 10_000UL; Monthly = Some 500UL } 
+            Expected = IncludedQuantity { Annually = Some 10_000UL; Monthly = Some 500UL } 
         }
     ]
     |> List.map(fun { Values=values; Input=input; Expected=expected} -> 
