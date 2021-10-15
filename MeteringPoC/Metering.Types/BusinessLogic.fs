@@ -49,18 +49,20 @@ module BillingPeriod =
         firstDay <= day && day <= lastDay
 
     type BillingPeriodResult =
-        | Period of uint
-        | DateBeforeSubscription
+        | DateBeforeSubscription 
         | DateBelongsToPreviousBillingPeriod
+        | SameBillingPeriod
+        | BillingPeriodDistance of uint
 
     let getBillingPeriodDelta(subscription: Subscription) (previous: LocalDate) (current: LocalDate) : BillingPeriodResult =
-        let check = determineBillingPeriod subscription
-        match (check previous, check current) with
+        let determine = determineBillingPeriod subscription 
+        match (determine previous, determine current) with
             | (Result.Error(DayBeforeSubscription), _) -> DateBeforeSubscription
             | (_, Result.Error(DayBeforeSubscription)) -> DateBeforeSubscription
             | Ok(p), Ok(c) -> 
                 match (p, c) with
-                    | (p, c) when p <= c -> Period(c.Index - p.Index)
+                    | (p, c) when p < c -> BillingPeriodDistance(c.Index - p.Index)
+                    | (p, c) when p = c -> SameBillingPeriod
                     | _ -> DateBelongsToPreviousBillingPeriod
 
 module MeterValue =

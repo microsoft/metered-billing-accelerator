@@ -5,6 +5,7 @@ open NUnit.Framework
 open NodaTime
 open Metering
 open Metering.Types
+open Metering.BillingPeriod
 
 [<SetUp>]
 let Setup () = ()
@@ -25,6 +26,8 @@ let bp (s: string) : BillingPeriod =
             }
         | _ -> failwith "parsing error"
 
+let runTestVectors test testcases = testcases |> List.indexed |> List.map test |> ignore
+
 [<Test>]
 let Test_BillingPeriod_createFromIndex () =
     let sub = Subscription.create "planId" Monthly (d "2021-05-13") 
@@ -33,28 +36,26 @@ let Test_BillingPeriod_createFromIndex () =
         (bp "2|2021-07-13|2021-08-12"),
         (BillingPeriod.createFromIndex sub 2u))
 
+type Subscription_determineBillingPeriod_Vector = { T: RenewalInterval; Purchase: string; Interval: string; Candidate: string}
+        
 [<Test>]
 let Test_Subscription_determineBillingPeriod () =
-    let vectors = [
-        //           start              // interval          a date in the interval
-        (Monthly, "2021-05-13", "0|2021-05-13|2021-06-12", "2021-05-30")
-        (Monthly, "2021-05-13", "2|2021-07-13|2021-08-12", "2021-08-01")
+    let test (idx, testcase) =
+        let sub = Subscription.create "planId" testcase.T (d testcase.Purchase)
+        let expected : Result<BillingPeriod, BusinessError> = Ok(bp testcase.Interval)
+        let compute = BillingPeriod.determineBillingPeriod sub (d testcase.Candidate)
+        Assert.AreEqual(expected, compute, sprintf "Failure test case %d" idx);
 
+    [
+        {T=Monthly; Purchase="2021-05-13"; Interval="0|2021-05-13|2021-06-12"; Candidate="2021-05-30"}
+        {T=Monthly; Purchase="2021-05-13"; Interval="2|2021-07-13|2021-08-12"; Candidate="2021-08-01"}
         // if I purchase on the 29th of Feb in a leap year, 
         // my billing renews on 28th of Feb the next year, 
         // therefore last day of the current billing period is 27th next year
-        (Annually,  "2004-02-29", "0|2004-02-29|2005-02-27", "2004-03-29") 
-        (Annually,  "2021-05-13", "0|2021-05-13|2022-05-12", "2021-08-01")
-        (Annually,  "2021-05-13", "1|2022-05-13|2023-05-12", "2022-08-01")
-    ]
-
-    for (interval, startStr, billingPeriodStr, inputStr) in vectors do
-        let startDate = d startStr
-        let dateToCheck = d inputStr
-        let sub = Subscription.create "planId" interval startDate 
-        let expected : Result<BillingPeriod, BusinessError> = Ok(bp billingPeriodStr)
-        let compute = BillingPeriod.determineBillingPeriod sub dateToCheck
-        Assert.AreEqual(expected, compute);
+        {T=Annually; Purchase="2004-02-29"; Interval="0|2004-02-29|2005-02-27"; Candidate="2004-03-29"}
+        {T=Annually; Purchase="2021-05-13"; Interval="0|2021-05-13|2022-05-12"; Candidate="2021-08-01"}
+        {T=Annually; Purchase="2021-05-13"; Interval="1|2022-05-13|2023-05-12"; Candidate="2022-08-01"}
+    ] |> runTestVectors test
 
 [<Test>]
 let Test_BillingPeriod_isInBillingPeriod () =
@@ -66,24 +67,30 @@ let Test_BillingPeriod_isInBillingPeriod () =
     Assert.IsFalse(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-09-13"))
     Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 4u) (d "2021-09-13"))
 
+type BillingPeriod_getBillingPeriodDelta_Vector = { T: RenewalInterval; Purchase: string; Previous: string; Current: string; Expected: BillingPeriodResult}
+
 [<Test>]
 let Test_BillingPeriod_getBillingPeriodDelta () =
-    let check sub expected previous current =        
-        let result = (BillingPeriod.getBillingPeriodDelta sub (d previous) (d current))
-        
-        Assert.IsTrue((BillingPeriod.Period(expected) = result))
+    let test (idx, testcase) =
+        let subscriptoin = Subscription.create "planId" testcase.T (testcase.Purchase |> d)
+        let result = (BillingPeriod.getBillingPeriodDelta subscriptoin (d testcase.Previous) (d testcase.Current))
+        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
-    let sub =  Subscription.create "planId" Monthly ("2021-05-13" |> d)
-    check sub 0u "2021-05-13" "2021-05-13" // on start day
-    check sub 0u "2021-08-13" "2021-08-15" // same period
-    check sub 0u "2021-08-17" "2021-09-12" // same period
-    check sub 1u "2021-08-17" "2021-09-13" // next period
-    check sub 2u "2021-08-17" "2021-10-13" // 2 periods down the road
-
+    [
+        { T = Monthly; Purchase = "2021-05-13"; Previous = "2021-05-13"; Current = "2021-05-13"; Expected = SameBillingPeriod}
+        { T = Monthly; Purchase = "2021-05-13"; Previous = "2021-08-13"; Current = "2021-08-15"; Expected = SameBillingPeriod}
+        { T = Monthly; Purchase = "2021-08-17"; Previous = "2021-08-17"; Current = "2021-09-12"; Expected = SameBillingPeriod}
+        { T = Monthly; Purchase = "2021-05-13"; Previous = "2021-08-17"; Current = "2021-09-13"; Expected = (BillingPeriodDistance 1u)}
+        { T = Monthly; Purchase = "2021-05-13"; Previous = "2021-08-17"; Current = "2021-10-13"; Expected = (BillingPeriodDistance 2u)}
+    ] |> runTestVectors test
 
 type MeterValue_deductVector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
 [<Test>]
 let Test_MeterValue_deduct() =
+    let test (idx, testcase) = 
+        let result = MeterValue.deduct testcase.State testcase.Quantity
+        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
+    
     [ 
         {
             // if Monthly is sufficient, don't touch annual
@@ -125,14 +132,16 @@ let Test_MeterValue_deduct() =
             Quantity = 2UL
             Expected = ConsumedQuantity { Amount = 12UL }
         }
-    ] 
-    |> List.map(fun { State=state; Quantity=quantity; Expected=expected} -> Assert.AreEqual(expected, MeterValue.deduct state quantity))
-    |> ignore
+    ] |> runTestVectors test
 
 type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quantity * RenewalInterval) list; Expected: MeterValue}
 
 [<Test>]
 let Test_MeterValue_topupMonthlyCredits() =    
+    let test (idx, testcase) =
+        let result = testcase.Values |> List.fold MeterValue.topupMonthlyCredits testcase.Input
+        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
+    
     [
         {
             Input = IncludedQuantity { Annually = Some 1UL; Monthly = None } 
@@ -172,7 +181,4 @@ let Test_MeterValue_topupMonthlyCredits() =
             ]
             Expected = IncludedQuantity { Annually = Some 10_000UL; Monthly = Some 500UL } 
         }
-    ]
-    |> List.map(fun { Values=values; Input=input; Expected=expected} -> 
-        Assert.AreEqual(expected, values |> List.fold MeterValue.topupMonthlyCredits input))
-    |> ignore
+    ] |> runTestVectors test
