@@ -13,4 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.0" />
+  </ItemGroup>
 </Project>
