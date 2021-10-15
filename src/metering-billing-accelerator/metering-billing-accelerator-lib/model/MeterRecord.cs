@@ -9,10 +9,10 @@ namespace MeteringAcceleratorLib.model
     /// </summary>
     public class MeterRecord
     {
-        public string marketplaceSubsriptionId;
-        public string planId;
-        public string dimensionId;
-        public int units;
-        public string tags;
+        public string marketplaceSubsriptionId { get; set; }
+        public string planId { get; set; }
+        public string dimensionId { get; set; }
+        public int units { get; set; }
+        public string tags { get; set; }
     }
 }
