@@ -5,4 +5,8 @@
     <RootNamespace>metering_billing_accelerator_web</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\metering-billing-accelerator-lib\metering-accelerator-lib.csproj" />
+  </ItemGroup>
+
 </Project>

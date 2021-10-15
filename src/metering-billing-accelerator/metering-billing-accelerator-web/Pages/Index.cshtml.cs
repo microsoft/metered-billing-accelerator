@@ -5,16 +5,20 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using metering_billing_accelerator_web;
 
 namespace metering_billing_accelerator_web.Pages
 {
-    public class IndexModel : PageModel
+    public partial class IndexModel : PageModel
     {
+        private readonly MeteringService meteringService;
+
         private readonly ILogger<IndexModel> _logger;
         public string Msg { get; set; }
-        public IndexModel(ILogger<IndexModel> logger)
+        public IndexModel(ILogger<IndexModel> logger, MeteringService meteringService) // points to the metering service for event hub.
         {
             _logger = logger;
+            this.meteringService = meteringService;
         }
 
         public void OnGet()
@@ -22,29 +26,36 @@ namespace metering_billing_accelerator_web.Pages
 
         }
 
-        public void OnPostWork1()
+
+        public async Task OnPostNodeChargeAsync()
         {
-            Msg = "Work 1";
+            await meteringService.EmitMeterAsync("sub1", "free", "nodeCharge", 1, "tag1");
+            Msg = "nodeCharge emitted";
         }
 
-        public void OnPostWork2()
+        public async void OnPostCpuChargeAsync()
         {
-            Msg = "Work 2";
+            await meteringService.EmitMeterAsync("sub1", "free", "nodeCharge", 1, "cpuCharge");
+            Msg = "cpuCharge emitted";
         }
 
-        public void OnPostWork3()
+        public async void OnPostDataSourceChargeAsync()
         {
-            Msg = "Work 3";
+            await meteringService.EmitMeterAsync("sub1", "free", "dataSourceCharge", 1, "tag1");
+            Msg = "dataSourceCharge emitted";
         }
 
-        public void OnPostWork4()
+        public async void OnPostMessageChargeAsync()
         {
-            Msg = "Work 4";
+            await meteringService.EmitMeterAsync("sub1", "free", "messageCharge", 1, "tag1");
+            Msg = "messageCharge emitted";
         }
 
-        public void OnPostWork5()
+        public async void OnPostObjectChargeAsync()
         {
-            Msg = "Work 5";
+            await meteringService.EmitMeterAsync("sub1", "plan1", "objectCharge", 1, "tag1");
+            Console.WriteLine("objectCharge emitted");
+            Msg = "objectCharge emitted";
         }
     }
 }

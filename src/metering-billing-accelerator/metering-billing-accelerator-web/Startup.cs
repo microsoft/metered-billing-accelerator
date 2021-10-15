@@ -13,7 +13,7 @@ namespace metering_billing_accelerator_web
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IWebHostEnvironment env)
         {
             Configuration = configuration;
         }
@@ -23,6 +23,7 @@ namespace metering_billing_accelerator_web
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton(new MeteringService(Environment.GetEnvironmentVariable("EVENT_HUB_CONNECTION_STRING")));  //This is a singleton to send meters to the event hub.
             services.AddRazorPages();
             services.AddMvc();
             services.AddControllers(options => options.EnableEndpointRouting = false);
