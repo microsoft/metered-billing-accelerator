@@ -18,8 +18,10 @@ open Metering.Types.EventHub
 
 let parsePlans planStrings =
     let parseBillingDimension (s: string) : PlanId * BillingDimension =
-        let parseQuantity(p: string) : Quantity =
-            UInt64.Parse(p)
+        let parseQuantity(p: string) : Quantity option =
+            match UInt64.TryParse(p) with
+            | (true, x) when x > 0UL -> Some x
+            | _ -> None
 
         s.Split([|'|'|], 5)
         |> Array.toList
@@ -30,7 +32,7 @@ let parsePlans planStrings =
                     DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = { Annually = None; Monthly = Some (includedQuantity |> parseQuantity) }
+                    IncludedQuantity = { Annually = None; Monthly = (includedQuantity |> parseQuantity) }
                 })
             | [planId; dimensionId; name; unitOfMeasure] -> 
                 (planId, {
