@@ -27,7 +27,7 @@ let parsePlans planStrings =
                     DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = { Annual = None; Monthly = Some { Quantity = (includedQuantity |> parseQuantity) } }
+                    IncludedQuantity = { Annual = None; Monthly = Some (includedQuantity |> parseQuantity) }
                 })
             | [planId; dimensionId; name; unitOfMeasure] -> 
                 (planId, {
@@ -110,9 +110,9 @@ let main argv =
         // LastProcessedEventSequenceID = 237492749,
         CurrentMeterValues =
             [
-                ("email", ConsumedQuantity({ Quantity = 100UL }))
+                ("email", ConsumedQuantity 100UL)
                 ("ml", IncludedQuantity({ 
-                    Monthly = Some { Quantity = 10UL }
+                    Monthly = Some 10UL
                     Annual = None }))
             ] |> Map.ofList
         UsageToBeReported = List.empty // HTTP Call payload which still needs to be sent to MeteringAPI

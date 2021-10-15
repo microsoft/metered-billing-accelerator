@@ -88,31 +88,30 @@ let Test_MeterValue_deduct() =
         {
             // if Monthly is sufficient, don't touch annual
             State = IncludedQuantity { 
-                Annual = Some { Quantity = 30UL } 
-                Monthly = Some { Quantity = 10UL } }
+                Annual = Some 30UL
+                Monthly = Some 10UL }
             Quantity = 8UL
             Expected = IncludedQuantity { 
-                Annual = Some { Quantity = 30UL }
-                Monthly = Some { Quantity = 2UL } }
+                Annual = Some 30UL
+                Monthly = Some 2UL }
         }
         {
             // if Monthly is not sufficient, also deduct from annual
             State = IncludedQuantity { 
-                Annual = Some { Quantity = 30UL }
-                Monthly = Some { Quantity = 10UL } }
+                Annual = Some 30UL
+                Monthly = Some 10UL}
             Quantity = 13UL
             Expected = IncludedQuantity { 
-                Annual = Some { Quantity = 27UL }
+                Annual = Some 27UL
                 Monthly = None}
         }
         {
             // if both Monthly and Annual are not sufficient, it costs money
             State = IncludedQuantity { 
-                Annual = Some { Quantity = 30UL }
-                Monthly = Some { Quantity = 10UL } }
+                Annual = Some 30UL
+                Monthly = Some 10UL }
             Quantity = 43UL
-            Expected = ConsumedQuantity { 
-                Quantity = 3UL }
+            Expected = ConsumedQuantity 3UL
         }
         {
             // If there's nothing, it costs money
@@ -120,24 +119,19 @@ let Test_MeterValue_deduct() =
                 Annual = None
                 Monthly = None}
             Quantity = 2UL
-            Expected = ConsumedQuantity { 
-                Quantity = 2UL }
+            Expected = ConsumedQuantity 2UL
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity { 
-                Quantity = 0UL }
+            State = ConsumedQuantity 0UL
             Quantity = 2UL
-            Expected = ConsumedQuantity { 
-                Quantity = 2UL }
+            Expected = ConsumedQuantity 2UL
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity { 
-                Quantity = 10UL }
+            State = ConsumedQuantity 10UL
             Quantity = 2UL
-            Expected = ConsumedQuantity { 
-                Quantity = 12UL }
+            Expected = ConsumedQuantity 12UL
         }
     ] 
     |> List.map(fun { State=state; Quantity=quantity; Expected=expected} -> Assert.AreEqual(expected, MeterValue.deduct state quantity))
@@ -150,42 +144,42 @@ type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quant
 let Test_MeterValue_topupMonthlyCredits() =
     [
         {
-            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = None } 
+            Input = IncludedQuantity { Annual = Some 1UL; Monthly = None } 
             Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 9UL } } 
+            Expected = IncludedQuantity { Annual = Some 1UL; Monthly = Some 9UL } 
         }
         {
-            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 2UL }  } 
+            Input = IncludedQuantity { Annual = Some 1UL; Monthly = Some 2UL } 
             Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 9UL } } 
+            Expected = IncludedQuantity { Annual = Some 1UL; Monthly = Some 9UL } 
         }
         {
-            Input = ConsumedQuantity { Quantity = 100_000UL}
+            Input = ConsumedQuantity 100_000UL
             Values = [(1000UL, Monthly)]
-            Expected = IncludedQuantity { Annual = None; Monthly = Some { Quantity = 1000UL } } 
+            Expected = IncludedQuantity { Annual = None; Monthly = Some 1000UL } 
         }
         {
-            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = None } 
+            Input = IncludedQuantity { Annual = Some 1UL; Monthly = None } 
             Values = [(9UL, Yearly)]
-            Expected = IncludedQuantity { Annual = Some { Quantity = 9UL}; Monthly = None } 
+            Expected = IncludedQuantity { Annual = Some 9UL; Monthly = None } 
         }
         {
-            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 2UL }  } 
+            Input = IncludedQuantity { Annual = Some 1UL; Monthly = Some 2UL } 
             Values = [(9UL, Yearly)]
-            Expected = IncludedQuantity { Annual = Some { Quantity = 9UL }; Monthly = Some { Quantity = 2UL } } 
+            Expected = IncludedQuantity { Annual = Some 9UL ; Monthly = Some 2UL } 
         }
         {
-            Input = ConsumedQuantity { Quantity = 100_000UL}
+            Input = ConsumedQuantity 100_000UL
             Values = [(1000UL, Yearly)]
-            Expected = IncludedQuantity { Annual = Some { Quantity = 1000UL }; Monthly =  None } 
+            Expected = IncludedQuantity { Annual = Some 1000UL ; Monthly = None } 
         }
         {
-            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 2UL }  } 
+            Input = IncludedQuantity { Annual = Some 1UL; Monthly = Some 2UL } 
             Values = [
                 (10_000UL, Yearly)
                 (500UL, Monthly)
             ]
-            Expected = IncludedQuantity { Annual = Some { Quantity = 10_000UL }; Monthly = Some { Quantity = 500UL } } 
+            Expected = IncludedQuantity { Annual = Some 10_000UL; Monthly = Some 500UL } 
         }
     ]
     |> List.map(fun { Values=values; Input=input; Expected=expected} -> 

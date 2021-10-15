@@ -62,40 +62,40 @@ module MeterValue =
     let deduct (meterValue: MeterValue) (reported: Quantity) : MeterValue =
         meterValue
         |> function
-           | ConsumedQuantity consumed -> ConsumedQuantity({ Quantity = consumed.Quantity + reported })
+           | ConsumedQuantity(consumed) -> ConsumedQuantity(consumed + reported)
            | IncludedQuantity({ Annual = annual; Monthly = monthly }) ->
                 match (annual, monthly) with
-                | (None, None) -> ConsumedQuantity({ Quantity = reported })
-                | (None, Some {Quantity = remainingMonthly}) -> 
+                | (None, None) -> ConsumedQuantity reported
+                | (None, Some remainingMonthly) -> 
                         // if there's only monthly stuff, deduct from the monthly side
                         if remainingMonthly > reported
-                        then IncludedQuantity({ Annual = None; Monthly = Some { Quantity = (remainingMonthly - reported) } })
-                        else ConsumedQuantity({ Quantity = (reported - remainingMonthly) } )
-                | (Some {Quantity = remainingAnnually}, None) -> 
+                        then IncludedQuantity { Annual = None; Monthly = Some (remainingMonthly - reported) }
+                        else ConsumedQuantity (reported - remainingMonthly)
+                | (Some remainingAnnually, None) -> 
                         // if there's only annual stuff, deduct from the monthly side
                         if remainingAnnually > reported
-                        then IncludedQuantity({ Annual =  Some { Quantity = (remainingAnnually - reported) } ; Monthly = None})
-                        else ConsumedQuantity({ Quantity = (reported - remainingAnnually) } )
-                | (Some {Quantity = remainingAnnually}, Some {Quantity = remainingMonthly}) -> 
+                        then IncludedQuantity { Annual =  Some (remainingAnnually - reported); Monthly = None}
+                        else ConsumedQuantity (reported - remainingAnnually)
+                | (Some remainingAnnually, Some remainingMonthly) -> 
                         // if there's both annual and monthly credits, first take from monthly, them from annual
                         if remainingMonthly > reported
-                        then IncludedQuantity({ Annual =  Some { Quantity = remainingAnnually }; Monthly = Some { Quantity = (remainingMonthly - reported) } })
+                        then IncludedQuantity { Annual =  Some remainingAnnually; Monthly = Some (remainingMonthly - reported) }
                         else 
                             let deductFromAnnual = reported - remainingMonthly
                             if remainingAnnually > deductFromAnnual
-                            then IncludedQuantity({ Annual =  Some { Quantity = remainingAnnually - deductFromAnnual }; Monthly = None })
-                            else ConsumedQuantity({ Quantity = (deductFromAnnual - remainingAnnually) } )
+                            then IncludedQuantity { Annual = Some (remainingAnnually - deductFromAnnual); Monthly = None }
+                            else ConsumedQuantity (deductFromAnnual - remainingAnnually)
 
     let topupMonthlyCredits (meterValue: MeterValue) ((quantity, pri): (Quantity * PlanRenewalInterval)) : MeterValue =
         match meterValue with 
         | (ConsumedQuantity(_)) -> 
             match pri with
-                | Monthly -> IncludedQuantity { Annual = None; Monthly = Some { Quantity = quantity } }
-                | Yearly -> IncludedQuantity { Annual = Some { Quantity = quantity }; Monthly = None } 
+                | Monthly -> IncludedQuantity { Annual = None; Monthly = Some quantity }
+                | Yearly -> IncludedQuantity { Annual = Some quantity; Monthly = None } 
         | (IncludedQuantity(m)) -> 
             match pri with
-                | Monthly -> IncludedQuantity { m with Monthly = Some { Quantity = quantity } }
-                | Yearly -> IncludedQuantity { m with Annual = Some { Quantity = quantity } }
+                | Monthly -> IncludedQuantity { m with Monthly = Some quantity }
+                | Yearly -> IncludedQuantity { m with Annual = Some quantity }
                                    
 
 module BusinessLogic =
