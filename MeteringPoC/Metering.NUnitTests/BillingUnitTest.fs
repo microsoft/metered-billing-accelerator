@@ -18,12 +18,7 @@ let bp (s: string) : BillingPeriod =
     |> Array.toList
     |> List.map (fun s -> s.Trim())
     |> function
-        | [idx; start; ending] -> 
-            { 
-                FirstDay = (d start)
-                LastDay = (d ending)
-                Index = (uint (Int64.Parse(idx)))
-            }
+        | [i; f; l] -> { FirstDay = (d f); LastDay = (d l); Index = (uint (Int64.Parse(i))) }
         | _ -> failwith "parsing error"
 
 let runTestVectors test testcases = testcases |> List.indexed |> List.map test |> ignore
@@ -36,60 +31,63 @@ let Test_BillingPeriod_createFromIndex () =
         (bp "2|2021-07-13|2021-08-12"),
         (BillingPeriod.createFromIndex sub 2u))
 
-type Subscription_determineBillingPeriod_Vector = { T: RenewalInterval; Purchase: string; Interval: string; Candidate: string}
+type Subscription_determineBillingPeriod_Vector = { Purchase: (RenewalInterval * string); Expected: string; Candidate: string}
         
 [<Test>]
 let Test_BillingPeriod_determineBillingPeriod () =
     let test (idx, testcase) =
-        let sub = Subscription.create "planId" testcase.T (d testcase.Purchase)
-        let expected : Result<BillingPeriod, BusinessError> = Ok(bp testcase.Interval)
-        let compute = BillingPeriod.determineBillingPeriod sub (d testcase.Candidate)
+        let (interval, purchaseDateStr) = testcase.Purchase
+        let subscription = Subscription.create "planId" interval (d purchaseDateStr)
+        let expected : Result<BillingPeriod, BusinessError> = Ok(bp testcase.Expected)
+        let compute = BillingPeriod.determineBillingPeriod subscription (d testcase.Candidate)
         Assert.AreEqual(expected, compute, sprintf "Failure test case %d" idx);
 
     [
-        {T=Monthly; Purchase="2021-05-13"; Interval="0|2021-05-13|2021-06-12"; Candidate="2021-05-30"}
-        {T=Monthly; Purchase="2021-05-13"; Interval="2|2021-07-13|2021-08-12"; Candidate="2021-08-01"}
+        {Purchase=(Monthly, "2021-05-13"); Candidate="2021-05-30"; Expected="0|2021-05-13|2021-06-12"}
+        {Purchase=(Monthly, "2021-05-13"); Candidate="2021-08-01"; Expected="2|2021-07-13|2021-08-12"}
         // if I purchase on the 29th of Feb in a leap year, 
         // my billing renews on 28th of Feb the next year, 
         // therefore last day of the current billing period is 27th next year
-        {T=Annually; Purchase="2004-02-29"; Interval="0|2004-02-29|2005-02-27"; Candidate="2004-03-29"}
-        {T=Annually; Purchase="2021-05-13"; Interval="0|2021-05-13|2022-05-12"; Candidate="2021-08-01"}
-        {T=Annually; Purchase="2021-05-13"; Interval="1|2022-05-13|2023-05-12"; Candidate="2022-08-01"}
+        {Purchase=(Annually, "2004-02-29"); Candidate="2004-03-29"; Expected="0|2004-02-29|2005-02-27"}
+        {Purchase=(Annually, "2021-05-13"); Candidate="2021-08-01"; Expected="0|2021-05-13|2022-05-12"}
+        {Purchase=(Annually, "2021-05-13"); Candidate="2022-08-01"; Expected="1|2022-05-13|2023-05-12"}
     ] |> runTestVectors test
 
-type BillingPeriod_isInBillingPeriod_Vector = { T: RenewalInterval; Purchase: string; BillingPeriodIndex: uint; Candidate: string; Expected: bool}
+type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * string); BillingPeriodIndex: uint; Candidate: string; Expected: bool}
 
 [<Test>]
 let Test_BillingPeriod_isInBillingPeriod () =
     let test (idx, testcase) =
-        let subscription = Subscription.create "planId" testcase.T (d testcase.Purchase) 
+        let (interval, purchaseDateStr) = testcase.Purchase
+        let subscription = Subscription.create "planId" interval (d purchaseDateStr)
         let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
         let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
     [
-        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=3u; Candidate="2021-08-13"; Expected=true}
-        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=3u; Candidate="2021-08-15"; Expected=true}
-        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=3u; Candidate="2021-09-12"; Expected=true}
-        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=3u; Candidate="2021-09-13"; Expected=false}
-        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=4u; Candidate="2021-09-13"; Expected=true}
+        { Purchase=(Monthly, "2021-05-13"); BillingPeriodIndex=3u; Candidate="2021-08-13"; Expected=true}
+        { Purchase=(Monthly, "2021-05-13"); BillingPeriodIndex=3u; Candidate="2021-08-15"; Expected=true}
+        { Purchase=(Monthly, "2021-05-13"); BillingPeriodIndex=3u; Candidate="2021-09-12"; Expected=true}
+        { Purchase=(Monthly, "2021-05-13"); BillingPeriodIndex=3u; Candidate="2021-09-13"; Expected=false}
+        { Purchase=(Monthly, "2021-05-13"); BillingPeriodIndex=4u; Candidate="2021-09-13"; Expected=true}
     ] |> runTestVectors test
 
-type BillingPeriod_getBillingPeriodDelta_Vector = { T: RenewalInterval; Purchase: string; Previous: string; Current: string; Expected: BillingPeriodResult}
+type BillingPeriod_getBillingPeriodDelta_Vector = { Purchase: (RenewalInterval * string); Previous: string; Current: string; Expected: BillingPeriodResult}
 
 [<Test>]
 let Test_BillingPeriod_getBillingPeriodDelta () =
     let test (idx, testcase) =
-        let subscription = Subscription.create "planId" testcase.T (testcase.Purchase |> d)
+        let (interval, purchaseDateStr) = testcase.Purchase
+        let subscription = Subscription.create "planId" interval (d purchaseDateStr)
         let result = (BillingPeriod.getBillingPeriodDelta subscription (d testcase.Previous) (d testcase.Current))
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
     [
-        { T = Monthly; Purchase = "2021-05-13"; Previous = "2021-05-13"; Current = "2021-05-13"; Expected = SameBillingPeriod}
-        { T = Monthly; Purchase = "2021-05-13"; Previous = "2021-08-13"; Current = "2021-08-15"; Expected = SameBillingPeriod}
-        { T = Monthly; Purchase = "2021-08-17"; Previous = "2021-08-17"; Current = "2021-09-12"; Expected = SameBillingPeriod}
-        { T = Monthly; Purchase = "2021-05-13"; Previous = "2021-08-17"; Current = "2021-09-13"; Expected = (BillingPeriodDistance 1u)}
-        { T = Monthly; Purchase = "2021-05-13"; Previous = "2021-08-17"; Current = "2021-10-13"; Expected = (BillingPeriodDistance 2u)}
+        { Purchase=(Monthly,"2021-05-13"); Previous="2021-05-13"; Current="2021-05-13"; Expected=SameBillingPeriod}
+        { Purchase=(Monthly,"2021-05-13"); Previous="2021-08-13"; Current="2021-08-15"; Expected=SameBillingPeriod}
+        { Purchase=(Monthly,"2021-08-17"); Previous="2021-08-17"; Current="2021-09-12"; Expected=SameBillingPeriod}
+        { Purchase=(Monthly,"2021-05-13"); Previous="2021-08-17"; Current="2021-09-13"; Expected=(BillingPeriodDistance 1u)}
+        { Purchase=(Monthly,"2021-05-13"); Previous="2021-08-17"; Current="2021-10-13"; Expected=(BillingPeriodDistance 2u)}
     ] |> runTestVectors test
 
 type MeterValue_deductVector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
