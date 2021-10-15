@@ -8,6 +8,45 @@ open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open NodaTime
 
+type IntOrFloat =
+    | Int of uint32 // ? :-)
+    | Float of double
+
+type Quantity = uint64
+
+type IncludedQuantity = 
+    { Monthly: Quantity option
+      Annual: Quantity option }
+
+type ConsumedQuantity = Quantity
+
+module MarketPlaceAPI =
+    type PlanId = string
+    type DimensionId = string
+    type UnitOfMeasure = string
+
+    // https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
+    type BillingDimension =
+        { DimensionId: DimensionId
+          DimensionName: string 
+          UnitOfMeasure: UnitOfMeasure
+          IncludedQuantity: IncludedQuantity }
+      
+    type Plan =
+        { PlanId: PlanId
+          BillingDimensions: BillingDimension seq }
+
+    // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
+    type MeteredBillingSingleUsageEvent =
+        { ResourceID: string // unique identifier of the resource against which usage is emitted. 
+          Quantity: IntOrFloat // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
+          DimensionId: DimensionId // custom dimension identifier
+          EffectiveStartTime: DateTime // time in UTC when the usage event occurred, from now and until 24 hours back
+          PlanId: PlanId } // id of the plan purchased for the offer
+
+    type MeteredBillingBatchUsageEvent = 
+        MeteredBillingSingleUsageEvent seq
+
 type BusinessError =
     | DayBeforeSubscription
     | NewDateFromPreviousBillingPeriod     
@@ -44,54 +83,18 @@ type EventHubProcessorEvent =
     | PartitionInitializing of PartitionInitializingEventArgs
     | PartitionClosing of PartitionClosingEventArgs
 
-// https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
-
-type IntOrFloat =
-    | Int of uint32 // ? :-)
-    | Float of double
-    
-type PlanId = string
-
-type DimensionId = string
-
-type UnitOfMeasure = string
-
-type Quantity = uint64
-
-type IncludedQuantity = 
-    { Monthly: Quantity option
-      Annual: Quantity option }
-
-type ConsumedQuantity = Quantity
 
 type MeterValue =
     | IncludedQuantity of IncludedQuantity
     | ConsumedQuantity of ConsumedQuantity
 
-// https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
-type BillingDimension =
-    { DimensionId: DimensionId
-      DimensionName: string 
-      UnitOfMeasure: UnitOfMeasure
-      IncludedQuantity: IncludedQuantity }
-      
-type Plan =
-    { PlanId: PlanId
-      BillingDimensions: BillingDimension seq }
-      
-type MeteredBillingSingleUsageEvent =
-    { ResourceID: string // unique identifier of the resource against which usage is emitted. 
-      Quantity: IntOrFloat // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
-      DimensionId: DimensionId // custom dimension identifier
-      EffectiveStartTime: DateTime // time in UTC when the usage event occurred, from now and until 24 hours back
-      PlanId: PlanId } // id of the plan purchased for the offer
-    
-type MeteredBillingBatchUsageEvent = 
-    MeteredBillingSingleUsageEvent seq
+         
 
 type PlanRenewalInterval =
     | Monthly
     | Yearly
+
+open MarketPlaceAPI
 
 type Subscription = // When a certain plan was purchased
     { PlanId: PlanId
@@ -136,4 +139,3 @@ type CurrentBillingState =
         UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which hasn't been reported yet to the metering API
         LastProcessedMessage: MessagePosition // Pending HTTP calls to the marketplace API
     } 
-
