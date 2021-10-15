@@ -144,24 +144,50 @@ let Test_MeterValue_deduct() =
     |> ignore
 
 
-type MeterValue_topupMonthlyCredits_Vector = { Meter: MeterValue; Quantity: Quantity; PlanRenewalInterval: PlanRenewalInterval; Expected: MeterValue}
+type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quantity * PlanRenewalInterval) list; Expected: MeterValue}
 
 [<Test>]
 let Test_MeterValue_topupMonthlyCredits() =
     [
         {
-            Meter = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = None } 
-            Quantity = 9UL
-            PlanRenewalInterval = Monthly
+            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = None } 
+            Values = [(9UL, Monthly)]
             Expected = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 9UL } } 
         }
         {
-            Meter = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 2UL }  } 
-            Quantity = 9UL
-            PlanRenewalInterval = Monthly
+            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 2UL }  } 
+            Values = [(9UL, Monthly)]
             Expected = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 9UL } } 
         }
+        {
+            Input = ConsumedQuantity { Quantity = 100_000UL}
+            Values = [(1000UL, Monthly)]
+            Expected = IncludedQuantity { Annual = None; Monthly = Some { Quantity = 1000UL } } 
+        }
+        {
+            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = None } 
+            Values = [(9UL, Yearly)]
+            Expected = IncludedQuantity { Annual = Some { Quantity = 9UL}; Monthly = None } 
+        }
+        {
+            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 2UL }  } 
+            Values = [(9UL, Yearly)]
+            Expected = IncludedQuantity { Annual = Some { Quantity = 9UL }; Monthly = Some { Quantity = 2UL } } 
+        }
+        {
+            Input = ConsumedQuantity { Quantity = 100_000UL}
+            Values = [(1000UL, Yearly)]
+            Expected = IncludedQuantity { Annual = Some { Quantity = 1000UL }; Monthly =  None } 
+        }
+        {
+            Input = IncludedQuantity { Annual = Some { Quantity = 1UL}; Monthly = Some { Quantity = 2UL }  } 
+            Values = [
+                (10_000UL, Yearly)
+                (500UL, Monthly)
+            ]
+            Expected = IncludedQuantity { Annual = Some { Quantity = 10_000UL }; Monthly = Some { Quantity = 500UL } } 
+        }
     ]
-    |> List.map(fun { Quantity=q; PlanRenewalInterval=p; Meter=m; Expected=expected} -> 
-        Assert.AreEqual(expected, MeterValue.topupMonthlyCredits q p m))
+    |> List.map(fun { Values=values; Input=input; Expected=expected} -> 
+        Assert.AreEqual(expected, values |> List.fold MeterValue.topupMonthlyCredits input))
     |> ignore

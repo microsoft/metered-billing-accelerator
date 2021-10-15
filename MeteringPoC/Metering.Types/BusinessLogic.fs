@@ -86,7 +86,7 @@ module MeterValue =
                             then IncludedQuantity({ Annual =  Some { Quantity = remainingAnnually - deductFromAnnual }; Monthly = None })
                             else ConsumedQuantity({ Quantity = (deductFromAnnual - remainingAnnually) } )
 
-    let topupMonthlyCredits (quantity: Quantity) (pri: PlanRenewalInterval) (meterValue: MeterValue) : MeterValue =
+    let topupMonthlyCredits (meterValue: MeterValue) ((quantity, pri): (Quantity * PlanRenewalInterval)) : MeterValue =
         match meterValue with 
         | (ConsumedQuantity(_)) -> 
             match pri with
