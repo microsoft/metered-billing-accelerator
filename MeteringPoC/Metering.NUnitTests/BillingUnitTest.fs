@@ -39,7 +39,7 @@ let Test_BillingPeriod_createFromIndex () =
 type Subscription_determineBillingPeriod_Vector = { T: RenewalInterval; Purchase: string; Interval: string; Candidate: string}
         
 [<Test>]
-let Test_Subscription_determineBillingPeriod () =
+let Test_BillingPeriod_determineBillingPeriod () =
     let test (idx, testcase) =
         let sub = Subscription.create "planId" testcase.T (d testcase.Purchase)
         let expected : Result<BillingPeriod, BusinessError> = Ok(bp testcase.Interval)
@@ -57,23 +57,31 @@ let Test_Subscription_determineBillingPeriod () =
         {T=Annually; Purchase="2021-05-13"; Interval="1|2022-05-13|2023-05-12"; Candidate="2022-08-01"}
     ] |> runTestVectors test
 
+type BillingPeriod_isInBillingPeriod_Vector = { T: RenewalInterval; Purchase: string; BillingPeriodIndex: uint; Candidate: string; Expected: bool}
+
 [<Test>]
 let Test_BillingPeriod_isInBillingPeriod () =
-    let sub = Subscription.create "planId" Monthly (d "2021-05-13") 
-    let bp = BillingPeriod.createFromIndex sub 
-    Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-08-13"))
-    Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-08-15"))
-    Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-09-12"))
-    Assert.IsFalse(BillingPeriod.isInBillingPeriod (bp 3u) (d "2021-09-13"))
-    Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 4u) (d "2021-09-13"))
+    let test (idx, testcase) =
+        let subscription = Subscription.create "planId" testcase.T (d testcase.Purchase) 
+        let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
+        let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
+        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
+
+    [
+        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=3u; Candidate="2021-08-13"; Expected=true}
+        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=3u; Candidate="2021-08-15"; Expected=true}
+        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=3u; Candidate="2021-09-12"; Expected=true}
+        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=3u; Candidate="2021-09-13"; Expected=false}
+        { T=Monthly; Purchase="2021-05-13"; BillingPeriodIndex=4u; Candidate="2021-09-13"; Expected=true}
+    ] |> runTestVectors test
 
 type BillingPeriod_getBillingPeriodDelta_Vector = { T: RenewalInterval; Purchase: string; Previous: string; Current: string; Expected: BillingPeriodResult}
 
 [<Test>]
 let Test_BillingPeriod_getBillingPeriodDelta () =
     let test (idx, testcase) =
-        let subscriptoin = Subscription.create "planId" testcase.T (testcase.Purchase |> d)
-        let result = (BillingPeriod.getBillingPeriodDelta subscriptoin (d testcase.Previous) (d testcase.Current))
+        let subscription = Subscription.create "planId" testcase.T (testcase.Purchase |> d)
+        let result = (BillingPeriod.getBillingPeriodDelta subscription (d testcase.Previous) (d testcase.Current))
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
     [
@@ -96,17 +104,13 @@ let Test_MeterValue_deduct() =
             // if Monthly is sufficient, don't touch annual
             State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL }
             Quantity = 8UL
-            Expected = IncludedQuantity { 
-                Annually = Some 30UL
-                Monthly = Some 2UL }
+            Expected = IncludedQuantity { Annually = Some 30UL; Monthly = Some 2UL }
         }
         {
             // if Monthly is not sufficient, also deduct from annual
             State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL}
             Quantity = 13UL
-            Expected = IncludedQuantity { 
-                Annually = Some 27UL
-                Monthly = None}
+            Expected = IncludedQuantity { Annually = Some 27UL; Monthly = None}
         }
         {
             // if both Monthly and Annual are not sufficient, it costs money
