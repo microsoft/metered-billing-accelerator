@@ -60,13 +60,25 @@ type Quantity = uint64
 type IncludedQuantityMonthly = Quantity
 type IncludedQuantityAnnually = Quantity
 
+type IncludedMonthlyQuantity = { Quantity: Quantity }
+
+type IncludedAnnualQuantity = { Quantity: Quantity }
+
+type IncludedQuantity =
+    { Monthly: IncludedMonthlyQuantity option
+      Annual: IncludedAnnualQuantity option }
+
 // https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
 type BillingDimension =
     { DimensionId: DimensionId
       DimensionName: string 
       UnitOfMeasure: UnitOfMeasure
-      IncludedQuantityMonthly: IncludedQuantityMonthly option }
-
+      IncludedQuantity: IncludedQuantity }
+      
+type Plan =
+    { PlanId: PlanId
+      BillingDimensions: BillingDimension seq }
+      
 type MeteredBillingSingleUsageEvent =
     { ResourceID: string // unique identifier of the resource against which usage is emitted. 
       Quantity: IntOrFloat // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
@@ -77,9 +89,6 @@ type MeteredBillingSingleUsageEvent =
 type MeteredBillingBatchUsageEvent = 
     MeteredBillingSingleUsageEvent seq
 
-type Plan =
-    { PlanId: PlanId
-      BillingDimensions: BillingDimension seq }
 
 type PlanRenewalInterval =
     | Monthly
@@ -103,14 +112,6 @@ type ApplicationInternalMeterName = string // A meter name used between app and 
 
 type InternalMetersMapping = // The mapping table used by the aggregator to translate an ApplicationInternalMeterName to the plan and dimension configured in Azure marketplace
     Map<ApplicationInternalMeterName, PlanDimension>
-
-type IncludedMonthlyQuantity = { Quantity: Quantity }
-
-type IncludedAnnualQuantity = { Quantity: Quantity }
-
-type IncludedQuantity =
-    { Monthly: IncludedMonthlyQuantity option
-      Annual: IncludedAnnualQuantity option}
 
 type ConsumedQuantity = { Quantity: Quantity }
 

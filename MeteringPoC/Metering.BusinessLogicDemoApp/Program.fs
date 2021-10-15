@@ -15,9 +15,8 @@ open NodaTime
 
 let parsePlans planStrings =
     let parseBillingDimension (s: string) : PlanId * BillingDimension =
-        let parseQuantity(p: string) : IncludedQuantityMonthly option =
+        let parseQuantity(p: string) : Quantity =
             UInt64.Parse(p)
-            |> Some
 
         s.Split([|'|'|], 5)
         |> Array.toList
@@ -28,14 +27,14 @@ let parsePlans planStrings =
                     DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
-                    IncludedQuantityMonthly = includedQuantity |> parseQuantity
+                    IncludedQuantity = { Annual = None; Monthly = Some { Quantity = (includedQuantity |> parseQuantity) } }
                 })
             | [planId; dimensionId; name; unitOfMeasure] -> 
                 (planId, {
                     DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
-                    IncludedQuantityMonthly = None
+                    IncludedQuantity = { Annual = None; Monthly = None }
                 })
             | _ -> failwith "parsing error"
 
