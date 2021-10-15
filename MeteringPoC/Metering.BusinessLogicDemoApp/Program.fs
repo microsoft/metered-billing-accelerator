@@ -107,6 +107,9 @@ let main argv =
             "plan2 | EMailCampaign      | An e-mail sent for campaign usage | e-mails               | 0/250000" // 0 annually, 250000 monthly
         ] |> parsePlans
 
+    let dateTimeToNoda (dateTime : DateTime) =
+        ZonedDateTime(LocalDateTime.FromDateTime(dateTime.ToUniversalTime()), DateTimeZone.Utc, Offset.Zero)
+
     let oldBalance  = {
         Plans = plans
         InternalMetersMapping = 
@@ -128,7 +131,7 @@ let main argv =
         LastProcessedMessage = { 
             PartitionID = PartitionID("0")
             SequenceNumber = SequenceNumber 9UL
-            PartitionTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0))
+            PartitionTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0)) |> dateTimeToNoda 
         }
     }
 
@@ -144,12 +147,12 @@ let main argv =
 
     let newBalance =
         eventsFromEventHub
-        |> BusinessLogic.applyUsageEvents oldBalance 
+        |> CurrentBillingState.applyUsageEvents oldBalance 
 
     //printfn "plan %A" plan
     //printfn "usageEvents %A" usageEvents
-    printfn "oldBalance %A" oldBalance.CurrentMeterValues
-    printfn "newBalance %A" newBalance
+    //printfn "oldBalance %A" oldBalance.CurrentMeterValues
+    printfn "newBalance %A" newBalance.LastProcessedMessage
 
     //printfn "newBalance %A" (Newtonsoft.Json.JsonConvert.SerializeObject(newBalance))
     0

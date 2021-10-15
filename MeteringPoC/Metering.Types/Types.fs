@@ -65,13 +65,12 @@ type InternalUsageEvent = // From app to aggregator
 type BusinessError =
     | DayBeforeSubscription
 
-
 type Subscription = // When a certain plan was purchased
     { PlanId: PlanId
       RenewalInterval: RenewalInterval 
       SubscriptionStart: LocalDate }
 
-type BillingPeriod =
+type BillingPeriod = // Each time the subscription is renewed, a new billing period start
     { FirstDay: LocalDate
       LastDay: LocalDate
       Index: uint }
@@ -83,7 +82,7 @@ type PlanDimension =
 type InternalMetersMapping = // The mapping table used by the aggregator to translate an ApplicationInternalMeterName to the plan and dimension configured in Azure marketplace
     Map<ApplicationInternalMeterName, PlanDimension>
 
-type CurrentMeterValues =
+type CurrentMeterValues = // Collects all meters per internal metering event type
     Map<ApplicationInternalMeterName, MeterValue> 
 
 type MeteringAPIUsageEventDefinition = // From aggregator to metering API
@@ -92,11 +91,10 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
       PlanDimension: PlanDimension
       EffectiveStartTime: DateTime }
     
-type CurrentBillingState =
-    {
-        Plans: Plan seq // The list of all plans. Certainly not needed in the aggregator?
-        InitialPurchase: Subscription // The purchase information of the subscription
-        InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
-        CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
-        UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which hasn't been reported yet to the metering API
-        LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace API
+type MeteringState =
+    { Plans: Plan seq // The list of all plans. Certainly not needed in the aggregator?
+      InitialPurchase: Subscription // The purchase information of the subscription
+      InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
+      CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
+      UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which haven't yet been reported to the metering API
+      LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace API

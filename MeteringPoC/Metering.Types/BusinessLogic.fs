@@ -66,6 +66,7 @@ module BillingPeriod =
                     | _ -> DateBelongsToPreviousBillingPeriod
 
 module MeterValue =
+    
     let deduct (meterValue: MeterValue) (reported: Quantity) : MeterValue =
         meterValue
         |> function
@@ -104,18 +105,17 @@ module MeterValue =
                 | Monthly -> IncludedQuantity { m with Monthly = Some quantity }
                 | Annually -> IncludedQuantity { m with Annually = Some quantity }
 
-module BusinessLogic =
-    let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =
-        Option.bind ((fun r m -> Some (r |> MeterValue.deduct m )) event.Quantity) current
+module CurrentBillingState =
+    let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) =
+        Option.bind ((fun q m -> Some (q |> MeterValue.deduct m )) event.Quantity) current
 
-    let applyUsageEvent (current: CurrentBillingState) (event: InternalUsageEvent) : CurrentBillingState =
+    let applyUsageEvent meteringState event=
         let newCredits = 
-            current.CurrentMeterValues
+            meteringState.CurrentMeterValues
             |> Map.change event.MeterName (applyConsumption event)
         
-        { current 
+        { meteringState 
             with CurrentMeterValues = newCredits}
 
-    let applyUsageEvents (state: CurrentBillingState) (usageEvents: InternalUsageEvent list) : CurrentBillingState =
-        usageEvents |> List.fold applyUsageEvent state
-
+    let applyUsageEvents meteringState usageEvents=
+        usageEvents |> List.fold applyUsageEvent meteringState
