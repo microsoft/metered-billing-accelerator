@@ -139,7 +139,7 @@ let Test_MeterValue_deduct() =
 type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quantity * RenewalInterval) list; Expected: MeterValue}
 
 [<Test>]
-let Test_MeterValue_topupMonthlyCredits() =    
+let Test_MeterValue_topupMonthlyCredits() =
     let test (idx, testcase) =
         let result = testcase.Values |> List.fold (MeterValue.topupMonthlyCredits |> (fun f a (b, c) -> f a b c)) testcase.Input
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
