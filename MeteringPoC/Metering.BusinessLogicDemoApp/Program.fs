@@ -18,10 +18,15 @@ open Metering.Types.EventHub
 
 let parsePlans planStrings =
     let parseBillingDimension (s: string) : PlanId * BillingDimension =
-        let parseQuantity(p: string) : Quantity option =
-            match UInt64.TryParse(p) with
-            | (true, x) when x > 0UL -> Some x
-            | _ -> None
+        let parseQuantity(p: string) : IncludedQuantity =
+            let pq (n: string) : Quantity option = 
+                match UInt64.TryParse(n) with
+                | (true, x) when x > 0UL -> Some x
+                | _ -> None
+
+            match (s.Split([|'/'|]) |> Array.toList |> List.map (fun s -> s.Trim())) with
+            | [a; m] -> { Annually = pq(a); Monthly = pq(m) }
+            | _ ->  { Annually = None; Monthly = None }
 
         s.Split([|'|'|], 5)
         |> Array.toList
@@ -32,7 +37,7 @@ let parsePlans planStrings =
                     DimensionId = dimensionId
                     DimensionName = name
                     UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = { Annually = None; Monthly = (includedQuantity |> parseQuantity) }
+                    IncludedQuantity = includedQuantity |> parseQuantity 
                 })
             | [planId; dimensionId; name; unitOfMeasure] -> 
                 (planId, {
@@ -93,12 +98,13 @@ let parseUsageEvents events =
 let main argv =
     let plans = 
         [ 
+            // planID dimensionId         name                                unitOfMeasure   includedAnnually/Monthly
             "plan1 | nodecharge         | Per Node Connected                | node/hour"
             "plan1 | cpucharge          | Per CPU urage                     | cpu/hour"
             "plan1 | datasourcecharge   | Per DataSource Integration        | ds/hour"
             "plan1 | messagecharge      | Per Message Transmitted           | message/hour"
-            "plan2 | MachineLearningJob | An expensive machine learning job | machine learning jobs | 10"
-            "plan2 | EMailCampaign      | An e-mail sent for campaign usage | e-mails               | 250000"
+            "plan2 | MachineLearningJob | An expensive machine learning job | machine learning jobs | 0/10"
+            "plan2 | EMailCampaign      | An e-mail sent for campaign usage | e-mails               | 0/250000" // 0 annually, 250000 monthly
         ] |> parsePlans
 
     let oldBalance  = {
