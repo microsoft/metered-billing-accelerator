@@ -10,17 +10,18 @@ type IntOrFloat =
 
 type Quantity = uint64
 
+type ConsumedQuantity = 
+    { Amount: Quantity }
+
 type IncludedQuantity = 
     { Monthly: Quantity option
       Annually: Quantity option }
 
-type ConsumedQuantity = Quantity
-
 type MeterValue =
-    | IncludedQuantity of IncludedQuantity
     | ConsumedQuantity of ConsumedQuantity
+    | IncludedQuantity of IncludedQuantity
 
-type PlanRenewalInterval =
+type RenewalInterval =
     | Monthly
     | Annually
         
@@ -51,15 +52,15 @@ module MarketPlaceAPI =
     type MeteredBillingBatchUsageEvent = 
         MeteredBillingSingleUsageEvent seq
 
+open MarketPlaceAPI
+
 type BusinessError =
     | DayBeforeSubscription
     | NewDateFromPreviousBillingPeriod     
 
-open MarketPlaceAPI
-
 type Subscription = // When a certain plan was purchased
     { PlanId: PlanId
-      PlanRenewalInterval: PlanRenewalInterval 
+      RenewalInterval: RenewalInterval 
       SubscriptionStart: LocalDate }
 
 type BillingPeriod =

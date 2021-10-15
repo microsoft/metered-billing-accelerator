@@ -105,35 +105,34 @@ let Test_MeterValue_deduct() =
             // if both Monthly and Annual are not sufficient, it costs money
             State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL }
             Quantity = 43UL
-            Expected = ConsumedQuantity 3UL
+            Expected = ConsumedQuantity { Amount = 3UL }
         }
         {
             // If there's nothing, it costs money
             State = IncludedQuantity { Annually = None; Monthly = None}
             Quantity = 2UL
-            Expected = ConsumedQuantity 2UL
+            Expected = ConsumedQuantity { Amount = 2UL }
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity 0UL
+            State = ConsumedQuantity { Amount = 0UL }
             Quantity = 2UL
-            Expected = ConsumedQuantity 2UL
+            Expected = ConsumedQuantity { Amount = 2UL }
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity 10UL
+            State = ConsumedQuantity { Amount = 10UL }
             Quantity = 2UL
-            Expected = ConsumedQuantity 12UL
+            Expected = ConsumedQuantity { Amount = 12UL }
         }
     ] 
     |> List.map(fun { State=state; Quantity=quantity; Expected=expected} -> Assert.AreEqual(expected, MeterValue.deduct state quantity))
     |> ignore
 
-
-type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quantity * PlanRenewalInterval) list; Expected: MeterValue}
+type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quantity * RenewalInterval) list; Expected: MeterValue}
 
 [<Test>]
-let Test_MeterValue_topupMonthlyCredits() =
+let Test_MeterValue_topupMonthlyCredits() =    
     [
         {
             Input = IncludedQuantity { Annually = Some 1UL; Monthly = None } 
@@ -146,7 +145,7 @@ let Test_MeterValue_topupMonthlyCredits() =
             Expected = IncludedQuantity { Annually = Some 1UL; Monthly = Some 9UL } 
         }
         {
-            Input = ConsumedQuantity 100_000UL
+            Input = ConsumedQuantity { Amount = 100_000UL }
             Values = [(1000UL, Monthly)]
             Expected = IncludedQuantity { Annually = None; Monthly = Some 1000UL } 
         }
@@ -161,7 +160,7 @@ let Test_MeterValue_topupMonthlyCredits() =
             Expected = IncludedQuantity { Annually = Some 9UL ; Monthly = Some 2UL } 
         }
         {
-            Input = ConsumedQuantity 100_000UL
+            Input = ConsumedQuantity { Amount = 100_000UL }
             Values = [(1000UL, Annually)]
             Expected = IncludedQuantity { Annually = Some 1000UL ; Monthly = None } 
         }

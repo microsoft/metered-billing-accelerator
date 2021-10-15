@@ -3,7 +3,7 @@
 open NodaTime
 open Metering.Types
 
-module PlanRenewalInterval =
+module RenewalInterval =
     let duration pre =
         match pre with
         | Monthly -> Period.FromMonths(1)
@@ -16,7 +16,7 @@ module PlanRenewalInterval =
 
 module Subscription =
     let create planId pri subscriptionStart = 
-        { PlanRenewalInterval = pri ; SubscriptionStart = subscriptionStart ; PlanId = planId }
+        { RenewalInterval = pri ; SubscriptionStart = subscriptionStart ; PlanId = planId }
 
 module BillingPeriod =
     open Metering.Types
@@ -27,7 +27,7 @@ module BillingPeriod =
         sprintf "%s--%s" (localDateToStr firstDay) (localDateToStr lastDay)
 
     let createFromIndex (subscription : Subscription) (n: uint) : BillingPeriod =
-        let periods : (uint -> Period) = PlanRenewalInterval.add subscription.PlanRenewalInterval
+        let periods : (uint -> Period) = RenewalInterval.add subscription.RenewalInterval
         { FirstDay = subscription.SubscriptionStart + (periods (n))
           LastDay = subscription.SubscriptionStart + (periods (n+1u)) - Period.FromDays(1)
           Index = n }
@@ -38,7 +38,7 @@ module BillingPeriod =
         else 
             let diff = day - subscription.SubscriptionStart
             let idx = 
-                match subscription.PlanRenewalInterval with
+                match subscription.RenewalInterval with
                     | Monthly -> diff.Years * 12 + diff.Months
                     | Annually -> diff.Years
                 |> uint
@@ -62,20 +62,20 @@ module MeterValue =
     let deduct (meterValue: MeterValue) (reported: Quantity) : MeterValue =
         meterValue
         |> function
-           | ConsumedQuantity(consumed) -> ConsumedQuantity(consumed + reported)
+           | ConsumedQuantity({ Amount = consumed}) -> ConsumedQuantity({ Amount = consumed + reported})
            | IncludedQuantity({ Annually = annually; Monthly = monthly }) ->
                 match (annually, monthly) with
-                | (None, None) -> ConsumedQuantity reported
+                | (None, None) -> ConsumedQuantity { Amount = reported }
                 | (None, Some remainingMonthly) -> 
                         // if there's only monthly stuff, deduct from the monthly side
                         if remainingMonthly > reported
                         then IncludedQuantity { Annually = None; Monthly = Some (remainingMonthly - reported) }
-                        else ConsumedQuantity (reported - remainingMonthly)
+                        else ConsumedQuantity { Amount = reported - remainingMonthly }
                 | (Some remainingAnnually, None) -> 
                         // if there's only annual stuff, deduct from the monthly side
                         if remainingAnnually > reported
                         then IncludedQuantity { Annually = Some (remainingAnnually - reported); Monthly = None}
-                        else ConsumedQuantity (reported - remainingAnnually)
+                        else ConsumedQuantity { Amount = reported - remainingAnnually }
                 | (Some remainingAnnually, Some remainingMonthly) -> 
                         // if there's both annual and monthly credits, first take from monthly, them from annual
                         if remainingMonthly > reported
@@ -84,9 +84,9 @@ module MeterValue =
                             let deductFromAnnual = reported - remainingMonthly
                             if remainingAnnually > deductFromAnnual
                             then IncludedQuantity { Annually = Some (remainingAnnually - deductFromAnnual); Monthly = None }
-                            else ConsumedQuantity (deductFromAnnual - remainingAnnually)
+                            else ConsumedQuantity { Amount = deductFromAnnual - remainingAnnually }
 
-    let topupMonthlyCredits (meterValue: MeterValue) ((quantity, pri): (Quantity * PlanRenewalInterval)) : MeterValue =
+    let topupMonthlyCredits (meterValue: MeterValue) ((quantity, pri): (Quantity * RenewalInterval)) : MeterValue =
         match meterValue with 
         | (ConsumedQuantity(_)) -> 
             match pri with

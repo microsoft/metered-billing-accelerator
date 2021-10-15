@@ -109,14 +109,12 @@ let main argv =
         InitialPurchase = {
             PlanId = "plan2"
             SubscriptionStart = LocalDate(2021, 10, 01)
-            PlanRenewalInterval = Monthly }
+            RenewalInterval = Monthly }
         // LastProcessedEventSequenceID = 237492749,
         CurrentMeterValues =
             [
-                ("email", ConsumedQuantity 100UL)
-                ("ml", IncludedQuantity({ 
-                    Monthly = Some 10UL
-                    Annually = None }))
+                ("email", ConsumedQuantity { Amount = 100UL })
+                ("ml", IncludedQuantity { Annually = None ; Monthly = Some 10UL })
             ] |> Map.ofList
         UsageToBeReported = List.empty // HTTP Call payload which still needs to be sent to MeteringAPI
         LastProcessedMessage = { 
