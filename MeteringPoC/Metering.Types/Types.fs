@@ -54,9 +54,17 @@ module MarketPlaceAPI =
 
 open MarketPlaceAPI
 
+type ApplicationInternalMeterName = string // A meter name used between app and aggregator
+
+type InternalUsageEvent = // From app to aggregator
+    { Timestamp: DateTime
+      MeterName: ApplicationInternalMeterName
+      Quantity: Quantity
+      Properties: Map<string, string> option}
+
 type BusinessError =
     | DayBeforeSubscription
-    | NewDateFromPreviousBillingPeriod     
+
 
 type Subscription = // When a certain plan was purchased
     { PlanId: PlanId
@@ -72,20 +80,12 @@ type PlanDimension =
     { PlanId: PlanId
       DimensionId: DimensionId }
 
-type ApplicationInternalMeterName = string // A meter name used between app and aggregator
-
 type InternalMetersMapping = // The mapping table used by the aggregator to translate an ApplicationInternalMeterName to the plan and dimension configured in Azure marketplace
     Map<ApplicationInternalMeterName, PlanDimension>
 
 type CurrentMeterValues =
     Map<ApplicationInternalMeterName, MeterValue> 
 
-type InternalUsageEvent = // From app to aggregator
-    { Timestamp: DateTime
-      MeterName: ApplicationInternalMeterName
-      Quantity: Quantity
-      Properties: Map<string, string> option}
-      
 type MeteringAPIUsageEventDefinition = // From aggregator to metering API
     { ResourceId: string 
       Quantity: double 
@@ -99,5 +99,4 @@ type CurrentBillingState =
         InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
         CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
         UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which hasn't been reported yet to the metering API
-        LastProcessedMessage: MessagePosition // Pending HTTP calls to the marketplace API
-    } 
+        LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace API

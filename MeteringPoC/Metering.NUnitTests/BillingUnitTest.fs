@@ -67,13 +67,13 @@ let Test_BillingPeriod_isInBillingPeriod () =
     Assert.IsTrue(BillingPeriod.isInBillingPeriod (bp 4u) (d "2021-09-13"))
 
 [<Test>]
-let Test_BillingPeriod_isNewBillingPeriod () =
-    let check sub res previous current =        
-        let expected = Ok(res)
-        let computed = BillingPeriod.getBillingPeriodDelta sub (d previous) (d current)
-        Assert.IsTrue((expected = computed))
+let Test_BillingPeriod_getBillingPeriodDelta () =
+    let check sub expected previous current =        
+        let result = (BillingPeriod.getBillingPeriodDelta sub (d previous) (d current))
+        
+        Assert.IsTrue((BillingPeriod.Period(expected) = result))
 
-    let sub = "2021-05-13" |> d |> Subscription.create "planId" Monthly 
+    let sub =  Subscription.create "planId" Monthly ("2021-05-13" |> d)
     check sub 0u "2021-05-13" "2021-05-13" // on start day
     check sub 0u "2021-08-13" "2021-08-15" // same period
     check sub 0u "2021-08-17" "2021-09-12" // same period

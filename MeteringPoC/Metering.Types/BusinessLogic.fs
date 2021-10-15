@@ -48,15 +48,20 @@ module BillingPeriod =
     let isInBillingPeriod { FirstDay = firstDay; LastDay = lastDay } (day: LocalDate) : bool =
         firstDay <= day && day <= lastDay
 
-    let getBillingPeriodDelta(subscription: Subscription) (previous: LocalDate) (current: LocalDate) : Result<uint, BusinessError> =
+    type BillingPeriodResult =
+        | Period of uint
+        | DateBeforeSubscription
+        | DateBelongsToPreviousBillingPeriod
+
+    let getBillingPeriodDelta(subscription: Subscription) (previous: LocalDate) (current: LocalDate) : BillingPeriodResult =
         let check = determineBillingPeriod subscription
         match (check previous, check current) with
-            | (Result.Error(e), _) -> Result.Error(e) 
-            | (_, Result.Error(e)) -> Result.Error(e)
+            | (Result.Error(DayBeforeSubscription), _) -> DateBeforeSubscription
+            | (_, Result.Error(DayBeforeSubscription)) -> DateBeforeSubscription
             | Ok(p), Ok(c) -> 
                 match (p, c) with
-                    | (p, c) when p <= c -> Ok(c.Index - p.Index)
-                    | _ -> Result.Error(NewDateFromPreviousBillingPeriod)
+                    | (p, c) when p <= c -> Period(c.Index - p.Index)
+                    | _ -> DateBelongsToPreviousBillingPeriod
 
 module MeterValue =
     let deduct (meterValue: MeterValue) (reported: Quantity) : MeterValue =
