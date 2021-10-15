@@ -33,25 +33,25 @@ namespace metering_billing_accelerator_web.Pages
             Msg = "nodeCharge emitted";
         }
 
-        public async void OnPostCpuChargeAsync()
+        public async Task OnPostCpuChargeAsync()
         {
-            await meteringService.EmitMeterAsync("sub1", "free", "nodeCharge", 1, "cpuCharge");
+            await meteringService.EmitMeterAsync("sub1", "free", "cpuCharge", 1, "tag1");
             Msg = "cpuCharge emitted";
         }
 
-        public async void OnPostDataSourceChargeAsync()
+        public async Task OnPostDataSourceChargeAsync()
         {
             await meteringService.EmitMeterAsync("sub1", "free", "dataSourceCharge", 1, "tag1");
             Msg = "dataSourceCharge emitted";
         }
 
-        public async void OnPostMessageChargeAsync()
+        public async Task OnPostMessageChargeAsync()
         {
             await meteringService.EmitMeterAsync("sub1", "free", "messageCharge", 1, "tag1");
             Msg = "messageCharge emitted";
         }
 
-        public async void OnPostObjectChargeAsync()
+        public async Task OnPostObjectChargeAsync()
         {
             await meteringService.EmitMeterAsync("sub1", "plan1", "objectCharge", 1, "tag1");
             Console.WriteLine("objectCharge emitted");

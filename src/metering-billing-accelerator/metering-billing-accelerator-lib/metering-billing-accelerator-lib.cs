@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Producer;
 using MeteringAcceleratorLib.model;
+using System.Text.Json;
 
 namespace MeteringAcceleratorLib
 {
@@ -36,11 +37,10 @@ namespace MeteringAcceleratorLib
             using EventDataBatch eventBatch = await this.producer.CreateBatchAsync();
             foreach (MeterRecord meterRecord in meterRecordArray)
             {
+                string meterObjectString = JsonSerializer.Serialize<MeterRecord>(meterRecord);
                 eventBatch.TryAdd(
-                    new EventData(
-                        new BinaryData(
-                             meterRecord
-                            )));
+                    new EventData(meterObjectString)
+                );
             }
 
             await producer.SendAsync(eventBatch);
@@ -58,18 +58,18 @@ namespace MeteringAcceleratorLib
         public async Task EmitAsync(string marketplaceSubsriptionId, string planId, string dimensionId, int units, string tags)
         {
             using EventDataBatch eventBatch = await this.producer.CreateBatchAsync();
-            eventBatch.TryAdd(
-                new EventData(
-                    new BinaryData(
-                        new MeterRecord()
-                        {
-                            marketplaceSubsriptionId = marketplaceSubsriptionId,
-                            planId = planId,
-                            dimensionId = dimensionId,
-                            units = units,
-                            tags = tags
-                        }
-                        )));
+
+            MeterRecord meterRecord = new MeterRecord()
+            {
+                marketplaceSubsriptionId = marketplaceSubsriptionId,
+                planId = planId,
+                dimensionId = dimensionId,
+                units = units,
+                tags = tags
+            };
+
+            string meterObjectString = JsonSerializer.Serialize<MeterRecord>(meterRecord);
+            eventBatch.TryAdd(new EventData(meterObjectString));
 
             await producer.SendAsync(eventBatch);
         }
