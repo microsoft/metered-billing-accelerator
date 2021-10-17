@@ -5,6 +5,8 @@ open NodaTime
 open Metering
 open Metering.Types.MarketPlaceAPI
 open Metering.Types.EventHub
+open Thoth.Json.Net
+
 
 // Plan
 // - Containing information about how many widgets are included per month
@@ -96,6 +98,12 @@ let parseUsageEvents events =
 
 [<EntryPoint>]
 let main argv =
+    let (x : XX) = { Name = "nnn"; RenewalInterval = Annually } // IncludedQuantity { Monthly = Some 10UL ; Annually = None }
+    let myExtraCoders = Extra.empty |> Json.enrich
+    let json = Encode.Auto.toString (1, x, extra = myExtraCoders)
+    let f2 = Decode.Auto.fromString<XX>(json, extra = myExtraCoders)
+    printfn "%s \n%A" json f2
+
     let plans = 
         [ 
             // planID dimensionId         name                                unitOfMeasure   includedAnnually/Monthly
@@ -131,7 +139,7 @@ let main argv =
         LastProcessedMessage = { 
             PartitionID = PartitionID("0")
             SequenceNumber = SequenceNumber 9UL
-            PartitionTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0)) |> dateTimeToNoda 
+            PartitionTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0)) // |> dateTimeToNoda 
         }
     }
 
@@ -152,7 +160,7 @@ let main argv =
     //printfn "plan %A" plan
     //printfn "usageEvents %A" usageEvents
     //printfn "oldBalance %A" oldBalance.CurrentMeterValues
-    printfn "newBalance %A" newBalance.LastProcessedMessage
+
 
     //printfn "newBalance %A" (Newtonsoft.Json.JsonConvert.SerializeObject(newBalance))
     0

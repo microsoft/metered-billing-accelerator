@@ -1,5 +1,6 @@
 ﻿namespace Metering.Types.EventHub
 
+open System
 open NodaTime
 open Azure.Core
 open Azure.Storage.Blobs
@@ -14,7 +15,7 @@ type PartitionID = PartitionID of string
 type MessagePosition = 
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber
-      PartitionTimestamp: ZonedDateTime }
+      PartitionTimestamp: DateTime } // ZonedDateTime }
 
 type SeekPosition =
     | FromSequenceNumber of SequenceNumber: SequenceNumber 
