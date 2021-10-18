@@ -99,17 +99,18 @@ let parseUsageEvents events =
 [<EntryPoint>]
 let main argv =
     let (x : XX) = { Name = "nnn"; RenewalInterval = Annually } // IncludedQuantity { Monthly = Some 10UL ; Annually = None }
-    let (x2: MeteredBillingBatchUsageEvent) =
+
+    let (x2: MeteredBillingUsageEventBatch) =
         [
            { ResourceID = "re" // unique identifier of the resource against which usage is emitted. 
              Quantity = 2UL // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
              DimensionId = "DimensionId" // custom dimension identifier
              EffectiveStartTime = DateTime.UtcNow // time in UTC when the usage event occurred, from now and until 24 hours back
              PlanId = "PlanId" }
-        ] |> List.toSeq
+        ]
     let myExtraCoders = Extra.empty |> Json.enrich
     let json = Encode.Auto.toString (1, x2, extra = myExtraCoders)
-    let f2 = Decode.Auto.fromString<MeteredBillingSingleUsageEvent list>(json, extra = myExtraCoders)
+    let f2 = Decode.Auto.fromString<MeteredBillingUsageEventBatch>(json, extra = myExtraCoders)
     printfn "%s \n%A" json f2
 
     let plans = 

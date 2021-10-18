@@ -49,15 +49,15 @@ module MarketPlaceAPI =
           BillingDimensions: BillingDimension seq }
 
     // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
-    type MeteredBillingSingleUsageEvent =
+    type MeteredBillingUsageEvent =
         { ResourceID: string // unique identifier of the resource against which usage is emitted. 
           Quantity: Quantity // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
           DimensionId: DimensionId // custom dimension identifier
           EffectiveStartTime: DateTime // time in UTC when the usage event occurred, from now and until 24 hours back
           PlanId: PlanId } // id of the plan purchased for the offer
 
-    type MeteredBillingBatchUsageEvent = 
-        MeteredBillingSingleUsageEvent seq
+    type MeteredBillingUsageEventBatch = 
+        MeteredBillingUsageEvent list
  
 open MarketPlaceAPI
 

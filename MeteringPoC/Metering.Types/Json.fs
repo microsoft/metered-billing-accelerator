@@ -1,20 +1,17 @@
 ﻿namespace Metering.Types
 
-open System
-open NodaTime
-open Thoth.Json.Net
-open Metering.Types.EventHub
-open NodaTime.Text
-open System.Globalization
-
 module Json =
-    open MarketPlaceAPI
+    open System
+    open NodaTime
+    open Thoth.Json.Net
+    open NodaTime.Text
+    open System.Globalization
 
-    //module NodaTime =
-    //    let writeLocalDate = LocalDatePattern.Create("yyyy-MM-dd", CultureInfo.InvariantCulture).Format >> Encode.string
-    //    let readLocalDate = Decode.string |> Decode.map(fun value -> LocalDatePattern.Create("yyyy-MM-dd", CultureInfo.InvariantCulture).Parse(value).Value)
-    //    let writeLocalTime = LocalTimePattern.Create("HH:mm", CultureInfo.InvariantCulture).Format >> Encode.string
-    //    let readLocalTime = Decode.string |> Decode.map(fun value -> LocalTimePattern.Create("HH:mm", CultureInfo.InvariantCulture).Parse(value).Value)
+    module NodaTime =
+        let writeLocalDate = LocalDatePattern.Create("yyyy-MM-dd", CultureInfo.InvariantCulture).Format >> Encode.string
+        let readLocalDate = Decode.string |> Decode.map(fun value -> LocalDatePattern.Create("yyyy-MM-dd", CultureInfo.InvariantCulture).Parse(value).Value)
+        let writeLocalTime = LocalTimePattern.Create("HH:mm", CultureInfo.InvariantCulture).Format >> Encode.string
+        let readLocalTime = Decode.string |> Decode.map(fun value -> LocalTimePattern.Create("HH:mm", CultureInfo.InvariantCulture).Parse(value).Value)
     
     module ConsumedQuantity =
         let Encoder (x: ConsumedQuantity) : JsonValue =
@@ -97,6 +94,8 @@ module Json =
             })
 
     module MarketPlaceAPIJSON =
+        open MarketPlaceAPI
+
         module BillingDimension =
             let (dimensionId, dimensionName, unitOfMeasure, includedQuantity) = ("dimension", "name", "unitOfMeasure", "includedQuantity");
             let Encoder (x: BillingDimension) : JsonValue =
@@ -136,7 +135,7 @@ module Json =
             let (resourceID, quantity, dimensionId, effectiveStartTime, planId) = 
                 ("resourceID", "quantity", "dimensionId", "effectiveStartTime", "planId");
 
-            let EncoderSingle (x: MeteredBillingSingleUsageEvent) : JsonValue =
+            let Encoder (x: MeteredBillingUsageEvent) : JsonValue =
                 [
                     (resourceID, x.ResourceID |> Encode.string)
                     (quantity, x.Quantity |> Encode.uint64)
@@ -146,7 +145,7 @@ module Json =
                 ]
                 |> Encode.object 
             
-            let DecoderSingle : Decoder<MeteredBillingSingleUsageEvent> =
+            let Decoder : Decoder<MeteredBillingUsageEvent> =
                 Decode.object (fun fields -> {
                     ResourceID = fields.Required.At [ resourceID ] Decode.string
                     Quantity = fields.Required.At [ quantity ] Decode.uint64
@@ -154,29 +153,21 @@ module Json =
                     EffectiveStartTime = fields.Required.At [ effectiveStartTime ] Decode.datetime
                     PlanId = fields.Required.At [ planId ] Decode.string
                 })
-
-            let EncoderBatch (x: MeteredBillingBatchUsageEvent) : JsonValue =
-                x
-                |> Seq.map EncoderSingle
-                |> Seq.toList
-                |> Encode.list
-
-            let DecoderBatch : Decoder<MeteredBillingSingleUsageEvent list> =
-                 Decode.Auto.generateDecoderCached<MeteredBillingSingleUsageEvent list>()
+            //let EncoderBatch (x: MeteredBillingUsageEventBatch) : JsonValue = x |> List.map Encoder |> Encode.list
+            //let DecoderBatch : Decoder<MeteredBillingUsageEventBatch> = Decode.list Decoder
 
     open MarketPlaceAPIJSON
     
     let enrich x =
         x
         |> Extra.withUInt64
-        //|> Extra.withCustom NodaTime.writeLocalDate NodaTime.readLocalDate
-        //|> Extra.withCustom NodaTime.writeLocalTime NodaTime.readLocalTime
+        |> Extra.withCustom NodaTime.writeLocalDate NodaTime.readLocalDate
+        |> Extra.withCustom NodaTime.writeLocalTime NodaTime.readLocalTime
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
         |> Extra.withCustom MeterValue.Encoder MeterValue.Decoder
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom BillingDimension.Encoder BillingDimension.Decoder
-        |> Extra.withCustom MeteredBillingUsageEvent.EncoderSingle MeteredBillingUsageEvent.DecoderSingle
-        |> Extra.withCustom MeteredBillingUsageEvent.EncoderBatch MeteredBillingUsageEvent.DecoderBatch
+        |> Extra.withCustom MeteredBillingUsageEvent.Encoder MeteredBillingUsageEvent.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom XX.Encoder XX.Decoder
