@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "ManagedWebhook": {
+      "commandName": "Project"
+    }
+  }
+}
