@@ -98,21 +98,7 @@ let parseUsageEvents events =
 
 [<EntryPoint>]
 let main argv =
-    let (x : XX) = { Name = "nnn"; RenewalInterval = Annually } // IncludedQuantity { Monthly = Some 10UL ; Annually = None }
-
-    let (x2: MeteredBillingUsageEventBatch) =
-        [
-           { ResourceID = "re" // unique identifier of the resource against which usage is emitted. 
-             Quantity = 2UL // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
-             DimensionId = "DimensionId" // custom dimension identifier
-             EffectiveStartTime = DateTime.UtcNow // time in UTC when the usage event occurred, from now and until 24 hours back
-             PlanId = "PlanId" }
-        ]
-    let myExtraCoders = Extra.empty |> Json.enrich
-    let json = Encode.Auto.toString (1, x2, extra = myExtraCoders)
-    let f2 = Decode.Auto.fromString<MeteredBillingUsageEventBatch>(json, extra = myExtraCoders)
-    printfn "%s \n%A" json f2
-
+ 
     let plans = 
         [ 
             // planID dimensionId         name                                unitOfMeasure   includedAnnually/Monthly
@@ -146,11 +132,17 @@ let main argv =
             ] |> Map.ofList
         UsageToBeReported = List.empty // HTTP Call payload which still needs to be sent to MeteringAPI
         LastProcessedMessage = { 
-            PartitionID = PartitionID("0")
-            SequenceNumber = SequenceNumber 9UL
+            PartitionID = "0"
+            SequenceNumber =  9UL
             PartitionTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0)) // |> dateTimeToNoda 
         }
     }
+
+    let myExtraCoders = Extra.empty |> Json.enrich
+    let json = Encode.Auto.toString (1, oldBalance, extra = myExtraCoders)
+    let f2 = Decode.Auto.fromString<MeteringState>(json, extra = myExtraCoders)
+    printfn "%s \n%A" json f2
+
 
     // Position read pointer in EventHub to 237492750, and start applying 
     let eventsFromEventHub = 

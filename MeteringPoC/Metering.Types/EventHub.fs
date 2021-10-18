@@ -8,9 +8,9 @@ open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 
-type SequenceNumber = SequenceNumber of uint64
+type SequenceNumber = uint64
 
-type PartitionID = PartitionID of string
+type PartitionID = string
 
 type MessagePosition = 
     { PartitionID: PartitionID

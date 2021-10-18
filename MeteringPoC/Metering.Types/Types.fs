@@ -2,10 +2,7 @@
 
 open System
 open NodaTime
-open Thoth.Json.Net
 open Metering.Types.EventHub
-open NodaTime.Text
-open System.Globalization
 
 type IntOrFloat =
     | Int of uint64 // ? :-)
@@ -27,10 +24,6 @@ type MeterValue =
 type RenewalInterval =
     | Monthly
     | Annually
-
-type XX =
-    { Name: string
-      RenewalInterval: RenewalInterval }
 
 module MarketPlaceAPI =
     type PlanId = string
