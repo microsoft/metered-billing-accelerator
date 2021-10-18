@@ -92,9 +92,19 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
       EffectiveStartTime: DateTime }
     
 type MeteringState =
-    { Plans: Plan seq // The list of all plans. Certainly not needed in the aggregator?
+    { Plans: Plan list // The list of all plans. Certainly not needed in the aggregator?
       InitialPurchase: Subscription // The purchase information of the subscription
       InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
       CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
       UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which haven't yet been reported to the metering API
       LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace API
+
+type MeteringUpdateCommand =
+    | InternalUsageEvent of InternalUsageEvent // the app 
+    | SuccessfullyRecordedMetering of MeteringAPIUsageEventDefinition
+   
+type BusinessLogic = // The business logic takes the current state, and a command to be applied, and returns new state
+    MeteringState -> MeteringUpdateCommand -> MeteringState
+
+type SubmitMeteringAPIUsageEvent =
+    MeteringAPIUsageEventDefinition -> System.Threading.Tasks.Task

@@ -55,6 +55,7 @@ let parsePlans planStrings =
     |> Seq.groupBy(fun (plan, _) -> plan)
     |> Seq.map(fun (plan, elems) -> (plan, (elems |> Seq.map(fun (p, e) -> e) ) ))
     |> Seq.map(fun (planid, billingDims) -> { PlanId = planid; BillingDimensions = billingDims })
+    |> List.ofSeq
 
 let parseUsageEvents events =
     let parseUsageEvent (s: string) =

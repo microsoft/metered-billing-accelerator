@@ -282,7 +282,7 @@ module Json =
 
         let Encoder (x: MeteringState) : JsonValue =
             [
-                (plans, x.Plans |> Seq.map Plan.Encoder |> Seq.toList |> Encode.list)
+                (plans, x.Plans |> List.map Plan.Encoder |> Encode.list)
                 (initialPurchase, x.InitialPurchase |> Subscription.Encoder)
                 (metersMapping, x.InternalMetersMapping |> InternalMetersMapping.Encoder)
                 (currentMeters, x.CurrentMeterValues |> CurrentMeterValues.Encoder)
@@ -293,7 +293,7 @@ module Json =
 
         let Decoder : Decoder<MeteringState> =
             Decode.object (fun fields -> {
-                Plans = (fields.Required.At [ plans ] (Decode.list Plan.Decoder)) |> List.toSeq
+                Plans = fields.Required.At [ plans ] (Decode.list Plan.Decoder)
                 InitialPurchase = fields.Required.At [ initialPurchase ] Subscription.Decoder
                 InternalMetersMapping = fields.Required.At [ metersMapping ] InternalMetersMapping.Decoder
                 CurrentMeterValues = fields.Required.At [ currentMeters ] CurrentMeterValues.Decoder

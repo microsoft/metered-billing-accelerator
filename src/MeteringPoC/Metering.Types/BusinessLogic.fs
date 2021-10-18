@@ -66,7 +66,6 @@ module BillingPeriod =
                     | _ -> DateBelongsToPreviousBillingPeriod
 
 module MeterValue =
-    
     let deduct (meterValue: MeterValue) (reported: Quantity) : MeterValue =
         meterValue
         |> function
@@ -119,3 +118,26 @@ module CurrentBillingState =
 
     let applyUsageEvents meteringState usageEvents=
         usageEvents |> List.fold applyUsageEvent meteringState
+
+module Logic =
+    let private listRemove v l =
+        l |> List.filter (fun e -> not (e = v))
+
+    let successfullyRecordedMetering (state: MeteringState) (successfullyRecordedMeter: MeteringAPIUsageEventDefinition) : MeteringState =
+        { state with 
+            UsageToBeReported = state.UsageToBeReported |> listRemove successfullyRecordedMeter }
+    
+    let private handleEvent (state: MeteringState) (input: MeteringUpdateCommand) : MeteringState =
+        state
+    
+    let MeteringBusinessLogic : BusinessLogic = 
+        handleEvent
+
+    let getState : MeteringState =
+        failwith "not implemented"
+
+    let test =
+        let inputs : (MeteringUpdateCommand list) = []
+        let state : MeteringState = getState
+        let result = inputs |> List.fold MeteringBusinessLogic state
+        result
