@@ -36,23 +36,33 @@ let parseUsageEvents events =
             |> Map.ofList
             |> Some
 
-        s.Split([|'|'|], 4)
+        s.Split([|'|'|], 5)
         |> Array.toList
         |> List.map (fun s -> s.Trim())
         |> function
-            | [datestr; name; amountstr; props] -> 
+            | [sequencenr; datestr; name; amountstr; props] -> 
                 Some {
-                    Timestamp = datestr |> parseDate
-                    MeterName = name
-                    Quantity = amountstr |> UInt64.Parse
-                    Properties = props |> parseProps
+                    MeteringUpdateEvent = UsageReported {
+                        Timestamp = datestr |> parseDate
+                        MeterName = name
+                        Quantity = amountstr |> UInt64.Parse
+                        Properties = props |> parseProps }
+                    MessagePosition = {
+                        PartitionID = "1"
+                        SequenceNumber = sequencenr |> UInt64.Parse
+                        PartitionTimestamp = datestr |> parseDate }
                 }
-            | [datestr; name; amountstr] -> 
+            | [sequencenr; datestr; name; amountstr] -> 
                 Some {
-                    Timestamp = datestr |> parseDate
-                    MeterName = name
-                    Quantity = amountstr |> UInt64.Parse
-                    Properties = None
+                    MeteringUpdateEvent = UsageReported {
+                        Timestamp = datestr |> parseDate
+                        MeterName = name
+                        Quantity = amountstr |> UInt64.Parse
+                        Properties = None }
+                    MessagePosition = {
+                        PartitionID = "1"
+                        SequenceNumber = sequencenr |> UInt64.Parse
+                        PartitionTimestamp = datestr |> parseDate }
                 }
             | _ -> None
     events
@@ -109,21 +119,17 @@ let main argv =
         }
     }
 
-
-
-    
     let json = Encode.Auto.toString (1, oldBalance, extra = myExtraCoders)
     let f2 = Decode.Auto.fromString<MeteringState>(json, extra = myExtraCoders)
     printfn "%s \n%A" json f2
 
-
     // Position read pointer in EventHub to 237492750, and start applying 
     let eventsFromEventHub = 
         [
-            "2021-10-13--14-12-02 | ml    |   1 | Department=Data Science, Project ID=Skunkworks vNext"
-            "2021-10-13--15-12-03 | ml    |   2                                                       "
-            "2021-10-13--15-13-02 | email | 300 | Email Campaign=User retention, Department=Marketing "
-            "2021-10-13--15-12-08 | ml    |  20                                                       "
+            "001002 | 2021-10-13--14-12-02 | ml    |   1 | Department=Data Science, Project ID=Skunkworks vNext"
+            "001003 | 2021-10-13--15-12-03 | ml    |   2                                                       "
+            "001004 | 2021-10-13--15-13-02 | email | 300 | Email Campaign=User retention, Department=Marketing "
+            "001005 | 2021-10-13--15-12-08 | ml    |  20                                                       "
         ]
         |> parseUsageEvents
 
@@ -131,13 +137,10 @@ let main argv =
 
     let newBalance =
         eventsFromEventHub
-        |> CurrentBillingState.applyUsageEvents oldBalance 
+        |> Logic.handleEvents (Some oldBalance)
 
-    //printfn "plan %A" plan
-    //printfn "usageEvents %A" usageEvents
+    printfn "newBalance %A" newBalance
+    printfn "usageEvents %A" (Encode.Auto.toString (1, eventsFromEventHub, extra = myExtraCoders))
     //printfn "oldBalance %A" oldBalance.CurrentMeterValues
-
-
     //printfn "newBalance %A" (Newtonsoft.Json.JsonConvert.SerializeObject(newBalance))
     0
-

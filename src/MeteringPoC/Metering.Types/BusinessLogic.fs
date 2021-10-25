@@ -117,9 +117,6 @@ module CurrentBillingState =
         { meteringState 
             with CurrentMeterValues = newCredits}
 
-    let applyUsageEvents  (meteringState : MeteringState)  (usageEvents : InternalUsageEvent list) =
-        usageEvents |> List.fold (fun s e -> applyUsageEvent e s) meteringState 
-
 module Logic =
     let updatePosition (position: MessagePosition) (state: MeteringState) : MeteringState =
         { state with LastProcessedMessage = position}
@@ -147,7 +144,7 @@ module Logic =
           UsageToBeReported = List.empty 
           LastProcessedMessage = position }
     
-    let private handleEvent (state: MeteringState option) ({ MeteringUpdateEvent = update; MessagePosition = position }: MeteringEvent) : MeteringState option =
+    let handleEvent (state: MeteringState option) ({ MeteringUpdateEvent = update; MessagePosition = position }: MeteringEvent) : MeteringState option =
         match (state, update) with
         | (None, SubscriptionPurchased subInfo) ->
             createNewSubscription subInfo position
@@ -166,8 +163,8 @@ module Logic =
         | (None, UsageReported _) -> None
         | (None, UsageSubmittedToAPI _) -> None
     
-    let MeteringBusinessLogic : BusinessLogic = 
-        handleEvent
+    let handleEvents (state : MeteringState option) (events : MeteringEvent list) : MeteringState option =
+        events |> List.fold handleEvent state 
 
     let getState : MeteringState option =
         None
@@ -175,5 +172,5 @@ module Logic =
     let test =
         let inputs : (MeteringEvent list) = []
         let state : MeteringState option = getState
-        let result = inputs |> List.fold MeteringBusinessLogic state
+        let result = inputs |> List.fold handleEvent state
         result
