@@ -149,23 +149,18 @@ module Logic =
         state.Plans
         |> List.find (fun i -> i.PlanId = state.InitialPurchase.PlanId)
         
-    //let topupMonthlyCredits (state: MeteringState) : MeteringState =
-    //    let plan = state |> selectedPlan
-        
-    //    // let topupMonthlyCredits (meterValue: MeterValue) (quantity: Quantity) (pri: RenewalInterval) : MeterValue =
-    //    let rni = state.InitialPurchase.RenewalInterval
+    let topupMonthlyCreditsOnNewSubscription (state: MeteringState) : MeteringState =
+        let plan = state |> selectedPlan
+      
+        // let topupMonthlyCredits (meterValue: MeterValue) (quantity: Quantity) (pri: RenewalInterval) : MeterValue =
+        let rni = state.InitialPurchase.RenewalInterval
 
-    //    let relevantInternalMeterNames =
-    //        state.InternalMetersMapping
-    //        |> Map.toList
-    //        |> List.where (fun (internalName, { PlanId = planId}) -> planId = plan.PlanId)
-    //        |> List.map (fun (appInternalMeterName, _) -> appInternalMeterName)                
+        let freshMeterValues : CurrentMeterValues =
+            plan.BillingDimensions
+            |> Seq.map(fun bd -> ({ DimensionId = bd.DimensionId; PlanId = plan.PlanId }, IncludedQuantity bd.IncludedQuantity))
+            |> Map.ofSeq
 
-    //    let x =
-    //        relevantInternalMeterNames
-    //        |> List.map (fun appInternalMeterName -> plan.BillingDimensions |> Seq.find(fun bd -> bd.)
-    //        |> Map.ofSeq
-
+        { state with CurrentMeterValues = freshMeterValues }
 
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : MeteringState =
         // When we receive the creation of a subscription
@@ -175,7 +170,7 @@ module Logic =
           LastProcessedMessage = messagePosition
           CurrentMeterValues = Map.empty
           UsageToBeReported = List.empty }
-        // |> topupMonthlyCredits
+        |> topupMonthlyCreditsOnNewSubscription
 
     
     let handleEvent (state: MeteringState option) ({ MeteringUpdateEvent = update; MessagePosition = position }: MeteringEvent) : MeteringState option =
