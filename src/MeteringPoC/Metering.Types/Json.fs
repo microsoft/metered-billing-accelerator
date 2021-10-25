@@ -338,8 +338,7 @@ module Json =
                      (typeid, "usage" |> Encode.string)
                      (value, usage |> InternalUsageEvent.Encoder)
                 ]
-            | UsageSubmittedToAPI usage -> 
-                raise (new System.NotSupportedException "Currently this feedback loop must only be internally")
+            | UsageSubmittedToAPI usage -> raise (new System.NotSupportedException "Currently this feedback loop must only be internally")
             |> Encode.object 
             
         let Decoder : Decoder<MeteringUpdateEvent> =
