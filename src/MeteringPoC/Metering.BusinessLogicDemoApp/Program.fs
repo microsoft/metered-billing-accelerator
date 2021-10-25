@@ -98,7 +98,7 @@ let main argv =
                 { "dimension": "messagecharge",    "name": "Per Message Transmitted",    "unitOfMeasure": "message/hour", "includedQuantity": {} } ] },
             { "planId": "plan2", "billingDimensions": [
                 { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
-                { "dimension": "EMailCampaign",      "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } ],
+                { "dimension": "EMailCampaign",      "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails",               "includedQuantity": { "monthly": "250000" } } ] } ],
         "metersMapping": {
             "email": { "plan": "plan2", "dimension": "EMailCampaign" },
             "ml":    { "plan": "plan2", "dimension": "MachineLearningJob" } },

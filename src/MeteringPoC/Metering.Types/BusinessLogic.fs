@@ -66,7 +66,7 @@ module BillingPeriod =
                     | (p, c) when p = c -> SameBillingPeriod
                     | _ -> DateBelongsToPreviousBillingPeriod
 
-module MeterValue =
+module Logic =
     let deduct (meterValue: MeterValue) (reported: Quantity) : MeterValue =
         meterValue
         |> function
@@ -105,11 +105,11 @@ module MeterValue =
                 | Monthly -> IncludedQuantity { m with Monthly = Some quantity }
                 | Annually -> IncludedQuantity { m with Annually = Some quantity }
 
-module CurrentBillingState =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) =
-        Option.bind ((fun q m -> Some (q |> MeterValue.deduct m )) event.Quantity) current
+        Option.bind ((fun q m -> Some (q |> deduct m )) event.Quantity) current
 
-    let applyUsageEvent event meteringState  =
+    let applyUsageEvent event meteringState =
+        // TODO if no 
         let newCredits = 
             meteringState.CurrentMeterValues
             |> Map.change event.MeterName (applyConsumption event)
@@ -117,7 +117,6 @@ module CurrentBillingState =
         { meteringState 
             with CurrentMeterValues = newCredits}
 
-module Logic =
     let updatePosition (position: MessagePosition) (state: MeteringState) : MeteringState =
         { state with LastProcessedMessage = position}
 
@@ -135,14 +134,40 @@ module Logic =
         | Ok submission -> state |> handleSuccessfulMeterSubmission submission
         | Error (ex, failedSubmission) -> state |> handleUnsuccessfulMeterSubmission failedSubmission 
 
-    let createNewSubscription (subInfo: SubscriptionCreationInformation) (position: MessagePosition) : MeteringState  =
+    open MarketPlaceAPI
+
+    let selectedPlan (state: MeteringState) : Plan = 
+        state.Plans
+        |> List.find (fun i -> i.PlanId = state.InitialPurchase.PlanId)
+        
+    //let topupMonthlyCredits (state: MeteringState) : MeteringState =
+    //    let plan = state |> selectedPlan
+        
+    //    // let topupMonthlyCredits (meterValue: MeterValue) (quantity: Quantity) (pri: RenewalInterval) : MeterValue =
+    //    let rni = state.InitialPurchase.RenewalInterval
+
+    //    let relevantInternalMeterNames =
+    //        state.InternalMetersMapping
+    //        |> Map.toList
+    //        |> List.where (fun (internalName, { PlanId = planId}) -> planId = plan.PlanId)
+    //        |> List.map (fun (appInternalMeterName, _) -> appInternalMeterName)                
+
+    //    let x =
+    //        relevantInternalMeterNames
+    //        |> List.map (fun appInternalMeterName -> plan.BillingDimensions |> Seq.find(fun bd -> bd.)
+    //        |> Map.ofSeq
+
+
+    let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : MeteringState =
         // When we receive the creation of a subscription
-        { Plans = subInfo.Plans
-          InitialPurchase = subInfo.InitialPurchase
-          InternalMetersMapping = subInfo.InternalMetersMapping
+        { Plans = subscriptionCreationInformation.Plans
+          InitialPurchase = subscriptionCreationInformation.InitialPurchase
+          InternalMetersMapping = subscriptionCreationInformation.InternalMetersMapping
+          LastProcessedMessage = messagePosition
           CurrentMeterValues = Map.empty
-          UsageToBeReported = List.empty 
-          LastProcessedMessage = position }
+          UsageToBeReported = List.empty }
+        // |> topupMonthlyCredits
+
     
     let handleEvent (state: MeteringState option) ({ MeteringUpdateEvent = update; MessagePosition = position }: MeteringEvent) : MeteringState option =
         match (state, update) with
@@ -151,7 +176,7 @@ module Logic =
             |> Some
         | (Some state, UsageReported usage) -> 
             state
-            |> CurrentBillingState.applyUsageEvent usage
+            |> applyUsageEvent usage
             |> updatePosition position
             |> Some
         | (Some state, UsageSubmittedToAPI submission) -> 
