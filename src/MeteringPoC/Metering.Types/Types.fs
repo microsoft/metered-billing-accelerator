@@ -83,7 +83,7 @@ type InternalMetersMapping = // The mapping table used by the aggregator to tran
     Map<ApplicationInternalMeterName, PlanDimension>
 
 type CurrentMeterValues = // Collects all meters per internal metering event type
-    Map<ApplicationInternalMeterName, MeterValue> 
+    Map<PlanDimension, MeterValue> 
 
 type MeteringAPIUsageEventDefinition = // From aggregator to metering API
     { ResourceId: string 

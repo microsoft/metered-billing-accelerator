@@ -241,17 +241,31 @@ module Json =
         let Decoder : Decoder<InternalMetersMapping> =
             (Decode.keyValuePairs PlanDimension.Decoder)
             |> Decode.andThen (fun r -> r |> Map.ofList |> Decode.succeed)
-
+        
     module CurrentMeterValues = 
+
         let Encoder (x: CurrentMeterValues) = 
             x
             |> Map.toSeq |> Seq.toList
-            |> List.map (fun (k,v) -> (k, v |> MeterValue.Encoder))
-            |> Encode.object
+            |> List.map (fun (planDim, v) -> 
+                [
+                    ("planId", planDim.PlanId |> Encode.string)
+                    ("dimensionId", planDim.DimensionId |> Encode.string)
+                    ("meterValue", v |> MeterValue.Encoder)
+                ]
+                |> Encode.object)
+            |> Encode.list
 
-        let Decoder : Decoder<CurrentMeterValues> =
-            (Decode.keyValuePairs MeterValue.Decoder)
-            |> Decode.andThen (fun r -> r |> Map.ofList |> Decode.succeed)
+        let Decoder : Decoder<CurrentMeterValues> =            
+            Decode.list (Decode.object (fun get -> 
+                let k = {
+                    PlanId = get.Required.Field "planId" Decode.string  
+                    DimensionId = get.Required.Field "dimensionId" Decode.string  
+                }
+                let v = get.Required.Field "meterValue" MeterValue.Decoder  
+                (k,v)
+            ))
+            |> Decode.andThen  (fun r -> r |> Map.ofList |> Decode.succeed)
 
     module MeteringAPIUsageEventDefinition = 
         let (resourceId, quantity, planDimension, effectiveStartTime) =

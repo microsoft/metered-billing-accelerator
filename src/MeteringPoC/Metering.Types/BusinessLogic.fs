@@ -108,11 +108,20 @@ module Logic =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) =
         Option.bind ((fun q m -> Some (q |> deduct m )) event.Quantity) current
 
-    let applyUsageEvent event meteringState =
+    let planDimensionFromInternalEvent (event: InternalUsageEvent) (meteringState : MeteringState) =
+        meteringState.InternalMetersMapping
+        |> Map.find event.MeterName
+
+    let applyUsageEvent (event: InternalUsageEvent) (meteringState : MeteringState) =
         // TODO if no 
+
+        let planDimension = 
+            meteringState
+            |> planDimensionFromInternalEvent event 
+
         let newCredits = 
             meteringState.CurrentMeterValues
-            |> Map.change event.MeterName (applyConsumption event)
+            |> Map.change planDimension (applyConsumption event)
         
         { meteringState 
             with CurrentMeterValues = newCredits}
