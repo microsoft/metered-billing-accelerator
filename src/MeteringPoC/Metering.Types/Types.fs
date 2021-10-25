@@ -57,7 +57,7 @@ open MarketPlaceAPI
 type ApplicationInternalMeterName = string // A meter name used between app and aggregator
 
 type InternalUsageEvent = // From app to aggregator
-    { Timestamp: DateTime
+    { Timestamp: DateTime  // timestamp from the sending app
       MeterName: ApplicationInternalMeterName
       Quantity: Quantity
       Properties: Map<string, string> option}
@@ -90,6 +90,11 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
       Quantity: double 
       PlanDimension: PlanDimension
       EffectiveStartTime: DateTime }
+
+type SubscriptionCreationInformation = // This event needs to be injected at first
+    { Plans: Plan list // The list of all plans. Certainly not needed in the aggregator?
+      InitialPurchase: Subscription // The purchase information of the subscription
+      InternalMetersMapping: InternalMetersMapping } // The table mapping app-internal meter names to 'proper' ones for marketplace
     
 type MeteringState =
     { Plans: Plan list // The list of all plans. Certainly not needed in the aggregator?
@@ -97,14 +102,30 @@ type MeteringState =
       InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
       CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
       UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which haven't yet been reported to the metering API
-      LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace API
+      LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace 
+        
+type UpdateOutOfOrderError =
+    { DataWatermark: MessagePosition 
+      UpdateWatermark: MessagePosition }
 
-type MeteringUpdateCommand =
-    | InternalUsageEvent of InternalUsageEvent // the app 
-    | SuccessfullyRecordedMetering of MeteringAPIUsageEventDefinition
+type BusinessDataUpdateError = 
+    | UpdateOutOfOrderError of UpdateOutOfOrderError
+    | SnapshotDownloadError of Exception
+
+type UsageSubmissionResult = // Once the metering API was called, either the metering submission successfully got through, or not (in which case we need to know which values haven't been submitted)
+    Result<MeteringAPIUsageEventDefinition, Exception * MeteringAPIUsageEventDefinition>
+
+type MeteringUpdateEvent =
+    | SubscriptionPurchased of SubscriptionCreationInformation
+    | UsageReported of InternalUsageEvent // app -> aggregator
+    | UsageSubmittedToAPI of UsageSubmissionResult // aggregator -> aggregator
+
+type MeteringEvent =
+    { MeteringUpdateEvent: MeteringUpdateEvent
+      MessagePosition: MessagePosition }
    
 type BusinessLogic = // The business logic takes the current state, and a command to be applied, and returns new state
-    MeteringState -> MeteringUpdateCommand -> MeteringState
+    MeteringState option -> MeteringEvent -> MeteringState option 
 
 type SubmitMeteringAPIUsageEvent =
     MeteringAPIUsageEventDefinition -> System.Threading.Tasks.Task

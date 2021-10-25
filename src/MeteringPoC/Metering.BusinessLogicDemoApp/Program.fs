@@ -18,44 +18,6 @@ open Thoth.Json.Net
 // - Countdown for "included widgets" in current billing period
 // - Once "included widgets" for current billing period are consumed, start counting hourly
 
-let parsePlans planStrings =
-    let parseBillingDimension (s: string) : PlanId * BillingDimension =
-        let parseQuantity(p: string) : IncludedQuantity =
-            let pq (n: string) : Quantity option = 
-                match UInt64.TryParse(n) with
-                | (true, x) when x > 0UL -> Some x
-                | _ -> None
-
-            match (s.Split([|'/'|]) |> Array.toList |> List.map (fun s -> s.Trim())) with
-            | [a; m] -> { Annually = pq(a); Monthly = pq(m) }
-            | _ ->  { Annually = None; Monthly = None }
-
-        s.Split([|'|'|], 5)
-        |> Array.toList
-        |> List.map (fun s -> s.Trim())
-        |> function
-            | [planId; dimensionId; name; unitOfMeasure; includedQuantity] -> 
-                (planId, {
-                    DimensionId = dimensionId
-                    DimensionName = name
-                    UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = includedQuantity |> parseQuantity 
-                })
-            | [planId; dimensionId; name; unitOfMeasure] -> 
-                (planId, {
-                    DimensionId = dimensionId
-                    DimensionName = name
-                    UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = { Annually = None; Monthly = None }
-                })
-            | _ -> failwith "parsing error"
-
-    planStrings
-    |> Seq.map parseBillingDimension
-    |> Seq.groupBy(fun (plan, _) -> plan)
-    |> Seq.map(fun (plan, elems) -> (plan, (elems |> Seq.map(fun (p, e) -> e) ) ))
-    |> Seq.map(fun (planid, billingDims) -> { PlanId = planid; BillingDimensions = billingDims })
-    |> List.ofSeq
 
 let parseUsageEvents events =
     let parseUsageEvent (s: string) =
@@ -97,19 +59,27 @@ let parseUsageEvents events =
     |> List.map parseUsageEvent
     |> List.choose id
 
+let myExtraCoders = Extra.empty |> Json.enrich
+
+let fromJson<'T> json = 
+    match Decode.Auto.fromString<'T>(json, extra = myExtraCoders) with
+    | Ok r -> r
+    | Result.Error e -> failwith e
+
 [<EntryPoint>]
 let main argv =
  
-    let plans = 
-        [ 
-            // planID dimensionId         name                                unitOfMeasure   includedAnnually/Monthly
-            "plan1 | nodecharge         | Per Node Connected                | node/hour"
-            "plan1 | cpucharge          | Per CPU urage                     | cpu/hour"
-            "plan1 | datasourcecharge   | Per DataSource Integration        | ds/hour"
-            "plan1 | messagecharge      | Per Message Transmitted           | message/hour"
-            "plan2 | MachineLearningJob | An expensive machine learning job | machine learning jobs | 0/10"
-            "plan2 | EMailCampaign      | An e-mail sent for campaign usage | e-mails               | 0/250000" // 0 annually, 250000 monthly
-        ] |> parsePlans
+    let plans = """
+            [ { "planId": "plan1", "billingDimensions": [
+                { "dimension": "nodecharge",       "name": "Per Node Connected",         "unitOfMeasure": "node/hour", "includedQuantity": {} },
+                { "dimension": "cpucharge",        "name": "Per CPU urage",              "unitOfMeasure": "cpu/hour", "includedQuantity": {} },
+                { "dimension": "datasourcecharge", "name": "Per DataSource Integration", "unitOfMeasure": "ds/hour", "includedQuantity": {} },
+                { "dimension": "messagecharge",    "name": "Per Message Transmitted",    "unitOfMeasure": "message/hour", "includedQuantity": {} } ] },
+            { "planId": "plan2", "billingDimensions": [
+               { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
+               { "dimension": "EMailCampaign",      "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } ]
+            """ |> fromJson<Plan list>
+
 
     let dateTimeToNoda (dateTime : DateTime) =
         ZonedDateTime(LocalDateTime.FromDateTime(dateTime.ToUniversalTime()), DateTimeZone.Utc, Offset.Zero)
@@ -139,7 +109,9 @@ let main argv =
         }
     }
 
-    let myExtraCoders = Extra.empty |> Json.enrich
+
+
+    
     let json = Encode.Auto.toString (1, oldBalance, extra = myExtraCoders)
     let f2 = Decode.Auto.fromString<MeteringState>(json, extra = myExtraCoders)
     printfn "%s \n%A" json f2
@@ -154,6 +126,8 @@ let main argv =
             "2021-10-13--15-12-08 | ml    |  20                                                       "
         ]
         |> parseUsageEvents
+
+    printfn "usage %s" (Encode.Auto.toString (1, eventsFromEventHub, extra = myExtraCoders))
 
     let newBalance =
         eventsFromEventHub

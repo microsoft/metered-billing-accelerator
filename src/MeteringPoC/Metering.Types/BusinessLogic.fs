@@ -2,6 +2,7 @@
 
 open NodaTime
 open Metering.Types
+open Metering.Types.EventHub
 
 module RenewalInterval =
     let duration pre =
@@ -108,7 +109,7 @@ module CurrentBillingState =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) =
         Option.bind ((fun q m -> Some (q |> MeterValue.deduct m )) event.Quantity) current
 
-    let applyUsageEvent meteringState event=
+    let applyUsageEvent event meteringState  =
         let newCredits = 
             meteringState.CurrentMeterValues
             |> Map.change event.MeterName (applyConsumption event)
@@ -116,28 +117,63 @@ module CurrentBillingState =
         { meteringState 
             with CurrentMeterValues = newCredits}
 
-    let applyUsageEvents meteringState usageEvents=
-        usageEvents |> List.fold applyUsageEvent meteringState
+    let applyUsageEvents  (meteringState : MeteringState)  (usageEvents : InternalUsageEvent list) =
+        usageEvents |> List.fold (fun s e -> applyUsageEvent e s) meteringState 
 
 module Logic =
-    let private listRemove v l =
-        l |> List.filter (fun e -> not (e = v))
+    let updatePosition (position: MessagePosition) (state: MeteringState) : MeteringState =
+        { state with LastProcessedMessage = position}
 
-    let successfullyRecordedMetering (state: MeteringState) (successfullyRecordedMeter: MeteringAPIUsageEventDefinition) : MeteringState =
-        { state with 
-            UsageToBeReported = state.UsageToBeReported |> listRemove successfullyRecordedMeter }
-    
-    let private handleEvent (state: MeteringState) (input: MeteringUpdateCommand) : MeteringState =
+    let handleSuccessfulMeterSubmission  (submission: MeteringAPIUsageEventDefinition) (state: MeteringState) : MeteringState =
+        let listRemove v l =
+            l |> List.filter (fun e -> not (e = v))
+        { state with UsageToBeReported = state.UsageToBeReported |> listRemove submission }
+
+    let handleUnsuccessfulMeterSubmission (failedSubmission: MeteringAPIUsageEventDefinition) (state: MeteringState) : MeteringState =
+        // todo
         state
+        
+    let handleUsageSubmission (meter: UsageSubmissionResult) (state: MeteringState) : MeteringState =
+        match meter with
+        | Ok submission -> state |> handleSuccessfulMeterSubmission submission
+        | Error (ex, failedSubmission) -> state |> handleUnsuccessfulMeterSubmission failedSubmission 
+
+    let createNewSubscription (subInfo: SubscriptionCreationInformation) (position: MessagePosition) : MeteringState  =
+        // When we receive the creation of a subscription
+        { Plans = subInfo.Plans
+          InitialPurchase = subInfo.InitialPurchase
+          InternalMetersMapping = subInfo.InternalMetersMapping
+          CurrentMeterValues = Map.empty
+          UsageToBeReported = List.empty 
+          LastProcessedMessage = position }
+    
+    let private handleEvent (state: MeteringState option) ({ MeteringUpdateEvent = update; MessagePosition = position }: MeteringEvent) : MeteringState option =
+        match (state, update) with
+        | (None, SubscriptionPurchased subInfo) ->
+            createNewSubscription subInfo position
+            |> Some
+        | (Some state, UsageReported usage) -> 
+            state
+            |> CurrentBillingState.applyUsageEvent usage
+            |> updatePosition position
+            |> Some
+        | (Some state, UsageSubmittedToAPI submission) -> 
+            state
+            |> handleUsageSubmission submission
+            |> updatePosition position
+            |> Some
+        | (Some state, SubscriptionPurchased _) -> Some state // Once it's configured, no way to update
+        | (None, UsageReported _) -> None
+        | (None, UsageSubmittedToAPI _) -> None
     
     let MeteringBusinessLogic : BusinessLogic = 
         handleEvent
 
-    let getState : MeteringState =
-        failwith "not implemented"
+    let getState : MeteringState option =
+        None
 
     let test =
-        let inputs : (MeteringUpdateCommand list) = []
-        let state : MeteringState = getState
+        let inputs : (MeteringEvent list) = []
+        let state : MeteringState option = getState
         let result = inputs |> List.fold MeteringBusinessLogic state
         result

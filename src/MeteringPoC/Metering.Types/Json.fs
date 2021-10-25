@@ -274,6 +274,27 @@ module Json =
                 EffectiveStartTime = fields.Required.At [ effectiveStartTime ] Decode.datetime
             })
     
+    module SubscriptionCreationInformation =
+        open MarketPlaceAPIJSON
+
+        let (plans, initialPurchase, metersMapping) =
+            ("plans", "initialPurchase", "metersMapping");
+
+        let Encoder (x: SubscriptionCreationInformation) : JsonValue =
+            [
+                (plans, x.Plans |> List.map Plan.Encoder |> Encode.list)
+                (initialPurchase, x.InitialPurchase |> Subscription.Encoder)
+                (metersMapping, x.InternalMetersMapping |> InternalMetersMapping.Encoder)
+            ]
+            |> Encode.object 
+
+        let Decoder : Decoder<SubscriptionCreationInformation> =
+            Decode.object (fun fields -> {
+                Plans = fields.Required.At [ plans ] (Decode.list Plan.Decoder)
+                InitialPurchase = fields.Required.At [ initialPurchase ] Subscription.Decoder
+                InternalMetersMapping = fields.Required.At [ metersMapping ] InternalMetersMapping.Decoder
+            })
+
     module MeteringState =
         open MarketPlaceAPIJSON
         
@@ -301,6 +322,36 @@ module Json =
                 LastProcessedMessage = fields.Required.At [ lastProcessedMessage ] EventHubJSON.Decoder
             })
        
+    module MeteringUpdateEvent =
+        let (typeid, value) =
+            ("type", "value");
+
+        let Encoder (x: MeteringUpdateEvent) : JsonValue =
+            match x with
+            | SubscriptionPurchased sub -> 
+                [
+                     (typeid, "subscriptionPurchased" |> Encode.string)
+                     (value, sub |> SubscriptionCreationInformation.Encoder)
+                ]
+            | UsageReported usage ->
+                [
+                     (typeid, "usage" |> Encode.string)
+                     (value, usage |> InternalUsageEvent.Encoder)
+                ]
+            | UsageSubmittedToAPI usage -> 
+                raise (new System.NotSupportedException "Currently this feedback loop must only be internally")
+            |> Encode.object 
+            
+        let Decoder : Decoder<MeteringUpdateEvent> =
+            Decode.object (fun get ->
+                match get.Required.Field typeid Decode.string with
+                | "subscriptionPurchased" -> (get.Required.Field value SubscriptionCreationInformation.Decoder) |> SubscriptionPurchased
+                | "usage" -> (get.Required.Field value InternalUsageEvent.Decoder) |> UsageReported
+                | invalidType  -> failwithf "`%s` is not a valid type" invalidType
+            )
+
+       
+
     open MarketPlaceAPIJSON
     
     let enrich x =
@@ -323,5 +374,7 @@ module Json =
         |> Extra.withCustom InternalMetersMapping.Encoder InternalMetersMapping.Decoder
         |> Extra.withCustom CurrentMeterValues.Encoder CurrentMeterValues.Decoder
         |> Extra.withCustom MeteringAPIUsageEventDefinition.Encoder MeteringAPIUsageEventDefinition.Decoder
+        |> Extra.withCustom SubscriptionCreationInformation.Encoder SubscriptionCreationInformation.Decoder
         |> Extra.withCustom MeteringState.Encoder MeteringState.Decoder
+        |> Extra.withCustom MeteringUpdateEvent.Encoder MeteringUpdateEvent.Decoder
         

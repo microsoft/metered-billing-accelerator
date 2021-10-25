@@ -36,6 +36,6 @@ type Event =
 
 type EventHubProcessorEvent =
     | Event of Event
-    | Error of ProcessErrorEventArgs
+    | EventHubError of ProcessErrorEventArgs
     | PartitionInitializing of PartitionInitializingEventArgs
     | PartitionClosing of PartitionClosingEventArgs
