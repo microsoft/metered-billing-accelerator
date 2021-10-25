@@ -67,7 +67,7 @@ module BillingPeriod =
                     | _ -> DateBelongsToPreviousBillingPeriod
 
 module Logic =
-    let deduct (meterValue: MeterValue) (reported: Quantity) : MeterValue =
+    let deductQuantityFromMeterValue (meterValue: MeterValue) (reported: Quantity) : MeterValue =
         meterValue
         |> function
            | ConsumedQuantity({ Amount = consumed}) -> ConsumedQuantity({ Amount = consumed + reported})
@@ -106,24 +106,24 @@ module Logic =
                 | Annually -> IncludedQuantity { m with Annually = Some quantity }
 
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) =
-        Option.bind ((fun q m -> Some (q |> deduct m )) event.Quantity) current
+        Option.bind ((fun q m -> Some (q |> deductQuantityFromMeterValue m )) event.Quantity) current
 
     let planDimensionFromInternalEvent (event: InternalUsageEvent) (meteringState : MeteringState) =
         meteringState.InternalMetersMapping
         |> Map.find event.MeterName
 
-    let applyUsageEvent (event: InternalUsageEvent) (meteringState : MeteringState) =
+    let applyUsageEvent (event: InternalUsageEvent) (state : MeteringState) =
         // TODO if no 
 
         let planDimension = 
-            meteringState
+            state
             |> planDimensionFromInternalEvent event 
 
         let newCredits = 
-            meteringState.CurrentMeterValues
+            state.CurrentMeterValues
             |> Map.change planDimension (applyConsumption event)
         
-        { meteringState 
+        { state 
             with CurrentMeterValues = newCredits}
 
     let updatePosition (position: MessagePosition) (state: MeteringState) : MeteringState =
@@ -172,7 +172,6 @@ module Logic =
           UsageToBeReported = List.empty }
         |> topupMonthlyCreditsOnNewSubscription
 
-    
     let handleEvent (state: MeteringState option) ({ MeteringUpdateEvent = update; MessagePosition = position }: MeteringEvent) : MeteringState option =
         match (state, update) with
         | (None, SubscriptionPurchased subInfo) ->

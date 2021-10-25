@@ -66,13 +66,13 @@ let jsonDecode<'T> json =
 
 let jsonEncode o = Encode.Auto.toString (1, o, extra = myExtraCoders)
 
-let parseSubscriptionCreation date str = 
+let parseSubscriptionCreation date sequenceNumber str = 
     str
     |> jsonDecode<SubscriptionCreationInformation>
     |> SubscriptionPurchased
     |> (fun e -> { MeteringUpdateEvent = e; MessagePosition = { 
          PartitionID = "1"
-         SequenceNumber = 1UL
+         SequenceNumber = sequenceNumber
          PartitionTimestamp = date |> parseDate
     }})
 
@@ -81,6 +81,10 @@ let parseConsumptionEvents (str: string) =
     |> (fun s -> s.Split([|"\n"|], StringSplitOptions.RemoveEmptyEntries))
     |> Array.toList
     |> parseUsageEvents
+
+let inspect msg a =
+    printfn "%s: %A" msg a
+    a
 
 [<EntryPoint>]
 let main argv = 
@@ -103,7 +107,7 @@ let main argv =
             "email": { "plan": "plan2", "dimension": "EMailCampaign" },
             "ml":    { "plan": "plan2", "dimension": "MachineLearningJob" } },
         "initialPurchase": { "plan": "plan2", "renewalInterval": "Monthly", "subscriptionStart": "2021-10-01" }
-    }""" |> parseSubscriptionCreation "2021-10-01--13-10-55"
+    }""" |> parseSubscriptionCreation "2021-10-01--13-10-55" 1UL
 
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
@@ -122,7 +126,8 @@ let main argv =
         eventsFromEventHub
         |> Logic.handleEvents emptyBalance
         |> jsonEncode
+        |> inspect "JSON"
         |> jsonDecode<MeteringState>
+        |> inspect "newBalance"
 
-    printfn "newBalance %A" newBalance
     0

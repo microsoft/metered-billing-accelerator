@@ -90,11 +90,11 @@ let Test_BillingPeriod_getBillingPeriodDelta () =
         { Purchase=(Monthly,"2021-05-13"); Previous="2021-08-17"; Current="2021-10-13"; Expected=(BillingPeriodDistance 2u)}
     ] |> runTestVectors test
 
-type MeterValue_deductVector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
+type MeterValue_deductQuantityFromMeterValue_Vector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
 [<Test>]
-let Test_Logic_deduct() =
+let Test_Logic_deductQuantityFromMeterValue() =
     let test (idx, testcase) = 
-        let result = Logic.deduct testcase.State testcase.Quantity
+        let result = Logic.deductQuantityFromMeterValue testcase.State testcase.Quantity
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [ 
