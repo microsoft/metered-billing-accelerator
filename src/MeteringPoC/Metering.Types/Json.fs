@@ -14,12 +14,18 @@ module Json =
                 else Decode.fail (sprintf "Failed to decode `%s`" v)
         )
 
-        //let encodeLocalDate = makeEncoder MeteringDateTime.localDatePattern
-        //let decodeLocalDate = makeDecoder MeteringDateTime.localDatePattern
-        //let encodeLocalTime = makeEncoder MeteringDateTime.localTimePattern
-        //let decodeLocalTime = makeDecoder MeteringDateTime.localTimePattern
+        //let instantPattern = InstantPattern.CreateWithInvariantCulture("yyyy-MM-dd--HH-mm-ss-FFF")
+        //let private localDatePattern = LocalDatePattern.CreateWithInvariantCulture("yyyy-MM-dd")        
+        //let private localTimePattern = LocalTimePattern.CreateWithInvariantCulture("HH:mm")
+        //let encodeLocalDate = makeEncoder localDatePattern
+        //let decodeLocalDate = makeDecoder localDatePattern
+        //let encodeLocalTime = makeEncoder localTimePattern
+        //let decodeLocalTime = makeDecoder localTimePattern
         
+        // Use the first pattern as default, therefore the `|> List.head`
         let Encoder : Encoder<MeteringDateTime> = MeteringDateTime.meteringDateTimePatterns |> List.head |> makeEncoder
+
+        // This supports decoding of multiple formats on how Date and Time could be represented, therefore the `|> Decode.oneOf`
         let Decoder : Decoder<MeteringDateTime> = MeteringDateTime.meteringDateTimePatterns |> List.map makeDecoder |> Decode.oneOf
 
     module Quantity =
@@ -252,7 +258,6 @@ module Json =
             |> Decode.andThen (fun r -> r |> Map.ofList |> Decode.succeed)
         
     module CurrentMeterValues = 
-
         let Encoder (x: CurrentMeterValues) = 
             x
             |> Map.toSeq |> Seq.toList

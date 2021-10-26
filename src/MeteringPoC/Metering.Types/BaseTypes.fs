@@ -6,10 +6,6 @@ module MeteringDateTime =
     open NodaTime
     open NodaTime.Text
 
-    //let private localDatePattern = LocalDatePattern.CreateWithInvariantCulture("yyyy-MM-dd")        
-    //let private localTimePattern = LocalTimePattern.CreateWithInvariantCulture("HH:mm")
-    //let instantPattern = InstantPattern.CreateWithInvariantCulture("yyyy-MM-dd--HH-mm-ss-FFF")
-
     let meteringDateTimePatterns = 
         [ 
             // this is the default for serialization

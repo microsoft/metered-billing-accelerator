@@ -22,34 +22,35 @@ module Subscription =
 module BillingPeriod =
     let localDateToStr (x: MeteringDateTime) = x.ToString("yyyy-MM-dd", null)
     
-    let toString { FirstDay = firstDay; LastDay = lastDay } =        
-        sprintf "%s--%s" (localDateToStr firstDay) (localDateToStr lastDay)
+    let toString { Start = startTime; End = endTime } =        
+        sprintf "%s--%s" (localDateToStr startTime) (localDateToStr endTime)
 
+    /// Compute the n'th BillingPeriod for a given subscription.
     let createFromIndex (subscription : Subscription) (n: uint) : BillingPeriod =
         let period : (uint -> Period) = RenewalInterval.add subscription.RenewalInterval
         let add (period: Period) (x: MeteringDateTime) : MeteringDateTime =
             let r = x.LocalDateTime + period
             MeteringDateTime(r, DateTimeZone.Utc, Offset.Zero)
 
-        { FirstDay = subscription.SubscriptionStart |> add (period (n))
-          LastDay = subscription.SubscriptionStart |> add (period (n+1u) - Period.FromDays(1) - Period.FromSeconds(1L))
+        { Start = subscription.SubscriptionStart |> add (period (n))
+          End = subscription.SubscriptionStart |> add (period (n+1u) - Period.FromDays(1) - Period.FromSeconds(1L))
           Index = n }
 
-    let determineBillingPeriod (subscription : Subscription) (day: MeteringDateTime) : Result<BillingPeriod, BusinessError> =
-        if subscription.SubscriptionStart.LocalDateTime > day.LocalDateTime
-        then DayBeforeSubscription |> Result.Error
+    /// Determine in which BillingPeriod the given dateTime is.
+    let determineBillingPeriod (subscription : Subscription) (dateTime: MeteringDateTime) : Result<BillingPeriod, BusinessError> =
+        if subscription.SubscriptionStart.LocalDateTime > dateTime.LocalDateTime
+        then Error DayBeforeSubscription
         else 
-            let diff = day.LocalDateTime - subscription.SubscriptionStart.LocalDateTime
-            let idx = 
-                match subscription.RenewalInterval with
-                    | Monthly -> diff.Years * 12 + diff.Months
-                    | Annually -> diff.Years
-                |> uint
+            let diff = dateTime.LocalDateTime - subscription.SubscriptionStart.LocalDateTime
 
-            Ok(createFromIndex subscription idx)
+            match subscription.RenewalInterval with
+                | Monthly -> diff.Years * 12 + diff.Months
+                | Annually -> diff.Years
+            |> uint |> createFromIndex subscription |> Ok
     
-    let isInBillingPeriod { FirstDay = firstDay; LastDay = lastDay } (day: MeteringDateTime) : bool =
-        firstDay.LocalDateTime <= day.LocalDateTime && day.LocalDateTime <= lastDay.LocalDateTime
+    /// Whether the given dateTime is in the given BillingPeriod
+    let isInBillingPeriod ({ Start = s; End = e }: BillingPeriod) (dateTime: MeteringDateTime) : bool =
+        s.LocalDateTime <= dateTime.LocalDateTime && dateTime.LocalDateTime <= e.LocalDateTime
 
     type BillingPeriodResult =
         | DateBeforeSubscription 
@@ -69,6 +70,8 @@ module BillingPeriod =
                     | _ -> DateBelongsToPreviousBillingPeriod
 
 module Logic =
+    open MarketPlaceAPI
+    
     let deductQuantityFromMeterValue (meterValue: MeterValue) (reported: Quantity) : MeterValue =
         meterValue
         |> function
@@ -144,8 +147,6 @@ module Logic =
         match meter with
         | Ok submission -> state |> handleSuccessfulMeterSubmission submission
         | Error (ex, failedSubmission) -> state |> handleUnsuccessfulMeterSubmission failedSubmission 
-
-    open MarketPlaceAPI
 
     let selectedPlan (state: MeteringState) : Plan = 
         state.Plans

@@ -71,8 +71,8 @@ type Subscription = // When a certain plan was purchased
       SubscriptionStart: MeteringDateTime }
 
 type BillingPeriod = // Each time the subscription is renewed, a new billing period start
-    { FirstDay: MeteringDateTime
-      LastDay: MeteringDateTime
+    { Start: MeteringDateTime
+      End: MeteringDateTime
       Index: uint }
 
 type PlanDimension =

@@ -16,7 +16,7 @@ let bp (s: string) : BillingPeriod =
     |> Array.toList
     |> List.map (fun s -> s.Trim())
     |> function
-        | [i; f; l] -> { FirstDay = (d f); LastDay = (d l); Index = (uint (Int64.Parse(i))) }
+        | [indx; startVal; endVal] -> { Start = (d startVal); End = (d endVal); Index = (uint (Int64.Parse(indx))) }
         | _ -> failwith "parsing error"
 
 let runTestVectors test testcases = testcases |> List.indexed |> List.map test |> ignore
