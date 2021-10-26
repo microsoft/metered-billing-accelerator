@@ -16,8 +16,8 @@ module RenewalInterval =
         | Annually -> Period.FromYears(int i)
 
 module Subscription =
-    let create planId pri subscriptionStart = 
-        { RenewalInterval = pri ; SubscriptionStart = subscriptionStart ; PlanId = planId }
+    let create plan pri subscriptionStart = 
+        { RenewalInterval = pri ; SubscriptionStart = subscriptionStart ; Plan = plan }
 
 module BillingPeriod =
     /// Compute the n'th BillingPeriod for a given subscription.
@@ -114,7 +114,7 @@ module Logic =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =
         Option.bind ((fun q m -> Some (q |> subtractQuantityFromMeterValue m )) event.Quantity) current
 
-    let planDimensionFromInternalEvent (event: InternalUsageEvent) (meteringState : MeteringState) : PlanDimension =
+    let planDimensionFromInternalEvent (event: InternalUsageEvent) (meteringState : MeteringState) : DimensionId =
         meteringState.InternalMetersMapping
         |> Map.find event.MeterName
 
@@ -144,26 +144,24 @@ module Logic =
         | Error (ex, failedSubmission) -> state |> handleUnsuccessfulMeterSubmission failedSubmission 
 
     let selectedPlan (state: MeteringState) : Plan = 
-        state.Plans
-        |> List.find (fun i -> i.PlanId = state.InitialPurchase.PlanId)
+        state.Subscription.Plan
         
     let topupMonthlyCreditsOnNewSubscription (state: MeteringState) : MeteringState =
         let plan = state |> selectedPlan
       
         // let topupMonthlyCredits (meterValue: MeterValue) (quantity: Quantity) (pri: RenewalInterval) : MeterValue =
-        let rni = state.InitialPurchase.RenewalInterval
+        let rni = state.Subscription.RenewalInterval
 
         let freshMeterValues : CurrentMeterValues =
             plan.BillingDimensions
-            |> Seq.map(fun bd -> ({ DimensionId = bd.DimensionId; PlanId = plan.PlanId }, IncludedQuantity bd.IncludedQuantity))
+            |> Seq.map(fun bd -> (bd.DimensionId, IncludedQuantity bd.IncludedQuantity))
             |> Map.ofSeq
 
         { state with CurrentMeterValues = freshMeterValues }
 
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : MeteringState =
         // When we receive the creation of a subscription
-        { Plans = subscriptionCreationInformation.Plans
-          InitialPurchase = subscriptionCreationInformation.InitialPurchase
+        { Subscription = subscriptionCreationInformation.Subscription
           InternalMetersMapping = subscriptionCreationInformation.InternalMetersMapping
           LastProcessedMessage = messagePosition
           CurrentMeterValues = Map.empty

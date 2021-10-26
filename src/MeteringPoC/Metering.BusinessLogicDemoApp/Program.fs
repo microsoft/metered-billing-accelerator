@@ -79,23 +79,28 @@ let inspect msg a =
 let main argv = 
     let subscriptionCreationEvent =
          """
-    {
-    "MeteringUpdateEvent": { "type": "subscriptionPurchased", "value": {
-      "plans": [
-          { "planId": "plan1", "billingDimensions": [
-              { "dimension": "nodecharge",       "name": "Per Node Connected",         "unitOfMeasure": "node/hour", "includedQuantity": {} },
-              { "dimension": "cpucharge",        "name": "Per CPU urage",              "unitOfMeasure": "cpu/hour", "includedQuantity": {} },
-              { "dimension": "datasourcecharge", "name": "Per DataSource Integration", "unitOfMeasure": "ds/hour", "includedQuantity": {} },
-              { "dimension": "messagecharge",    "name": "Per Message Transmitted",    "unitOfMeasure": "message/hour", "includedQuantity": {} } ] },
-          { "planId": "plan2", "billingDimensions": [
-              { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
-              { "dimension": "EMailCampaign",      "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails",               "includedQuantity": { "monthly": "250000" } } ] } ],
-      "metersMapping": {
-          "email": { "plan": "plan2", "dimension": "EMailCampaign" },
-          "ml":    { "plan": "plan2", "dimension": "MachineLearningJob" } },
-      "initialPurchase": { "plan": "plan2", "renewalInterval": "Monthly", "subscriptionStart": "2021-10-01--12-20-33" } } },
-   "MessagePosition": { "partitionTimestamp": "2021-10-01--12-20-34", "partitionId": "1", "sequenceNumber": "1" }
-   }""" |> jsonDecode<MeteringEvent>
+{
+  "MeteringUpdateEvent": {
+    "type": "subscriptionPurchased",
+    "value": {
+      "subscription": {
+        "renewalInterval": "Monthly",
+        "subscriptionStart": "2021-10-01--12-20-33",
+        "plan": {
+          "planId": "plan2",
+          "billingDimensions": [
+            { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
+            { "dimension": "EMailCampaign", "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } },
+      "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
+    }
+  },
+  "MessagePosition": {
+    "partitionTimestamp": "2021-10-01--12-20-34",
+    "sequenceNumber": "1",
+    "partitionId": "1"
+  }
+}
+    """ |> jsonDecode<MeteringEvent>
 
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 

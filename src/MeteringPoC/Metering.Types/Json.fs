@@ -211,12 +211,13 @@ module Json =
             })
 
     module Subscription =
-        let (planId, renewalInterval, subscriptionStart) =
+        open MarketPlaceAPIJSON
+        let (plan, renewalInterval, subscriptionStart) =
             ("plan", "renewalInterval", "subscriptionStart");
 
         let Encoder (x: Subscription) : JsonValue =
             [
-                (planId, x.PlanId |> Encode.string)
+                (plan, x.Plan |> Plan.Encoder)
                 (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
                 (subscriptionStart, x.SubscriptionStart |> MeteringDateTime.Encoder)
             ]
@@ -224,7 +225,7 @@ module Json =
 
         let Decoder : Decoder<Subscription> =
             Decode.object (fun get -> {
-                PlanId = get.Required.Field planId Decode.string
+                Plan = get.Required.Field plan Plan.Decoder
                 RenewalInterval = get.Required.Field renewalInterval RenewalInterval.Decoder
                 SubscriptionStart = get.Required.Field subscriptionStart MeteringDateTime.Decoder
             })
@@ -250,34 +251,30 @@ module Json =
         let Encoder (x: InternalMetersMapping) = 
             x
             |> Map.toSeq |> Seq.toList
-            |> List.map (fun (k,v) -> (k, v |> PlanDimension.Encoder))
+            |> List.map (fun (k,v) -> (k, v |> Encode.string))
             |> Encode.object
 
         let Decoder : Decoder<InternalMetersMapping> =
-            (Decode.keyValuePairs PlanDimension.Decoder)
+            (Decode.keyValuePairs Decode.string)
             |> Decode.andThen (fun r -> r |> Map.ofList |> Decode.succeed)
         
     module CurrentMeterValues = 
         let Encoder (x: CurrentMeterValues) = 
             x
             |> Map.toSeq |> Seq.toList
-            |> List.map (fun (planDim, v) -> 
+            |> List.map (fun (dimensionId, meterValue) -> 
                 [
-                    ("planId", planDim.PlanId |> Encode.string)
-                    ("dimensionId", planDim.DimensionId |> Encode.string)
-                    ("meterValue", v |> MeterValue.Encoder)
+                    ("dimensionId", dimensionId |> Encode.string)
+                    ("meterValue", meterValue |> MeterValue.Encoder)
                 ]
                 |> Encode.object)
             |> Encode.list
 
         let Decoder : Decoder<CurrentMeterValues> =            
             Decode.list (Decode.object (fun get -> 
-                let k = {
-                    PlanId = get.Required.Field "planId" Decode.string  
-                    DimensionId = get.Required.Field "dimensionId" Decode.string  
-                }
-                let v = get.Required.Field "meterValue" MeterValue.Decoder  
-                (k,v)
+                let dimensionId = get.Required.Field "dimensionId" Decode.string  
+                let meterValue = get.Required.Field "meterValue" MeterValue.Decoder  
+                (dimensionId, meterValue)
             ))
             |> Decode.andThen  (fun r -> r |> Map.ofList |> Decode.succeed)
 
@@ -305,34 +302,31 @@ module Json =
     module SubscriptionCreationInformation =
         open MarketPlaceAPIJSON
 
-        let (plans, initialPurchase, metersMapping) =
-            ("plans", "initialPurchase", "metersMapping");
+        let (subscription, metersMapping) =
+            ("subscription", "metersMapping");
 
         let Encoder (x: SubscriptionCreationInformation) : JsonValue =
             [
-                (plans, x.Plans |> List.map Plan.Encoder |> Encode.list)
-                (initialPurchase, x.InitialPurchase |> Subscription.Encoder)
+                (subscription, x.Subscription |> Subscription.Encoder)
                 (metersMapping, x.InternalMetersMapping |> InternalMetersMapping.Encoder)
             ]
             |> Encode.object 
 
         let Decoder : Decoder<SubscriptionCreationInformation> =
             Decode.object (fun get -> {
-                Plans = get.Required.Field plans (Decode.list Plan.Decoder)
-                InitialPurchase = get.Required.Field initialPurchase Subscription.Decoder
+                Subscription = get.Required.Field subscription Subscription.Decoder
                 InternalMetersMapping = get.Required.Field metersMapping InternalMetersMapping.Decoder
             })
 
     module MeteringState =
         open MarketPlaceAPIJSON
         
-        let (plans, initialPurchase, metersMapping, currentMeters, usageToBeReported, lastProcessedMessage) =
-            ("plans", "initialPurchase", "metersMapping", "currentMeters", "usageToBeReported", "lastProcessedMessage");
+        let (subscription, metersMapping, currentMeters, usageToBeReported, lastProcessedMessage) =
+            ("subscription", "metersMapping", "currentMeters", "usageToBeReported", "lastProcessedMessage");
 
         let Encoder (x: MeteringState) : JsonValue =
             [
-                (plans, x.Plans |> List.map Plan.Encoder |> Encode.list)
-                (initialPurchase, x.InitialPurchase |> Subscription.Encoder)
+                (subscription, x.Subscription |> Subscription.Encoder)
                 (metersMapping, x.InternalMetersMapping |> InternalMetersMapping.Encoder)
                 (currentMeters, x.CurrentMeterValues |> CurrentMeterValues.Encoder)
                 (usageToBeReported, x.UsageToBeReported |> List.map MeteringAPIUsageEventDefinition.Encoder |> Encode.list)
@@ -342,8 +336,7 @@ module Json =
 
         let Decoder : Decoder<MeteringState> =
             Decode.object (fun get -> {
-                Plans = get.Required.Field plans (Decode.list Plan.Decoder)
-                InitialPurchase = get.Required.Field initialPurchase Subscription.Decoder
+                Subscription = get.Required.Field subscription Subscription.Decoder
                 InternalMetersMapping = get.Required.Field metersMapping InternalMetersMapping.Decoder
                 CurrentMeterValues = get.Required.Field currentMeters CurrentMeterValues.Decoder
                 UsageToBeReported = get.Required.Field usageToBeReported (Decode.list MeteringAPIUsageEventDefinition.Decoder)

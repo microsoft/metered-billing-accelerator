@@ -66,7 +66,7 @@ type BusinessError =
     | DayBeforeSubscription
 
 type Subscription = // When a certain plan was purchased
-    { PlanId: PlanId
+    { Plan: Plan
       RenewalInterval: RenewalInterval 
       SubscriptionStart: MeteringDateTime }
 
@@ -80,10 +80,10 @@ type PlanDimension =
       DimensionId: DimensionId }
 
 type InternalMetersMapping = // The mapping table used by the aggregator to translate an ApplicationInternalMeterName to the plan and dimension configured in Azure marketplace
-    Map<ApplicationInternalMeterName, PlanDimension>
+    Map<ApplicationInternalMeterName, DimensionId>
 
 type CurrentMeterValues = // Collects all meters per internal metering event type
-    Map<PlanDimension, MeterValue> 
+    Map<DimensionId, MeterValue> 
 
 type MeteringAPIUsageEventDefinition = // From aggregator to metering API
     { ResourceId: string 
@@ -92,13 +92,11 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
       EffectiveStartTime: MeteringDateTime }
 
 type SubscriptionCreationInformation = // This event needs to be injected at first
-    { Plans: Plan list // The list of all plans. Certainly not needed in the aggregator?
-      InitialPurchase: Subscription // The purchase information of the subscription
+    { Subscription: Subscription // The purchase information of the subscription
       InternalMetersMapping: InternalMetersMapping } // The table mapping app-internal meter names to 'proper' ones for marketplace
     
 type MeteringState =
-    { Plans: Plan list // The list of all plans. Certainly not needed in the aggregator?
-      InitialPurchase: Subscription // The purchase information of the subscription
+    { Subscription: Subscription // The purchase information of the subscription
       InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
       CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
       UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which haven't yet been reported to the metering API
