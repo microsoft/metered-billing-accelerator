@@ -32,7 +32,7 @@ module BillingPeriod =
             MeteringDateTime(r, DateTimeZone.Utc, Offset.Zero)
 
         { FirstDay = subscription.SubscriptionStart |> add (period (n))
-          LastDay = subscription.SubscriptionStart |> add (period (n+1u) - Period.FromDays(1))
+          LastDay = subscription.SubscriptionStart |> add (period (n+1u) - Period.FromDays(1) - Period.FromSeconds(1L))
           Index = n }
 
     let determineBillingPeriod (subscription : Subscription) (day: MeteringDateTime) : Result<BillingPeriod, BusinessError> =
