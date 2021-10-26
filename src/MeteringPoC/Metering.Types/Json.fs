@@ -3,14 +3,24 @@
 module Json =
     open System.Globalization
     open Thoth.Json.Net
+    open NodaTime
     open NodaTime.Text
 
     module NodaTime =
-        let writeLocalDate = LocalDatePattern.Create("yyyy-MM-dd", CultureInfo.InvariantCulture).Format >> Encode.string
-        let readLocalDate = Decode.string |> Decode.map(fun value -> LocalDatePattern.Create("yyyy-MM-dd", CultureInfo.InvariantCulture).Parse(value).Value)
-        let writeLocalTime = LocalTimePattern.Create("HH:mm", CultureInfo.InvariantCulture).Format >> Encode.string
-        let readLocalTime = Decode.string |> Decode.map(fun value -> LocalTimePattern.Create("HH:mm", CultureInfo.InvariantCulture).Parse(value).Value)
-    
+        let private makeEncoder<'T> (pattern : IPattern<'T>) : Encoder<'T> = pattern.Format >> Encode.string
+        let private makeDecoder<'T> (pattern : IPattern<'T>) : Decoder<'T> = Decode.string |> Decode.map(fun v -> pattern.Parse(v).Value)
+
+        let private localDatePattern = LocalDatePattern.Create("yyyy-MM-dd", CultureInfo.InvariantCulture)        
+        let private localTimePattern = LocalTimePattern.Create("HH:mm", CultureInfo.InvariantCulture)
+        let private zonedDateTimePattern = ZonedDateTimePattern.CreateWithInvariantCulture("yyyy-MM-dd--HH-mm-ss-FFF", NodaTime.DateTimeZoneProviders.Bcl)
+
+        let writeLocalDate = makeEncoder localDatePattern
+        let readLocalDate = makeDecoder localDatePattern
+        let writeLocalTime = makeEncoder localTimePattern
+        let readLocalTime = makeDecoder localTimePattern
+        let writeZonedDateTime = makeEncoder zonedDateTimePattern
+        let readZonedDateTime : Decoder<ZonedDateTime> = makeDecoder zonedDateTimePattern
+        
     module Quantity =
         let Encoder (x: Quantity) : JsonValue = x |> Encode.uint64
         let Decoder : Decoder<Quantity> = Decode.uint64
@@ -369,6 +379,7 @@ module Json =
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom NodaTime.writeLocalDate NodaTime.readLocalDate
         |> Extra.withCustom NodaTime.writeLocalTime NodaTime.readLocalTime
+        |> Extra.withCustom NodaTime.writeZonedDateTime NodaTime.readZonedDateTime
         |> Extra.withCustom EventHubJSON.Encoder EventHubJSON.Decoder
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
