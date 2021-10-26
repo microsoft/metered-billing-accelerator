@@ -53,19 +53,24 @@ module BillingPeriod =
         s.LocalDateTime <= dateTime.LocalDateTime && dateTime.LocalDateTime <= e.LocalDateTime
 
     type BillingPeriodResult =
+        /// The given date is before the customer subscribed to the offer.
         | DateBeforeSubscription 
+        // The date belongs to a previous BillingPeriod.
         | DateBelongsToPreviousBillingPeriod
+        // The date belongs to the current BillingPeriod.
         | SameBillingPeriod
-        | BillingPeriodDistance of uint
+        // The date is n BillingPeriods ago
+        | BillingPeriodsAgo of uint
 
+    // Determine 
     let getBillingPeriodDelta(subscription: Subscription) (previous: MeteringDateTime) (current: MeteringDateTime) : BillingPeriodResult =
-        let determine = determineBillingPeriod subscription 
-        match (determine previous, determine current) with
+        let dbp = determineBillingPeriod subscription 
+        match (dbp previous, dbp current) with
             | (Error(DayBeforeSubscription), _) -> DateBeforeSubscription
             | (_, Error(DayBeforeSubscription)) -> DateBeforeSubscription
             | Ok({ Index = p}), Ok({Index = c}) -> 
                 match (p, c) with
-                    | (p, c) when p < c -> BillingPeriodDistance(c - p)
+                    | (p, c) when p < c -> BillingPeriodsAgo (c - p)
                     | (p, c) when p = c -> SameBillingPeriod
                     | _ -> DateBelongsToPreviousBillingPeriod
 

@@ -81,11 +81,15 @@ let Test_BillingPeriod_getBillingPeriodDelta () =
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
     [
-        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-05-13--12-00-00"; Current="2021-05-13--12-00-00"; Expected=SameBillingPeriod}
-        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-08-13--12-00-00"; Current="2021-08-15--12-00-00"; Expected=SameBillingPeriod}
-        { Purchase=(Monthly,"2021-08-17--12-00-00"); Previous="2021-08-17--12-00-00"; Current="2021-09-12--12-00-00"; Expected=SameBillingPeriod}
-        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-08-17--12-00-00"; Current="2021-09-13--12-00-00"; Expected=(BillingPeriodDistance 1u)}
-        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-08-17--12-00-00"; Current="2021-10-13--12-00-00"; Expected=(BillingPeriodDistance 2u)}
+        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-05-13--12-00-00"; Current="2021-05-13--12-00-00"; Expected=SameBillingPeriod }
+        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-08-13--12-00-00"; Current="2021-08-15--12-00-00"; Expected=SameBillingPeriod }
+        { Purchase=(Monthly,"2021-08-17--12-00-00"); Previous="2021-08-17--12-00-00"; Current="2021-09-12--12-00-00"; Expected=SameBillingPeriod }
+        
+        // When the second flips, a new BillingPeriod starts
+        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-08-17--12-00-00"; Current="2021-09-13--11-59-59"; Expected=SameBillingPeriod }
+        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-08-17--12-00-00"; Current="2021-09-13--12-00-00"; Expected=1u |> BillingPeriodsAgo}
+        
+        { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-08-17--12-00-00"; Current="2021-10-13--12-00-00"; Expected=2u |> BillingPeriodsAgo }
     ] |> runTestVectors test
 
 type MeterValue_deductQuantityFromMeterValue_Vector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
