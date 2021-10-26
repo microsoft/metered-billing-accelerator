@@ -92,11 +92,11 @@ let Test_BillingPeriod_getBillingPeriodDelta () =
         { Purchase=(Monthly,"2021-05-13--12-00-00"); Previous="2021-08-17--12-00-00"; Current="2021-10-13--12-00-00"; Expected=2u |> BillingPeriodsAgo }
     ] |> runTestVectors test
 
-type MeterValue_deductQuantityFromMeterValue_Vector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
+type MeterValue_subtractQuantityFromMeterValue_Vector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
 [<Test>]
-let Test_Logic_deductQuantityFromMeterValue() =
+let Test_Logic_subtractQuantityFromMeterValue() =
     let test (idx, testcase) = 
-        let result = Logic.deductQuantityFromMeterValue testcase.State testcase.Quantity
+        let result = Logic.subtractQuantityFromMeterValue testcase.State testcase.Quantity
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [ 
@@ -143,7 +143,7 @@ type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quant
 [<Test>]
 let Test_Logic_topupMonthlyCredits() =
     let test (idx, testcase) =
-        let result = testcase.Values |> List.fold (Logic.topupMonthlyCredits |> (fun f a (b, c) -> f a b c)) testcase.Input
+        let result = testcase.Values |> List.fold (Logic.topupMonthlyCredits |> (fun f a (b, c) -> a |> f b c)) testcase.Input
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [

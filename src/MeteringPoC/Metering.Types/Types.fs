@@ -104,6 +104,12 @@ type MeteringState =
       UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which haven't yet been reported to the metering API
       LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace 
         
+module MeteringState =
+    let setCurrentMeterValues x s = { s with CurrentMeterValues = x }
+    let setLastProcessedMessage x s = { s with LastProcessedMessage = x }
+    let addUsageToBeReported x s = { s with UsageToBeReported = (x :: s.UsageToBeReported) }
+    let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
+
 type UpdateOutOfOrderError =
     { DataWatermark: MessagePosition 
       UpdateWatermark: MessagePosition }

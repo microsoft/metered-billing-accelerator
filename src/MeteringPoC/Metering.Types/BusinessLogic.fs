@@ -20,11 +20,6 @@ module Subscription =
         { RenewalInterval = pri ; SubscriptionStart = subscriptionStart ; PlanId = planId }
 
 module BillingPeriod =
-    let localDateToStr (x: MeteringDateTime) = x.ToString("yyyy-MM-dd", null)
-    
-    let toString { Start = startTime; End = endTime } =        
-        sprintf "%s--%s" (localDateToStr startTime) (localDateToStr endTime)
-
     /// Compute the n'th BillingPeriod for a given subscription.
     let createFromIndex (subscription : Subscription) (n: uint) : BillingPeriod =
         let period : (uint -> Period) = RenewalInterval.add subscription.RenewalInterval
@@ -37,16 +32,16 @@ module BillingPeriod =
           Index = n }
 
     /// Determine in which BillingPeriod the given dateTime is.
-    let determineBillingPeriod (subscription : Subscription) (dateTime: MeteringDateTime) : Result<BillingPeriod, BusinessError> =
-        if subscription.SubscriptionStart.LocalDateTime > dateTime.LocalDateTime
-        then Error DayBeforeSubscription
+    let determineBillingPeriod (sub: Subscription) (dateTime: MeteringDateTime) : Result<BillingPeriod, BusinessError> =
+        if dateTime.LocalDateTime < sub.SubscriptionStart.LocalDateTime
+        then DayBeforeSubscription |> Error 
         else 
-            let diff = dateTime.LocalDateTime - subscription.SubscriptionStart.LocalDateTime
+            let diff = dateTime.LocalDateTime - sub.SubscriptionStart.LocalDateTime
 
-            match subscription.RenewalInterval with
+            match sub.RenewalInterval with
                 | Monthly -> diff.Years * 12 + diff.Months
                 | Annually -> diff.Years
-            |> uint |> createFromIndex subscription |> Ok
+            |> uint |> createFromIndex sub |> Ok
     
     /// Whether the given dateTime is in the given BillingPeriod
     let isInBillingPeriod ({ Start = s; End = e }: BillingPeriod) (dateTime: MeteringDateTime) : bool =
@@ -63,8 +58,8 @@ module BillingPeriod =
         | BillingPeriodsAgo of uint
 
     // Determine 
-    let getBillingPeriodDelta(subscription: Subscription) (previous: MeteringDateTime) (current: MeteringDateTime) : BillingPeriodResult =
-        let dbp = determineBillingPeriod subscription 
+    let getBillingPeriodDelta (sub: Subscription) (previous: MeteringDateTime) (current: MeteringDateTime) : BillingPeriodResult =
+        let dbp = determineBillingPeriod sub 
         match (dbp previous, dbp current) with
             | (Error(DayBeforeSubscription), _) -> DateBeforeSubscription
             | (_, Error(DayBeforeSubscription)) -> DateBeforeSubscription
@@ -76,35 +71,36 @@ module BillingPeriod =
 
 module Logic =
     open MarketPlaceAPI
-    
-    let deductQuantityFromMeterValue (meterValue: MeterValue) (reported: Quantity) : MeterValue =
+
+    /// Subtracts the given Quantity from a MeterValue 
+    let subtractQuantityFromMeterValue (meterValue: MeterValue) (quantity: Quantity) : MeterValue =
         meterValue
         |> function
-           | ConsumedQuantity({ Amount = consumed}) -> ConsumedQuantity({ Amount = consumed + reported})
+           | ConsumedQuantity({ Amount = consumed}) -> ConsumedQuantity({ Amount = consumed + quantity})
            | IncludedQuantity({ Annually = annually; Monthly = monthly }) ->
                 match (annually, monthly) with
-                | (None, None) -> ConsumedQuantity { Amount = reported }
+                | (None, None) -> ConsumedQuantity { Amount = quantity }
                 | (None, Some remainingMonthly) -> 
                         // if there's only monthly stuff, deduct from the monthly side
-                        if remainingMonthly > reported
-                        then IncludedQuantity { Annually = None; Monthly = Some (remainingMonthly - reported) }
-                        else ConsumedQuantity { Amount = reported - remainingMonthly }
+                        if remainingMonthly > quantity
+                        then IncludedQuantity { Annually = None; Monthly = Some (remainingMonthly - quantity) }
+                        else ConsumedQuantity { Amount = quantity - remainingMonthly }
                 | (Some remainingAnnually, None) -> 
                         // if there's only annual stuff, deduct from the monthly side
-                        if remainingAnnually > reported
-                        then IncludedQuantity { Annually = Some (remainingAnnually - reported); Monthly = None}
-                        else ConsumedQuantity { Amount = reported - remainingAnnually }
+                        if remainingAnnually > quantity
+                        then IncludedQuantity { Annually = Some (remainingAnnually - quantity); Monthly = None}
+                        else ConsumedQuantity { Amount = quantity - remainingAnnually }
                 | (Some remainingAnnually, Some remainingMonthly) -> 
                         // if there's both annual and monthly credits, first take from monthly, them from annual
-                        if remainingMonthly > reported
-                        then IncludedQuantity { Annually =  Some remainingAnnually; Monthly = Some (remainingMonthly - reported) }
+                        if remainingMonthly > quantity
+                        then IncludedQuantity { Annually =  Some remainingAnnually; Monthly = Some (remainingMonthly - quantity) }
                         else 
-                            let deductFromAnnual = reported - remainingMonthly
+                            let deductFromAnnual = quantity - remainingMonthly
                             if remainingAnnually > deductFromAnnual
                             then IncludedQuantity { Annually = Some (remainingAnnually - deductFromAnnual); Monthly = None }
                             else ConsumedQuantity { Amount = deductFromAnnual - remainingAnnually }
 
-    let topupMonthlyCredits (meterValue: MeterValue) (quantity: Quantity) (pri: RenewalInterval) : MeterValue =
+    let topupMonthlyCredits (quantity: Quantity) (pri: RenewalInterval) (meterValue: MeterValue) : MeterValue =
         match meterValue with 
         | (ConsumedQuantity(_)) -> 
             match pri with
@@ -115,14 +111,14 @@ module Logic =
                 | Monthly -> IncludedQuantity { m with Monthly = Some quantity }
                 | Annually -> IncludedQuantity { m with Annually = Some quantity }
 
-    let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) =
-        Option.bind ((fun q m -> Some (q |> deductQuantityFromMeterValue m )) event.Quantity) current
+    let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =
+        Option.bind ((fun q m -> Some (q |> subtractQuantityFromMeterValue m )) event.Quantity) current
 
-    let planDimensionFromInternalEvent (event: InternalUsageEvent) (meteringState : MeteringState) =
+    let planDimensionFromInternalEvent (event: InternalUsageEvent) (meteringState : MeteringState) : PlanDimension =
         meteringState.InternalMetersMapping
         |> Map.find event.MeterName
 
-    let applyUsageEvent (event: InternalUsageEvent) (state : MeteringState) =
+    let applyUsageEvent (event: InternalUsageEvent) (state : MeteringState) : MeteringState =
         // TODO if no 
 
         let planDimension = 
@@ -136,21 +132,15 @@ module Logic =
         { state 
             with CurrentMeterValues = newCredits}
 
-    let updatePosition (position: MessagePosition) (state: MeteringState) : MeteringState =
-        { state with LastProcessedMessage = position}
 
-    let handleSuccessfulMeterSubmission  (submission: MeteringAPIUsageEventDefinition) (state: MeteringState) : MeteringState =
-        let listRemove v l =
-            l |> List.filter (fun e -> not (e = v))
-        { state with UsageToBeReported = state.UsageToBeReported |> listRemove submission }
 
     let handleUnsuccessfulMeterSubmission (failedSubmission: MeteringAPIUsageEventDefinition) (state: MeteringState) : MeteringState =
-        // todo
+        // todo logging here, alternatively report in a later period?
         state
         
     let handleUsageSubmission (meter: UsageSubmissionResult) (state: MeteringState) : MeteringState =
         match meter with
-        | Ok submission -> state |> handleSuccessfulMeterSubmission submission
+        | Ok submission -> state |> MeteringState.removeUsageToBeReported submission
         | Error (ex, failedSubmission) -> state |> handleUnsuccessfulMeterSubmission failedSubmission 
 
     let selectedPlan (state: MeteringState) : Plan = 
@@ -188,12 +178,12 @@ module Logic =
         | (Some state, UsageReported usage) -> 
             state
             |> applyUsageEvent usage
-            |> updatePosition position
+            |> MeteringState.setLastProcessedMessage position
             |> Some
         | (Some state, UsageSubmittedToAPI submission) -> 
             state
             |> handleUsageSubmission submission
-            |> updatePosition position
+            |> MeteringState.setLastProcessedMessage position
             |> Some
         | (Some state, SubscriptionPurchased _) -> Some state // Once it's configured, no way to update
         | (None, UsageReported _) -> None
