@@ -1,59 +1,66 @@
 ﻿open System
-open NodaTime
 open Thoth.Json.Net
 
 open Metering
 open Metering.Types
 open Metering.Types.EventHub
 
-
-
-let parseUsageEvents events =
-    let parseUsageEvent (s: string) =
-        let parseProps (p: string) =
-            p.Split([|','|])
-            |> Array.toList
-            |> List.map (fun x -> x.Split([|'='|]))
-            |> List.map Array.toList
-            |> List.filter (fun l -> l.Length = 2)
-            |> List.map (function 
-                | [k;v] -> (k.Trim(), v.Trim())
-                | _ -> failwith "cannot happen")
-            |> Map.ofList
-            |> Some
-
-        s.Split([|'|'|], 5)
+let parseConsumptionEvents (str: string) = 
+    let multilineParse parser (str : string) =  
+        str
+        |> (fun s -> s.Split([|"\n"|], StringSplitOptions.RemoveEmptyEntries))
         |> Array.toList
-        |> List.map (fun s -> s.Trim())
-        |> function
-            | [sequencenr; datestr; name; amountstr; props] -> 
-                Some {
-                    MeteringUpdateEvent = UsageReported {
-                        Timestamp = datestr |> MeteringDateTime.fromStr 
-                        MeterName = name
-                        Quantity = amountstr |> UInt64.Parse
-                        Properties = props |> parseProps }
-                    MessagePosition = {
-                        PartitionID = "1"
-                        SequenceNumber = sequencenr |> UInt64.Parse
-                        PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
-                }
-            | [sequencenr; datestr; name; amountstr] -> 
-                Some {
-                    MeteringUpdateEvent = UsageReported {
-                        Timestamp = datestr |> MeteringDateTime.fromStr
-                        MeterName = name
-                        Quantity = amountstr |> UInt64.Parse
-                        Properties = None }
-                    MessagePosition = {
-                        PartitionID = "1"
-                        SequenceNumber = sequencenr |> UInt64.Parse
-                        PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
-                }
-            | _ -> None
-    events
-    |> List.map parseUsageEvent
-    |> List.choose id
+        |> parser
+
+    let parseUsageEvents events =
+        let parseUsageEvent (s: string) =
+            let parseProps (p: string) =
+                p.Split([|','|])
+                |> Array.toList
+                |> List.map (fun x -> x.Split([|'='|]))
+                |> List.map Array.toList
+                |> List.filter (fun l -> l.Length = 2)
+                |> List.map (function 
+                    | [k;v] -> (k.Trim(), v.Trim())
+                    | _ -> failwith "cannot happen")
+                |> Map.ofList
+                |> Some
+    
+            s.Split([|'|'|], 5)
+            |> Array.toList
+            |> List.map (fun s -> s.Trim())
+            |> function
+                | [sequencenr; datestr; name; amountstr; props] -> 
+                    Some {
+                        MeteringUpdateEvent = UsageReported {
+                            Timestamp = datestr |> MeteringDateTime.fromStr 
+                            MeterName = name
+                            Quantity = amountstr |> UInt64.Parse
+                            Properties = props |> parseProps }
+                        MessagePosition = {
+                            PartitionID = "1"
+                            SequenceNumber = sequencenr |> UInt64.Parse
+                            PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                    }
+                | [sequencenr; datestr; name; amountstr] -> 
+                    Some {
+                        MeteringUpdateEvent = UsageReported {
+                            Timestamp = datestr |> MeteringDateTime.fromStr
+                            MeterName = name
+                            Quantity = amountstr |> UInt64.Parse
+                            Properties = None }
+                        MessagePosition = {
+                            PartitionID = "1"
+                            SequenceNumber = sequencenr |> UInt64.Parse
+                            PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                    }
+                | _ -> None
+        events
+        |> List.map parseUsageEvent
+        |> List.choose id
+
+    str
+    |> multilineParse parseUsageEvents
 
 let myExtraCoders = Extra.empty |> Json.enrich
 
@@ -64,54 +71,31 @@ let jsonDecode<'T> json =
 
 let jsonEncode o = Encode.Auto.toString (1, o, extra = myExtraCoders)
 
-let parseSubscriptionCreation date sequenceNumber str = 
-    str
-    |> jsonDecode<SubscriptionCreationInformation>
-    |> SubscriptionPurchased
-    |> (fun e -> { MeteringUpdateEvent = e; MessagePosition = { 
-         PartitionID = "1"
-         SequenceNumber = sequenceNumber
-         PartitionTimestamp = date |> MeteringDateTime.fromStr
-    }})
-
-let parseConsumptionEvents (str: string) = 
-    str
-    |> (fun s -> s.Split([|"\n"|], StringSplitOptions.RemoveEmptyEntries))
-    |> Array.toList
-    |> parseUsageEvents
-
 let inspect msg a =
     printfn "%s: %A" msg a
     a
 
 [<EntryPoint>]
 let main argv = 
-    let dateTimeToNoda (dateTime : DateTime) =
-        ZonedDateTime(LocalDateTime.FromDateTime(dateTime.ToUniversalTime()), DateTimeZone.Utc, Offset.Zero)
-
-    ZonedDateTime(
-        instant = SystemClock.Instance.GetCurrentInstant(),
-        zone = DateTimeZone.Utc)
-    |> inspect "now"
-    |> ignore
-
     let subscriptionCreationEvent =
          """
     {
-        "plans": [
-            { "planId": "plan1", "billingDimensions": [
-                { "dimension": "nodecharge",       "name": "Per Node Connected",         "unitOfMeasure": "node/hour", "includedQuantity": {} },
-                { "dimension": "cpucharge",        "name": "Per CPU urage",              "unitOfMeasure": "cpu/hour", "includedQuantity": {} },
-                { "dimension": "datasourcecharge", "name": "Per DataSource Integration", "unitOfMeasure": "ds/hour", "includedQuantity": {} },
-                { "dimension": "messagecharge",    "name": "Per Message Transmitted",    "unitOfMeasure": "message/hour", "includedQuantity": {} } ] },
-            { "planId": "plan2", "billingDimensions": [
-                { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
-                { "dimension": "EMailCampaign",      "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails",               "includedQuantity": { "monthly": "250000" } } ] } ],
-        "metersMapping": {
-            "email": { "plan": "plan2", "dimension": "EMailCampaign" },
-            "ml":    { "plan": "plan2", "dimension": "MachineLearningJob" } },
-        "initialPurchase": { "plan": "plan2", "renewalInterval": "Monthly", "subscriptionStart": "2021-10-01--12-20-33" }
-    }""" |> parseSubscriptionCreation "2021-10-01--13-10-55" 1UL
+    "MeteringUpdateEvent": { "type": "subscriptionPurchased", "value": {
+      "plans": [
+          { "planId": "plan1", "billingDimensions": [
+              { "dimension": "nodecharge",       "name": "Per Node Connected",         "unitOfMeasure": "node/hour", "includedQuantity": {} },
+              { "dimension": "cpucharge",        "name": "Per CPU urage",              "unitOfMeasure": "cpu/hour", "includedQuantity": {} },
+              { "dimension": "datasourcecharge", "name": "Per DataSource Integration", "unitOfMeasure": "ds/hour", "includedQuantity": {} },
+              { "dimension": "messagecharge",    "name": "Per Message Transmitted",    "unitOfMeasure": "message/hour", "includedQuantity": {} } ] },
+          { "planId": "plan2", "billingDimensions": [
+              { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
+              { "dimension": "EMailCampaign",      "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails",               "includedQuantity": { "monthly": "250000" } } ] } ],
+      "metersMapping": {
+          "email": { "plan": "plan2", "dimension": "EMailCampaign" },
+          "ml":    { "plan": "plan2", "dimension": "MachineLearningJob" } },
+      "initialPurchase": { "plan": "plan2", "renewalInterval": "Monthly", "subscriptionStart": "2021-10-01--12-20-33" } } },
+   "MessagePosition": { "partitionTimestamp": "2021-10-01--12-20-34", "partitionId": "1", "sequenceNumber": "1" }
+   }""" |> jsonDecode<MeteringEvent>
 
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
@@ -130,9 +114,7 @@ let main argv =
     let newBalance =
         eventsFromEventHub
         |> Logic.handleEvents emptyBalance
-        |> jsonEncode
-        |> inspect "JSON"
-        |> jsonDecode<MeteringState>
-        |> inspect "newBalance"
+        |> jsonEncode |> inspect "JSON"
+        |> jsonDecode<MeteringState> |> inspect "newBalance"
 
     0
