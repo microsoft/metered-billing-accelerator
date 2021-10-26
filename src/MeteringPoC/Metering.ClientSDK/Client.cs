@@ -1,9 +1,9 @@
 ﻿namespace Metering.ClientSDK
 {
+    using System.Threading.Tasks;
     using Microsoft.FSharp.Collections;
     using Microsoft.FSharp.Core;
-    using System;
-    using System.Threading.Tasks;
+    using NodaTime;
     using Metering.Types;
 
     public class Client
@@ -13,7 +13,7 @@
             await Task.Delay(1);
 
             InternalUsageEvent _ = new(
-                timestamp: DateTime.UtcNow, 
+                timestamp: new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc), 
                 meterName: "meter1",
                 quantity: 2,
                 properties: FSharpOption<FSharpMap<string, string>>.None);

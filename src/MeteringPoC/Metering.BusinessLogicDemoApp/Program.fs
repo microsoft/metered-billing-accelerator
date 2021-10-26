@@ -1,14 +1,12 @@
 ﻿open System
-open Metering.Types
-open System.Globalization
 open NodaTime
-open Metering
-open Metering.Types.EventHub
 open Thoth.Json.Net
 
+open Metering
+open Metering.Types
+open Metering.Types.EventHub
 
-let parseDate (p: string) =
-    DateTime.ParseExact(p, [|"yyyy-MM-dd--HH-mm-ss"|], CultureInfo.CurrentCulture, DateTimeStyles.AssumeUniversal)
+
 
 let parseUsageEvents events =
     let parseUsageEvent (s: string) =
@@ -31,26 +29,26 @@ let parseUsageEvents events =
             | [sequencenr; datestr; name; amountstr; props] -> 
                 Some {
                     MeteringUpdateEvent = UsageReported {
-                        Timestamp = datestr |> parseDate
+                        Timestamp = datestr |> MeteringDateTime.fromStr 
                         MeterName = name
                         Quantity = amountstr |> UInt64.Parse
                         Properties = props |> parseProps }
                     MessagePosition = {
                         PartitionID = "1"
                         SequenceNumber = sequencenr |> UInt64.Parse
-                        PartitionTimestamp = datestr |> parseDate }
+                        PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                 }
             | [sequencenr; datestr; name; amountstr] -> 
                 Some {
                     MeteringUpdateEvent = UsageReported {
-                        Timestamp = datestr |> parseDate
+                        Timestamp = datestr |> MeteringDateTime.fromStr
                         MeterName = name
                         Quantity = amountstr |> UInt64.Parse
                         Properties = None }
                     MessagePosition = {
                         PartitionID = "1"
                         SequenceNumber = sequencenr |> UInt64.Parse
-                        PartitionTimestamp = datestr |> parseDate }
+                        PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                 }
             | _ -> None
     events
@@ -73,7 +71,7 @@ let parseSubscriptionCreation date sequenceNumber str =
     |> (fun e -> { MeteringUpdateEvent = e; MessagePosition = { 
          PartitionID = "1"
          SequenceNumber = sequenceNumber
-         PartitionTimestamp = date |> parseDate
+         PartitionTimestamp = date |> MeteringDateTime.fromStr
     }})
 
 let parseConsumptionEvents (str: string) = 
@@ -91,6 +89,12 @@ let main argv =
     let dateTimeToNoda (dateTime : DateTime) =
         ZonedDateTime(LocalDateTime.FromDateTime(dateTime.ToUniversalTime()), DateTimeZone.Utc, Offset.Zero)
 
+    ZonedDateTime(
+        instant = SystemClock.Instance.GetCurrentInstant(),
+        zone = DateTimeZone.Utc)
+    |> inspect "now"
+    |> ignore
+
     let subscriptionCreationEvent =
          """
     {
@@ -106,7 +110,7 @@ let main argv =
         "metersMapping": {
             "email": { "plan": "plan2", "dimension": "EMailCampaign" },
             "ml":    { "plan": "plan2", "dimension": "MachineLearningJob" } },
-        "initialPurchase": { "plan": "plan2", "renewalInterval": "Monthly", "subscriptionStart": "2021-10-01" }
+        "initialPurchase": { "plan": "plan2", "renewalInterval": "Monthly", "subscriptionStart": "2021-10-01--12-20-33" }
     }""" |> parseSubscriptionCreation "2021-10-01--13-10-55" 1UL
 
     // Position read pointer in EventHub to 001002, and start applying 
@@ -115,7 +119,8 @@ let main argv =
         001002 | 2021-10-13--14-12-02 | ml    |   1 | Department=Data Science, Project ID=Skunkworks vNext
         001003 | 2021-10-13--15-12-03 | ml    |   2
         001004 | 2021-10-13--15-13-02 | email | 300 | Email Campaign=User retention, Department=Marketing
-        001005 | 2021-10-13--15-12-08 | ml    |  20
+        001005 | 2021-10-13--15-15-08 | ml    |  20
+        001007 | 2021-10-13--15-19-02 | email | 300000| Email Campaign=User retention, Department=Marketing
         """ |> parseConsumptionEvents
         
     let eventsFromEventHub = subscriptionCreationEvent :: consumptionEvents // The first event must be the subscription creation, followed by many consumption events

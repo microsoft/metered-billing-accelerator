@@ -1,26 +1,27 @@
 ﻿namespace Metering.Types
 
 module Json =
-    open System.Globalization
     open Thoth.Json.Net
-    open NodaTime
     open NodaTime.Text
 
-    module NodaTime =
+    module MeteringDateTime =
         let private makeEncoder<'T> (pattern : IPattern<'T>) : Encoder<'T> = pattern.Format >> Encode.string
-        let private makeDecoder<'T> (pattern : IPattern<'T>) : Decoder<'T> = Decode.string |> Decode.map(fun v -> pattern.Parse(v).Value)
+        let private makeDecoder<'T> (pattern : IPattern<'T>) : Decoder<'T> = 
+            Decode.string |> Decode.andThen (fun v ->
+                let x = pattern.Parse(v)
+                if x.Success
+                then Decode.succeed x.Value
+                else Decode.fail (sprintf "Failed to decode `%s`" v)
+        )
 
-        let private localDatePattern = LocalDatePattern.Create("yyyy-MM-dd", CultureInfo.InvariantCulture)        
-        let private localTimePattern = LocalTimePattern.Create("HH:mm", CultureInfo.InvariantCulture)
-        let private zonedDateTimePattern = ZonedDateTimePattern.CreateWithInvariantCulture("yyyy-MM-dd--HH-mm-ss-FFF", NodaTime.DateTimeZoneProviders.Bcl)
-
-        let writeLocalDate = makeEncoder localDatePattern
-        let readLocalDate = makeDecoder localDatePattern
-        let writeLocalTime = makeEncoder localTimePattern
-        let readLocalTime = makeDecoder localTimePattern
-        let writeZonedDateTime = makeEncoder zonedDateTimePattern
-        let readZonedDateTime : Decoder<ZonedDateTime> = makeDecoder zonedDateTimePattern
+        //let encodeLocalDate = makeEncoder MeteringDateTime.localDatePattern
+        //let decodeLocalDate = makeDecoder MeteringDateTime.localDatePattern
+        //let encodeLocalTime = makeEncoder MeteringDateTime.localTimePattern
+        //let decodeLocalTime = makeDecoder MeteringDateTime.localTimePattern
         
+        let Encoder : Encoder<MeteringDateTime> = MeteringDateTime.meteringDateTimePatterns |> List.head |> makeEncoder
+        let Decoder : Decoder<MeteringDateTime> = MeteringDateTime.meteringDateTimePatterns |> List.map makeDecoder |> Decode.oneOf
+
     module Quantity =
         let Encoder (x: Quantity) : JsonValue = x |> Encode.uint64
         let Decoder : Decoder<Quantity> = Decode.uint64
@@ -35,7 +36,7 @@ module Json =
             [
                 (partitionId, x.PartitionID |> Encode.string)
                 (sequenceNumber, x.SequenceNumber |> Encode.uint64)
-                (partitionTimestamp, x.PartitionTimestamp |> Encode.datetime)
+                (partitionTimestamp, x.PartitionTimestamp |> MeteringDateTime.Encoder)
             ]
             |> Encode.object 
 
@@ -43,7 +44,7 @@ module Json =
             Decode.object (fun get -> {
                 PartitionID = get.Required.Field partitionId Decode.string
                 SequenceNumber = get.Required.Field sequenceNumber Decode.uint64
-                PartitionTimestamp = get.Required.Field partitionTimestamp Decode.datetime
+                PartitionTimestamp = get.Required.Field partitionTimestamp MeteringDateTime.Decoder
             })
 
     module ConsumedQuantity =
@@ -157,7 +158,7 @@ module Json =
                     (resourceID, x.ResourceID |> Encode.string)
                     (quantity, x.Quantity |> Quantity.Encoder)
                     (dimensionId, x.DimensionId |> Encode.string)
-                    (effectiveStartTime, x.EffectiveStartTime |> Encode.datetime)
+                    (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
                     (planId, x.PlanId |> Encode.string)
                 ]
                 |> Encode.object 
@@ -167,7 +168,7 @@ module Json =
                     ResourceID = get.Required.Field resourceID Decode.string
                     Quantity = get.Required.Field quantity Quantity.Decoder
                     DimensionId = get.Required.Field dimensionId Decode.string
-                    EffectiveStartTime = get.Required.Field effectiveStartTime Decode.datetime
+                    EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
                     PlanId = get.Required.Field planId Decode.string
                 })
 
@@ -188,7 +189,7 @@ module Json =
 
         let Encoder (x: InternalUsageEvent) : JsonValue =
             [
-                (timestamp, x.Timestamp |> Encode.datetime)
+                (timestamp, x.Timestamp |> MeteringDateTime.Encoder)
                 (meterName, x.MeterName |> Encode.string)
                 (quantity, x.Quantity |> Quantity.Encoder)
                 (properties, x.Properties |> EncodeMap)
@@ -197,7 +198,7 @@ module Json =
 
         let Decoder : Decoder<InternalUsageEvent> =
             Decode.object (fun get -> {
-                Timestamp = get.Required.Field timestamp Decode.datetime
+                Timestamp = get.Required.Field timestamp MeteringDateTime.Decoder
                 MeterName = get.Required.Field meterName Decode.string
                 Quantity = get.Required.Field quantity Quantity.Decoder
                 Properties = get.Optional.Field properties DecodeMap
@@ -211,7 +212,7 @@ module Json =
             [
                 (planId, x.PlanId |> Encode.string)
                 (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
-                (subscriptionStart, x.SubscriptionStart |> NodaTime.writeLocalDate)
+                (subscriptionStart, x.SubscriptionStart |> MeteringDateTime.Encoder)
             ]
             |> Encode.object 
 
@@ -219,7 +220,7 @@ module Json =
             Decode.object (fun get -> {
                 PlanId = get.Required.Field planId Decode.string
                 RenewalInterval = get.Required.Field renewalInterval RenewalInterval.Decoder
-                SubscriptionStart = get.Required.Field subscriptionStart NodaTime.readLocalDate
+                SubscriptionStart = get.Required.Field subscriptionStart MeteringDateTime.Decoder
             })
 
     module PlanDimension =
@@ -284,7 +285,7 @@ module Json =
                 (resourceId, x.ResourceId |> Encode.string)
                 (quantity, x.Quantity |> Encode.float)
                 (planDimension, x.PlanDimension |> PlanDimension.Encoder)
-                (effectiveStartTime, x.EffectiveStartTime |> Encode.datetime)
+                (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
             ]
             |> Encode.object 
         
@@ -293,7 +294,7 @@ module Json =
                 ResourceId = get.Required.Field resourceId Decode.string
                 Quantity = get.Required.Field quantity Decode.float
                 PlanDimension = get.Required.Field planDimension PlanDimension.Decoder
-                EffectiveStartTime = get.Required.Field effectiveStartTime Decode.datetime
+                EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
             })
     
     module SubscriptionCreationInformation =
@@ -377,9 +378,7 @@ module Json =
         x
         |> Extra.withUInt64
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
-        |> Extra.withCustom NodaTime.writeLocalDate NodaTime.readLocalDate
-        |> Extra.withCustom NodaTime.writeLocalTime NodaTime.readLocalTime
-        |> Extra.withCustom NodaTime.writeZonedDateTime NodaTime.readZonedDateTime
+        |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
         |> Extra.withCustom EventHubJSON.Encoder EventHubJSON.Decoder
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder

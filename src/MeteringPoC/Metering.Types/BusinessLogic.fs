@@ -5,12 +5,12 @@ open Metering.Types
 open Metering.Types.EventHub
 
 module RenewalInterval =
-    let duration pre =
+    let duration (pre: RenewalInterval) =
         match pre with
         | Monthly -> Period.FromMonths(1)
         | Annually -> Period.FromYears(1)
 
-    let add pre (i: uint) =
+    let add (pre: RenewalInterval) (i: uint) : Period =
         match pre with
         | Monthly -> Period.FromMonths(int i)
         | Annually -> Period.FromYears(int i)
@@ -20,24 +20,26 @@ module Subscription =
         { RenewalInterval = pri ; SubscriptionStart = subscriptionStart ; PlanId = planId }
 
 module BillingPeriod =
-    open Metering.Types
-
-    let localDateToStr (x: LocalDate) = x.ToString("yyyy-MM-dd", null)
+    let localDateToStr (x: MeteringDateTime) = x.ToString("yyyy-MM-dd", null)
     
     let toString { FirstDay = firstDay; LastDay = lastDay } =        
         sprintf "%s--%s" (localDateToStr firstDay) (localDateToStr lastDay)
 
     let createFromIndex (subscription : Subscription) (n: uint) : BillingPeriod =
-        let periods : (uint -> Period) = RenewalInterval.add subscription.RenewalInterval
-        { FirstDay = subscription.SubscriptionStart + (periods (n))
-          LastDay = subscription.SubscriptionStart + (periods (n+1u)) - Period.FromDays(1)
+        let period : (uint -> Period) = RenewalInterval.add subscription.RenewalInterval
+        let add (period: Period) (x: MeteringDateTime) : MeteringDateTime =
+            let r = x.LocalDateTime + period
+            MeteringDateTime(r, DateTimeZone.Utc, Offset.Zero)
+
+        { FirstDay = subscription.SubscriptionStart |> add (period (n))
+          LastDay = subscription.SubscriptionStart |> add (period (n+1u) - Period.FromDays(1))
           Index = n }
 
-    let determineBillingPeriod (subscription : Subscription) (day: LocalDate) : Result<BillingPeriod, BusinessError> =
-        if subscription.SubscriptionStart > day 
+    let determineBillingPeriod (subscription : Subscription) (day: MeteringDateTime) : Result<BillingPeriod, BusinessError> =
+        if subscription.SubscriptionStart.LocalDateTime > day.LocalDateTime
         then DayBeforeSubscription |> Result.Error
         else 
-            let diff = day - subscription.SubscriptionStart
+            let diff = day.LocalDateTime - subscription.SubscriptionStart.LocalDateTime
             let idx = 
                 match subscription.RenewalInterval with
                     | Monthly -> diff.Years * 12 + diff.Months
@@ -46,8 +48,8 @@ module BillingPeriod =
 
             Ok(createFromIndex subscription idx)
     
-    let isInBillingPeriod { FirstDay = firstDay; LastDay = lastDay } (day: LocalDate) : bool =
-        firstDay <= day && day <= lastDay
+    let isInBillingPeriod { FirstDay = firstDay; LastDay = lastDay } (day: MeteringDateTime) : bool =
+        firstDay.LocalDateTime <= day.LocalDateTime && day.LocalDateTime <= lastDay.LocalDateTime
 
     type BillingPeriodResult =
         | DateBeforeSubscription 
@@ -55,14 +57,14 @@ module BillingPeriod =
         | SameBillingPeriod
         | BillingPeriodDistance of uint
 
-    let getBillingPeriodDelta(subscription: Subscription) (previous: LocalDate) (current: LocalDate) : BillingPeriodResult =
+    let getBillingPeriodDelta(subscription: Subscription) (previous: MeteringDateTime) (current: MeteringDateTime) : BillingPeriodResult =
         let determine = determineBillingPeriod subscription 
         match (determine previous, determine current) with
-            | (Result.Error(DayBeforeSubscription), _) -> DateBeforeSubscription
-            | (_, Result.Error(DayBeforeSubscription)) -> DateBeforeSubscription
-            | Ok(p), Ok(c) -> 
+            | (Error(DayBeforeSubscription), _) -> DateBeforeSubscription
+            | (_, Error(DayBeforeSubscription)) -> DateBeforeSubscription
+            | Ok({ Index = p}), Ok({Index = c}) -> 
                 match (p, c) with
-                    | (p, c) when p < c -> BillingPeriodDistance(c.Index - p.Index)
+                    | (p, c) when p < c -> BillingPeriodDistance(c - p)
                     | (p, c) when p = c -> SameBillingPeriod
                     | _ -> DateBelongsToPreviousBillingPeriod
 

@@ -46,7 +46,7 @@ module MarketPlaceAPI =
         { ResourceID: string // unique identifier of the resource against which usage is emitted. 
           Quantity: Quantity // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
           DimensionId: DimensionId // custom dimension identifier
-          EffectiveStartTime: DateTime // time in UTC when the usage event occurred, from now and until 24 hours back
+          EffectiveStartTime: MeteringDateTime // time in UTC when the usage event occurred, from now and until 24 hours back
           PlanId: PlanId } // id of the plan purchased for the offer
 
     type MeteredBillingUsageEventBatch = 
@@ -57,7 +57,7 @@ open MarketPlaceAPI
 type ApplicationInternalMeterName = string // A meter name used between app and aggregator
 
 type InternalUsageEvent = // From app to aggregator
-    { Timestamp: DateTime  // timestamp from the sending app
+    { Timestamp: MeteringDateTime  // timestamp from the sending app
       MeterName: ApplicationInternalMeterName
       Quantity: Quantity
       Properties: Map<string, string> option}
@@ -68,11 +68,11 @@ type BusinessError =
 type Subscription = // When a certain plan was purchased
     { PlanId: PlanId
       RenewalInterval: RenewalInterval 
-      SubscriptionStart: LocalDate }
+      SubscriptionStart: MeteringDateTime }
 
 type BillingPeriod = // Each time the subscription is renewed, a new billing period start
-    { FirstDay: LocalDate
-      LastDay: LocalDate
+    { FirstDay: MeteringDateTime
+      LastDay: MeteringDateTime
       Index: uint }
 
 type PlanDimension =
@@ -89,7 +89,7 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
     { ResourceId: string 
       Quantity: double 
       PlanDimension: PlanDimension
-      EffectiveStartTime: DateTime }
+      EffectiveStartTime: MeteringDateTime }
 
 type SubscriptionCreationInformation = // This event needs to be injected at first
     { Plans: Plan list // The list of all plans. Certainly not needed in the aggregator?
