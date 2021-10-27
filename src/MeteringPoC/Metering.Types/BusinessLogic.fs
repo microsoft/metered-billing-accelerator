@@ -118,15 +118,24 @@ module Logic =
         | KeepOpen
         | Close
 
-    let previousBillingIntervalCanBeClosed (previous: MeteringDateTime) (currentTime: CurrentTimeProvider) (currentEvent: MeteringDateTime option) (gracePeriod: Duration) : CloseBillingPeriod =
-        let close =
-            match currentEvent with
-            // If we're being triggered without a currentEvent, then close the previous billing interval if more time than the grace period passed
-            | None -> (currentTime() - previous) >= gracePeriod
-            // If there's a concrete new event, close if the event belongs to a different hour than the last event
-            | Some eventTime -> (previous.Hour <> eventTime.Hour) || ((eventTime - previous) >= Duration.FromHours(1.0)) 
+    let previousBillingIntervalCanBeClosedNewEvent (previous: MeteringDateTime) (eventTime: MeteringDateTime) : CloseBillingPeriod =
+        if previous.Hour <> eventTime.Hour || eventTime - previous >= Duration.FromHours(1.0)
+        then Close
+        else KeepOpen
 
-        if close then Close else KeepOpen
+    let previousBillingIntervalCanBeClosedWakeup  (previous: MeteringDateTime) (currentTime: CurrentTimeProvider) (gracePeriod: Duration) : CloseBillingPeriod =
+        if currentTime() - previous >= gracePeriod
+        then Close
+        else KeepOpen
+
+    //let previousBillingIntervalCanBeClosed (previous: MeteringDateTime) (currentTime: CurrentTimeProvider) (currentEvent: MeteringDateTime option) (gracePeriod: Duration) : CloseBillingPeriod =
+    //    let close =
+    //        match currentEvent with
+    //        // If we're being triggered without a currentEvent, then close the previous billing interval if more time than the grace period passed
+    //        | None -> (currentTime() - previous) >= gracePeriod
+    //        // If there's a concrete new event, close if the event belongs to a different hour than the last event
+    //        | Some eventTime -> (previous.Hour <> eventTime.Hour) || ((eventTime - previous) >= Duration.FromHours(1.0)) 
+    //    if close then Close else KeepOpen
 
     let applyUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : MeteringState) : MeteringState =
         let lastPosition = state.LastProcessedMessage

@@ -195,29 +195,38 @@ let Test_Logic_topupMonthlyCredits() =
     ] |> runTestVectors test
 
 
-type previousBillingIntervalCanBeClosed_Vector = { Previous: string; CurrentEvent: string option; CurrentTime: string; Expected: CloseBillingPeriod; GraceHours: float }
 
 [<Test>]
-let Test_previousBillingIntervalCanBeClosed() =
-    let test (idx, { Previous = prev; CurrentEvent = curEv; CurrentTime = cur; Expected = exp; GraceHours = graceHours}) =
+let Test_previousBillingIntervalCanBeClosedNewEvent() =
+    let test (idx, (prev, curEv, expected)) =
         let result : CloseBillingPeriod = 
-            Logic.previousBillingIntervalCanBeClosed
+            Logic.previousBillingIntervalCanBeClosedNewEvent
                 (prev |> MeteringDateTime.fromStr)
-                (fun () -> cur |> MeteringDateTime.fromStr)
-                (curEv |> Option.bind (MeteringDateTime.fromStr >> Some))
-                (Duration.FromHours(graceHours))
+                (curEv |> MeteringDateTime.fromStr)
         
-        Assert.AreEqual(exp, result, sprintf "Failure test case #%d" idx)
+        Assert.AreEqual(expected, result, sprintf "Failure test case #%d" idx)
 
     [
-        // Even though we're already 10 seconds in the new hour, the given event belongs to the previous hour, so there might be more
-        { Previous = "2021-01-10--11-59-58"; CurrentTime = "2021-01-10--12-00-10"; CurrentEvent = Some "2021-01-10--11-59-59"; GraceHours = 3.0; Expected = KeepOpen }
-        // The event belongs to a new period, so close it
-        { Previous = "2021-01-10--11-59-58"; CurrentTime = "2021-01-10--12-00-10"; CurrentEvent = Some "2021-01-10--12-00-00"; GraceHours = 3.0; Expected = Close }
-        // For whatever reason, we've been sleeping for exactly one day
-        { Previous = "2021-01-10--12-00-00"; CurrentTime = "2021-01-10--12-00-10"; CurrentEvent = Some "2021-01-11--12-00-00"; GraceHours = 3.0; Expected = Close }
-        //
-        { Previous = "2021-01-10--12-00-00"; CurrentTime = "2021-01-10--14-59-59"; CurrentEvent = None; GraceHours = 3.0; Expected = KeepOpen }
-        { Previous = "2021-01-10--12-00-00"; CurrentTime = "2021-01-10--15-00-00"; CurrentEvent = None; GraceHours = 3.0; Expected = Close }
+        ("2021-01-10--11-59-58", "2021-01-10--11-59-59", KeepOpen) // Even though we're already 10 seconds in the new hour, the given event belongs to the previous hour, so there might be more
+        ("2021-01-10--11-59-58", "2021-01-10--12-00-00", Close) // The event belongs to a new period, so close it        
+        ("2021-01-10--12-00-00", "2021-01-11--12-00-00", Close) // For whatever reason, we've been sleeping for exactly one day
+    ] |> runTestVectors test
+
+
+
+[<Test>]
+let Test_previousBillingIntervalCanBeClosedWakeup() =
+    let test (idx, (prev, curr, (grace: float), expected)) =
+        let result : CloseBillingPeriod = 
+            Logic.previousBillingIntervalCanBeClosedWakeup
+                (prev |> MeteringDateTime.fromStr)
+                (fun () -> curr |> MeteringDateTime.fromStr)
+                (Duration.FromHours(grace))
+                
+        Assert.AreEqual(expected, result, sprintf "Failure testc case #%d" idx)
+
+    [
+        ("2021-01-10--12-00-00", "2021-01-10--14-59-59", 3.0, KeepOpen)
+        ("2021-01-10--12-00-00", "2021-01-10--15-00-00", 3.0, Close)
     ] |> runTestVectors test
 
