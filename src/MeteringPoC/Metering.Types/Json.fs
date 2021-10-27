@@ -1,6 +1,7 @@
 ﻿namespace Metering.Types
 
 module Json =
+    open System
     open Thoth.Json.Net
     open NodaTime.Text
 
@@ -359,7 +360,8 @@ module Json =
                      (typeid, "usage" |> Encode.string)
                      (value, usage |> InternalUsageEvent.Encoder)
                 ]
-            | UsageSubmittedToAPI usage -> raise (new System.NotSupportedException "Currently this feedback loop must only be internally")
+            | UsageSubmittedToAPI usage -> raise <| new NotSupportedException "Currently this feedback loop must only be internally"
+            | AggregatorBooted -> raise <| new NotSupportedException "Currently this feedback loop must only be internally"
             |> Encode.object 
             
         let Decoder : Decoder<MeteringUpdateEvent> =

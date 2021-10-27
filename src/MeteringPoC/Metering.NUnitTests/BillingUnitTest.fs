@@ -6,6 +6,8 @@ open Metering
 open Metering.Types
 open Metering.BillingPeriod
 open Metering.Types.MarketPlaceAPI
+open Metering.Logic
+open NodaTime
 
 [<SetUp>]
 let Setup () = ()
@@ -191,3 +193,31 @@ let Test_Logic_topupMonthlyCredits() =
             Expected = IncludedQuantity { Annually = Some 10_000UL; Monthly = Some 500UL } 
         }
     ] |> runTestVectors test
+
+
+type previousBillingIntervalCanBeClosed_Vector = { Previous: string; CurrentEvent: string option; CurrentTime: string; Expected: CloseBillingPeriod; GraceHours: float }
+
+[<Test>]
+let Test_previousBillingIntervalCanBeClosed() =
+    let test (idx, { Previous = prev; CurrentEvent = curEv; CurrentTime = cur; Expected = exp; GraceHours = graceHours}) =
+        let result : CloseBillingPeriod = 
+            Logic.previousBillingIntervalCanBeClosed
+                (prev |> MeteringDateTime.fromStr)
+                (fun () -> cur |> MeteringDateTime.fromStr)
+                (curEv |> Option.bind (MeteringDateTime.fromStr >> Some))
+                (Duration.FromHours(graceHours))
+        
+        Assert.AreEqual(exp, result, sprintf "Failure test case #%d" idx)
+
+    [
+        // Even though we're already 10 seconds in the new hour, the given event belongs to the previous hour, so there might be more
+        { Previous = "2021-01-10--11-59-58"; CurrentTime = "2021-01-10--12-00-10"; CurrentEvent = Some "2021-01-10--11-59-59"; GraceHours = 3.0; Expected = KeepOpen }
+        // The event belongs to a new period, so close it
+        { Previous = "2021-01-10--11-59-58"; CurrentTime = "2021-01-10--12-00-10"; CurrentEvent = Some "2021-01-10--12-00-00"; GraceHours = 3.0; Expected = Close }
+        // For whatever reason, we've been sleeping for exactly one day
+        { Previous = "2021-01-10--12-00-00"; CurrentTime = "2021-01-10--12-00-10"; CurrentEvent = Some "2021-01-11--12-00-00"; GraceHours = 3.0; Expected = Close }
+        //
+        { Previous = "2021-01-10--12-00-00"; CurrentTime = "2021-01-10--14-59-59"; CurrentEvent = None; GraceHours = 3.0; Expected = KeepOpen }
+        { Previous = "2021-01-10--12-00-00"; CurrentTime = "2021-01-10--15-00-00"; CurrentEvent = None; GraceHours = 3.0; Expected = Close }
+    ] |> runTestVectors test
+

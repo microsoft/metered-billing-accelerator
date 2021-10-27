@@ -36,6 +36,7 @@ module MarketPlaceAPI =
           DimensionName: string 
           UnitOfMeasure: UnitOfMeasure
           IncludedQuantity: IncludedQuantity }
+
       
     type Plan =
         { PlanId: PlanId
@@ -91,7 +92,8 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
       PlanDimension: PlanDimension
       EffectiveStartTime: MeteringDateTime }
 
-type SubscriptionCreationInformation = // This event needs to be injected at first
+/// Event representing the creation of a subscription. 
+type SubscriptionCreationInformation =
     { Subscription: Subscription // The purchase information of the subscription
       InternalMetersMapping: InternalMetersMapping } // The table mapping app-internal meter names to 'proper' ones for marketplace
     
@@ -103,9 +105,14 @@ type MeteringState =
       LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace 
         
 module MeteringState =
+    let initial : (MeteringState option) = None
+
     let setCurrentMeterValues x s = { s with CurrentMeterValues = x }
+    let applyToCurrentMeterValue f s = { s with CurrentMeterValues = (f s.CurrentMeterValues) }
     let setLastProcessedMessage x s = { s with LastProcessedMessage = x }
     let addUsageToBeReported x s = { s with UsageToBeReported = (x :: s.UsageToBeReported) }
+    
+    /// Removes the item from the UsageToBeReported collection
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
 
 type UpdateOutOfOrderError =
@@ -116,20 +123,40 @@ type BusinessDataUpdateError =
     | UpdateOutOfOrderError of UpdateOutOfOrderError
     | SnapshotDownloadError of Exception
 
-type UsageSubmissionResult = // Once the metering API was called, either the metering submission successfully got through, or not (in which case we need to know which values haven't been submitted)
+type UsageSubmittedToAPIResult = // Once the metering API was called, either the metering submission successfully got through, or not (in which case we need to know which values haven't been submitted)
     Result<MeteringAPIUsageEventDefinition, Exception * MeteringAPIUsageEventDefinition>
 
+/// The events which are processed by the aggregator.
 type MeteringUpdateEvent =
-    | SubscriptionPurchased of SubscriptionCreationInformation
-    | UsageReported of InternalUsageEvent // app -> aggregator
-    | UsageSubmittedToAPI of UsageSubmissionResult // aggregator -> aggregator
+    /// Event to initialize the aggregator.
+    | SubscriptionPurchased of SubscriptionCreationInformation 
+
+    /// Event representing usage / consumption. Send from the application to the aggregator.
+    | UsageReported of InternalUsageEvent
+    
+    /// An aggregator-internal event to keep track of which events must be / have been submitted to the metering API.
+    | UsageSubmittedToAPI of UsageSubmittedToAPIResult
+
+    /// A heart beat signal to flush potential billing periods
+    | AggregatorBooted
 
 type MeteringEvent =
     { MeteringUpdateEvent: MeteringUpdateEvent
       MessagePosition: MessagePosition }
-   
-type BusinessLogic = // The business logic takes the current state, and a command to be applied, and returns new state
-    MeteringState option -> MeteringEvent -> MeteringState option 
+
+type MeteringClient = 
+    InternalUsageEvent -> System.Threading.Tasks.Task
+
+type CurrentTimeProvider =
+    unit -> MeteringDateTime
 
 type SubmitMeteringAPIUsageEvent =
     MeteringAPIUsageEventDefinition -> System.Threading.Tasks.Task
+
+type MeteringConfigurationProvider = 
+    { CurrentTimeProvider: CurrentTimeProvider
+      SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent }
+
+type BusinessLogic = // The business logic takes the current state, and a command to be applied, and returns new state
+    MeteringState option -> MeteringEvent -> MeteringState option 
+

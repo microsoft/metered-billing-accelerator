@@ -114,50 +114,53 @@ module Logic =
     let applyConsumption (event: InternalUsageEvent) (current: MeterValue option) : MeterValue option =
         Option.bind ((fun q m -> Some (q |> subtractQuantityFromMeterValue m )) event.Quantity) current
 
-    let planDimensionFromInternalEvent (event: InternalUsageEvent) (meteringState : MeteringState) : DimensionId =
-        meteringState.InternalMetersMapping
-        |> Map.find event.MeterName
+    type CloseBillingPeriod =
+        | KeepOpen
+        | Close
 
-    let applyUsageEvent (event: InternalUsageEvent) (state : MeteringState) : MeteringState =
-        // TODO if no 
+    let previousBillingIntervalCanBeClosed (previous: MeteringDateTime) (currentTime: CurrentTimeProvider) (currentEvent: MeteringDateTime option) (gracePeriod: Duration) : CloseBillingPeriod =
+        let close =
+            match currentEvent with
+            // If we're being triggered without a currentEvent, then close the previous billing interval if more time than the grace period passed
+            | None -> (currentTime() - previous) >= gracePeriod
+            // If there's a concrete new event, close if the event belongs to a different hour than the last event
+            | Some eventTime -> (previous.Hour <> eventTime.Hour) || ((eventTime - previous) >= Duration.FromHours(1.0)) 
 
-        let planDimension = 
-            state
-            |> planDimensionFromInternalEvent event 
+        if close then Close else KeepOpen
 
-        let newCredits = 
-            state.CurrentMeterValues
-            |> Map.change planDimension (applyConsumption event)
+    let applyUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : MeteringState) : MeteringState =
+        let lastPosition = state.LastProcessedMessage
+
+        let dimension = 
+            state.InternalMetersMapping |> Map.find event.MeterName
+
+        let updateConsumption : (CurrentMeterValues -> CurrentMeterValues) = 
+            Map.change dimension (applyConsumption event)
         
-        { state 
-            with CurrentMeterValues = newCredits}
+        state
+        |> MeteringState.applyToCurrentMeterValue updateConsumption
+        |> MeteringState.setLastProcessedMessage currentPosition // Todo: Decide where to update the position
 
-
+    let handleAggregatorBooted (state : MeteringState) : MeteringState =
+        failwith "not implemented"
 
     let handleUnsuccessfulMeterSubmission (failedSubmission: MeteringAPIUsageEventDefinition) (state: MeteringState) : MeteringState =
         // todo logging here, alternatively report in a later period?
         state
         
-    let handleUsageSubmission (meter: UsageSubmissionResult) (state: MeteringState) : MeteringState =
-        match meter with
-        | Ok submission -> state |> MeteringState.removeUsageToBeReported submission
+    let handleUsageSubmissionToAPI (usageSubmissionResult: UsageSubmittedToAPIResult) (state: MeteringState) : MeteringState =
+        match usageSubmissionResult with
+        | Ok successfulSubmission -> state |> MeteringState.removeUsageToBeReported successfulSubmission
         | Error (ex, failedSubmission) -> state |> handleUnsuccessfulMeterSubmission failedSubmission 
 
-    let selectedPlan (state: MeteringState) : Plan = 
-        state.Subscription.Plan
+    let computeIncludedQuantity (x: BillingDimension seq) : CurrentMeterValues = 
+        x
+        |> Seq.map(fun bd -> (bd.DimensionId, IncludedQuantity bd.IncludedQuantity))
+        |> Map.ofSeq
         
     let topupMonthlyCreditsOnNewSubscription (state: MeteringState) : MeteringState =
-        let plan = state |> selectedPlan
-      
-        // let topupMonthlyCredits (meterValue: MeterValue) (quantity: Quantity) (pri: RenewalInterval) : MeterValue =
-        let rni = state.Subscription.RenewalInterval
-
-        let freshMeterValues : CurrentMeterValues =
-            plan.BillingDimensions
-            |> Seq.map(fun bd -> (bd.DimensionId, IncludedQuantity bd.IncludedQuantity))
-            |> Map.ofSeq
-
-        { state with CurrentMeterValues = freshMeterValues }
+        state
+        |> MeteringState.setCurrentMeterValues (state.Subscription.Plan.BillingDimensions |> computeIncludedQuantity)
 
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : MeteringState =
         // When we receive the creation of a subscription
@@ -168,24 +171,20 @@ module Logic =
           UsageToBeReported = List.empty }
         |> topupMonthlyCreditsOnNewSubscription
 
-    let handleEvent (state: MeteringState option) ({ MeteringUpdateEvent = update; MessagePosition = position }: MeteringEvent) : MeteringState option =
-        match (state, update) with
-        | (None, SubscriptionPurchased subInfo) ->
-            createNewSubscription subInfo position
+    let handleEvent (state: MeteringState option) (meteringEvent: MeteringEvent) : MeteringState option =
+        match state with 
+        | None -> 
+            match meteringEvent.MeteringUpdateEvent with 
+                | (SubscriptionPurchased subInfo) -> createNewSubscription subInfo meteringEvent.MessagePosition |> Some
+                | _ -> None // without a subscription, we ignore all othes events
+        | Some state -> 
+            match meteringEvent.MeteringUpdateEvent with             
+                | (UsageReported usage) -> state |> applyUsageEvent (usage, meteringEvent.MessagePosition) 
+                | (UsageSubmittedToAPI submission) -> state |> handleUsageSubmissionToAPI submission 
+                | (AggregatorBooted) -> state |> handleAggregatorBooted
+                | (SubscriptionPurchased _) -> state // Once it's configured, no way to update
+            |> MeteringState.setLastProcessedMessage meteringEvent.MessagePosition
             |> Some
-        | (Some state, UsageReported usage) -> 
-            state
-            |> applyUsageEvent usage
-            |> MeteringState.setLastProcessedMessage position
-            |> Some
-        | (Some state, UsageSubmittedToAPI submission) -> 
-            state
-            |> handleUsageSubmission submission
-            |> MeteringState.setLastProcessedMessage position
-            |> Some
-        | (Some state, SubscriptionPurchased _) -> Some state // Once it's configured, no way to update
-        | (None, UsageReported _) -> None
-        | (None, UsageSubmittedToAPI _) -> None
     
     let handleEvents (state : MeteringState option) (events : MeteringEvent list) : MeteringState option =
         events |> List.fold handleEvent state 
@@ -195,6 +194,6 @@ module Logic =
 
     let test =
         let inputs : (MeteringEvent list) = []
-        let state : MeteringState option = getState
+        let state = MeteringState.initial
         let result = inputs |> List.fold handleEvent state
         result

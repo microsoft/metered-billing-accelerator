@@ -1,12 +1,11 @@
 ﻿namespace Metering.Types.EventHub
 
-open System
-open Metering.Types
 open Azure.Core
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
+open Metering.Types
 
 type SequenceNumber = uint64
 
