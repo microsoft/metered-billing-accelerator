@@ -4,6 +4,7 @@ open Thoth.Json.Net
 open Metering
 open Metering.Types
 open Metering.Types.EventHub
+open NodaTime
 
 let parseConsumptionEvents (str: string) = 
     let multilineParse parser (str : string) =  
@@ -116,9 +117,14 @@ let main argv =
 
     let emptyBalance : MeteringState option = None // We start completely uninitialized
 
+    let config = 
+        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+          SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
+          GracePeriod = Duration.FromHours(6.0) }
+          
     let newBalance =
         eventsFromEventHub
-        |> Logic.handleEvents emptyBalance
+        |> Logic.handleEvents config emptyBalance 
         |> jsonEncode |> inspect "JSON"
         |> jsonDecode<MeteringState> |> inspect "newBalance"
 

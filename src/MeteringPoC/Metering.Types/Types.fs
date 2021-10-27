@@ -150,12 +150,20 @@ type MeteringClient =
 type CurrentTimeProvider =
     unit -> MeteringDateTime
 
+module CurrentTimeProvider =
+    let LocalSystem : CurrentTimeProvider = (fun () -> ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
+    let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
+
 type SubmitMeteringAPIUsageEvent =
     MeteringAPIUsageEventDefinition -> System.Threading.Tasks.Task
 
+module SubmitMeteringAPIUsageEvent =
+    let Discard : SubmitMeteringAPIUsageEvent = (fun _ -> System.Threading.Tasks.Task.CompletedTask)
+
 type MeteringConfigurationProvider = 
     { CurrentTimeProvider: CurrentTimeProvider
-      SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent }
+      SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
+      GracePeriod: Duration }
 
 type BusinessLogic = // The business logic takes the current state, and a command to be applied, and returns new state
     MeteringState option -> MeteringEvent -> MeteringState option 

@@ -194,8 +194,6 @@ let Test_Logic_topupMonthlyCredits() =
         }
     ] |> runTestVectors test
 
-
-
 [<Test>]
 let Test_previousBillingIntervalCanBeClosedNewEvent() =
     let test (idx, (prev, curEv, expected)) =
@@ -212,16 +210,15 @@ let Test_previousBillingIntervalCanBeClosedNewEvent() =
         ("2021-01-10--12-00-00", "2021-01-11--12-00-00", Close) // For whatever reason, we've been sleeping for exactly one day
     ] |> runTestVectors test
 
-
-
 [<Test>]
 let Test_previousBillingIntervalCanBeClosedWakeup() =
     let test (idx, (prev, curr, (grace: float), expected)) =
-        let result : CloseBillingPeriod = 
-            Logic.previousBillingIntervalCanBeClosedWakeup
-                (prev |> MeteringDateTime.fromStr)
-                (fun () -> curr |> MeteringDateTime.fromStr)
-                (Duration.FromHours(grace))
+        let config =
+            { CurrentTimeProvider = curr |> MeteringDateTime.fromStr |> CurrentTimeProvider.AlwaysReturnSameTime
+              SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
+              GracePeriod = Duration.FromHours(grace) }
+
+        let result = prev |> MeteringDateTime.fromStr |> Logic.previousBillingIntervalCanBeClosedWakeup config  
                 
         Assert.AreEqual(expected, result, sprintf "Failure testc case #%d" idx)
 
@@ -229,4 +226,3 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
         ("2021-01-10--12-00-00", "2021-01-10--14-59-59", 3.0, KeepOpen)
         ("2021-01-10--12-00-00", "2021-01-10--15-00-00", 3.0, Close)
     ] |> runTestVectors test
-
