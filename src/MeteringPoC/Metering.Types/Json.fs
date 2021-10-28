@@ -5,6 +5,18 @@ module Json =
     open Thoth.Json.Net
     open NodaTime.Text
 
+    module IntOrFloat =
+        let Encoder (x: IntOrFloat) : JsonValue = 
+            match x with
+            | MeteringInt i -> i |> Encode.uint64
+            | MeteringFloat f -> f |> Encode.float 
+            
+        let Decoder : Decoder<IntOrFloat> = 
+            [ 
+                Decode.uint64 |> Decode.andThen(MeteringInt >> Decode.succeed)
+                Decode.float |> Decode.andThen(MeteringFloat >> Decode.succeed)
+            ] |> Decode.oneOf 
+
     module MeteringDateTime =
         let private makeEncoder<'T> (pattern : IPattern<'T>) : Encoder<'T> = pattern.Format >> Encode.string
         let private makeDecoder<'T> (pattern : IPattern<'T>) : Decoder<'T> = 
@@ -421,6 +433,7 @@ module Json =
     let enrich x =
         x
         |> Extra.withUInt64
+        |> Extra.withCustom IntOrFloat.Encoder IntOrFloat.Decoder
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
         |> Extra.withCustom EventHubJSON.Encoder EventHubJSON.Decoder
