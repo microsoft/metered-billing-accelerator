@@ -5,12 +5,12 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="FSharpFuncUtil.fs" />
     <Compile Include="BaseTypes.fs" />
     <Compile Include="EventHub.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Json.fs" />
     <Compile Include="BusinessLogic.fs" />
-    <Compile Include="FSharpFuncUtil.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.5.0" />

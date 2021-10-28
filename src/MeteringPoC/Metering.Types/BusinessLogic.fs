@@ -131,12 +131,12 @@ module Logic =
         match meterValue with 
         | (ConsumedQuantity(_)) -> 
             match pri with
-                | Monthly -> IncludedQuantity { Annually = None; Monthly = Some quantity; Created = now; LastUpdate = now }
-                | Annually -> IncludedQuantity { Annually = Some quantity; Monthly = None; Created = now; LastUpdate = now  } 
+                | Monthly -> quantity |> IncludedQuantity.createMonthly now
+                | Annually -> quantity |> IncludedQuantity.createAnnually now
         | (IncludedQuantity(m)) -> // If there are other credits, just update the asked one
             match pri with
-                | Monthly -> IncludedQuantity { m with Monthly = Some quantity; LastUpdate = now }
-                | Annually -> IncludedQuantity { m with Annually = Some quantity; LastUpdate = now }
+                | Monthly -> m |> IncludedQuantity.setMonthly now quantity |> IncludedQuantity
+                | Annually -> m |> IncludedQuantity.setAnnually now quantity |> IncludedQuantity
 
     let applyConsumption (event: InternalUsageEvent) (currentPosition: MessagePosition) (current: MeterValue option) : MeterValue option =
         Option.bind ((fun q m -> Some (subtractQuantityFromMeterValue currentPosition.PartitionTimestamp m q)) event.Quantity) current
@@ -155,19 +155,6 @@ module Logic =
         then Close
         else KeepOpen
 
-    let applyUsageEvent (config: MeteringConfigurationProvider) ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : MeteringState) : MeteringState =
-        let lastPosition = state.LastProcessedMessage
-
-        let dimension = 
-            state.InternalMetersMapping |> Map.find event.MeterName
-
-        let updateConsumption : (CurrentMeterValues -> CurrentMeterValues) = 
-            Map.change dimension (applyConsumption event currentPosition)
-        
-        state
-        |> MeteringState.applyToCurrentMeterValue updateConsumption
-        |> MeteringState.setLastProcessedMessage currentPosition // Todo: Decide where to update the position
-
     let closePreviousMeteringPeriod (config: MeteringConfigurationProvider) (state: MeteringState) : MeteringState =
         let isConsumedQuantity = function
             | ConsumedQuantity _ -> true
@@ -177,11 +164,6 @@ module Logic =
         let (consumedValues, includedValuesWhichDontNeedToBeReported) = 
             state.CurrentMeterValues
             |> Map.partition (fun _ -> isConsumedQuantity)
-
-        let getStartOfReportingRange (m: MeteringDateTime) : MeteringDateTime =
-            let adjuster : System.Func<LocalDate, LocalDate> = 
-                failwith ""
-            MeteringDateTime(m.LocalDateTime.With(adjuster), m.Zone, m.Offset)
 
         let usagesToBeReported = 
             consumedValues
@@ -193,13 +175,35 @@ module Logic =
                       Quantity = double q.Amount
                       PlanDimension = { PlanId = state.Subscription.Plan.PlanId
                                         DimensionId = dimensionId }
-                      EffectiveStartTime = state.LastProcessedMessage.PartitionTimestamp |> getStartOfReportingRange } )
+                      EffectiveStartTime = state.LastProcessedMessage.PartitionTimestamp |> MeteringDateTime.beginOfTheHour } )
             |> Map.values
             |> List.ofSeq
 
         state
         |> MeteringState.setCurrentMeterValues includedValuesWhichDontNeedToBeReported
         |> MeteringState.addUsagesToBeReported usagesToBeReported
+
+    let applyUsageEvent (config: MeteringConfigurationProvider) ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : MeteringState) : MeteringState =
+        let lastPosition = state.LastProcessedMessage
+        
+        let dimension = 
+            state.InternalMetersMapping |> Map.find event.MeterName
+
+        let updateConsumption : (CurrentMeterValues -> CurrentMeterValues) = 
+            Map.change dimension (applyConsumption event currentPosition)
+        
+        let closer = 
+            let last = state.LastProcessedMessage.PartitionTimestamp
+            let curr = currentPosition.PartitionTimestamp
+            match previousBillingIntervalCanBeClosedNewEvent last curr with
+            | Close -> closePreviousMeteringPeriod config
+            | KeepOpen -> id
+
+        state
+        |> closer
+        |> MeteringState.applyToCurrentMeterValue updateConsumption
+        |> closePreviousMeteringPeriod config
+        |> MeteringState.setLastProcessedMessage currentPosition // Todo: Decide where to update the position
 
     let handleAggregatorBooted (config: MeteringConfigurationProvider) (state: MeteringState) : MeteringState =
         match previousBillingIntervalCanBeClosedWakeup config state.LastProcessedMessage.PartitionTimestamp with

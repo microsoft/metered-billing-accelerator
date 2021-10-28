@@ -5,6 +5,7 @@ type MeteringDateTime = NodaTime.ZonedDateTime
 module MeteringDateTime =
     open NodaTime
     open NodaTime.Text
+    open Metering
 
     let meteringDateTimePatterns = 
         [ 
@@ -22,3 +23,7 @@ module MeteringDateTime =
         |> List.filter (fun p -> p.Success)
         |> List.map (fun p -> p.Value)
         |> List.head
+
+    let beginOfTheHour (m: MeteringDateTime) : MeteringDateTime =
+        let adjuster (x: LocalTime) = new LocalTime(x.Hour,  0, 0, 0)
+        MeteringDateTime(m.LocalDateTime.With(FSharpFuncUtil.Create adjuster), m.Zone, m.Offset)

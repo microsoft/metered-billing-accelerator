@@ -35,6 +35,11 @@ module IncludedQuantity =
         | Some a -> Some (a - v)
         | None -> failwith "mustnot"
 
+    let createMonthly now amount =  IncludedQuantity { Annually = None; Monthly = Some amount; Created = now; LastUpdate = now }
+    let createAnnually now amount =  IncludedQuantity { Annually = Some amount; Monthly = None; Created = now; LastUpdate = now }
+    let create now monthlyAmount annualAmount =  IncludedQuantity { Annually = Some annualAmount; Monthly = Some monthlyAmount; Created = now; LastUpdate = now }
+    let setAnnually now amount q = { q with Annually = Some amount ; LastUpdate = now }
+    let setMonthly now amount q = { q with Monthly = Some amount ; LastUpdate = now }
     let decreaseAnnually now amount q = { q with Annually = q.Annually |> decrease amount ; LastUpdate = now }
     let decreaseMonthly now amount q = { q with Monthly = q.Monthly |> decrease amount ; LastUpdate = now }
     let removeAnnually now q = { q with Annually = None ; LastUpdate = now }

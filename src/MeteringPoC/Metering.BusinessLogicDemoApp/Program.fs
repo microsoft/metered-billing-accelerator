@@ -121,7 +121,6 @@ let main argv =
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
           GracePeriod = Duration.FromHours(6.0) }
 
-
     eventsFromEventHub
     |> Logic.handleEvents config emptyBalance |> inspect "newBalance"
     |> jsonEncode                             |> inspect "JSON"
