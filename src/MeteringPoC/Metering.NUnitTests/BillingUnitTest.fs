@@ -102,46 +102,49 @@ let Test_BillingPeriod_getBillingPeriodDelta () =
 type MeterValue_subtractQuantityFromMeterValue_Vector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
 [<Test>]
 let Test_Logic_subtractQuantityFromMeterValue() =
+    let created = "2021-10-28--11-38-00" |> MeteringDateTime.fromStr
+    let lastUpdate = "2021-10-28--11-38-00" |> MeteringDateTime.fromStr
+    let now = "2021-10-28--11-38-00" |> MeteringDateTime.fromStr
     let test (idx, testcase) = 
-        let result = Logic.subtractQuantityFromMeterValue testcase.State testcase.Quantity
+        let result = Logic.subtractQuantityFromMeterValue now testcase.State testcase.Quantity
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [ 
         {
             // if Monthly is sufficient, don't touch annual
-            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL }
+            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL; Created = created; LastUpdate = lastUpdate }
             Quantity = 8UL
-            Expected = IncludedQuantity { Annually = Some 30UL; Monthly = Some 2UL }
+            Expected = IncludedQuantity { Annually = Some 30UL; Monthly = Some 2UL; Created = created; LastUpdate = now }
         }
         {
             // if Monthly is not sufficient, also deduct from annual
-            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL}
+            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL; Created = created; LastUpdate = lastUpdate}
             Quantity = 13UL
-            Expected = IncludedQuantity { Annually = Some 27UL; Monthly = None}
+            Expected = IncludedQuantity { Annually = Some 27UL; Monthly = None; Created = created; LastUpdate = now}
         }
         {
             // if both Monthly and Annual are not sufficient, it costs money
-            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL }
+            State = IncludedQuantity { Annually = Some 30UL; Monthly = Some 10UL; Created = created; LastUpdate = lastUpdate }
             Quantity = 43UL
-            Expected = ConsumedQuantity { Amount = 3UL }
+            Expected = ConsumedQuantity { Amount = 3UL; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = IncludedQuantity { Annually = None; Monthly = None}
+            State = IncludedQuantity { Annually = None; Monthly = None; Created = created; LastUpdate = lastUpdate }
             Quantity = 2UL
-            Expected = ConsumedQuantity { Amount = 2UL }
+            Expected = ConsumedQuantity { Amount = 2UL; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity { Amount = 0UL }
+            State = ConsumedQuantity { Amount = 0UL; Created = created; LastUpdate = lastUpdate }
             Quantity = 2UL
-            Expected = ConsumedQuantity { Amount = 2UL }
+            Expected = ConsumedQuantity { Amount = 2UL; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity { Amount = 10UL }
+            State = ConsumedQuantity { Amount = 10UL; Created = created; LastUpdate = lastUpdate }
             Quantity = 2UL
-            Expected = ConsumedQuantity { Amount = 12UL }
+            Expected = ConsumedQuantity { Amount = 12UL; Created = created; LastUpdate = now }
         }
     ] |> runTestVectors test
 
@@ -149,48 +152,52 @@ type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (Quant
 
 [<Test>]
 let Test_Logic_topupMonthlyCredits() =
+    let created = "2021-10-28--11-38-00" |> MeteringDateTime.fromStr
+    let lastUpdate = "2021-10-28--11-38-00" |> MeteringDateTime.fromStr
+    let now = "2021-10-28--11-38-00" |> MeteringDateTime.fromStr
+
     let test (idx, testcase) =
-        let result = testcase.Values |> List.fold (Logic.topupMonthlyCredits |> (fun f a (b, c) -> a |> f b c)) testcase.Input
+        let result = testcase.Values |> List.fold (Logic.topupMonthlyCredits |> (fun f a (b, c) -> a |> f now b c)) testcase.Input
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [
         {
-            Input = IncludedQuantity { Annually = Some 1UL; Monthly = None } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = None; Created = created; LastUpdate = lastUpdate } 
             Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annually = Some 1UL; Monthly = Some 9UL } 
+            Expected = IncludedQuantity { Annually = Some 1UL; Monthly = Some 9UL; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL; Created = created; LastUpdate = lastUpdate } 
             Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annually = Some 1UL; Monthly = Some 9UL } 
+            Expected = IncludedQuantity { Annually = Some 1UL; Monthly = Some 9UL; Created = created; LastUpdate = now } 
         }
         {
-            Input = ConsumedQuantity { Amount = 100_000UL }
+            Input = ConsumedQuantity { Amount = 100_000UL; Created = created; LastUpdate = lastUpdate }
             Values = [(1000UL, Monthly)]
-            Expected = IncludedQuantity { Annually = None; Monthly = Some 1000UL } 
+            Expected = IncludedQuantity { Annually = None; Monthly = Some 1000UL; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Some 1UL; Monthly = None } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = None; Created = created; LastUpdate = lastUpdate } 
             Values = [(9UL, Annually)]
-            Expected = IncludedQuantity { Annually = Some 9UL; Monthly = None } 
+            Expected = IncludedQuantity { Annually = Some 9UL; Monthly = None; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL; Created = created; LastUpdate = lastUpdate } 
             Values = [(9UL, Annually)]
-            Expected = IncludedQuantity { Annually = Some 9UL ; Monthly = Some 2UL } 
+            Expected = IncludedQuantity { Annually = Some 9UL ; Monthly = Some 2UL; Created = created; LastUpdate = now } 
         }
         {
-            Input = ConsumedQuantity { Amount = 100_000UL }
+            Input = ConsumedQuantity { Amount = 100_000UL; Created = created; LastUpdate = lastUpdate }
             Values = [(1000UL, Annually)]
-            Expected = IncludedQuantity { Annually = Some 1000UL ; Monthly = None } 
+            Expected = IncludedQuantity { Annually = Some 1000UL ; Monthly = None; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL } 
+            Input = IncludedQuantity { Annually = Some 1UL; Monthly = Some 2UL; Created = created; LastUpdate = lastUpdate } 
             Values = [
                 (10_000UL, Annually)
                 (500UL, Monthly)
             ]
-            Expected = IncludedQuantity { Annually = Some 10_000UL; Monthly = Some 500UL } 
+            Expected = IncludedQuantity { Annually = Some 10_000UL; Monthly = Some 500UL; Created = created; LastUpdate = now } 
         }
     ] |> runTestVectors test
 

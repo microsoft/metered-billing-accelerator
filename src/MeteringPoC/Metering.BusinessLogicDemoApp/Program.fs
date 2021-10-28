@@ -106,11 +106,10 @@ let main argv =
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
         """
-        001002 | 2021-10-13--14-12-02 | ml    |   1 | Department=Data Science, Project ID=Skunkworks vNext
-        001003 | 2021-10-13--15-12-03 | ml    |   2
-        001004 | 2021-10-13--15-13-02 | email | 300 | Email Campaign=User retention, Department=Marketing
-        001005 | 2021-10-13--15-15-08 | ml    |  20
-        001007 | 2021-10-13--15-19-02 | email | 300000| Email Campaign=User retention, Department=Marketing
+        001002 | 2021-10-13--14-12-02 | ml    |      1 | Department=Data Science, Project ID=Skunkworks vNext
+        001003 | 2021-10-13--15-12-03 | ml    |      2
+        001004 | 2021-10-13--15-13-02 | email |    300 | Email Campaign=User retention, Department=Marketing
+        001007 | 2021-10-13--15-19-02 | email | 300000 | Email Campaign=User retention, Department=Marketing
         """ |> parseConsumptionEvents
         
     let eventsFromEventHub = subscriptionCreationEvent :: consumptionEvents // The first event must be the subscription creation, followed by many consumption events
@@ -121,11 +120,12 @@ let main argv =
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
           GracePeriod = Duration.FromHours(6.0) }
-          
-    let newBalance =
-        eventsFromEventHub
-        |> Logic.handleEvents config emptyBalance 
-        |> jsonEncode |> inspect "JSON"
-        |> jsonDecode<MeteringState> |> inspect "newBalance"
+
+
+    eventsFromEventHub
+    |> Logic.handleEvents config emptyBalance |> inspect "newBalance"
+    |> jsonEncode                             |> inspect "JSON"
+    |> jsonDecode<MeteringState>              |> inspect "newBalance"
+    |> ignore
 
     0

@@ -11,11 +11,19 @@ type IntOrFloat =
 type Quantity = uint64
 
 type ConsumedQuantity = 
-    { Amount: Quantity }
+    { Amount: Quantity
+      Created: MeteringDateTime 
+      LastUpdate: MeteringDateTime }
+
+type IncludedQuantitySpecification = 
+    { Monthly: Quantity option
+      Annually: Quantity option }
 
 type IncludedQuantity = 
     { Monthly: Quantity option
-      Annually: Quantity option }
+      Annually: Quantity option
+      Created: MeteringDateTime 
+      LastUpdate: MeteringDateTime }
 
 type MeterValue =
     | ConsumedQuantity of ConsumedQuantity
@@ -35,8 +43,7 @@ module MarketPlaceAPI =
         { DimensionId: DimensionId
           DimensionName: string 
           UnitOfMeasure: UnitOfMeasure
-          IncludedQuantity: IncludedQuantity }
-
+          IncludedQuantity: IncludedQuantitySpecification }
       
     type Plan =
         { PlanId: PlanId
@@ -111,6 +118,7 @@ module MeteringState =
     let applyToCurrentMeterValue f s = { s with CurrentMeterValues = (f s.CurrentMeterValues) }
     let setLastProcessedMessage x s = { s with LastProcessedMessage = x }
     let addUsageToBeReported x s = { s with UsageToBeReported = (x :: s.UsageToBeReported) }
+    let addUsagesToBeReported x s = { s with UsageToBeReported = List.concat [ x; s.UsageToBeReported ] }
     
     /// Removes the item from the UsageToBeReported collection
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }

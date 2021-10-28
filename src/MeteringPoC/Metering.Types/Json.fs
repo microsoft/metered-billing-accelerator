@@ -55,25 +55,50 @@ module Json =
             })
 
     module ConsumedQuantity =
-        let (consumedQuantity) = 
-            ("consumedQuantity")
+        let (consumedQuantity, created, lastUpdate) = 
+            ("consumedQuantity", "created", "lastUpdate")
 
         let Encoder (x: ConsumedQuantity) : JsonValue =
             [
                 (consumedQuantity, x.Amount |> Quantity.Encoder)
+                (created, x.Created |> MeteringDateTime.Encoder)
+                (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder)
             ]
             |> Encode.object 
 
         let Decoder : Decoder<ConsumedQuantity> =
             Decode.object (fun get -> {
                 Amount = get.Required.Field consumedQuantity Quantity.Decoder
+                Created = get.Required.Field created MeteringDateTime.Decoder
+                LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
             })
 
     module IncludedQuantity =
+        let (monthly, annually, created, lastUpdate) =
+            ("monthly", "annually", "created", "lastUpdate")
+
+        let Encoder (x: IncludedQuantity) =
+            let ts = [ (created, x.Created |> MeteringDateTime.Encoder); (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder);  ]
+            match x with
+            | { Monthly = None; Annually = None } -> ts
+            | { Monthly = Some m; Annually = None } -> ts |> List.append [ (monthly, m |> Quantity.Encoder) ]
+            | { Monthly = None; Annually = Some a} -> ts |> List.append [ (annually, a |> Quantity.Encoder) ]
+            | { Monthly = Some m; Annually = Some a } -> ts |> List.append [ (monthly, m |> Quantity.Encoder); (annually, a |> Quantity.Encoder) ]
+            |> Encode.object
+
+        let Decoder : Decoder<IncludedQuantity> =
+            Decode.object (fun get -> {
+                Monthly = get.Optional.Field monthly Quantity.Decoder
+                Annually = get.Optional.Field annually Quantity.Decoder
+                Created = get.Required.Field created MeteringDateTime.Decoder
+                LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
+            })
+
+    module IncludedQuantitySpecification =
         let (monthly, annually) =
             ("monthly", "annually")
 
-        let Encoder (x: IncludedQuantity) =
+        let Encoder (x: IncludedQuantitySpecification) =
             match x with
             | { Monthly = None; Annually = None } -> [ ]
             | { Monthly = Some m; Annually = None } -> [ (monthly, m |> Quantity.Encoder) ]
@@ -81,7 +106,7 @@ module Json =
             | { Monthly = Some m; Annually = Some a } -> [ (monthly, m |> Quantity.Encoder); (annually, a |> Quantity.Encoder) ]
             |> Encode.object
 
-        let Decoder : Decoder<IncludedQuantity> =
+        let Decoder : Decoder<IncludedQuantitySpecification> =
             Decode.object (fun get -> {
                 Monthly = get.Optional.Field monthly Quantity.Decoder
                 Annually = get.Optional.Field annually Quantity.Decoder
@@ -119,24 +144,24 @@ module Json =
         open MarketPlaceAPI
 
         module BillingDimension =
-            let (dimensionId, dimensionName, unitOfMeasure, includedQuantity) =
+            let (dimensionId, name, unitOfMeasure, includedQuantity) =
                 ("dimension", "name", "unitOfMeasure", "includedQuantity");
 
             let Encoder (x: BillingDimension) : JsonValue =
                 [
                     (dimensionId, x.DimensionId |> Encode.string)
-                    (dimensionName, x.DimensionName |> Encode.string)
+                    (name, x.DimensionName |> Encode.string)
                     (unitOfMeasure, x.UnitOfMeasure |> Encode.string)
-                    (includedQuantity, x.IncludedQuantity |> IncludedQuantity.Encoder)
+                    (includedQuantity, x.IncludedQuantity |> IncludedQuantitySpecification.Encoder)
                 ]
                 |> Encode.object 
 
             let Decoder : Decoder<BillingDimension> =
                 Decode.object (fun get -> {
                     DimensionId = get.Required.Field dimensionId Decode.string
-                    DimensionName = get.Required.Field dimensionName Decode.string
+                    DimensionName = get.Required.Field name Decode.string
                     UnitOfMeasure = get.Required.Field unitOfMeasure Decode.string
-                    IncludedQuantity = get.Required.Field includedQuantity IncludedQuantity.Decoder
+                    IncludedQuantity = get.Required.Field includedQuantity IncludedQuantitySpecification.Decoder
                 })
         
         module Plan =
@@ -380,6 +405,7 @@ module Json =
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
         |> Extra.withCustom EventHubJSON.Encoder EventHubJSON.Decoder
+        |> Extra.withCustom IncludedQuantitySpecification.Encoder IncludedQuantitySpecification.Decoder
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
         |> Extra.withCustom MeterValue.Encoder MeterValue.Decoder
