@@ -86,7 +86,7 @@ let main argv =
     "value": {
       "subscription": {
         "renewalInterval": "Monthly",
-        "subscriptionStart": "2021-10-01--12-20-33",
+        "subscriptionStart": "2021-10-01T12:20:33",
         "plan": {
           "planId": "plan2",
           "billingDimensions": [
@@ -96,7 +96,7 @@ let main argv =
     }
   },
   "MessagePosition": {
-    "partitionTimestamp": "2021-10-01--12-20-34",
+    "partitionTimestamp": "2021-10-01T12:20:34",
     "sequenceNumber": "1",
     "partitionId": "1"
   }
@@ -106,16 +106,16 @@ let main argv =
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
         """
-        001002 | 2021-10-13--14-12-02 | ml    |      1 | Department=Data Science, Project ID=Skunkworks vNext
-        001003 | 2021-10-13--15-12-03 | ml    |      2
-        001004 | 2021-10-13--15-13-02 | email |    300 | Email Campaign=User retention, Department=Marketing
-        001007 | 2021-10-13--15-19-02 | email | 300000 | Email Campaign=User retention, Department=Marketing
-        001008 | 2021-10-13--16-01-01 | email |      1 | Email Campaign=User retention, Department=Marketing
-        001009 | 2021-10-13--16-20-01 | email |      1 | Email Campaign=User retention, Department=Marketing
-        001010 | 2021-10-13--17-01-01 | email |      1 | Email Campaign=User retention, Department=Marketing
-        001011 | 2021-10-13--17-01-02 | email |     10 | Email Campaign=User retention, Department=Marketing
-        001012 | 2021-10-15--00-00-02 | email |     10 | Email Campaign=User retention, Department=Marketing
-        001012 | 2021-10-15--01-01-02 | email |     10 
+        001002 | 2021-10-13T14:12:02 | ml    |      1 | Department=Data Science, Project ID=Skunkworks vNext
+        001003 | 2021-10-13T15:12:03 | ml    |      2
+        001004 | 2021-10-13T15:13:02 | email |    300 | Email Campaign=User retention, Department=Marketing
+        001007 | 2021-10-13T15:19:02 | email | 300000 | Email Campaign=User retention, Department=Marketing
+        001008 | 2021-10-13T16:01:01 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001009 | 2021-10-13T16:20:01 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001010 | 2021-10-13T17:01:01 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001011 | 2021-10-13T17:01:02 | email |     10 | Email Campaign=User retention, Department=Marketing
+        001012 | 2021-10-15T00:00:02 | email |     10 | Email Campaign=User retention, Department=Marketing
+        001012 | 2021-10-15T01:01:02 | email |     10 
         """ |> parseConsumptionEvents
         
     let eventsFromEventHub = subscriptionCreationEvent :: consumptionEvents // The first event must be the subscription creation, followed by many consumption events

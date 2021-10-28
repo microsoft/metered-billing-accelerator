@@ -10,8 +10,8 @@ module MeteringDateTime =
     let meteringDateTimePatterns = 
         [ 
             // this is the default for serialization
-            "yyyy-MM-dd--HH-mm-ss"
-            "yyyy-MM-dd--HH-mm-ss-FFF" 
+            "yyyy-MM-ddTHH:mm:ss"
+            "yyyy-MM-ddTHH:mm:ss.FFF" 
         ]
         |> List.map (fun p -> ZonedDateTimePattern.CreateWithInvariantCulture(p, DateTimeZoneProviders.Bcl))
 
