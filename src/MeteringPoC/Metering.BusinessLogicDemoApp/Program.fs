@@ -70,10 +70,10 @@ let jsonDecode<'T> json =
     | Ok r -> r
     | Result.Error e -> failwith e
 
-let jsonEncode o = Encode.Auto.toString (1, o, extra = myExtraCoders)
+let jsonEncode o = Encode.Auto.toString(4, o, extra = myExtraCoders)
 
-let inspect msg a =
-    printfn "%s: %A" msg a
+let inspect a =
+    printfn "%s" a
     a
 
 [<EntryPoint>]
@@ -110,6 +110,12 @@ let main argv =
         001003 | 2021-10-13--15-12-03 | ml    |      2
         001004 | 2021-10-13--15-13-02 | email |    300 | Email Campaign=User retention, Department=Marketing
         001007 | 2021-10-13--15-19-02 | email | 300000 | Email Campaign=User retention, Department=Marketing
+        001008 | 2021-10-13--16-01-01 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001009 | 2021-10-13--16-20-01 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001010 | 2021-10-13--17-01-01 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001011 | 2021-10-13--17-01-02 | email |     10 | Email Campaign=User retention, Department=Marketing
+        001012 | 2021-10-15--00-00-02 | email |     10 | Email Campaign=User retention, Department=Marketing
+        001012 | 2021-10-15--01-01-02 | email |     10 
         """ |> parseConsumptionEvents
         
     let eventsFromEventHub = subscriptionCreationEvent :: consumptionEvents // The first event must be the subscription creation, followed by many consumption events
@@ -122,9 +128,9 @@ let main argv =
           GracePeriod = Duration.FromHours(6.0) }
 
     eventsFromEventHub
-    |> Logic.handleEvents config emptyBalance |> inspect "newBalance"
-    |> jsonEncode                             |> inspect "JSON"
-    |> jsonDecode<MeteringState>              |> inspect "newBalance"
+    |> Logic.handleEvents config emptyBalance
+    |> jsonEncode                             |> inspect
+    |> jsonDecode<MeteringState>              // |> inspect "newBalance"
     |> ignore
 
     0

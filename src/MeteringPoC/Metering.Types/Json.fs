@@ -181,13 +181,31 @@ module Json =
                     BillingDimensions = (get.Required.Field billingDimensions (Decode.list BillingDimension.Decoder)) |> List.toSeq
                 })
 
+        module ResourceID =
+            open MarketPlaceAPI
+
+            let Encoder (x: ResourceID) : JsonValue =
+                match x with
+                | ManagedAppResourceGroupID x -> x
+                | SaaSSubscriptionID x ->  x
+                |> Encode.string
+            
+            let Decoder : Decoder<ResourceID> = 
+                Decode.string |> Decode.andThen (fun v -> 
+                    let rid = 
+                        if v.StartsWith("/subscriptions")
+                        then ManagedAppResourceGroupID v
+                        else SaaSSubscriptionID v
+                    
+                    Decode.succeed rid )
+
         module MeteredBillingUsageEvent = 
             let (resourceID, quantity, dimensionId, effectiveStartTime, planId) = 
                 ("resourceID", "quantity", "dimensionId", "effectiveStartTime", "planId");
 
             let Encoder (x: MeteredBillingUsageEvent) : JsonValue =
                 [
-                    (resourceID, x.ResourceID |> Encode.string)
+                    (resourceID, x.ResourceID |> ResourceID.Encoder)
                     (quantity, x.Quantity |> Quantity.Encoder)
                     (dimensionId, x.DimensionId |> Encode.string)
                     (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
@@ -197,7 +215,7 @@ module Json =
             
             let Decoder : Decoder<MeteredBillingUsageEvent> =
                 Decode.object (fun get -> {
-                    ResourceID = get.Required.Field resourceID Decode.string
+                    ResourceID = get.Required.Field resourceID ResourceID.Decoder
                     Quantity = get.Required.Field quantity Quantity.Decoder
                     DimensionId = get.Required.Field dimensionId Decode.string
                     EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
@@ -305,12 +323,13 @@ module Json =
             |> Decode.andThen  (fun r -> r |> Map.ofList |> Decode.succeed)
 
     module MeteringAPIUsageEventDefinition = 
+        open MarketPlaceAPIJSON
         let (resourceId, quantity, planDimension, effectiveStartTime) =
             ("resourceId", "quantity", "planDimension", "effectiveStartTime");
 
         let Encoder (x: MeteringAPIUsageEventDefinition) : JsonValue =
             [
-                (resourceId, x.ResourceId |> Encode.string)
+                (resourceId, x.ResourceId |> ResourceID.Encoder)
                 (quantity, x.Quantity |> Encode.float)
                 (planDimension, x.PlanDimension |> PlanDimension.Encoder)
                 (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
@@ -319,7 +338,7 @@ module Json =
         
         let Decoder : Decoder<MeteringAPIUsageEventDefinition> =
             Decode.object (fun get -> {
-                ResourceId = get.Required.Field resourceId Decode.string
+                ResourceId = get.Required.Field resourceId ResourceID.Decoder
                 Quantity = get.Required.Field quantity Decode.float
                 PlanDimension = get.Required.Field planDimension PlanDimension.Decoder
                 EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder

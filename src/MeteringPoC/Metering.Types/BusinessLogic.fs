@@ -171,7 +171,7 @@ module Logic =
                 match cq with 
                 | IncludedQuantity _ -> failwith "cannot happen"
                 | ConsumedQuantity q -> 
-                    { ResourceId = "" // TODO
+                    { ResourceId = SaaSSubscriptionID "ne"
                       Quantity = double q.Amount
                       PlanDimension = { PlanId = state.Subscription.Plan.PlanId
                                         DimensionId = dimensionId }
@@ -184,15 +184,20 @@ module Logic =
         |> MeteringState.addUsagesToBeReported usagesToBeReported
 
     let applyUsageEvent (config: MeteringConfigurationProvider) ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : MeteringState) : MeteringState =
-        let lastPosition = state.LastProcessedMessage
+        let updateConsumption (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
+            let dimension : DimensionId = 
+                state.InternalMetersMapping |> Map.find event.MeterName
+                
+            if currentMeterValues |> Map.containsKey dimension
+            then 
+                currentMeterValues
+                |> Map.change dimension (applyConsumption event currentPosition)
+            else
+                let newConsumption = ConsumedQuantity (ConsumedQuantity.create event.Timestamp event.Quantity)
+                currentMeterValues
+                |> Map.add dimension newConsumption
         
-        let dimension = 
-            state.InternalMetersMapping |> Map.find event.MeterName
-
-        let updateConsumption : (CurrentMeterValues -> CurrentMeterValues) = 
-            Map.change dimension (applyConsumption event currentPosition)
-        
-        let closer = 
+        let closePreviousIntervalIfNeeded : (MeteringState -> MeteringState) = 
             let last = state.LastProcessedMessage.PartitionTimestamp
             let curr = currentPosition.PartitionTimestamp
             match previousBillingIntervalCanBeClosedNewEvent last curr with
@@ -200,9 +205,8 @@ module Logic =
             | KeepOpen -> id
 
         state
-        |> closer
+        |> closePreviousIntervalIfNeeded
         |> MeteringState.applyToCurrentMeterValue updateConsumption
-        |> closePreviousMeteringPeriod config
         |> MeteringState.setLastProcessedMessage currentPosition // Todo: Decide where to update the position
 
     let handleAggregatorBooted (config: MeteringConfigurationProvider) (state: MeteringState) : MeteringState =

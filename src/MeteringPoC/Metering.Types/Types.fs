@@ -5,8 +5,22 @@ open NodaTime
 open Metering.Types.EventHub
 
 type IntOrFloat =
-    | Int of uint64 // ? :-)
-    | Float of double
+    | MeteringInt of uint64 // ? :-)
+    | MeteringFloat of double
+
+    static member (+) (a: IntOrFloat, b: IntOrFloat) =
+        match (a, b) with
+            | ((MeteringInt a), (MeteringInt b)) -> MeteringInt  (a + b)
+            | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (double a + b)
+            | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a + double b)
+            | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (double a + b)
+
+    static member (-) (a: IntOrFloat, b: IntOrFloat) =
+        match (a, b) with
+            | ((MeteringInt a), (MeteringInt b)) -> MeteringInt (a - b)
+            | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (double a - b)
+            | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - double b)
+            | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (double a - b)
 
 type Quantity = uint64
 
@@ -24,7 +38,7 @@ type IncludedQuantity =
       Annually: Quantity option
       Created: MeteringDateTime 
       LastUpdate: MeteringDateTime }
-
+      
 type MeterValue =
     | ConsumedQuantity of ConsumedQuantity
     | IncludedQuantity of IncludedQuantity
@@ -69,13 +83,34 @@ module MarketPlaceAPI =
         { PlanId: PlanId
           BillingDimensions: BillingDimension seq }
 
+    /// For Azure Application Managed Apps plans, the resourceId is the Managed App resource group Id. +
+    type ManagedAppResourceGroupID = string
+    
+    /// For SaaS offers, the resourceId is the SaaS subscription ID. 
+    type SaaSSubscriptionID = string
+
+    /// Unique identifier of the resource against which usage is emitted. 
+    type ResourceID = // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
+        | ManagedAppResourceGroupID of ManagedAppResourceGroupID
+        | SaaSSubscriptionID of SaaSSubscriptionID
+
     // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
     type MeteredBillingUsageEvent =
-        { ResourceID: string // unique identifier of the resource against which usage is emitted. 
-          Quantity: Quantity // how many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
-          DimensionId: DimensionId // custom dimension identifier
-          EffectiveStartTime: MeteringDateTime // time in UTC when the usage event occurred, from now and until 24 hours back
-          PlanId: PlanId } // id of the plan purchased for the offer
+        { 
+          /// Unique identifier of the resource against which usage is emitted. 
+          ResourceID: ResourceID 
+          
+          /// How many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
+          Quantity: Quantity 
+          
+          /// Custom dimension identifier.
+          DimensionId: DimensionId
+          
+          /// Time in UTC when the usage event occurred, from now and until 24 hours back.
+          EffectiveStartTime: MeteringDateTime 
+          
+          /// ID of the plan purchased for the offer.
+          PlanId: PlanId } 
 
     type MeteredBillingUsageEventBatch = 
         MeteredBillingUsageEvent list
@@ -114,7 +149,7 @@ type CurrentMeterValues = // Collects all meters per internal metering event typ
     Map<DimensionId, MeterValue> 
 
 type MeteringAPIUsageEventDefinition = // From aggregator to metering API
-    { ResourceId: string 
+    { ResourceId: ResourceID 
       Quantity: double 
       PlanDimension: PlanDimension
       EffectiveStartTime: MeteringDateTime }
@@ -191,7 +226,8 @@ module SubmitMeteringAPIUsageEvent =
 type MeteringConfigurationProvider = 
     { CurrentTimeProvider: CurrentTimeProvider
       SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
-      GracePeriod: Duration }
+      GracePeriod: Duration
+      }
 
 type BusinessLogic = // The business logic takes the current state, and a command to be applied, and returns new state
     MeteringState option -> MeteringEvent -> MeteringState option 
