@@ -29,6 +29,21 @@ type MeterValue =
     | ConsumedQuantity of ConsumedQuantity
     | IncludedQuantity of IncludedQuantity
 
+module IncludedQuantity =
+    let private decrease (v: Quantity) (q: Quantity option) : Quantity option =
+        match q with
+        | Some a -> Some (a - v)
+        | None -> failwith "mustnot"
+
+    let decreaseAnnually now amount q = { q with Annually = q.Annually |> decrease amount ; LastUpdate = now }
+    let decreaseMonthly now amount q = { q with Monthly = q.Monthly |> decrease amount ; LastUpdate = now }
+    let removeAnnually now q = { q with Annually = None ; LastUpdate = now }
+    let removeMonthly now q = { q with Monthly = None ; LastUpdate = now }
+
+module ConsumedQuantity =
+    let create now amount = { Amount = amount; Created = now ; LastUpdate = now }
+    let increaseConsumption now amount q = { q with Amount = q.Amount + amount ; LastUpdate = now }
+
 type RenewalInterval =
     | Monthly
     | Annually

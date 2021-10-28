@@ -76,29 +76,56 @@ module Logic =
     let subtractQuantityFromMeterValue (now: MeteringDateTime) (meterValue: MeterValue) (quantity: Quantity) : MeterValue =
         meterValue
         |> function
-           | ConsumedQuantity q -> ConsumedQuantity { q with Amount = q.Amount + quantity ; LastUpdate = now }
-           | IncludedQuantity q ->
-                match (q.Annually, q.Monthly) with
-                | (None, None) -> ConsumedQuantity { Amount = quantity; Created = now; LastUpdate = now }
+           | ConsumedQuantity consumedQuantity -> 
+                consumedQuantity
+                |> ConsumedQuantity.increaseConsumption now quantity
+                |> ConsumedQuantity
+           | IncludedQuantity iq ->
+                match (iq.Annually, iq.Monthly) with
+                | (None, None) -> 
+                    quantity
+                    |> ConsumedQuantity.create now 
+                    |> ConsumedQuantity
                 | (None, Some remainingMonthly) -> 
-                        // if there's only monthly stuff, deduct from the monthly side
-                        if remainingMonthly > quantity
-                        then IncludedQuantity { q with Monthly = Some (remainingMonthly - quantity); LastUpdate = now }
-                        else ConsumedQuantity { Amount = quantity - remainingMonthly; Created = now; LastUpdate = now }
+                    // if there's only monthly stuff, deduct from the monthly side
+                    if remainingMonthly > quantity
+                    then 
+                        iq
+                        |> IncludedQuantity.decreaseMonthly now quantity
+                        |> IncludedQuantity
+                    else 
+                        quantity - remainingMonthly
+                        |> ConsumedQuantity.create now 
+                        |> ConsumedQuantity
                 | (Some remainingAnnually, None) -> 
-                        // if there's only annual stuff, deduct from the monthly side
-                        if remainingAnnually > quantity
-                        then IncludedQuantity { q with Annually = Some (remainingAnnually - quantity); LastUpdate = now}
-                        else ConsumedQuantity { Amount = quantity - remainingAnnually; Created = now; LastUpdate = now }
+                    // if there's only annual stuff, deduct from there
+                    if remainingAnnually > quantity
+                    then
+                        iq
+                        |> IncludedQuantity.decreaseAnnually now quantity 
+                        |> IncludedQuantity
+                    else 
+                        quantity - remainingAnnually
+                        |> ConsumedQuantity.create now 
+                        |> ConsumedQuantity
                 | (Some remainingAnnually, Some remainingMonthly) -> 
-                        // if there's both annual and monthly credits, first take from monthly, them from annual
-                        if remainingMonthly > quantity
-                        then IncludedQuantity { q with Annually = Some remainingAnnually; Monthly = Some (remainingMonthly - quantity); LastUpdate = now }
+                    // if there's both annual and monthly credits, first take from monthly, them from annual
+                    if remainingMonthly > quantity
+                    then 
+                        iq
+                        |> IncludedQuantity.decreaseMonthly now quantity
+                        |> IncludedQuantity
+                    else 
+                        if remainingAnnually > quantity - remainingMonthly
+                        then
+                            iq
+                            |> IncludedQuantity.removeMonthly now
+                            |> IncludedQuantity.decreaseAnnually now (quantity - remainingMonthly)
+                            |> IncludedQuantity
                         else 
-                            let deductFromAnnual = quantity - remainingMonthly
-                            if remainingAnnually > deductFromAnnual
-                            then IncludedQuantity { q with Annually = Some (remainingAnnually - deductFromAnnual); Monthly = None; LastUpdate = now }
-                            else ConsumedQuantity { Amount = deductFromAnnual - remainingAnnually; Created = now; LastUpdate = now  }
+                            quantity - remainingAnnually - remainingMonthly
+                            |> ConsumedQuantity.create now
+                            |> ConsumedQuantity
 
     let topupMonthlyCredits (now: MeteringDateTime) (quantity: Quantity) (pri: RenewalInterval) (meterValue: MeterValue) : MeterValue =
         match meterValue with 
@@ -127,15 +154,6 @@ module Logic =
         if config.CurrentTimeProvider() - previous >= config.GracePeriod
         then Close
         else KeepOpen
-
-    //let previousBillingIntervalCanBeClosed (previous: MeteringDateTime) (currentTime: CurrentTimeProvider) (currentEvent: MeteringDateTime option) (gracePeriod: Duration) : CloseBillingPeriod =
-    //    let close =
-    //        match currentEvent with
-    //        // If we're being triggered without a currentEvent, then close the previous billing interval if more time than the grace period passed
-    //        | None -> (currentTime() - previous) >= gracePeriod
-    //        // If there's a concrete new event, close if the event belongs to a different hour than the last event
-    //        | Some eventTime -> (previous.Hour <> eventTime.Hour) || ((eventTime - previous) >= Duration.FromHours(1.0)) 
-    //    if close then Close else KeepOpen
 
     let applyUsageEvent (config: MeteringConfigurationProvider) ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : MeteringState) : MeteringState =
         let lastPosition = state.LastProcessedMessage

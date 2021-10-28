@@ -233,3 +233,4 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
         ("2021-01-10--12-00-00", "2021-01-10--14-59-59", 3.0, KeepOpen)
         ("2021-01-10--12-00-00", "2021-01-10--15-00-00", 3.0, Close)
     ] |> runTestVectors test
+
