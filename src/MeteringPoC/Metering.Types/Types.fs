@@ -94,6 +94,22 @@ module MarketPlaceAPI =
         | ManagedAppResourceGroupID of ManagedAppResourceGroupID
         | SaaSSubscriptionID of SaaSSubscriptionID
 
+    /// This is the key by which to aggregate across multiple tenants
+    type SubscriptionType =
+        | ManagedApp
+        | SaaSSubscription of SaaSSubscriptionID
+
+    module SubscriptionType =
+        let fromStr = 
+            function
+            | "AzureManagedApplication" -> ManagedApp
+            | x -> SaaSSubscription x
+        let toStr = 
+            function
+            | ManagedApp -> "AzureManagedApplication"
+            | SaaSSubscription x -> x
+
+
     // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
     type MeteredBillingUsageEvent =
         { 
@@ -120,7 +136,8 @@ open MarketPlaceAPI
 type ApplicationInternalMeterName = string // A meter name used between app and aggregator
 
 type InternalUsageEvent = // From app to aggregator
-    { Timestamp: MeteringDateTime  // timestamp from the sending app
+    { Scope: SubscriptionType
+      Timestamp: MeteringDateTime  // timestamp from the sending app
       MeterName: ApplicationInternalMeterName
       Quantity: Quantity
       Properties: Map<string, string> option}

@@ -234,9 +234,19 @@ module Json =
                     PlanId = get.Required.Field planId Decode.string
                 })
 
+    module SubscriptionType =
+        open MarketPlaceAPI
+
+
+        let Encoder = 
+            SubscriptionType.toStr >> Encode.string
+                   
+        let Decoder : Decoder<SubscriptionType> = 
+            Decode.string |> Decode.andThen(SubscriptionType.fromStr >> Decode.succeed)
+      
     module InternalUsageEvent =
-        let (timestamp, meterName, quantity, properties) =
-            ("timestamp", "meterName", "quantity", "properties");
+        let (timestamp, meterName, quantity, properties, scope) =
+            ("timestamp", "meterName", "quantity", "properties", "scope");
 
         let EncodeMap (x: (Map<string,string> option)) = 
             x
@@ -251,6 +261,7 @@ module Json =
 
         let Encoder (x: InternalUsageEvent) : JsonValue =
             [
+                (scope, x.Scope |> SubscriptionType.Encoder)
                 (timestamp, x.Timestamp |> MeteringDateTime.Encoder)
                 (meterName, x.MeterName |> Encode.string)
                 (quantity, x.Quantity |> Quantity.Encoder)
@@ -260,6 +271,7 @@ module Json =
 
         let Decoder : Decoder<InternalUsageEvent> =
             Decode.object (fun get -> {
+                Scope = get.Required.Field scope SubscriptionType.Decoder
                 Timestamp = get.Required.Field timestamp MeteringDateTime.Decoder
                 MeterName = get.Required.Field meterName Decode.string
                 Quantity = get.Required.Field quantity Quantity.Decoder

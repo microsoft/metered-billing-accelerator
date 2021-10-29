@@ -5,6 +5,7 @@
     using Microsoft.FSharp.Core;
     using NodaTime;
     using Metering.Types;
+    using static Metering.Types.MarketPlaceAPI;
 
     public class Client
     {
@@ -13,6 +14,7 @@
             await Task.Delay(1);
 
             InternalUsageEvent _ = new(
+                scope: SubscriptionType.ManagedApp,
                 timestamp: new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc), 
                 meterName: "meter1",
                 quantity: 2,

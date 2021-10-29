@@ -3,6 +3,7 @@ open Thoth.Json.Net
 
 open Metering
 open Metering.Types
+open Metering.Types.MarketPlaceAPI
 open Metering.Types.EventHub
 open NodaTime
 
@@ -34,6 +35,7 @@ let parseConsumptionEvents (str: string) =
                 | [sequencenr; datestr; name; amountstr; props] -> 
                     Some {
                         MeteringUpdateEvent = UsageReported {
+                            Scope = ManagedApp
                             Timestamp = datestr |> MeteringDateTime.fromStr 
                             MeterName = name
                             Quantity = amountstr |> UInt64.Parse
@@ -46,6 +48,7 @@ let parseConsumptionEvents (str: string) =
                 | [sequencenr; datestr; name; amountstr] -> 
                     Some {
                         MeteringUpdateEvent = UsageReported {
+                            Scope = ManagedApp
                             Timestamp = datestr |> MeteringDateTime.fromStr
                             MeterName = name
                             Quantity = amountstr |> UInt64.Parse
