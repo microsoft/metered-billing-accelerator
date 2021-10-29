@@ -236,9 +236,8 @@ module Json =
 
     module SubscriptionType =
         open MarketPlaceAPI
-
-
-        let Encoder = 
+        
+        let Encoder =
             SubscriptionType.toStr >> Encode.string
                    
         let Decoder : Decoder<SubscriptionType> = 
@@ -411,7 +410,39 @@ module Json =
                 UsageToBeReported = get.Required.Field usageToBeReported (Decode.list MeteringAPIUsageEventDefinition.Decoder)
                 LastProcessedMessage = get.Required.Field lastProcessedMessage EventHubJSON.Decoder
             })
-       
+
+    module MeterCollection =
+        open MarketPlaceAPI
+        let (meters, lastProcessedMessage) =
+            ("meters", "lastProcessedMessage");
+
+        let private EncodeMap (x: (Map<SubscriptionType, MeteringState>)) = 
+            x
+            |> Map.toSeq |> Seq.toList
+            |> List.map (fun (k, v) -> (k |> SubscriptionType.toStr, v |> MeteringState.Encoder))
+            |> Encode.object
+
+        let private DecodeMap : Decoder<Map<SubscriptionType, MeteringState>> =
+            let turnKeyIntoSubscriptionType (k, v) =
+                (k |> SubscriptionType.fromStr, v)
+
+            (Decode.keyValuePairs MeteringState.Decoder)
+            |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed)
+
+        let Encoder (x: MeterCollection) : JsonValue = 
+            [
+                (meters, x.Meters |> EncodeMap)
+                (lastProcessedMessage, x.LastProcessedMessage |> EventHubJSON.Encoder)
+            ]
+            |> Encode.object 
+
+        let Decoder : Decoder<MeterCollection> =
+            Decode.object (fun get -> {
+                Meters = get.Required.Field meters DecodeMap
+                LastProcessedMessage = get.Required.Field lastProcessedMessage EventHubJSON.Decoder
+            })
+
+
     module MeteringUpdateEvent =
         let (typeid, value) =
             ("type", "value");
@@ -466,4 +497,6 @@ module Json =
         |> Extra.withCustom SubscriptionCreationInformation.Encoder SubscriptionCreationInformation.Decoder
         |> Extra.withCustom MeteringState.Encoder MeteringState.Decoder
         |> Extra.withCustom MeteringUpdateEvent.Encoder MeteringUpdateEvent.Decoder
+        |> Extra.withCustom MeterCollection.Encoder MeterCollection.Decoder
+
         

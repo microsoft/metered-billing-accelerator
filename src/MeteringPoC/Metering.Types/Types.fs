@@ -195,6 +195,10 @@ module MeteringState =
     /// Removes the item from the UsageToBeReported collection
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
 
+type MeterCollection = 
+    { Meters: Map<SubscriptionType, MeteringState>
+      LastProcessedMessage: MessagePosition }
+
 type UpdateOutOfOrderError =
     { DataWatermark: MessagePosition 
       UpdateWatermark: MessagePosition }
