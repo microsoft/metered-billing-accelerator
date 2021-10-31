@@ -198,16 +198,16 @@ module Json =
 
             let Encoder (x: ResourceID) : JsonValue =
                 match x with
-                | ManagedAppResourceGroupID x -> x
-                | SaaSSubscriptionID x ->  x
+                | ManagedAppResourceGroupID x -> x |> ManagedAppResourceGroupID.value
+                | SaaSSubscriptionID x ->  x |> SaaSSubscriptionID.value
                 |> Encode.string
             
             let Decoder : Decoder<ResourceID> = 
                 Decode.string |> Decode.andThen (fun v -> 
                     let rid = 
                         if v.StartsWith("/subscriptions")
-                        then ManagedAppResourceGroupID v
-                        else SaaSSubscriptionID v
+                        then v |> ManagedAppResourceGroupID.create |> ManagedAppResourceGroupID 
+                        else v |> SaaSSubscriptionID.create |> SaaSSubscriptionID
                     
                     Decode.succeed rid )
 
@@ -386,13 +386,13 @@ module Json =
                 InternalMetersMapping = get.Required.Field metersMapping InternalMetersMapping.Decoder
             })
 
-    module MeteringState =
+    module Meter =
         open MarketPlaceAPIJSON
         
         let (subscription, metersMapping, currentMeters, usageToBeReported, lastProcessedMessage) =
             ("subscription", "metersMapping", "currentMeters", "usageToBeReported", "lastProcessedMessage");
 
-        let Encoder (x: MeteringState) : JsonValue =
+        let Encoder (x: Meter) : JsonValue =
             [
                 (subscription, x.Subscription |> Subscription.Encoder)
                 (metersMapping, x.InternalMetersMapping |> InternalMetersMapping.Encoder)
@@ -402,7 +402,7 @@ module Json =
             ]
             |> Encode.object 
 
-        let Decoder : Decoder<MeteringState> =
+        let Decoder : Decoder<Meter> =
             Decode.object (fun get -> {
                 Subscription = get.Required.Field subscription Subscription.Decoder
                 InternalMetersMapping = get.Required.Field metersMapping InternalMetersMapping.Decoder
@@ -416,17 +416,17 @@ module Json =
         let (meters, lastProcessedMessage) =
             ("meters", "lastProcessedMessage");
 
-        let private EncodeMap (x: (Map<SubscriptionType, MeteringState>)) = 
+        let private EncodeMap (x: (Map<SubscriptionType, Meter>)) = 
             x
             |> Map.toSeq |> Seq.toList
-            |> List.map (fun (k, v) -> (k |> SubscriptionType.toStr, v |> MeteringState.Encoder))
+            |> List.map (fun (k, v) -> (k |> SubscriptionType.toStr, v |> Meter.Encoder))
             |> Encode.object
 
-        let private DecodeMap : Decoder<Map<SubscriptionType, MeteringState>> =
+        let private DecodeMap : Decoder<Map<SubscriptionType, Meter>> =
             let turnKeyIntoSubscriptionType (k, v) =
                 (k |> SubscriptionType.fromStr, v)
 
-            (Decode.keyValuePairs MeteringState.Decoder)
+            (Decode.keyValuePairs Meter.Decoder)
             |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed)
 
         let Encoder (x: MeterCollection) : JsonValue = 
@@ -495,7 +495,7 @@ module Json =
         |> Extra.withCustom CurrentMeterValues.Encoder CurrentMeterValues.Decoder
         |> Extra.withCustom MeteringAPIUsageEventDefinition.Encoder MeteringAPIUsageEventDefinition.Decoder
         |> Extra.withCustom SubscriptionCreationInformation.Encoder SubscriptionCreationInformation.Decoder
-        |> Extra.withCustom MeteringState.Encoder MeteringState.Decoder
+        |> Extra.withCustom Meter.Encoder Meter.Decoder
         |> Extra.withCustom MeteringUpdateEvent.Encoder MeteringUpdateEvent.Decoder
         |> Extra.withCustom MeterCollection.Encoder MeterCollection.Decoder
 

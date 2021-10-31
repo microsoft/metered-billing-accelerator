@@ -123,7 +123,7 @@ let main argv =
         
     let eventsFromEventHub = subscriptionCreationEvent :: consumptionEvents // The first event must be the subscription creation, followed by many consumption events
 
-    let emptyBalance : MeteringState option = None // We start completely uninitialized
+    let emptyBalance : Meter option = None // We start completely uninitialized
 
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
@@ -133,7 +133,7 @@ let main argv =
     eventsFromEventHub
     |> Logic.handleEvents config emptyBalance
     |> jsonEncode                             |> inspect
-    |> jsonDecode<MeteringState>              // |> inspect "newBalance"
+    |> jsonDecode<Meter>              // |> inspect "newBalance"
     |> ignore
 
     0

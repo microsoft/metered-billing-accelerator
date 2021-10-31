@@ -84,15 +84,30 @@ module MarketPlaceAPI =
           BillingDimensions: BillingDimension seq }
 
     /// For Azure Application Managed Apps plans, the resourceId is the Managed App resource group Id. +
-    type ManagedAppResourceGroupID = string
+    type ManagedAppResourceGroupID = private ManagedAppResourceGroupID of string
     
-    /// For SaaS offers, the resourceId is the SaaS subscription ID. 
-    type SaaSSubscriptionID = string
+    module ManagedAppResourceGroupID =
+        let value (ManagedAppResourceGroupID x) = x
 
+        let create x = (ManagedAppResourceGroupID x)
+
+    /// For SaaS offers, the resourceId is the SaaS subscription ID. 
+    type SaaSSubscriptionID = private SaaSSubscriptionID of string
+
+    module SaaSSubscriptionID =
+        let value (SaaSSubscriptionID x) = x
+
+        let create x = (SaaSSubscriptionID x)
+        
     /// Unique identifier of the resource against which usage is emitted. 
     type ResourceID = // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
         | ManagedAppResourceGroupID of ManagedAppResourceGroupID
         | SaaSSubscriptionID of SaaSSubscriptionID
+
+    module ResourceID =
+        let createFromManagedAppResourceGroupID x = x |> ManagedAppResourceGroupID.create |> ManagedAppResourceGroupID
+
+        let createFromSaaSSubscriptionID x = x |> SaaSSubscriptionID.create |> SaaSSubscriptionID
 
     /// This is the key by which to aggregate across multiple tenants
     type SubscriptionType =
@@ -103,11 +118,11 @@ module MarketPlaceAPI =
         let fromStr = 
             function
             | "AzureManagedApplication" -> ManagedApp
-            | x -> SaaSSubscription x
+            | x -> x |> SaaSSubscriptionID.create |> SaaSSubscription
         let toStr = 
             function
             | ManagedApp -> "AzureManagedApplication"
-            | SaaSSubscription x -> x
+            | SaaSSubscription x -> x |> SaaSSubscriptionID.value
 
 
     // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
@@ -176,15 +191,15 @@ type SubscriptionCreationInformation =
     { Subscription: Subscription // The purchase information of the subscription
       InternalMetersMapping: InternalMetersMapping } // The table mapping app-internal meter names to 'proper' ones for marketplace
     
-type MeteringState =
+type Meter =
     { Subscription: Subscription // The purchase information of the subscription
       InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
       CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
       UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which haven't yet been reported to the metering API
-      LastProcessedMessage: MessagePosition } // Pending HTTP calls to the marketplace 
+      LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter
         
-module MeteringState =
-    let initial : (MeteringState option) = None
+module Meter =
+    let initial : (Meter option) = None
 
     let setCurrentMeterValues x s = { s with CurrentMeterValues = x }
     let applyToCurrentMeterValue f s = { s with CurrentMeterValues = (f s.CurrentMeterValues) }
@@ -196,7 +211,7 @@ module MeteringState =
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
 
 type MeterCollection = 
-    { Meters: Map<SubscriptionType, MeteringState>
+    { Meters: Map<SubscriptionType, Meter>
       LastProcessedMessage: MessagePosition }
 
 type UpdateOutOfOrderError =
@@ -247,9 +262,8 @@ module SubmitMeteringAPIUsageEvent =
 type MeteringConfigurationProvider = 
     { CurrentTimeProvider: CurrentTimeProvider
       SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
-      GracePeriod: Duration
-      }
+      GracePeriod: Duration }
 
 type BusinessLogic = // The business logic takes the current state, and a command to be applied, and returns new state
-    MeteringState option -> MeteringEvent -> MeteringState option 
+    Meter option -> MeteringEvent -> Meter option 
 
