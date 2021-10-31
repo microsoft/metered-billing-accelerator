@@ -5,7 +5,7 @@ open NodaTime
 open Metering.Types.EventHub
 
 type Quantity =
-    | MeteringInt of uint64 // ? :-)
+    | MeteringInt of uint64
     | MeteringFloat of Decimal
 
     static member (+) (a: Quantity, b: Quantity) =
@@ -22,6 +22,14 @@ type Quantity =
             | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - Decimal b)
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a - b)
 
+    //static member createInt i = (MeteringInt i)
+    //static member someInt = (Quantity.createInt |> Some)
+    //
+    //member this.valueAsInt =
+    //    match this with 
+    //    | MeteringInt i -> i
+    //    | MeteringFloat f -> uint64 f
+        
 module Quantity =
     let createInt i = (MeteringInt i)
     let createFloat f = (MeteringFloat f)
@@ -82,9 +90,23 @@ type RenewalInterval =
     | Annually
 
 module MarketPlaceAPI =
-    type PlanId = string
-    type DimensionId = string
-    type UnitOfMeasure = string
+    type PlanId = private PlanId of string
+
+    module PlanId = 
+        let value (PlanId x) = x
+        let create x = (PlanId x)
+
+    type DimensionId = private DimensionId of string
+
+    module DimensionId = 
+        let value (DimensionId x) = x
+        let create x = (DimensionId x)
+
+    type UnitOfMeasure = private UnitOfMeasure of string
+
+    module UnitOfMeasure = 
+        let value (UnitOfMeasure x) = x
+        let create x = (UnitOfMeasure x)
 
     // https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
     type BillingDimension =
@@ -129,15 +151,17 @@ module MarketPlaceAPI =
         | SaaSSubscription of SaaSSubscriptionID
 
     module SubscriptionType =
-        let fromStr = 
-            function
-            | "AzureManagedApplication" -> ManagedApp
-            | x -> x |> SaaSSubscriptionID.create |> SaaSSubscription
+        let private ManagedAppMarkerString = "AzureManagedApplication"
+
+        let fromStr s =
+            if String.Equals(s, ManagedAppMarkerString)
+            then ManagedApp
+            else s |> SaaSSubscriptionID.create |> SaaSSubscription
+
         let toStr = 
             function
-            | ManagedApp -> "AzureManagedApplication"
+            | ManagedApp -> ManagedAppMarkerString
             | SaaSSubscription x -> x |> SaaSSubscriptionID.value
-
 
     // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
     type MeteredBillingUsageEvent =
@@ -162,7 +186,11 @@ module MarketPlaceAPI =
  
 open MarketPlaceAPI
 
-type ApplicationInternalMeterName = string // A meter name used between app and aggregator
+type ApplicationInternalMeterName = private ApplicationInternalMeterName of string // A meter name used between app and aggregator
+
+module ApplicationInternalMeterName =
+    let value (ApplicationInternalMeterName x) = x
+    let create x = (ApplicationInternalMeterName x)
 
 type InternalUsageEvent = // From app to aggregator
     { Scope: SubscriptionType

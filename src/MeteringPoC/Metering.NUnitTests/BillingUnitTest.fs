@@ -25,7 +25,7 @@ let bp (s: string) : BillingPeriod =
 let runTestVectors test testcases = testcases |> List.indexed |> List.map test |> ignore
 
 let somePlan : Plan = 
-    { PlanId = "PlanId"
+    { PlanId = "PlanId" |> PlanId.create
       BillingDimensions = Seq.empty }
 
 [<Test>]

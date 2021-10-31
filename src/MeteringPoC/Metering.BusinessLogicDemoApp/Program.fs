@@ -37,7 +37,7 @@ let parseConsumptionEvents (str: string) =
                         MeteringUpdateEvent = UsageReported {
                             Scope = ManagedApp
                             Timestamp = datestr |> MeteringDateTime.fromStr 
-                            MeterName = name
+                            MeterName = name |> ApplicationInternalMeterName.create
                             Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
                             Properties = props |> parseProps }
                         MessagePosition = {
@@ -50,7 +50,7 @@ let parseConsumptionEvents (str: string) =
                         MeteringUpdateEvent = UsageReported {
                             Scope = ManagedApp
                             Timestamp = datestr |> MeteringDateTime.fromStr
-                            MeterName = name
+                            MeterName = name |> ApplicationInternalMeterName.create
                             Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
                             Properties = None }
                         MessagePosition = {
@@ -66,14 +66,7 @@ let parseConsumptionEvents (str: string) =
     str
     |> multilineParse parseUsageEvents
 
-let myExtraCoders = Extra.empty |> Json.enrich
 
-let jsonDecode<'T> json = 
-    match Decode.Auto.fromString<'T>(json, extra = myExtraCoders) with
-    | Ok r -> r
-    | Result.Error e -> failwith e
-
-let jsonEncode o = Encode.Auto.toString(4, o, extra = myExtraCoders)
 
 let inspect a =
     printfn "%s" a
@@ -104,7 +97,7 @@ let main argv =
     "partitionId": "1"
   }
 }
-    """ |> jsonDecode<MeteringEvent>
+    """ |> Json.fromStr<MeteringEvent>
 
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
@@ -132,8 +125,8 @@ let main argv =
 
     eventsFromEventHub
     |> Logic.handleEvents config emptyBalance
-    |> jsonEncode                             |> inspect
-    |> jsonDecode<Meter>              // |> inspect "newBalance"
+    |> Json.toStr                             |> inspect
+    |> Json.fromStr<Meter>              // |> inspect "newBalance"
     |> ignore
 
     0
