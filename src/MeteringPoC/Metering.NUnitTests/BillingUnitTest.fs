@@ -236,7 +236,7 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
 
 [<Test>]
 let QuantitySerialization() =
-    let test (idx, (v)) =
+    let test (idx, v) =
         Assert.AreEqual(v, v |> Json.toStr |> Json.fromStr<Quantity>, sprintf "Failure testc case #%d" idx)
 
     [
@@ -244,3 +244,21 @@ let QuantitySerialization() =
         Quantity.createInt 10UL
         Quantity.createFloat 10.1m
     ] |> runTestVectors test
+
+[<Test>]
+let QuantityMath() =
+    let q : (int -> Quantity) = uint64 >> Quantity.createInt
+    let f : (float -> Quantity) = decimal >> Quantity.createFloat
+    
+    Assert.AreEqual(q 10, (q 3) + (q 7))
+    Assert.AreEqual(q 7, (q 10) - (q 3))
+    Assert.AreEqual(Infinite, Infinite - (q 3))
+    Assert.AreEqual(Infinite, Infinite + (q 3))
+    
+    Assert.AreEqual(f 10.0, (f 3.0) + (f 7.0))
+    Assert.AreEqual(f 7.0, (f 10.0) - (f 3.0))
+    Assert.AreEqual(Infinite, Infinite - (f 3.0))
+    Assert.AreEqual(Infinite, Infinite + (f 3.0))
+
+    Assert.AreEqual(f 11.1, (q 3) + (f 8.1))
+    
