@@ -172,7 +172,7 @@ module Logic =
                 | IncludedQuantity _ -> failwith "cannot happen"
                 | ConsumedQuantity q -> 
                     { ResourceId = "ne" |> ResourceID.createFromSaaSSubscriptionID
-                      Quantity = double q.Amount
+                      Quantity = q.Amount |> Quantity.valueAsFloat
                       PlanDimension = { PlanId = state.Subscription.Plan.PlanId
                                         DimensionId = dimensionId }
                       EffectiveStartTime = state.LastProcessedMessage.PartitionTimestamp |> MeteringDateTime.beginOfTheHour } )

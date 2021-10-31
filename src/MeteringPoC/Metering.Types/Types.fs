@@ -4,25 +4,39 @@ open System
 open NodaTime
 open Metering.Types.EventHub
 
-type IntOrFloat =
+type Quantity =
     | MeteringInt of uint64 // ? :-)
-    | MeteringFloat of double
+    | MeteringFloat of Decimal
 
-    static member (+) (a: IntOrFloat, b: IntOrFloat) =
+    static member (+) (a: Quantity, b: Quantity) =
         match (a, b) with
             | ((MeteringInt a), (MeteringInt b)) -> MeteringInt  (a + b)
-            | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (double a + b)
-            | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a + double b)
-            | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (double a + b)
+            | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (Decimal a + b)
+            | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a + Decimal b)
+            | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a + b)
 
-    static member (-) (a: IntOrFloat, b: IntOrFloat) =
+    static member (-) (a: Quantity, b: Quantity) =
         match (a, b) with
             | ((MeteringInt a), (MeteringInt b)) -> MeteringInt (a - b)
-            | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (double a - b)
-            | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - double b)
-            | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (double a - b)
+            | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (Decimal a - b)
+            | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - Decimal b)
+            | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a - b)
 
-type Quantity = uint64
+module Quantity =
+    let createInt i = (MeteringInt i)
+    let createFloat f = (MeteringFloat f)
+
+    let someInt = createInt >> Some
+    let someFloat = createFloat >> Some
+    let none : (Quantity option) = None
+
+    let valueAsInt = function
+        | MeteringInt i -> i
+        | MeteringFloat f -> uint64 f
+
+    let valueAsFloat = function
+        | MeteringInt i -> decimal i
+        | MeteringFloat f -> f
 
 type ConsumedQuantity = 
     { Amount: Quantity
@@ -182,7 +196,7 @@ type CurrentMeterValues = // Collects all meters per internal metering event typ
 
 type MeteringAPIUsageEventDefinition = // From aggregator to metering API
     { ResourceId: ResourceID 
-      Quantity: double 
+      Quantity: decimal 
       PlanDimension: PlanDimension
       EffectiveStartTime: MeteringDateTime }
 

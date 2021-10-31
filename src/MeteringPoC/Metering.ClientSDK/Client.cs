@@ -17,7 +17,7 @@
                 scope: SubscriptionType.ManagedApp,
                 timestamp: new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc), 
                 meterName: "meter1",
-                quantity: 2,
+                quantity: QuantityModule.createInt(2),
                 properties: FSharpOption<FSharpMap<string, string>>.None);
         }
     }
