@@ -34,11 +34,18 @@ module Json =
             match x with
             | MeteringInt i -> i |> Encode.uint64
             | MeteringFloat f -> f |> Encode.decimal
+            | Infinite -> "Infinite" |> Encode.string
             
         let Decoder : Decoder<Quantity> = 
+            let decodeInfinite s = 
+                match s with
+                | "Infinite" -> Infinite |> Decode.succeed
+                | invalid -> (sprintf "Failed to decode `%s`" invalid) |> Decode.fail
+
             [ 
                 Decode.uint64 |> Decode.andThen(Quantity.createInt >> Decode.succeed)
                 Decode.decimal |> Decode.andThen(Quantity.createFloat >> Decode.succeed)
+                Decode.string |> Decode.andThen(decodeInfinite)
             ] |> Decode.oneOf
 
     module EventHubJSON =

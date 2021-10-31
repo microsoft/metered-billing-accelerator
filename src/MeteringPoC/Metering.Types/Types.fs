@@ -8,12 +8,16 @@ type Quantity =
     | MeteringInt of uint64
     | MeteringFloat of Decimal
 
+    /// Indicates that this plan participates in this dimension, but does not emit usage against this dimension. 
+    | Infinite // https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/saas-metered-billing
+
     static member (+) (a: Quantity, b: Quantity) =
         match (a, b) with
             | ((MeteringInt a), (MeteringInt b)) -> MeteringInt  (a + b)
             | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (Decimal a + b)
             | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a + Decimal b)
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a + b)
+            | (_, _) -> Infinite
 
     static member (-) (a: Quantity, b: Quantity) =
         match (a, b) with
@@ -21,6 +25,9 @@ type Quantity =
             | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (Decimal a - b)
             | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - Decimal b)
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a - b)
+            | (Infinite, MeteringInt _) -> Infinite
+            | (Infinite, MeteringFloat _) -> Infinite
+            | (_, Infinite) -> failwith "This must never happen"
 
     //static member createInt i = (MeteringInt i)
     //static member someInt = (Quantity.createInt |> Some)
@@ -41,10 +48,12 @@ module Quantity =
     let valueAsInt = function
         | MeteringInt i -> i
         | MeteringFloat f -> uint64 f
+        | Infinite -> failwith "Infinity"
 
     let valueAsFloat = function
         | MeteringInt i -> decimal i
         | MeteringFloat f -> f
+        | Infinite -> failwith "Infinity"
 
 type ConsumedQuantity = 
     { Amount: Quantity
@@ -52,7 +61,12 @@ type ConsumedQuantity =
       LastUpdate: MeteringDateTime }
 
 type IncludedQuantitySpecification = 
-    { Monthly: Quantity option
+    { /// Monthly quantity included in base.
+      /// Quantity of dimension included per month for customers paying the recurring monthly fee, must be an integer. It can be 0 or unlimited.
+      Monthly: Quantity option
+
+      /// Annual quantity included in base.
+      /// Quantity of dimension included per each year for customers paying the recurring annual fee, must be an integer. Can be 0 or unlimited.
       Annually: Quantity option }
 
 type IncludedQuantity = 
@@ -96,12 +110,14 @@ module MarketPlaceAPI =
         let value (PlanId x) = x
         let create x = (PlanId x)
 
+    /// The immutable dimension identifier referenced while emitting usage events.
     type DimensionId = private DimensionId of string
 
     module DimensionId = 
         let value (DimensionId x) = x
         let create x = (DimensionId x)
 
+    /// The description of the billing unit, for example "per text message" or "per 100 emails".
     type UnitOfMeasure = private UnitOfMeasure of string
 
     module UnitOfMeasure = 
@@ -109,9 +125,16 @@ module MarketPlaceAPI =
         let create x = (UnitOfMeasure x)
 
     // https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
+    /// Defines a custom unit by which the ISV can emit usage events. 
+    /// Billing dimensions are also used to communicate to the customer about how they will be billed for using the software. 
     type BillingDimension =
-        { DimensionId: DimensionId
+        { /// The immutable dimension identifier referenced while emitting usage events.
+          DimensionId: DimensionId
+          
+          /// The display name associated with the dimension, for example "text messages sent".
           DimensionName: string 
+          
+          /// The description of the billing unit, for example "per text message" or "per 100 emails".
           UnitOfMeasure: UnitOfMeasure
           IncludedQuantity: IncludedQuantitySpecification }
       
@@ -296,10 +319,10 @@ module CurrentTimeProvider =
     let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
 
 type SubmitMeteringAPIUsageEvent =
-    MeteringAPIUsageEventDefinition -> System.Threading.Tasks.Task
+    MeteringAPIUsageEventDefinition -> Async<unit>
 
 module SubmitMeteringAPIUsageEvent =
-    let Discard : SubmitMeteringAPIUsageEvent = (fun _ -> System.Threading.Tasks.Task.CompletedTask)
+    let Discard : SubmitMeteringAPIUsageEvent = (fun _ -> Async.AwaitTask System.Threading.Tasks.Task.CompletedTask)
 
 type MeteringConfigurationProvider = 
     { CurrentTimeProvider: CurrentTimeProvider

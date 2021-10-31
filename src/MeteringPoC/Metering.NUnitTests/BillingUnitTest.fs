@@ -234,3 +234,13 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
         ("2021-01-10T12:00:00", "2021-01-10T15:00:00", 3.0, Close)
     ] |> runTestVectors test
 
+[<Test>]
+let QuantitySerialization() =
+    let test (idx, (v)) =
+        Assert.AreEqual(v, v |> Json.toStr |> Json.fromStr<Quantity>, sprintf "Failure testc case #%d" idx)
+
+    [
+        Infinite
+        Quantity.createInt 10UL
+        Quantity.createFloat 10.1m
+    ] |> runTestVectors test
