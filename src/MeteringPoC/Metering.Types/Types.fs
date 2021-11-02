@@ -225,10 +225,18 @@ type InternalUsageEvent = // From app to aggregator
 type BusinessError =
     | DayBeforeSubscription
 
-type Subscription = // When a certain plan was purchased
+type Subscription = 
     { Plan: Plan
+      SubscriptionType: SubscriptionType
       RenewalInterval: RenewalInterval 
-      SubscriptionStart: MeteringDateTime }
+      SubscriptionStart: MeteringDateTime } // When a certain plan was purchased
+
+module Subscription =
+    let create plan subType pri subscriptionStart =
+        { Plan = plan
+          SubscriptionType = subType
+          RenewalInterval = pri
+          SubscriptionStart = subscriptionStart }
 
 type BillingPeriod = // Each time the subscription is renewed, a new billing period start
     { Start: MeteringDateTime
@@ -247,6 +255,7 @@ type CurrentMeterValues = // Collects all meters per internal metering event typ
 
 type MeteringAPIUsageEventDefinition = // From aggregator to metering API
     { ResourceId: ResourceID 
+      SubscriptionType: SubscriptionType
       Quantity: decimal 
       PlanDimension: PlanDimension
       EffectiveStartTime: MeteringDateTime }
@@ -264,8 +273,6 @@ type Meter =
       LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter
         
 module Meter =
-    let initial : (Meter option) = None
-
     let setCurrentMeterValues x s = { s with CurrentMeterValues = x }
     let applyToCurrentMeterValue f s = { s with CurrentMeterValues = (f s.CurrentMeterValues) }
     let setLastProcessedMessage x s = { s with LastProcessedMessage = x }
@@ -275,9 +282,20 @@ module Meter =
     /// Removes the item from the UsageToBeReported collection
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
 
-type MeterCollection = 
-    { Meters: Map<SubscriptionType, Meter>
-      LastProcessedMessage: MessagePosition }
+type MeterCollection = Map<SubscriptionType, Meter>
+
+module MeterCollection =
+    let empty : MeterCollection = Map.empty
+
+    let lastUpdate (meters: MeterCollection) : MessagePosition option = 
+        if meters |> Seq.isEmpty 
+        then None
+        else
+            meters
+            |> Map.toSeq
+            |> Seq.maxBy (fun (_subType, meter) -> meter.LastProcessedMessage.SequenceNumber)
+            |> (fun (_, meter) -> meter.LastProcessedMessage)
+            |> Some
 
 type UpdateOutOfOrderError =
     { DataWatermark: MessagePosition 
@@ -288,8 +306,9 @@ type BusinessDataUpdateError =
     | SnapshotDownloadError of Exception
 
 type UsageSubmittedToAPIResult = // Once the metering API was called, either the metering submission successfully got through, or not (in which case we need to know which values haven't been submitted)
-    Result<MeteringAPIUsageEventDefinition, Exception * MeteringAPIUsageEventDefinition>
-
+    { Payload: MeteringAPIUsageEventDefinition 
+      Result: Result<unit, Exception> }
+    
 /// The events which are processed by the aggregator.
 type MeteringUpdateEvent =
     /// Event to initialize the aggregator.

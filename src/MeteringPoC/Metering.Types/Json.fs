@@ -281,14 +281,15 @@ module Json =
 
     module Subscription =
         open MarketPlaceAPIJSON
-        let (plan, renewalInterval, subscriptionStart) =
-            ("plan", "renewalInterval", "subscriptionStart");
+        let (plan, renewalInterval, subscriptionStart, scope) =
+            ("plan", "renewalInterval", "subscriptionStart", "scope");
 
         let Encoder (x: Subscription) : JsonValue =
             [
                 (plan, x.Plan |> Plan.Encoder)
                 (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
                 (subscriptionStart, x.SubscriptionStart |> MeteringDateTime.Encoder)
+                (scope, x.SubscriptionType |> SubscriptionType.Encoder)
             ] |> Encode.object 
 
         let Decoder : Decoder<Subscription> =
@@ -296,6 +297,7 @@ module Json =
                 Plan = get.Required.Field plan Plan.Decoder
                 RenewalInterval = get.Required.Field renewalInterval RenewalInterval.Decoder
                 SubscriptionStart = get.Required.Field subscriptionStart MeteringDateTime.Decoder
+                SubscriptionType = get.Required.Field scope SubscriptionType.Decoder
             })
 
     module PlanDimension =
@@ -352,8 +354,8 @@ module Json =
 
     module MeteringAPIUsageEventDefinition = 
         open MarketPlaceAPIJSON
-        let (resourceId, quantity, planDimension, effectiveStartTime) =
-            ("resourceId", "quantity", "planDimension", "effectiveStartTime");
+        let (resourceId, quantity, planDimension, effectiveStartTime, scope) =
+            ("resourceId", "quantity", "planDimension", "effectiveStartTime", "scope");
 
         let Encoder (x: MeteringAPIUsageEventDefinition) : JsonValue =
             [
@@ -361,6 +363,7 @@ module Json =
                 (quantity, x.Quantity |> Encode.decimal)
                 (planDimension, x.PlanDimension |> PlanDimension.Encoder)
                 (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
+                (scope, x.SubscriptionType |> SubscriptionType.Encoder)
             ] |> Encode.object 
         
         let Decoder : Decoder<MeteringAPIUsageEventDefinition> =
@@ -369,6 +372,7 @@ module Json =
                 Quantity = get.Required.Field quantity Decode.decimal
                 PlanDimension = get.Required.Field planDimension PlanDimension.Decoder
                 EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
+                SubscriptionType = get.Required.Field scope SubscriptionType.Decoder
             })
     
     module SubscriptionCreationInformation =
@@ -415,34 +419,19 @@ module Json =
 
     module MeterCollection =
         open MarketPlaceAPI
-        let (meters, lastProcessedMessage) =
-            ("meters", "lastProcessedMessage");
 
-        let private EncodeMap (x: (Map<SubscriptionType, Meter>)) = 
+        let Encoder (x: MeterCollection) = 
             x
             |> Map.toSeq |> Seq.toList
             |> List.map (fun (k, v) -> (k |> SubscriptionType.toStr, v |> Meter.Encoder))
             |> Encode.object
 
-        let private DecodeMap : Decoder<Map<SubscriptionType, Meter>> =
+        let Decoder : Decoder<MeterCollection> =
             let turnKeyIntoSubscriptionType (k, v) =
                 (k |> SubscriptionType.fromStr, v)
 
             (Decode.keyValuePairs Meter.Decoder)
             |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed)
-
-        let Encoder (x: MeterCollection) : JsonValue = 
-            [
-                (meters, x.Meters |> EncodeMap)
-                (lastProcessedMessage, x.LastProcessedMessage |> EventHubJSON.Encoder)
-            ] |> Encode.object 
-
-        let Decoder : Decoder<MeterCollection> =
-            Decode.object (fun get -> {
-                Meters = get.Required.Field meters DecodeMap
-                LastProcessedMessage = get.Required.Field lastProcessedMessage EventHubJSON.Decoder
-            })
-
 
     module MeteringUpdateEvent =
         let (typeid, value) =
@@ -501,7 +490,7 @@ module Json =
 
     let enriched = Extra.empty |> enrich
 
-    let toStr o = Encode.Auto.toString(0, o, extra = enriched)
+    let toStr o = Encode.Auto.toString(4, o, extra = enriched)
         
     let fromStr<'T> json = 
         match Decode.Auto.fromString<'T>(json, extra = enriched) with

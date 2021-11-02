@@ -15,9 +15,7 @@ module RenewalInterval =
         | Monthly -> Period.FromMonths(int i)
         | Annually -> Period.FromYears(int i)
 
-module Subscription =
-    let create plan pri subscriptionStart = 
-        { RenewalInterval = pri ; SubscriptionStart = subscriptionStart ; Plan = plan }
+
 
 module BillingPeriod =
     /// Compute the n'th BillingPeriod for a given subscription.
@@ -173,8 +171,8 @@ module Logic =
                 | ConsumedQuantity q -> 
                     { ResourceId = "ne" |> ResourceID.createFromSaaSSubscriptionID
                       Quantity = q.Amount |> Quantity.valueAsFloat
-                      PlanDimension = { PlanId = state.Subscription.Plan.PlanId
-                                        DimensionId = dimensionId }
+                      SubscriptionType = state.Subscription.SubscriptionType
+                      PlanDimension = { PlanId = state.Subscription.Plan.PlanId ; DimensionId = dimensionId }
                       EffectiveStartTime = state.LastProcessedMessage.PartitionTimestamp |> MeteringDateTime.beginOfTheHour } )
             |> Map.values
             |> List.ofSeq
@@ -219,9 +217,9 @@ module Logic =
         state
         
     let handleUsageSubmissionToAPI (config: MeteringConfigurationProvider) (usageSubmissionResult: UsageSubmittedToAPIResult) (state: Meter) : Meter =
-        match usageSubmissionResult with
-        | Ok successfulSubmission -> state |> Meter.removeUsageToBeReported successfulSubmission
-        | Error (ex, failedSubmission) -> state |> handleUnsuccessfulMeterSubmission config failedSubmission 
+        match usageSubmissionResult.Result with
+        | Ok () -> state |> Meter.removeUsageToBeReported usageSubmissionResult.Payload
+        | Error ex -> state |> handleUnsuccessfulMeterSubmission config usageSubmissionResult.Payload 
 
     let computeIncludedQuantity (now: MeteringDateTime) (x: BillingDimension seq) : CurrentMeterValues = 
         x
@@ -241,26 +239,29 @@ module Logic =
           UsageToBeReported = List.empty }
         |> topupMonthlyCreditsOnNewSubscription messagePosition.PartitionTimestamp
 
-    let handleEvent (config: MeteringConfigurationProvider) (state: Meter option) { MeteringUpdateEvent = updateEvent; MessagePosition = position} : Meter option =        
-        match state with 
-        | None -> 
-            match updateEvent with 
-                | (SubscriptionPurchased subInfo) -> createNewSubscription subInfo position |> Some
-                | _ -> None // without a subscription, we ignore all other events
-        | Some state -> 
-            match updateEvent with             
-                | (UsageReported usage) -> state |> applyUsageEvent config (usage, position) 
-                | (UsageSubmittedToAPI submission) -> state |> handleUsageSubmissionToAPI config submission 
-                | (AggregatorBooted) -> state |> handleAggregatorBooted config
-                | (SubscriptionPurchased _) -> state // Once it's configured, no way to update
-            |> Meter.setLastProcessedMessage position
-            |> Some
-    
-    let handleEvents (config: MeteringConfigurationProvider) (state: Meter option) (events: MeteringEvent list) : Meter option =
-        events |> List.fold (handleEvent config) state
+    let handleEventsMeter (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvent: MeteringEvent) : MeterCollection =    
+        // SubscriptionPurchased should add / overwrite existing entry
+        // AggregatorBooted should trigger on all entries
+        // UsageReported and UsageSubmittedToAPI should fire on the appropriate entry
 
-    let getState : Meter option =
-        None
+        match meteringEvent.MeteringUpdateEvent with
+        | SubscriptionPurchased s -> 
+            state
+            |> Map.add s.Subscription.SubscriptionType (createNewSubscription s meteringEvent.MessagePosition)
+        | AggregatorBooted ->
+            state
+            |> Map.toSeq
+            |> Seq.map(fun (k, v) -> (k, v |> handleAggregatorBooted config))
+            |> Map.ofSeq
+        | UsageSubmittedToAPI submission ->
+            state
+            |> Map.change submission.Payload.SubscriptionType (Option.bind ((handleUsageSubmissionToAPI config submission) >> Some))
+        | UsageReported usage -> 
+            state
+            |> Map.change usage.Scope (Option.bind ((applyUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
+            
+    let handleEvents (config: MeteringConfigurationProvider) (state: MeterCollection) (events: MeteringEvent list) : MeterCollection =
+        events |> List.fold (handleEventsMeter config) state
 
     let test =
         let config =
@@ -268,6 +269,6 @@ module Logic =
               SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
               GracePeriod = Duration.FromHours(6.0) }
         let inputs : (MeteringEvent list) = []
-        let state = Meter.initial
+        let state = MeterCollection.empty
         let result = inputs |> handleEvents config state
         result

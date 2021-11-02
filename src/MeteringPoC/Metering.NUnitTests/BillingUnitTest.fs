@@ -30,7 +30,7 @@ let somePlan : Plan =
 
 [<Test>]
 let Test_BillingPeriod_createFromIndex () =
-    let sub = Subscription.create somePlan Monthly (d "2021-05-13T12:00:03") 
+    let sub = Subscription.create somePlan ManagedApp Monthly (d "2021-05-13T12:00:03") 
 
     Assert.AreEqual(
         (bp "2|2021-07-13T12:00:03|2021-08-12T12:00:02"),
@@ -42,7 +42,7 @@ type Subscription_determineBillingPeriod_Vector = { Purchase: (RenewalInterval *
 let Test_BillingPeriod_determineBillingPeriod () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
         let expected : Result<BillingPeriod, BusinessError> = Ok(bp testcase.Expected)
         let compute = BillingPeriod.determineBillingPeriod subscription (d testcase.Candidate)
         Assert.AreEqual(expected, compute, sprintf "Failure test case %d expected=%A but was %A" idx expected compute);
@@ -64,7 +64,7 @@ type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * str
 let Test_BillingPeriod_isInBillingPeriod () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
         let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
         let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
@@ -83,7 +83,7 @@ type BillingPeriod_getBillingPeriodDelta_Vector = { Purchase: (RenewalInterval *
 let Test_BillingPeriod_getBillingPeriodDelta () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
         let result = (BillingPeriod.getBillingPeriodDelta subscription (d testcase.Previous) (d testcase.Current))
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 

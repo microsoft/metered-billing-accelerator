@@ -83,6 +83,7 @@ let main argv =
       "subscription": {
         "renewalInterval": "Monthly",
         "subscriptionStart": "2021-10-01T12:20:33",
+        "scope": "AzureManagedApplication",
         "plan": {
           "planId": "plan2",
           "billingDimensions": [
@@ -116,7 +117,7 @@ let main argv =
         
     let eventsFromEventHub = subscriptionCreationEvent :: consumptionEvents // The first event must be the subscription creation, followed by many consumption events
 
-    let emptyBalance : Meter option = None // We start completely uninitialized
+    let emptyBalance = MeterCollection.empty // We start completely uninitialized
 
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
@@ -126,7 +127,7 @@ let main argv =
     eventsFromEventHub
     |> Logic.handleEvents config emptyBalance
     |> Json.toStr                             |> inspect
-    |> Json.fromStr<Meter>              // |> inspect "newBalance"
+    |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
     |> ignore
 
     0
