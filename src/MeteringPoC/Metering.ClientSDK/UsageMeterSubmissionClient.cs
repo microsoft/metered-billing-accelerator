@@ -1,16 +1,15 @@
 ﻿namespace Metering.ClientSDK
 {
-    using System.Threading.Tasks;
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;    
     using Microsoft.FSharp.Collections;
     using Microsoft.FSharp.Core;
+    using Azure.Messaging.EventHubs;
+    using Azure.Messaging.EventHubs.Producer;
     using NodaTime;
     using Metering.Types;
     using static Metering.Types.MarketPlaceAPI;
-    using Azure.Messaging.EventHubs.Producer;
-    using System.Threading;
-    using Azure.Messaging.EventHubs;
-    using Thoth.Json.Net;
-    using System;
 
     public class UsageMeterSubmissionClient
     {
@@ -48,8 +47,6 @@
                 meterName: ApplicationInternalMeterNameModule.create(meterName),
                 quantity: QuantityModule.createFloat(unit),
                 properties: FSharpOption<FSharpMap<string, string>>.None), ct);
-
-        static readonly ExtraCoders extraEncoders = Json.enrich(Extra.empty);
 
         private async Task SubmitUsage(InternalUsageEvent internalUsageEvent, CancellationToken ct)
         {
