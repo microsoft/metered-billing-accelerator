@@ -74,10 +74,14 @@ type IncludedQuantity =
       Annually: Quantity option
       Created: MeteringDateTime 
       LastUpdate: MeteringDateTime }
-      
+
 type MeterValue =
     | ConsumedQuantity of ConsumedQuantity
     | IncludedQuantity of IncludedQuantity
+      
+module ConsumedQuantity =
+    let create now amount = { Amount = amount; Created = now ; LastUpdate = now }
+    let increaseConsumption now amount q = { q with Amount = q.Amount + amount ; LastUpdate = now }
 
 module IncludedQuantity =
     let private decrease (v: Quantity) (q: Quantity option) : Quantity option =
@@ -95,13 +99,37 @@ module IncludedQuantity =
     let removeAnnually now q = { q with Annually = None ; LastUpdate = now }
     let removeMonthly now q = { q with Monthly = None ; LastUpdate = now }
 
-module ConsumedQuantity =
-    let create now amount = { Amount = amount; Created = now ; LastUpdate = now }
-    let increaseConsumption now amount q = { q with Amount = q.Amount + amount ; LastUpdate = now }
 
 type RenewalInterval =
     | Monthly
     | Annually
+
+/// For SaaS offers, the resourceId is the SaaS subscription ID. 
+type SaaSSubscriptionID = private SaaSSubscriptionID of string
+
+module SaaSSubscriptionID =
+    let create x = (SaaSSubscriptionID x)
+    let value (SaaSSubscriptionID x) = x
+
+/// This is the key by which to aggregate across multiple tenants
+type SubscriptionType =
+    | ManagedApp
+    | SaaSSubscription of SaaSSubscriptionID
+
+module SubscriptionType =
+    let private ManagedAppMarkerString = "AzureManagedApplication"
+
+    let fromStr s =
+        if String.Equals(s, ManagedAppMarkerString)
+        then ManagedApp
+        else s |> SaaSSubscriptionID.create |> SaaSSubscription
+
+    let toStr = 
+        function
+        | ManagedApp -> ManagedAppMarkerString
+        | SaaSSubscription x -> x |> SaaSSubscriptionID.value
+
+
 
 module MarketPlaceAPI =
     type PlanId = private PlanId of string
@@ -149,14 +177,6 @@ module MarketPlaceAPI =
         let value (ManagedAppResourceGroupID x) = x
 
         let create x = (ManagedAppResourceGroupID x)
-
-    /// For SaaS offers, the resourceId is the SaaS subscription ID. 
-    type SaaSSubscriptionID = private SaaSSubscriptionID of string
-
-    module SaaSSubscriptionID =
-        let value (SaaSSubscriptionID x) = x
-
-        let create x = (SaaSSubscriptionID x)
         
     /// Unique identifier of the resource against which usage is emitted. 
     type ResourceID = // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
@@ -167,24 +187,6 @@ module MarketPlaceAPI =
         let createFromManagedAppResourceGroupID x = x |> ManagedAppResourceGroupID.create |> ManagedAppResourceGroupID
 
         let createFromSaaSSubscriptionID x = x |> SaaSSubscriptionID.create |> SaaSSubscriptionID
-
-    /// This is the key by which to aggregate across multiple tenants
-    type SubscriptionType =
-        | ManagedApp
-        | SaaSSubscription of SaaSSubscriptionID
-
-    module SubscriptionType =
-        let private ManagedAppMarkerString = "AzureManagedApplication"
-
-        let fromStr s =
-            if String.Equals(s, ManagedAppMarkerString)
-            then ManagedApp
-            else s |> SaaSSubscriptionID.create |> SaaSSubscription
-
-        let toStr = 
-            function
-            | ManagedApp -> ManagedAppMarkerString
-            | SaaSSubscription x -> x |> SaaSSubscriptionID.value
 
     // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event
     type MeteredBillingUsageEvent =
@@ -296,6 +298,15 @@ module MeterCollection =
             |> Seq.maxBy (fun (_subType, meter) -> meter.LastProcessedMessage.SequenceNumber)
             |> (fun (_, meter) -> meter.LastProcessedMessage)
             |> Some
+
+    let usagesToBeReported (meters: MeterCollection) : MeteringAPIUsageEventDefinition list =
+        if meters |> Seq.isEmpty 
+        then []
+        else
+            meters
+            |> Seq.map (fun x -> x.Value.UsageToBeReported)
+            |> Seq.concat
+            |> List.ofSeq
 
 type UpdateOutOfOrderError =
     { DataWatermark: MessagePosition 
