@@ -6,11 +6,40 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="FSharpFuncUtil.fs" />
-    <Compile Include="BaseTypes.fs" />
+    <Compile Include="MeteringDateTime.fs" />
     <Compile Include="EventHub.fs" />
-    <Compile Include="Types.fs" />
+    <Compile Include="Quantity.fs" />
+    <Compile Include="ConsumedQuantity.fs" />
+    <Compile Include="IncludedQuantitySpecification.fs" />
+    <Compile Include="IncludedQuantity.fs" />
+    <Compile Include="RenewalInterval.fs" />
+    <Compile Include="MeterValue.fs" />
+    <Compile Include="SaaSSubscriptionID.fs" />
+    <Compile Include="SubscriptionType.fs" />
+    <Compile Include="PlanId.fs" />
+    <Compile Include="CurrentMeterValues.fs" />
+    <Compile Include="BillingDimension.fs" />
+    <Compile Include="Plan.fs" />
+    <Compile Include="ManagedAppResourceGroupID.fs" />
+    <Compile Include="ResourceID.fs" />
+    <Compile Include="MeteredBillingUsageEvent.fs" />
+    <Compile Include="ApplicationInternalMeterName.fs" />
+    <Compile Include="InternalUsageEvent.fs" />
+    <Compile Include="BusinessError.fs" />
+    <Compile Include="Subscription.fs" />
+    <Compile Include="BillingPeriod.fs" />
+    <Compile Include="PlanDimension.fs" />
+    <Compile Include="InternalMetersMapping.fs" />
+    <Compile Include="MeteringAPIUsageEventDefinition.fs" />
+    <Compile Include="DependencyInjection.fs" />
+    <Compile Include="SubscriptionCreationInformation.fs" />
+    <Compile Include="UsageSubmittedToAPIResult.fs" />
+    <Compile Include="Meter.fs" />
+    <Compile Include="MeteringUpdateEvent.fs" />
+    <Compile Include="MeteringEvent.fs" />
+    <Compile Include="MeterCollection.fs" />
     <Compile Include="Json.fs" />
-    <Compile Include="BusinessLogic.fs" />
+    <Compile Include="TestBusinessLogic.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.5.0" />

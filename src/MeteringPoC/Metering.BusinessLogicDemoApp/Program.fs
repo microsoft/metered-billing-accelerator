@@ -3,7 +3,6 @@ open Thoth.Json.Net
 
 open Metering
 open Metering.Types
-open Metering.Types.MarketPlaceAPI
 open Metering.Types.EventHub
 open NodaTime
 
@@ -163,7 +162,7 @@ let main argv =
           GracePeriod = Duration.FromHours(6.0) }
 
     eventsFromEventHub
-    |> Logic.handleEvents config MeterCollection.empty // We start completely uninitialized
+    |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
     |> Json.toStr                             |> inspect "meters"
     |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
     |> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"

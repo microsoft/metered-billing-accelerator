@@ -14,14 +14,6 @@ module Json =
                 then Decode.succeed x.Value
                 else Decode.fail (sprintf "Failed to decode `%s`" v)
         )
-
-        //let instantPattern = InstantPattern.CreateWithInvariantCulture("yyyy-MM-dd--HH-mm-ss-FFF")
-        //let private localDatePattern = LocalDatePattern.CreateWithInvariantCulture("yyyy-MM-dd")        
-        //let private localTimePattern = LocalTimePattern.CreateWithInvariantCulture("HH:mm")
-        //let encodeLocalDate = makeEncoder localDatePattern
-        //let decodeLocalDate = makeDecoder localDatePattern
-        //let encodeLocalTime = makeEncoder localTimePattern
-        //let decodeLocalTime = makeDecoder localTimePattern
         
         // Use the first pattern as default, therefore the `|> List.head`
         let Encoder : Encoder<MeteringDateTime> = MeteringDateTime.meteringDateTimePatterns |> List.head |> makeEncoder
@@ -160,86 +152,79 @@ module Json =
                | "Annually" -> Decode.succeed Annually
                | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
 
-    module MarketPlaceAPIJSON =
-        open MarketPlaceAPI
+    module BillingDimension =
+        let (dimensionId, name, unitOfMeasure, includedQuantity) =
+            ("dimension", "name", "unitOfMeasure", "includedQuantity");
 
-        module BillingDimension =
-            let (dimensionId, name, unitOfMeasure, includedQuantity) =
-                ("dimension", "name", "unitOfMeasure", "includedQuantity");
+        let Encoder (x: BillingDimension) : JsonValue =
+            [
+                (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
+                (name, x.DimensionName |> Encode.string)
+                (unitOfMeasure, x.UnitOfMeasure |> UnitOfMeasure.value |> Encode.string)
+                (includedQuantity, x.IncludedQuantity |> IncludedQuantitySpecification.Encoder)
+            ] |> Encode.object 
 
-            let Encoder (x: BillingDimension) : JsonValue =
-                [
-                    (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
-                    (name, x.DimensionName |> Encode.string)
-                    (unitOfMeasure, x.UnitOfMeasure |> UnitOfMeasure.value |> Encode.string)
-                    (includedQuantity, x.IncludedQuantity |> IncludedQuantitySpecification.Encoder)
-                ] |> Encode.object 
-
-            let Decoder : Decoder<BillingDimension> =
-                Decode.object (fun get -> {
-                    DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create
-                    DimensionName = get.Required.Field name Decode.string
-                    UnitOfMeasure = (get.Required.Field unitOfMeasure Decode.string) |> UnitOfMeasure.create
-                    IncludedQuantity = get.Required.Field includedQuantity IncludedQuantitySpecification.Decoder
-                })
+        let Decoder : Decoder<BillingDimension> =
+            Decode.object (fun get -> {
+                DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create
+                DimensionName = get.Required.Field name Decode.string
+                UnitOfMeasure = (get.Required.Field unitOfMeasure Decode.string) |> UnitOfMeasure.create
+                IncludedQuantity = get.Required.Field includedQuantity IncludedQuantitySpecification.Decoder
+            })
         
-        module Plan =
-            let (planId, billingDimensions) =
-                ("planId", "billingDimensions");
+    module Plan =
+        let (planId, billingDimensions) =
+            ("planId", "billingDimensions");
 
-            let Encoder (x: Plan) : JsonValue =
-                [
-                    (planId, x.PlanId |> PlanId.value |> Encode.string)
-                    (billingDimensions, x.BillingDimensions |> Seq.map BillingDimension.Encoder |> Encode.seq)
-                ] |> Encode.object 
+        let Encoder (x: Plan) : JsonValue =
+            [
+                (planId, x.PlanId |> PlanId.value |> Encode.string)
+                (billingDimensions, x.BillingDimensions |> Seq.map BillingDimension.Encoder |> Encode.seq)
+            ] |> Encode.object 
             
-            let Decoder : Decoder<Plan> =
-                Decode.object (fun get -> {
-                    PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
-                    BillingDimensions = (get.Required.Field billingDimensions (Decode.list BillingDimension.Decoder)) |> List.toSeq
-                })
+        let Decoder : Decoder<Plan> =
+            Decode.object (fun get -> {
+                PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
+                BillingDimensions = (get.Required.Field billingDimensions (Decode.list BillingDimension.Decoder)) |> List.toSeq
+            })
 
-        module ResourceID =
-            open MarketPlaceAPI
-
-            let Encoder (x: ResourceID) : JsonValue =
-                match x with
-                    | ManagedAppResourceGroupID x -> x |> ManagedAppResourceGroupID.value
-                    | SaaSSubscriptionID x ->  x |> SaaSSubscriptionID.value
-                |> Encode.string
+    module ResourceID =
+        let Encoder (x: ResourceID) : JsonValue =
+            match x with
+                | ManagedAppResourceGroupID x -> x |> ManagedAppResourceGroupID.value
+                | SaaSSubscriptionID x ->  x |> SaaSSubscriptionID.value
+            |> Encode.string
             
-            let Decoder : Decoder<ResourceID> = 
-                Decode.string |> Decode.andThen (fun v -> 
-                    if v.StartsWith("/subscriptions")
-                        then v |> ManagedAppResourceGroupID.create |> ManagedAppResourceGroupID 
-                        else v |> SaaSSubscriptionID.create |> SaaSSubscriptionID
-                    |> Decode.succeed)
+        let Decoder : Decoder<ResourceID> = 
+            Decode.string |> Decode.andThen (fun v -> 
+                if v.StartsWith("/subscriptions")
+                    then v |> ManagedAppResourceGroupID.create |> ManagedAppResourceGroupID 
+                    else v |> SaaSSubscriptionID.create |> SaaSSubscriptionID
+                |> Decode.succeed)
 
-        module MeteredBillingUsageEvent = 
-            let (resourceID, quantity, dimensionId, effectiveStartTime, planId) = 
-                ("resourceID", "quantity", "dimensionId", "effectiveStartTime", "planId");
+    module MeteredBillingUsageEvent = 
+        let (resourceID, quantity, dimensionId, effectiveStartTime, planId) = 
+            ("resourceID", "quantity", "dimensionId", "effectiveStartTime", "planId");
 
-            let Encoder (x: MeteredBillingUsageEvent) : JsonValue =
-                [
-                    (resourceID, x.ResourceID |> ResourceID.Encoder)
-                    (quantity, x.Quantity |> Quantity.Encoder)
-                    (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
-                    (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
-                    (planId, x.PlanId |> PlanId.value |> Encode.string)
-                ] |> Encode.object 
+        let Encoder (x: MeteredBillingUsageEvent) : JsonValue =
+            [
+                (resourceID, x.ResourceID |> ResourceID.Encoder)
+                (quantity, x.Quantity |> Quantity.Encoder)
+                (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
+                (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
+                (planId, x.PlanId |> PlanId.value |> Encode.string)
+            ] |> Encode.object 
             
-            let Decoder : Decoder<MeteredBillingUsageEvent> =
-                Decode.object (fun get -> {
-                    ResourceID = get.Required.Field resourceID ResourceID.Decoder
-                    Quantity = get.Required.Field quantity Quantity.Decoder
-                    DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create
-                    EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
-                    PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
-                })
+        let Decoder : Decoder<MeteredBillingUsageEvent> =
+            Decode.object (fun get -> {
+                ResourceID = get.Required.Field resourceID ResourceID.Decoder
+                Quantity = get.Required.Field quantity Quantity.Decoder
+                DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create
+                EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
+                PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
+            })
 
-    module SubscriptionType =
-        open MarketPlaceAPI
-        
+    module SubscriptionType =        
         let Encoder =
             SubscriptionType.toStr >> Encode.string
                    
@@ -250,37 +235,36 @@ module Json =
         let (timestamp, meterName, quantity, properties, scope) =
             ("timestamp", "meterName", "quantity", "properties", "scope");
 
-        let EncodeMap (x: (Map<string,string> option)) = 
-            x
-            |> Option.defaultWith (fun () -> Map.empty)
-            |> Map.toSeq |> Seq.toList
-            |> List.map (fun (k,v) -> (k, v |> Encode.string))
-            |> Encode.object
-
-        let DecodeMap : Decoder<Map<string,string>> =
-            (Decode.keyValuePairs Decode.string)
-            |> Decode.andThen (Map.ofList >> Decode.succeed)
-
         let Encoder (x: InternalUsageEvent) : JsonValue =
+            let EncodeProperties (x: (Map<string, string> option)) = 
+                x
+                |> Option.defaultWith (fun () -> Map.empty)
+                |> Map.toSeq |> Seq.toList<string * string>
+                |> List.map (fun (k,v) -> (k, v |> Encode.string))
+                |> Encode.object
+            
             [
                 (scope, x.Scope |> SubscriptionType.Encoder)
                 (timestamp, x.Timestamp |> MeteringDateTime.Encoder)
                 (meterName, x.MeterName |> ApplicationInternalMeterName.value |> Encode.string)
                 (quantity, x.Quantity |> Quantity.Encoder)
-                (properties, x.Properties |> EncodeMap)
+                (properties, x.Properties |> EncodeProperties)
             ] |> Encode.object 
 
         let Decoder : Decoder<InternalUsageEvent> =
+            let DecodeProperties : Decoder<Map<string,string>> =
+                (Decode.keyValuePairs Decode.string)
+                |> Decode.andThen (Map.ofList >> Decode.succeed)
+
             Decode.object (fun get -> {
                 Scope = get.Required.Field scope SubscriptionType.Decoder
                 Timestamp = get.Required.Field timestamp MeteringDateTime.Decoder
                 MeterName = (get.Required.Field meterName Decode.string) |> ApplicationInternalMeterName.create
                 Quantity = get.Required.Field quantity Quantity.Decoder
-                Properties = get.Optional.Field properties DecodeMap
+                Properties = get.Optional.Field properties DecodeProperties
             })
 
     module Subscription =
-        open MarketPlaceAPIJSON
         let (plan, renewalInterval, subscriptionStart, scope) =
             ("plan", "renewalInterval", "subscriptionStart", "scope");
 
@@ -301,8 +285,6 @@ module Json =
             })
 
     module PlanDimension =
-        open MarketPlaceAPI
-
         let (planId, dimensionId) =
             ("plan", "dimension");
 
@@ -319,7 +301,6 @@ module Json =
             })
 
     module InternalMetersMapping =
-        open MarketPlaceAPI
         let Encoder (x: InternalMetersMapping) = 
             x
             |> Map.toSeq |> Seq.toList
@@ -331,8 +312,6 @@ module Json =
             |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.create, v |> DimensionId.create)) |> Map.ofList |> Decode.succeed)
         
     module CurrentMeterValues = 
-        open MarketPlaceAPI
-
         let Encoder (x: CurrentMeterValues) = 
             x
             |> Map.toSeq |> Seq.toList
@@ -353,7 +332,6 @@ module Json =
             |> Decode.andThen  (fun r -> r |> List.map(fun (k, v) -> (k |> DimensionId.create, v)) |> Map.ofList |> Decode.succeed)
 
     module MeteringAPIUsageEventDefinition = 
-        open MarketPlaceAPIJSON
         let (resourceId, quantity, planDimension, effectiveStartTime, scope) =
             ("resourceId", "quantity", "planDimension", "effectiveStartTime", "scope");
 
@@ -376,8 +354,6 @@ module Json =
             })
     
     module SubscriptionCreationInformation =
-        open MarketPlaceAPIJSON
-
         let (subscription, metersMapping) =
             ("subscription", "metersMapping");
 
@@ -394,8 +370,6 @@ module Json =
             })
 
     module Meter =
-        open MarketPlaceAPIJSON
-        
         let (subscription, metersMapping, currentMeters, usageToBeReported, lastProcessedMessage) =
             ("subscription", "metersMapping", "currentMeters", "usageToBeReported", "lastProcessedMessage");
 
@@ -418,8 +392,6 @@ module Json =
             })
 
     module MeterCollection =
-        open MarketPlaceAPI
-
         let Encoder (x: MeterCollection) = 
             x
             |> Map.toSeq |> Seq.toList
@@ -461,8 +433,6 @@ module Json =
                 | invalidType  -> failwithf "`%s` is not a valid type" invalidType
             )
 
-    open MarketPlaceAPIJSON
-    
     let enrich x =
         x
         |> Extra.withUInt64

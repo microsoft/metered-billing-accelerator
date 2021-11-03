@@ -9,7 +9,6 @@
     using Azure.Messaging.EventHubs.Producer;
     using NodaTime;
     using Metering.Types;
-    using static Metering.Types.MarketPlaceAPI;
 
     public class UsageMeterSubmissionClient
     {

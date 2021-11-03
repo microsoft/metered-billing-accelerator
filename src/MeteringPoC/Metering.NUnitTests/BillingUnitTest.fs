@@ -2,11 +2,7 @@ module Metering.NUnitTests.Billing
 
 open System
 open NUnit.Framework
-open Metering
 open Metering.Types
-open Metering.BillingPeriod
-open Metering.Types.MarketPlaceAPI
-open Metering.Logic
 open NodaTime
 
 [<SetUp>]
@@ -106,7 +102,7 @@ let Test_Logic_subtractQuantityFromMeterValue() =
     let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let test (idx, testcase) = 
-        let result = Logic.subtractQuantityFromMeterValue now testcase.State testcase.Quantity
+        let result = testcase.State |> MeterValue.subtractQuantity now testcase.Quantity 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [ 
@@ -157,7 +153,7 @@ let Test_Logic_topupMonthlyCredits() =
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
 
     let test (idx, testcase) =
-        let result = testcase.Values |> List.fold (Logic.topupMonthlyCredits |> (fun f a (b, c) -> a |> f now (Quantity.createInt b) c)) testcase.Input
+        let result = testcase.Values |> List.fold (MeterValue.topupMonthlyCredits |> (fun f a (b, c) -> a |> f now (Quantity.createInt b) c)) testcase.Input
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [
@@ -205,7 +201,7 @@ let Test_Logic_topupMonthlyCredits() =
 let Test_previousBillingIntervalCanBeClosedNewEvent() =
     let test (idx, (prev, curEv, expected)) =
         let result : CloseBillingPeriod = 
-            Logic.previousBillingIntervalCanBeClosedNewEvent
+            BillingPeriod.previousBillingIntervalCanBeClosedNewEvent
                 (prev |> MeteringDateTime.fromStr)
                 (curEv |> MeteringDateTime.fromStr)
         
@@ -225,7 +221,7 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
               SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
               GracePeriod = Duration.FromHours(grace) }
 
-        let result = prev |> MeteringDateTime.fromStr |> Logic.previousBillingIntervalCanBeClosedWakeup config  
+        let result = prev |> MeteringDateTime.fromStr |> BillingPeriod.previousBillingIntervalCanBeClosedWakeup (config.CurrentTimeProvider(), config.GracePeriod)
                 
         Assert.AreEqual(expected, result, sprintf "Failure testc case #%d" idx)
 
