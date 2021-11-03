@@ -22,4 +22,5 @@ module CurrentTimeProvider =
 type MeteringConfigurationProvider = 
     { CurrentTimeProvider: CurrentTimeProvider
       SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
-      GracePeriod: Duration }
+      GracePeriod: Duration
+      ManagedResourceGroupResolver: DetermineManagedAppResourceGroupID }

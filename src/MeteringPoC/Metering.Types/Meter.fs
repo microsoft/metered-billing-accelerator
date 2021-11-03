@@ -35,9 +35,8 @@ module Meter =
                 match cq with 
                 | IncludedQuantity _ -> failwith "cannot happen"
                 | ConsumedQuantity q -> 
-                    { ResourceId = "ne" |> ResourceID.createFromSaaSSubscriptionID
+                    { SubscriptionType = state.Subscription.SubscriptionType
                       Quantity = q.Amount |> Quantity.valueAsFloat
-                      SubscriptionType = state.Subscription.SubscriptionType
                       PlanDimension = { PlanId = state.Subscription.Plan.PlanId ; DimensionId = dimensionId }
                       EffectiveStartTime = state.LastProcessedMessage.PartitionTimestamp |> MeteringDateTime.beginOfTheHour } )
             |> Map.values

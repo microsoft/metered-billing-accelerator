@@ -159,13 +159,18 @@ let main argv =
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
-          GracePeriod = Duration.FromHours(6.0) }
+          GracePeriod = Duration.FromHours(6.0)
+          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID }
 
     eventsFromEventHub
     |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
     |> Json.toStr                             |> inspect "meters"
     |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
     |> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
+    |> ignore
+
+    InstanceMetadataClient.demo
+    |> inspect "access_token"
     |> ignore
 
     0

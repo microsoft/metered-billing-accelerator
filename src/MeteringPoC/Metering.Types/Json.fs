@@ -337,7 +337,7 @@ module Json =
 
         let Encoder (x: MeteringAPIUsageEventDefinition) : JsonValue =
             [
-                (resourceId, x.ResourceId |> ResourceID.Encoder)
+                // (resourceId, x.ResourceId |> ResourceID.Encoder)
                 (quantity, x.Quantity |> Encode.decimal)
                 (planDimension, x.PlanDimension |> PlanDimension.Encoder)
                 (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
@@ -346,7 +346,7 @@ module Json =
         
         let Decoder : Decoder<MeteringAPIUsageEventDefinition> =
             Decode.object (fun get -> {
-                ResourceId = get.Required.Field resourceId ResourceID.Decoder
+                // ResourceId = get.Required.Field resourceId ResourceID.Decoder
                 Quantity = get.Required.Field quantity Decode.decimal
                 PlanDimension = get.Required.Field planDimension PlanDimension.Decoder
                 EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder

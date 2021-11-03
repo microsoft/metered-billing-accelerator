@@ -219,7 +219,8 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
         let config =
             { CurrentTimeProvider = curr |> MeteringDateTime.fromStr |> CurrentTimeProvider.AlwaysReturnSameTime
               SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
-              GracePeriod = Duration.FromHours(grace) }
+              GracePeriod = Duration.FromHours(grace)
+              ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID }
 
         let result = prev |> MeteringDateTime.fromStr |> BillingPeriod.previousBillingIntervalCanBeClosedWakeup (config.CurrentTimeProvider(), config.GracePeriod)
                 
