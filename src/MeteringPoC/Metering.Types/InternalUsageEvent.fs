@@ -1,7 +1,7 @@
 ﻿namespace Metering.Types
 
 type InternalUsageEvent = // From app to aggregator
-    { Scope: SubscriptionType
+    { InternalResourceId: InternalResourceId
       Timestamp: MeteringDateTime  // timestamp from the sending app
       MeterName: ApplicationInternalMeterName
       Quantity: Quantity

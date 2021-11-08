@@ -2,7 +2,7 @@
 
 open Metering.Types.EventHub
 
-type MeterCollection = Map<SubscriptionType, Meter>
+type MeterCollection = Map<InternalResourceId, Meter>
 
 module MeterCollection =
     let empty : MeterCollection = Map.empty
@@ -34,7 +34,7 @@ module MeterCollection =
         match meteringEvent.MeteringUpdateEvent with
         | SubscriptionPurchased s -> 
             state
-            |> Map.add s.Subscription.SubscriptionType (Meter.createNewSubscription s meteringEvent.MessagePosition)
+            |> Map.add s.Subscription.InternalResourceId (Meter.createNewSubscription s meteringEvent.MessagePosition)
         | AggregatorBooted ->
             state
             |> Map.toSeq
@@ -42,10 +42,10 @@ module MeterCollection =
             |> Map.ofSeq
         | UsageSubmittedToAPI submission ->
             state
-            |> Map.change submission.Payload.SubscriptionType (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some))
+            |> Map.change submission.Payload.ResourceId (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some))
         | UsageReported usage -> 
             state
-            |> Map.change usage.Scope (Option.bind ((Meter.handleUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
+            |> Map.change usage.InternalResourceId (Option.bind ((Meter.handleUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
             
     let meterCollectionHandleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvents: MeteringEvent list) : MeterCollection =
         meteringEvents |> List.fold (meterCollectionHandleMeteringEvent config) state

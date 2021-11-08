@@ -5,19 +5,24 @@ type MeteringDateTime = NodaTime.ZonedDateTime
 module MeteringDateTime =
     open NodaTime
     open NodaTime.Text
-    open Metering
 
+    let private toPattern p = 
+        ZonedDateTimePattern.CreateWithInvariantCulture(p, DateTimeZoneProviders.Bcl)
+
+    let onlySecond = "yyyy-MM-ddTHH:mm:ss" |> toPattern
+    let onlySecondZulu = "yyyy-MM-ddTHH:mm:ss'Z'" |> toPattern
+    let withNanoSecondsInZulu = "yyyy-MM-ddTHH:mm:ss.FFFFFFF'Z'" |> toPattern
     let meteringDateTimePatterns = 
         [ 
-            // this is the default for serialization
-            "yyyy-MM-ddTHH:mm:ss"
-            "yyyy-MM-ddTHH:mm:ss.FFF" 
+            withNanoSecondsInZulu // "2021-11-05T10:00:25.7798568Z",
+            onlySecondZulu
+            onlySecond 
         ]
-        |> List.map (fun p -> ZonedDateTimePattern.CreateWithInvariantCulture(p, DateTimeZoneProviders.Bcl))
-
-    let toStr (d: MeteringDateTime) : string = meteringDateTimePatterns.Head.Format(d)
+        
+    let toStr (d: MeteringDateTime) : string =
+        d |> withNanoSecondsInZulu.Format
     
-    let fromStr (str: string) : MeteringDateTime = 
+    let fromStr (str: string) : MeteringDateTime =      
         meteringDateTimePatterns
         |> List.map (fun p -> p.Parse(str))
         |> List.filter (fun p -> p.Success)

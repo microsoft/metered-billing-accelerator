@@ -35,9 +35,10 @@ module Meter =
                 match cq with 
                 | IncludedQuantity _ -> failwith "cannot happen"
                 | ConsumedQuantity q -> 
-                    { SubscriptionType = state.Subscription.SubscriptionType
+                    { ResourceId = state.Subscription.InternalResourceId
                       Quantity = q.Amount |> Quantity.valueAsFloat
-                      PlanDimension = { PlanId = state.Subscription.Plan.PlanId ; DimensionId = dimensionId }
+                      PlanId = state.Subscription.Plan.PlanId 
+                      DimensionId = dimensionId
                       EffectiveStartTime = state.LastProcessedMessage.PartitionTimestamp |> MeteringDateTime.beginOfTheHour } )
             |> Map.values
             |> List.ofSeq

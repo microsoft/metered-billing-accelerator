@@ -1,16 +1,28 @@
 ﻿namespace Metering.Types
 
-open NodaTime
+open System
 open System.Threading.Tasks
+open NodaTime
 
 type MeteringClient = 
     InternalUsageEvent -> Task
 
 type SubmitMeteringAPIUsageEvent =
-    MeteringAPIUsageEventDefinition -> Async<unit>
+    MeteringAPIUsageEventDefinition -> Task<MarketplaceSubmissionResult>
 
 module SubmitMeteringAPIUsageEvent =
-    let Discard : SubmitMeteringAPIUsageEvent = (fun _ -> Async.AwaitTask Task.CompletedTask)
+    let Discard : SubmitMeteringAPIUsageEvent = (fun e -> 
+        { ResourceID = e.ResourceId 
+          Quantity = e.Quantity
+          PlanId = e.PlanId
+          DimensionId = e.DimensionId 
+          EffectiveStartTime = e.EffectiveStartTime             
+          UsageEventId = Guid.Empty.ToString()
+          MessageTime = e.EffectiveStartTime
+          ResourceURI = e.ResourceId |> InternalResourceId.toStr }
+        |> Ok
+        |> Task.FromResult
+        )
 
 type CurrentTimeProvider =
     unit -> MeteringDateTime

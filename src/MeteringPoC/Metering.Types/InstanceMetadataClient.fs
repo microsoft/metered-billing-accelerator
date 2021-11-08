@@ -5,13 +5,20 @@ open System.Net.Http
 open System.Net.Http.Json
 open System.Web
 open Microsoft.FSharp.Control
+open System.Threading.Tasks
 
 //type ResourceGroupDefinition = { ManagedBy: string }
 
 module InstanceMetadataClient = 
     type TokenResponse = { access_token: string }
     
-    let get_access_token : (string -> string) =
+    let clientWithMetadataTrue endpoint =
+        let client = new HttpClient()
+        client.BaseAddress <- new Uri(endpoint)
+        client.DefaultRequestHeaders.Add("Metadata", "true")
+        client
+
+    let get_access_token : (string -> Task<string>) =
         let getMSIConfigFromEnvironment =
             let env s = 
                 match s |> Environment.GetEnvironmentVariable with
@@ -24,13 +31,11 @@ module InstanceMetadataClient =
             | (Some identityEndpoint, Some identityHeader, _, _) -> (identityEndpoint, Some ("X-IDENTITY-HEADER", identityHeader), "2019-08-01")
             | _ -> ("http://169.254.169.254/metadata/identity/oauth2/token", None, "2019-08-01")
             
-        let access_token_retriever (resource: string) =
+        let access_token_retriever (resource: string) : Task<string> =
             task {
                 let (endpoint, headerAndSecret, apiVersion) = getMSIConfigFromEnvironment
     
-                use client = new HttpClient()
-                client.BaseAddress <- new Uri(endpoint)
-                client.DefaultRequestHeaders.Add("Metadata", "true")
+                use client = clientWithMetadataTrue endpoint
 
                 match headerAndSecret with
                 | Some (h, v) -> client.DefaultRequestHeaders.Add(h, v) 
@@ -41,36 +46,51 @@ module InstanceMetadataClient =
 
                 return token
             }
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
         
         access_token_retriever
 
-    let create (resource: string) : HttpClient =
-        let client = new HttpClient()
-        client.BaseAddress <- new Uri(resource)
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {get_access_token resource}")
-        client
+    let createWithAccessToken (resource: string) : Task<HttpClient> =
+        task {
+            let! access_token = get_access_token resource
+            let client = new HttpClient()
+            client.BaseAddress <- new Uri(resource)
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {access_token}")
+            return client
+        }
 
-    let private demo =
-        let inspect header a =
-            if String.IsNullOrEmpty header 
-            then printfn "%s" a
-            else printfn "%s: %s" header a
-            a
+    //let private demo =
+    //    let inspect header a =
+    //        if String.IsNullOrEmpty header 
+    //        then printfn "%s" a
+    //        else printfn "%s: %s" header a
+    //        a
 
-        "https://management.azure.com/" 
-        |> get_access_token 
-        |> inspect "access_token"
-        |> ignore
+    //    task {
+    //        let! access_token = 
+    //            "https://management.azure.com/" 
+    //            |> get_access_token 
 
-        "https://management.azure.com/"
-        |> create 
-        |> (fun (client : HttpClient) -> 
-            task {
-                return! client.GetStringAsync("/subscriptions?api-version=2020-01-01")
-            }
-            |> Async.AwaitTask
-            |> Async.RunSynchronously)
-        |> inspect "subscriptions"
-        |> ignore
+    //        access_token
+    //        |> inspect "access_token"
+    //        |> ignore
+    //    }
+    //    |> Async.AwaitTask
+    //    |> Async.RunSynchronously
+
+    //    task {
+    //        let! client = 
+    //            "https://management.azure.com/"
+    //            |> create 
+
+    //        client
+    //        |> (fun (client : HttpClient) -> 
+    //            task {
+    //                return! client.GetStringAsync("/subscriptions?api-version=2020-01-01")
+    //            }
+    //            |> Async.AwaitTask
+    //            |> Async.RunSynchronously)
+    //        |> inspect "subscriptions"
+    //        |> ignore
+    //    }
+    //    |> Async.AwaitTask
+    //    |> Async.RunSynchronously

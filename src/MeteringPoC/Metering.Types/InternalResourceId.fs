@@ -8,11 +8,11 @@ module SaaSSubscriptionID =
     let value (SaaSSubscriptionID x) = x
 
 /// This is the key by which to aggregate across multiple tenants
-type SubscriptionType =
+type InternalResourceId =
     | ManagedApp
     | SaaSSubscription of SaaSSubscriptionID
 
-module SubscriptionType =
+module InternalResourceId =
     let private ManagedAppMarkerString = "AzureManagedApplication"
 
     let fromStr s =

@@ -4,7 +4,7 @@
 type MeteredBillingUsageEvent =
     { 
         /// Unique identifier of the resource against which usage is emitted. 
-        ResourceID: ResourceID 
+        ResourceID: MarketplaceResourceID 
           
         /// How many units were consumed for the date and hour specified in effectiveStartTime, must be greater than 0, can be integer or float value
         Quantity: Quantity 

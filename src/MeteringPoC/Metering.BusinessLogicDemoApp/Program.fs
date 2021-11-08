@@ -1,7 +1,4 @@
 ﻿open System
-open Thoth.Json.Net
-
-open Metering
 open Metering.Types
 open Metering.Types.EventHub
 open NodaTime
@@ -31,10 +28,10 @@ let parseConsumptionEvents (str: string) =
             |> Array.toList
             |> List.map (fun s -> s.Trim())
             |> function
-                | [sequencenr; datestr; scope; name; amountstr; props] -> 
+                | [sequencenr; datestr; internalResourceId; name; amountstr; props] -> 
                     Some {
                         MeteringUpdateEvent = UsageReported {
-                            Scope = scope |> SubscriptionType.fromStr
+                            InternalResourceId = internalResourceId |> InternalResourceId.fromStr
                             Timestamp = datestr |> MeteringDateTime.fromStr 
                             MeterName = name |> ApplicationInternalMeterName.create
                             Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
@@ -44,10 +41,10 @@ let parseConsumptionEvents (str: string) =
                             SequenceNumber = sequencenr |> UInt64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                     }
-                | [sequencenr; datestr; scope; name; amountstr] -> 
+                | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
                     Some {
                         MeteringUpdateEvent = UsageReported {
-                            Scope = scope |> SubscriptionType.fromStr
+                            InternalResourceId = internalResourceId |> InternalResourceId.fromStr
                             Timestamp = datestr |> MeteringDateTime.fromStr
                             MeterName = name |> ApplicationInternalMeterName.create
                             Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
@@ -65,8 +62,6 @@ let parseConsumptionEvents (str: string) =
     str
     |> multilineParse parseUsageEvents
 
-
-
 let inspect header a =
     if String.IsNullOrEmpty header 
     then printfn "%s" a
@@ -74,9 +69,21 @@ let inspect header a =
     
     a
 
+let inspecto header a =
+    if String.IsNullOrEmpty header 
+    then printfn "%A" a
+    else printfn "%s: %A" header a
+    
+    a
+
 [<EntryPoint>]
 let main argv = 
+    //"2021-11-05T10:00:25.7798568Z"
+    //|> MeteringDateTime.fromStr  
+    //|> MeteringDateTime.toStr
+    //|> inspecto "n"
 
+ 
     // 11111111-8a88-4a47-a691-1b31c289fb33 is a sample GUID of a SaaS subscription
     let sub1 =
         """
@@ -129,11 +136,42 @@ let main argv =
   }
 }
     """ |> Json.fromStr<MeteringEvent>
+
+
+    
+    let sub3 =
+        """
+{
+  "MeteringUpdateEvent": {
+    "type": "subscriptionPurchased",
+    "value": {
+     "subscription": {
+           "renewalInterval": "Monthly",
+           "subscriptionStart": "2021-11-04T16:12:26",
+           "scope": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+           "plan": {
+             "planId": "free_monthly_yearly",
+             "billingDimensions": [
+               { "dimension": "nodecharge", "name": "Per Node Connected", "unitOfMeasure": "node/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
+               { "dimension": "cpucharge", "name": "Per CPU Connected", "unitOfMeasure": "cpu/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
+               { "dimension": "datasourcecharge", "name": "Per Datasource Integration", "unitOfMeasure": "ds/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
+               { "dimension": "messagecharge", "name": "Per Message Transmitted", "unitOfMeasure": "message/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
+               { "dimension": "objectcharge", "name": "Per Object Detected", "unitOfMeasure": "object/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } } ] } },
+     "metersMapping": { "nde": "nodecharge", "cpu": "cpucharge", "dta": "datasourcecharge", "msg": "messagecharge", "obj": "objectcharge"}
+    }
+  },
+  "MessagePosition": {
+    "partitionTimestamp": "2021-11-04T16:12:30",
+    "sequenceNumber": "1",
+    "partitionId": "1"
+  }
+}
+    """ |> Json.fromStr<MeteringEvent>
     
 
     // 11111111-8a88-4a47-a691-1b31c289fb33 2021-10-01T12:20:34
     // 22222222-8a88-4a47-a691-1b31c289fb33 2021-10-13T09:20:36
-
+    // fdc778a6-1281-40e4-cade-4a5fc11f5440 2021-11-04T16:12:26
 
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
@@ -149,28 +187,27 @@ let main argv =
         001012 | 2021-10-15T00:00:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 | Email Campaign=User retention, Department=Marketing
         001013 | 2021-10-15T01:01:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 
         001014 | 2021-10-15T01:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
-        001014 | 2021-10-15T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     11
-        001014 | 2021-10-15T03:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
+        001015 | 2021-10-15T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     11
+        001016 | 2021-10-15T03:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
+        001017 | 2021-10-16T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     8
+        001018 | 2021-10-16T12:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     1
+        001019 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | dta   |     3
+        001020 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | cpu   |     30001
         """ |> parseConsumptionEvents
         
-    let eventsFromEventHub = [ [sub1; sub2]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
-
+    let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
 
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
           GracePeriod = Duration.FromHours(6.0)
-          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID }
+          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg" }
 
     eventsFromEventHub
     |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
     |> Json.toStr                             |> inspect "meters"
     |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
     |> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
-    |> ignore
-
-    InstanceMetadataClient.demo
-    |> inspect "access_token"
     |> ignore
 
     0

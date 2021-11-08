@@ -20,28 +20,28 @@
         }
 
         public Task SubmitManagedAppIntegerAsync(string meterName, ulong unit, CancellationToken ct) => SubmitUsage(new(
-                scope: SubscriptionType.ManagedApp,
+                internalResourceId: InternalResourceId.ManagedApp,
                 timestamp: new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc),
                 meterName: ApplicationInternalMeterNameModule.create(meterName),
                 quantity: QuantityModule.createInt(unit),
                 properties: FSharpOption<FSharpMap<string, string>>.None), ct);
 
         public Task SubmitManagedAppFloatAsync(string meterName, decimal unit, CancellationToken ct) => SubmitUsage(new(
-                scope: SubscriptionType.ManagedApp,
+                internalResourceId: InternalResourceId.ManagedApp,
                 timestamp: new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc),
                 meterName: ApplicationInternalMeterNameModule.create(meterName),
                 quantity: QuantityModule.createFloat(unit),
                 properties: FSharpOption<FSharpMap<string, string>>.None), ct);
 
         public Task SubmitSaasIntegerAsync(string saasId, string meterName, ulong unit, CancellationToken ct) => SubmitUsage(new(
-                scope: SubscriptionType.NewSaaSSubscription(SaaSSubscriptionIDModule.create(saasId)),
+                internalResourceId: InternalResourceId.NewSaaSSubscription(SaaSSubscriptionIDModule.create(saasId)),
                 timestamp: new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc),
                 meterName: ApplicationInternalMeterNameModule.create(meterName),
                 quantity: QuantityModule.createInt(unit),
                 properties: FSharpOption<FSharpMap<string, string>>.None), ct);
 
         public Task SubmitSaasFloatAsync(string saasId, string meterName, decimal unit, CancellationToken ct) => SubmitUsage(new(
-                scope: SubscriptionType.NewSaaSSubscription(SaaSSubscriptionIDModule.create(saasId)),
+                internalResourceId: InternalResourceId.NewSaaSSubscription(SaaSSubscriptionIDModule.create(saasId)),
                 timestamp: new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc),
                 meterName: ApplicationInternalMeterNameModule.create(meterName),
                 quantity: QuantityModule.createFloat(unit),
@@ -49,7 +49,6 @@
 
         private async Task SubmitUsage(InternalUsageEvent internalUsageEvent, CancellationToken ct)
         {
-            await Task.Delay(1, ct);
             var eventBatch = await producer.CreateBatchAsync(
                 options: new CreateBatchOptions
                 {
