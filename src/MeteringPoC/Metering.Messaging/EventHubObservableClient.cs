@@ -53,7 +53,7 @@
                 };
                 Task ProcessError (ProcessErrorEventArgs processErrorEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent.NewError(processErrorEventArgs));
+                    o.OnNext(EventHubProcessorEvent.NewEventHubError(processErrorEventArgs));
                     return Task.CompletedTask;
                 };
                 async Task PartitionInitializing(PartitionInitializingEventArgs partitionInitializingEventArgs)

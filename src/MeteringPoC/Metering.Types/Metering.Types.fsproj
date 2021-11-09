@@ -1,25 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="EventHub.fs" />
-    <Compile Include="Types.fs" />
-    <Compile Include="Json.fs" />
-    <Compile Include="BusinessLogic.fs" />
+    <Compile Include="InstanceMetadataClient.fs" />
     <Compile Include="FSharpFuncUtil.fs" />
+    <Compile Include="MeteringDateTime.fs" />
+    <Compile Include="EventHub.fs" />
+    <Compile Include="Quantity.fs" />
+    <Compile Include="ConsumedQuantity.fs" />
+    <Compile Include="IncludedQuantitySpecification.fs" />
+    <Compile Include="IncludedQuantity.fs" />
+    <Compile Include="RenewalInterval.fs" />
+    <Compile Include="MeterValue.fs" />
+    <Compile Include="InternalResourceId.fs" />
+    <Compile Include="PlanId.fs" />
+    <Compile Include="CurrentMeterValues.fs" />
+    <Compile Include="BillingDimension.fs" />
+    <Compile Include="Plan.fs" />
+    <Compile Include="ManagedAppResourceGroupID.fs" />
+    <Compile Include="MarketplaceResourceID.fs" />
+    <Compile Include="MeteredBillingUsageEvent.fs" />
+    <Compile Include="ApplicationInternalMeterName.fs" />
+    <Compile Include="InternalUsageEvent.fs" />
+    <Compile Include="BusinessError.fs" />
+    <Compile Include="Subscription.fs" />
+    <Compile Include="BillingPeriod.fs" />
+    <Compile Include="InternalMetersMapping.fs" />
+    <Compile Include="MeteringAPIUsageEventDefinition.fs" />
+    <Compile Include="DependencyInjection.fs" />
+    <Compile Include="MarketplaceClient.fs" />
+    <Compile Include="SubscriptionCreationInformation.fs" />
+    <Compile Include="Meter.fs" />
+    <Compile Include="MeteringUpdateEvent.fs" />
+    <Compile Include="MeteringEvent.fs" />
+    <Compile Include="MeterCollection.fs" />
+    <Compile Include="Json.fs" />
+    <Compile Include="TestBusinessLogic.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.5.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.10.0" />
     <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
     <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
-    <PackageReference Include="NodaTime" Version="3.0.7" />
+    <PackageReference Include="NodaTime" Version="3.0.9" />
     <PackageReference Include="Thoth.Json.Net" Version="7.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.0" />
+    <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
 </Project>

@@ -1,168 +1,236 @@
 ﻿open System
 open Metering.Types
-open System.Globalization
-open NodaTime
-open Metering
-open Metering.Types.MarketPlaceAPI
 open Metering.Types.EventHub
-open Thoth.Json.Net
+open NodaTime
+open System.Net.Http
+open System.Threading.Tasks
 
-
-// Plan
-// - Containing information about how many widgets are included per month
-//
-// Purchase
-// - Containing information about Billing dates
-//
-// Current consumption counter
-// - Countdown for "included widgets" in current billing period
-// - Once "included widgets" for current billing period are consumed, start counting hourly
-
-let parsePlans planStrings =
-    let parseBillingDimension (s: string) : PlanId * BillingDimension =
-        let parseQuantity(p: string) : IncludedQuantity =
-            let pq (n: string) : Quantity option = 
-                match UInt64.TryParse(n) with
-                | (true, x) when x > 0UL -> Some x
-                | _ -> None
-
-            match (s.Split([|'/'|]) |> Array.toList |> List.map (fun s -> s.Trim())) with
-            | [a; m] -> { Annually = pq(a); Monthly = pq(m) }
-            | _ ->  { Annually = None; Monthly = None }
-
-        s.Split([|'|'|], 5)
+let parseConsumptionEvents (str: string) = 
+    let multilineParse parser (str : string) =  
+        str
+        |> (fun s -> s.Split([|"\n"|], StringSplitOptions.RemoveEmptyEntries))
         |> Array.toList
-        |> List.map (fun s -> s.Trim())
-        |> function
-            | [planId; dimensionId; name; unitOfMeasure; includedQuantity] -> 
-                (planId, {
-                    DimensionId = dimensionId
-                    DimensionName = name
-                    UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = includedQuantity |> parseQuantity 
-                })
-            | [planId; dimensionId; name; unitOfMeasure] -> 
-                (planId, {
-                    DimensionId = dimensionId
-                    DimensionName = name
-                    UnitOfMeasure = unitOfMeasure
-                    IncludedQuantity = { Annually = None; Monthly = None }
-                })
-            | _ -> failwith "parsing error"
+        |> parser
 
-    planStrings
-    |> Seq.map parseBillingDimension
-    |> Seq.groupBy(fun (plan, _) -> plan)
-    |> Seq.map(fun (plan, elems) -> (plan, (elems |> Seq.map(fun (p, e) -> e) ) ))
-    |> Seq.map(fun (planid, billingDims) -> { PlanId = planid; BillingDimensions = billingDims })
-
-let parseUsageEvents events =
-    let parseUsageEvent (s: string) =
-        let parseDate (p: string) =
-            DateTime.ParseExact(p, [|"yyyy-MM-dd--HH-mm-ss"|], CultureInfo.CurrentCulture, DateTimeStyles.AssumeUniversal)
-
-        let parseProps (p: string) =
-            p.Split([|','|])
+    let parseUsageEvents events =
+        let parseUsageEvent (s: string) =
+            let parseProps (p: string) =
+                p.Split([|','|])
+                |> Array.toList
+                |> List.map (fun x -> x.Split([|'='|]))
+                |> List.map Array.toList
+                |> List.filter (fun l -> l.Length = 2)
+                |> List.map (function 
+                    | [k;v] -> (k.Trim(), v.Trim())
+                    | _ -> failwith "cannot happen")
+                |> Map.ofList
+                |> Some
+    
+            s.Split([|'|'|], 6)
             |> Array.toList
-            |> List.map (fun x -> x.Split([|'='|]))
-            |> List.map Array.toList
-            |> List.filter (fun l -> l.Length = 2)
-            |> List.map (function 
-                | [k;v] -> (k.Trim(), v.Trim())
-                | _ -> failwith "cannot happen")
-            |> Map.ofList
-            |> Some
+            |> List.map (fun s -> s.Trim())
+            |> function
+                | [sequencenr; datestr; internalResourceId; name; amountstr; props] -> 
+                    Some {
+                        MeteringUpdateEvent = UsageReported {
+                            InternalResourceId = internalResourceId |> InternalResourceId.fromStr
+                            Timestamp = datestr |> MeteringDateTime.fromStr 
+                            MeterName = name |> ApplicationInternalMeterName.create
+                            Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
+                            Properties = props |> parseProps }
+                        MessagePosition = {
+                            PartitionID = "1"
+                            SequenceNumber = sequencenr |> UInt64.Parse
+                            PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                    }
+                | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
+                    Some {
+                        MeteringUpdateEvent = UsageReported {
+                            InternalResourceId = internalResourceId |> InternalResourceId.fromStr
+                            Timestamp = datestr |> MeteringDateTime.fromStr
+                            MeterName = name |> ApplicationInternalMeterName.create
+                            Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
+                            Properties = None }
+                        MessagePosition = {
+                            PartitionID = "1"
+                            SequenceNumber = sequencenr |> UInt64.Parse
+                            PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                    }
+                | _ -> None
+        events
+        |> List.map parseUsageEvent
+        |> List.choose id
 
-        s.Split([|'|'|], 4)
-        |> Array.toList
-        |> List.map (fun s -> s.Trim())
-        |> function
-            | [datestr; name; amountstr; props] -> 
-                Some {
-                    Timestamp = datestr |> parseDate
-                    MeterName = name
-                    Quantity = amountstr |> UInt64.Parse
-                    Properties = props |> parseProps
-                }
-            | [datestr; name; amountstr] -> 
-                Some {
-                    Timestamp = datestr |> parseDate
-                    MeterName = name
-                    Quantity = amountstr |> UInt64.Parse
-                    Properties = None
-                }
-            | _ -> None
-    events
-    |> List.map parseUsageEvent
-    |> List.choose id
+    str
+    |> multilineParse parseUsageEvents
+
+let inspect header a =
+    if String.IsNullOrEmpty header 
+    then printfn "%s" a
+    else printfn "%s: %s" header a
+    
+    a
+
+let inspecto header a =
+    if String.IsNullOrEmpty header 
+    then printfn "%A" a
+    else printfn "%s: %A" header a
+    
+    a
 
 [<EntryPoint>]
-let main argv =
+let main argv = 
+    //"2021-11-05T10:00:25.7798568Z"
+    //|> MeteringDateTime.fromStr  
+    //|> MeteringDateTime.toStr
+    //|> inspecto "n"
+
  
-    let plans = 
-        [ 
-            // planID dimensionId         name                                unitOfMeasure   includedAnnually/Monthly
-            "plan1 | nodecharge         | Per Node Connected                | node/hour"
-            "plan1 | cpucharge          | Per CPU urage                     | cpu/hour"
-            "plan1 | datasourcecharge   | Per DataSource Integration        | ds/hour"
-            "plan1 | messagecharge      | Per Message Transmitted           | message/hour"
-            "plan2 | MachineLearningJob | An expensive machine learning job | machine learning jobs | 0/10"
-            "plan2 | EMailCampaign      | An e-mail sent for campaign usage | e-mails               | 0/250000" // 0 annually, 250000 monthly
-        ] |> parsePlans
-
-    let dateTimeToNoda (dateTime : DateTime) =
-        ZonedDateTime(LocalDateTime.FromDateTime(dateTime.ToUniversalTime()), DateTimeZone.Utc, Offset.Zero)
-
-    let oldBalance  = {
-        Plans = plans
-        InternalMetersMapping = 
-            [
-                ("email", { PlanId = "plan2"; DimensionId = "EMailCampaign" })
-                ("ml", { PlanId = "plan2"; DimensionId = "MachineLearningJob" })
-            ] |> Map.ofList
-        InitialPurchase = {
-            PlanId = "plan2"
-            SubscriptionStart = LocalDate(2021, 10, 01)
-            RenewalInterval = Monthly }
-        // LastProcessedEventSequenceID = 237492749,
-        CurrentMeterValues =
-            [
-                ("email", ConsumedQuantity { Amount = 100UL })
-                ("ml", IncludedQuantity { Annually = None ; Monthly = Some 10UL })
-            ] |> Map.ofList
-        UsageToBeReported = List.empty // HTTP Call payload which still needs to be sent to MeteringAPI
-        LastProcessedMessage = { 
-            PartitionID = "0"
-            SequenceNumber =  9UL
-            PartitionTimestamp = DateTime.UtcNow.Subtract(TimeSpan.FromDays(1.0)) // |> dateTimeToNoda 
-        }
+    // 11111111-8a88-4a47-a691-1b31c289fb33 is a sample GUID of a SaaS subscription
+    let sub1 =
+        """
+{
+  "MeteringUpdateEvent": {
+    "type": "SubscriptionPurchased",
+    "value": {
+     "subscription": {
+       "renewalInterval": "Monthly",
+       "subscriptionStart": "2021-10-01T12:20:33",
+       "scope": "11111111-8a88-4a47-a691-1b31c289fb33",
+       "plan": {
+         "planId": "plan2",
+         "billingDimensions": [
+           { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
+           { "dimension": "EMailCampaign", "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } },
+     "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
     }
+  },
+  "MessagePosition": {
+    "partitionTimestamp": "2021-10-01T12:20:34",
+    "sequenceNumber": "1",
+    "partitionId": "1"
+  }
+}
+    """ |> Json.fromStr<MeteringEvent>
 
-    let myExtraCoders = Extra.empty |> Json.enrich
-    let json = Encode.Auto.toString (1, oldBalance, extra = myExtraCoders)
-    let f2 = Decode.Auto.fromString<MeteringState>(json, extra = myExtraCoders)
-    printfn "%s \n%A" json f2
+    let sub2 =
+        """
+{
+  "MeteringUpdateEvent": {
+    "type": "SubscriptionPurchased",
+    "value": {
+     "subscription": {
+       "renewalInterval": "Monthly",
+       "subscriptionStart": "2021-10-13T09:20:33",
+       "scope": "22222222-8a88-4a47-a691-1b31c289fb33",
+       "plan": {
+         "planId": "plan2",
+         "billingDimensions": [
+           { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
+           { "dimension": "EMailCampaign", "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } },
+     "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
+    }
+  },
+  "MessagePosition": {
+    "partitionTimestamp": "2021-10-13T09:20:36",
+    "sequenceNumber": "1",
+    "partitionId": "1"
+  }
+}
+    """ |> Json.fromStr<MeteringEvent>
 
 
-    // Position read pointer in EventHub to 237492750, and start applying 
-    let eventsFromEventHub = 
-        [
-            "2021-10-13--14-12-02 | ml    |   1 | Department=Data Science, Project ID=Skunkworks vNext"
-            "2021-10-13--15-12-03 | ml    |   2                                                       "
-            "2021-10-13--15-13-02 | email | 300 | Email Campaign=User retention, Department=Marketing "
-            "2021-10-13--15-12-08 | ml    |  20                                                       "
-        ]
-        |> parseUsageEvents
+    
+    let sub3 =
+        """
+{
+  "MeteringUpdateEvent": {
+    "type": "SubscriptionPurchased",
+    "value": {
+     "subscription": {
+           "renewalInterval": "Monthly",
+           "subscriptionStart": "2021-11-04T16:12:26",
+           "scope": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+           "plan": {
+             "planId": "free_monthly_yearly",
+             "billingDimensions": [
+               { "dimension": "nodecharge", "name": "Per Node Connected", "unitOfMeasure": "node/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
+               { "dimension": "cpucharge", "name": "Per CPU Connected", "unitOfMeasure": "cpu/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
+               { "dimension": "datasourcecharge", "name": "Per Datasource Integration", "unitOfMeasure": "ds/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
+               { "dimension": "messagecharge", "name": "Per Message Transmitted", "unitOfMeasure": "message/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
+               { "dimension": "objectcharge", "name": "Per Object Detected", "unitOfMeasure": "object/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } } ] } },
+     "metersMapping": { "nde": "nodecharge", "cpu": "cpucharge", "dta": "datasourcecharge", "msg": "messagecharge", "obj": "objectcharge"}
+    }
+  },
+  "MessagePosition": {
+    "partitionTimestamp": "2021-11-04T16:12:30",
+    "sequenceNumber": "1",
+    "partitionId": "1"
+  }
+}
+    """ |> Json.fromStr<MeteringEvent>
+    
 
-    let newBalance =
-        eventsFromEventHub
-        |> CurrentBillingState.applyUsageEvents oldBalance 
+    // 11111111-8a88-4a47-a691-1b31c289fb33 2021-10-01T12:20:34
+    // 22222222-8a88-4a47-a691-1b31c289fb33 2021-10-13T09:20:36
+    // fdc778a6-1281-40e4-cade-4a5fc11f5440 2021-11-04T16:12:26
 
-    //printfn "plan %A" plan
-    //printfn "usageEvents %A" usageEvents
-    //printfn "oldBalance %A" oldBalance.CurrentMeterValues
+    // Position read pointer in EventHub to 001002, and start applying 
+    let consumptionEvents = 
+        """
+        001002 | 2021-10-13T14:12:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | ml    |      1 | Department=Data Science, Project ID=Skunkworks vNext
+        001003 | 2021-10-13T15:12:03 | 11111111-8a88-4a47-a691-1b31c289fb33 | ml    |      2
+        001004 | 2021-10-13T15:13:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |    300 | Email Campaign=User retention, Department=Marketing
+        001007 | 2021-10-13T15:19:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email | 300000 | Email Campaign=User retention, Department=Marketing
+        001008 | 2021-10-13T16:01:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001009 | 2021-10-13T16:20:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001010 | 2021-10-13T17:01:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
+        001011 | 2021-10-13T17:01:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 | Email Campaign=User retention, Department=Marketing
+        001012 | 2021-10-15T00:00:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 | Email Campaign=User retention, Department=Marketing
+        001013 | 2021-10-15T01:01:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 
+        001014 | 2021-10-15T01:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
+        001015 | 2021-10-15T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     11
+        001016 | 2021-10-15T03:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
+        001017 | 2021-10-16T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     8
+        001018 | 2021-10-16T12:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     1
+        001019 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | dta   |     3
+        001020 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | cpu   |     30001
+        """ |> parseConsumptionEvents
+        
+    let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
+
+    let config = 
+        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+          SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
+          GracePeriod = Duration.FromHours(6.0)
+          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg" }
+
+    eventsFromEventHub
+    |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+    |> Json.toStr                             |> inspect "meters"
+    |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
+    |> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
+    |> ignore
 
 
-    //printfn "newBalance %A" (Newtonsoft.Json.JsonConvert.SerializeObject(newBalance))
+    let read (url: string) = 
+        task {
+            use c = new HttpClient()
+            let! b = c.GetStringAsync(url)
+            return b
+        }
+        
+    let r = 
+        try
+            let x = read "https://www.microsoft.com/"
+            Ok x.Result
+        with 
+        | exn as e -> Error e.Message
+
+    match r with
+    | Ok msg -> 
+        printfn "%s" msg
+    | Error e -> 
+        printfn "Error %s" e
+
     0
-

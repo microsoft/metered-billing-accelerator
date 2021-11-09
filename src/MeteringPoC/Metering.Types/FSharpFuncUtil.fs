@@ -1,4 +1,4 @@
-﻿namespace Metering
+﻿namespace Metering.Types
 
 open System
 open System.Collections.Generic

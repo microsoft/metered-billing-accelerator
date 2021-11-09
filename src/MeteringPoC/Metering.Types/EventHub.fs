@@ -1,12 +1,11 @@
 ﻿namespace Metering.Types.EventHub
 
-open System
-open NodaTime
 open Azure.Core
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
+open Metering.Types
 
 type SequenceNumber = uint64
 
@@ -15,7 +14,7 @@ type PartitionID = string
 type MessagePosition = 
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber
-      PartitionTimestamp: DateTime } // ZonedDateTime }
+      PartitionTimestamp: MeteringDateTime }
 
 type SeekPosition =
     | FromSequenceNumber of SequenceNumber: SequenceNumber 
@@ -36,6 +35,6 @@ type Event =
 
 type EventHubProcessorEvent =
     | Event of Event
-    | Error of ProcessErrorEventArgs
+    | EventHubError of ProcessErrorEventArgs
     | PartitionInitializing of PartitionInitializingEventArgs
     | PartitionClosing of PartitionClosingEventArgs
