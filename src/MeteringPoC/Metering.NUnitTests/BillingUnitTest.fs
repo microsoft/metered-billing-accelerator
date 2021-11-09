@@ -259,3 +259,42 @@ let QuantityMath() =
 
     Assert.AreEqual(f 11.1, (q 3) + (f 8.1))
     
+[<Test>]
+let JsonRoundtrip_MarketplaceSubmissionResult() =
+    { MarketplaceSubmissionResult.Payload =
+        { ResourceId = InternalResourceId.ManagedApp
+          Quantity = 2.3m
+          PlanId = "plan" |> PlanId.create
+          DimensionId = "dim" |> DimensionId.create
+          EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
+      Result = "someerror" |> exn |> CommunicationsProblem |> Error
+      }
+    |> Json.toStr |> Json.fromStr<MarketplaceSubmissionResult>
+    |> (fun x -> 
+        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
+
+        match x.Result with 
+        | Ok _ -> Assert.Fail "Should have been Error"
+        | Error e -> 
+            match e with 
+            | CommunicationsProblem ex -> Assert.AreEqual("someerror", ex.Message)
+            | _ -> Assert.Fail $"Should have been {nameof(CommunicationsProblem)}"
+
+        x
+    )
+    |> (fun change -> 
+        { change with 
+            Result = 
+                { UsageEventId = "usageEventId 123"
+                  MessageTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
+                  ResourceURI = "nienei" } |> Ok })
+    |> Json.toStr |> Json.fromStr<MarketplaceSubmissionResult>
+    |> (fun x -> 
+        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
+
+        match x.Result with 
+        | Error _ -> Assert.Fail "Should have been Ok"
+        | Ok v -> Assert.AreEqual("usageEventId 123", v.UsageEventId)
+        x
+    )
+    |> ignore

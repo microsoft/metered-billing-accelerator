@@ -15,6 +15,6 @@
     <PackageReference Include="Thoth.Json.Net" Version="7.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.0" />
+    <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
 </Project>

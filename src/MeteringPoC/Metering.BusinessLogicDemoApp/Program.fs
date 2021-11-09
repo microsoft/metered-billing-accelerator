@@ -2,6 +2,8 @@
 open Metering.Types
 open Metering.Types.EventHub
 open NodaTime
+open System.Net.Http
+open System.Threading.Tasks
 
 let parseConsumptionEvents (str: string) = 
     let multilineParse parser (str : string) =  
@@ -211,24 +213,24 @@ let main argv =
     |> ignore
 
 
-    { MarketplaceSubmissionResult.Payload =
-        { ResourceId = InternalResourceId.ManagedApp
-          Quantity = 2.3m
-          PlanId = "plan" |> PlanId.create
-          DimensionId = "dim" |> DimensionId.create
-          EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
-      Result = "fuck" |> exn |> CommunicationsProblem |> Error
-      }
-    |> Json.toStr                             |> inspect "MarketplaceSubmissionResult JSON"
-    |> Json.fromStr<MarketplaceSubmissionResult>  |> inspecto "MarketplaceSubmissionResult"
-    |> (fun change -> 
-        { change with 
-            Result = 
-                { UsageEventId = "nirnstir"
-                  MessageTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
-                  ResourceURI = "nienei" } |> Ok })
-    |> Json.toStr                             |> inspect "MarketplaceSubmissionResult JSON"
-    |> Json.fromStr<MarketplaceSubmissionResult>  |> inspecto "MarketplaceSubmissionResult"
-    |> ignore
+    let read (url: string) = 
+        task {
+            use c = new HttpClient()
+            let! b = c.GetStringAsync(url)
+            return b
+        }
+        
+    let r = 
+        try
+            let x = read "https://www.microsoft.com/"
+            Ok x.Result
+        with 
+        | exn as e -> Error e.Message
+
+    match r with
+    | Ok msg -> 
+        printfn "%s" msg
+    | Error e -> 
+        printfn "Error %s" e
 
     0

@@ -140,16 +140,17 @@ module Json =
             ] |> Decode.oneOf
 
     module RenewalInterval =
+        
         let Encoder (x: RenewalInterval) =
             match x with
-            | Monthly -> "Monthly" |> Encode.string
-            | Annually -> "Annually" |> Encode.string
+            | Monthly -> nameof(Monthly) |> Encode.string
+            | Annually -> nameof(Annually) |> Encode.string
         
         let Decoder : Decoder<RenewalInterval> =
             Decode.string |> Decode.andThen (
                function
-               | "Monthly" -> Decode.succeed Monthly
-               | "Annually" -> Decode.succeed Annually
+               | nameof(Monthly) -> Decode.succeed Monthly
+               | nameof(Annually) -> Decode.succeed Annually
                | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
 
     module BillingDimension =
@@ -296,21 +297,24 @@ module Json =
             |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.create, v |> DimensionId.create)) |> Map.ofList |> Decode.succeed)
         
     module CurrentMeterValues = 
+        let (dimensionId, meterValue) =
+            ("dimensionId", "meterValue")
+
         let Encoder (x: CurrentMeterValues) = 
             x
             |> Map.toSeq |> Seq.toList
-            |> List.map (fun (dimensionId, meterValue) -> 
+            |> List.map (fun (d, m) -> 
                 [
-                    ("dimensionId", dimensionId |> DimensionId.value |> Encode.string)
-                    ("meterValue", meterValue |> MeterValue.Encoder)
+                    (dimensionId, d |> DimensionId.value |> Encode.string)
+                    (meterValue, m |> MeterValue.Encoder)
                 ]
                 |> Encode.object)
             |> Encode.list
 
         let Decoder : Decoder<CurrentMeterValues> =            
             Decode.list (Decode.object (fun get -> 
-                let dimensionId = get.Required.Field "dimensionId" Decode.string  
-                let meterValue = get.Required.Field "meterValue" MeterValue.Decoder  
+                let dimensionId = get.Required.Field dimensionId Decode.string  
+                let meterValue = get.Required.Field meterValue MeterValue.Decoder  
                 (dimensionId, meterValue)
             ))
             |> Decode.andThen  (fun r -> r |> List.map(fun (k, v) -> (k |> DimensionId.create, v)) |> Map.ofList |> Decode.succeed)
@@ -321,7 +325,6 @@ module Json =
 
         let Encoder (x: MeteringAPIUsageEventDefinition) : JsonValue =
             [
-                // (resourceId, x.ResourceId |> ResourceID.Encoder)
                 (quantity, x.Quantity |> Encode.decimal) 
                 (planId, x.PlanId |> PlanId.value |> Encode.string)
                 (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
@@ -331,7 +334,6 @@ module Json =
         
         let Decoder : Decoder<MeteringAPIUsageEventDefinition> =
             Decode.object (fun get -> {
-                // ResourceId = get.Required.Field resourceId ResourceID.Decoder
                 Quantity = get.Required.Field quantity Decode.decimal
                 PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
                 DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create

@@ -7,8 +7,6 @@ open System.Web
 open Microsoft.FSharp.Control
 open System.Threading.Tasks
 
-//type ResourceGroupDefinition = { ManagedBy: string }
-
 module InstanceMetadataClient = 
     type TokenResponse = { access_token: string }
     
