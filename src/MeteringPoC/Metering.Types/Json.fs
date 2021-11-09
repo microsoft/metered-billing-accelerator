@@ -12,8 +12,8 @@ module Json =
                 let x = pattern.Parse(v)
                 if x.Success
                 then Decode.succeed x.Value
-                else Decode.fail (sprintf "Failed to decode `%s`" v)
-        )
+
+                else Decode.fail (sprintf "Failed to decode `%s`" v))
         
         // Use the first pattern as default, therefore the `|> List.head`
         let Encoder : Encoder<MeteringDateTime> = MeteringDateTime.meteringDateTimePatterns |> List.head |> makeEncoder
