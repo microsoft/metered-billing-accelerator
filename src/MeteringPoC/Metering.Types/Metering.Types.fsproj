@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
@@ -33,7 +33,6 @@
     <Compile Include="DependencyInjection.fs" />
     <Compile Include="MarketplaceClient.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
-    <Compile Include="UsageSubmittedToAPIResult.fs" />
     <Compile Include="Meter.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />
     <Compile Include="MeteringEvent.fs" />

@@ -78,14 +78,14 @@ module Meter =
         | Close -> meter |> closePreviousMeteringPeriod config
         | KeepOpen -> meter
 
-    let handleUnsuccessfulMeterSubmission (config: MeteringConfigurationProvider) (failedSubmission: MeteringAPIUsageEventDefinition) (meter: Meter) : Meter =
+    let handleUnsuccessfulMeterSubmission (config: MeteringConfigurationProvider) (usage: MeteringAPIUsageEventDefinition) (submissionError: MarketplaceSubmissionError) (meter: Meter) : Meter =
         // todo logging here, alternatively report in a later period?
         meter
         
-    let handleUsageSubmissionToAPI (config: MeteringConfigurationProvider) (usageSubmissionResult: UsageSubmittedToAPIResult) (meter: Meter) : Meter =
+    let handleUsageSubmissionToAPI (config: MeteringConfigurationProvider) (usageSubmissionResult: MarketplaceSubmissionResult) (meter: Meter) : Meter =
         match usageSubmissionResult.Result with
-        | Ok () -> meter |> removeUsageToBeReported usageSubmissionResult.Payload
-        | Error ex -> meter |> handleUnsuccessfulMeterSubmission config usageSubmissionResult.Payload 
+        | Ok response ->  removeUsageToBeReported usageSubmissionResult.Payload meter
+        | Error submissionError -> handleUnsuccessfulMeterSubmission config usageSubmissionResult.Payload submissionError meter
         
     let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
         meter

@@ -391,6 +391,72 @@ module Json =
             (Decode.keyValuePairs Meter.Decoder)
             |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed)
 
+    
+    module MarketplaceSubmissionAcceptedResponse =
+        let (messageTime, resourceUri, usageEventId) =
+            ("messageTime", "resourceUri", "usageEventId");
+
+        let Encoder (x: MarketplaceSubmissionAcceptedResponse) : JsonValue =
+            [
+                (messageTime, x.MessageTime |> MeteringDateTime.Encoder)
+                (resourceUri, x.ResourceURI |> Encode.string)
+                (usageEventId, x.UsageEventId |> Encode.string)
+            ] |> Encode.object 
+
+        let Decoder : Decoder<MarketplaceSubmissionAcceptedResponse> =
+            Decode.object (fun get -> {
+                MessageTime = get.Required.Field messageTime MeteringDateTime.Decoder
+                ResourceURI = get.Required.Field resourceUri Decode.string
+                UsageEventId = get.Required.Field usageEventId Decode.string
+            })
+    
+    module MarketplaceSubmissionError =
+        let Encoder (x: MarketplaceSubmissionError) : JsonValue =
+            match x with
+            | Duplicate -> nameof(Duplicate) |> Encode.string
+            | BadResourceId -> nameof(BadResourceId) |> Encode.string
+            | InvalidEffectiveStartTime -> nameof(InvalidEffectiveStartTime) |> Encode.string
+            | CommunicationsProblem exn -> $"Error: {exn.Message}" |> Encode.string
+
+        let Decoder : Decoder<MarketplaceSubmissionError> =
+            Decode.string |> Decode.andThen (fun v ->
+                match v with
+                | nameof(Duplicate) -> Decode.succeed Duplicate
+                | nameof(BadResourceId) -> Decode.succeed BadResourceId
+                | nameof(InvalidEffectiveStartTime) -> Decode.succeed InvalidEffectiveStartTime
+                | x when x.StartsWith("Error: ") -> 
+                    let l = x.Substring(String.length "Error: ")
+                    Decode.succeed (CommunicationsProblem (exn l))
+                | _ -> Decode.fail (sprintf "Failed to decode `%s`" v)
+                )
+
+    module MarketplaceSubmissionResult =
+        let (payload, result) =
+            ("payload", "result");
+
+        let ResultEncoder (x: Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>) : JsonValue =
+            match x with
+            | Ok x -> x |> MarketplaceSubmissionAcceptedResponse.Encoder
+            | Error x -> x |> MarketplaceSubmissionError.Encoder
+
+        let ResultDecoder : Decoder<Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>> =
+            [ 
+                MarketplaceSubmissionAcceptedResponse.Decoder |> Decode.andThen(Ok >> Decode.succeed)
+                MarketplaceSubmissionError.Decoder |> Decode.andThen(Error >> Decode.succeed)
+            ] |> Decode.oneOf
+
+        let Encoder (x: MarketplaceSubmissionResult) : JsonValue =
+            [
+                (payload, x.Payload |> MeteringAPIUsageEventDefinition.Encoder)
+                (result, x.Result |> ResultEncoder)
+            ] |> Encode.object 
+
+        let Decoder : Decoder<MarketplaceSubmissionResult> =
+            Decode.object (fun get -> {
+                Payload = get.Required.Field payload MeteringAPIUsageEventDefinition.Decoder
+                Result = get.Required.Field result ResultDecoder
+            })
+            
     module MeteringUpdateEvent =
         let (typeid, value) =
             ("type", "value");
@@ -399,23 +465,28 @@ module Json =
             match x with
             | SubscriptionPurchased sub -> 
                 [
-                     (typeid, "subscriptionPurchased" |> Encode.string)
+                     (typeid, nameof(SubscriptionPurchased) |> Encode.string)
                      (value, sub |> SubscriptionCreationInformation.Encoder)
                 ]
             | UsageReported usage ->
                 [
-                     (typeid, "usage" |> Encode.string)
+                     (typeid, nameof(UsageReported) |> Encode.string)
                      (value, usage |> InternalUsageEvent.Encoder)
                 ]
-            | UsageSubmittedToAPI usage -> raise <| new NotSupportedException "Currently this feedback loop must only be internally"
+            | UsageSubmittedToAPI usage -> 
+                [
+                    (typeid, nameof(UsageSubmittedToAPI) |> Encode.string)
+                    (value, usage |> MarketplaceSubmissionResult.Encoder)
+                ]
             | AggregatorBooted -> raise <| new NotSupportedException "Currently this feedback loop must only be internally"
             |> Encode.object 
             
         let Decoder : Decoder<MeteringUpdateEvent> =
             Decode.object (fun get ->                
                 match (get.Required.Field typeid Decode.string) with
-                | "subscriptionPurchased" -> (get.Required.Field value SubscriptionCreationInformation.Decoder) |> SubscriptionPurchased
-                | "usage" -> (get.Required.Field value InternalUsageEvent.Decoder) |> UsageReported
+                | nameof(SubscriptionPurchased) -> (get.Required.Field value SubscriptionCreationInformation.Decoder) |> SubscriptionPurchased
+                | nameof(UsageReported) -> (get.Required.Field value InternalUsageEvent.Decoder) |> UsageReported
+                | nameof(UsageSubmittedToAPI) -> (get.Required.Field value MarketplaceSubmissionResult.Decoder) |> UsageSubmittedToAPI
                 | invalidType  -> failwithf "`%s` is not a valid type" invalidType
             )
 
@@ -431,6 +502,7 @@ module Json =
         |> Extra.withCustom MeterValue.Encoder MeterValue.Decoder
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom BillingDimension.Encoder BillingDimension.Decoder
+        |> Extra.withCustom MarketplaceSubmissionResult.Encoder MarketplaceSubmissionResult.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom MeteredBillingUsageEvent.Encoder MeteredBillingUsageEvent.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder

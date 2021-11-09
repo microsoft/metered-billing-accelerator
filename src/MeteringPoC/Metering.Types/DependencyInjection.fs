@@ -12,17 +12,15 @@ type SubmitMeteringAPIUsageEvent =
 
 module SubmitMeteringAPIUsageEvent =
     let Discard : SubmitMeteringAPIUsageEvent = (fun e -> 
-        { ResourceID = e.ResourceId 
-          Quantity = e.Quantity
-          PlanId = e.PlanId
-          DimensionId = e.DimensionId 
-          EffectiveStartTime = e.EffectiveStartTime             
-          UsageEventId = Guid.Empty.ToString()
-          MessageTime = e.EffectiveStartTime
-          ResourceURI = e.ResourceId |> InternalResourceId.toStr }
-        |> Ok
+        { Payload = e
+          MarketplaceSubmissionResult.Result = 
+            { UsageEventId = Guid.Empty.ToString()
+              MessageTime = e.EffectiveStartTime
+              ResourceURI = e.ResourceId |> InternalResourceId.toStr }
+            |> Ok
+        }
         |> Task.FromResult
-        )
+     )
 
 type CurrentTimeProvider =
     unit -> MeteringDateTime

@@ -89,7 +89,7 @@ let main argv =
         """
 {
   "MeteringUpdateEvent": {
-    "type": "subscriptionPurchased",
+    "type": "SubscriptionPurchased",
     "value": {
      "subscription": {
        "renewalInterval": "Monthly",
@@ -115,7 +115,7 @@ let main argv =
         """
 {
   "MeteringUpdateEvent": {
-    "type": "subscriptionPurchased",
+    "type": "SubscriptionPurchased",
     "value": {
      "subscription": {
        "renewalInterval": "Monthly",
@@ -143,7 +143,7 @@ let main argv =
         """
 {
   "MeteringUpdateEvent": {
-    "type": "subscriptionPurchased",
+    "type": "SubscriptionPurchased",
     "value": {
      "subscription": {
            "renewalInterval": "Monthly",
@@ -208,6 +208,27 @@ let main argv =
     |> Json.toStr                             |> inspect "meters"
     |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
     |> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
+    |> ignore
+
+
+    { MarketplaceSubmissionResult.Payload =
+        { ResourceId = InternalResourceId.ManagedApp
+          Quantity = 2.3m
+          PlanId = "plan" |> PlanId.create
+          DimensionId = "dim" |> DimensionId.create
+          EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
+      Result = "fuck" |> exn |> CommunicationsProblem |> Error
+      }
+    |> Json.toStr                             |> inspect "MarketplaceSubmissionResult JSON"
+    |> Json.fromStr<MarketplaceSubmissionResult>  |> inspecto "MarketplaceSubmissionResult"
+    |> (fun change -> 
+        { change with 
+            Result = 
+                { UsageEventId = "nirnstir"
+                  MessageTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
+                  ResourceURI = "nienei" } |> Ok })
+    |> Json.toStr                             |> inspect "MarketplaceSubmissionResult JSON"
+    |> Json.fromStr<MarketplaceSubmissionResult>  |> inspecto "MarketplaceSubmissionResult"
     |> ignore
 
     0

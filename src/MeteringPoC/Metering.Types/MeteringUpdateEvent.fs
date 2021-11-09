@@ -9,7 +9,7 @@ type MeteringUpdateEvent =
     | UsageReported of InternalUsageEvent
     
     /// An aggregator-internal event to keep track of which events must be / have been submitted to the metering API.
-    | UsageSubmittedToAPI of UsageSubmittedToAPIResult
+    | UsageSubmittedToAPI of MarketplaceSubmissionResult
 
     /// A heart beat signal to flush potential billing periods
     | AggregatorBooted

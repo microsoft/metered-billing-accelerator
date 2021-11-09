@@ -1,7 +1,5 @@
 ﻿namespace Metering.Types
 
-open System 
-
 type MeteringAPIUsageEventDefinition = // From aggregator to metering API
     { ResourceId: InternalResourceId
       Quantity: decimal 
@@ -10,19 +8,17 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
       EffectiveStartTime: MeteringDateTime }
 
 type MarketplaceSubmissionAcceptedResponse = 
-    { ResourceID: InternalResourceId  
-      Quantity: decimal 
-      PlanId: PlanId
-      DimensionId: DimensionId 
-      EffectiveStartTime: MeteringDateTime 
-      
-      UsageEventId: string
+    { UsageEventId: string
       MessageTime: MeteringDateTime 
       ResourceURI: string }
 
 type MarketplaceSubmissionError =
-    | Duplicate of MarketplaceSubmissionAcceptedResponse
-    | BadResourceId of MeteringAPIUsageEventDefinition
-    | InvalidEffectiveStartTime of MeteringAPIUsageEventDefinition
+    | Duplicate
+    | BadResourceId
+    | InvalidEffectiveStartTime
+    | CommunicationsProblem of exn
 
-type MarketplaceSubmissionResult = Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>
+type MarketplaceSubmissionResult = 
+    { Payload: MeteringAPIUsageEventDefinition 
+      Result: Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError> }
+    
