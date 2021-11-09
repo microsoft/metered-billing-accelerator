@@ -46,7 +46,6 @@
     <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
     <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
     <PackageReference Include="NodaTime" Version="3.0.7" />
-    <PackageReference Include="Ply" Version="0.3.1" />
     <PackageReference Include="Thoth.Json.Net" Version="7.1.0" />
   </ItemGroup>
   <ItemGroup>
