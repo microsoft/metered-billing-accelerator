@@ -4,14 +4,16 @@ open System
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.CompilerServices
+open System.Runtime.InteropServices
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Producer
 open Metering.Types
-open System.Runtime.InteropServices
 
 [<Extension>]
 module MeteringEventHubExtensions =
-    let private SubmitUsage (eventHubProducerClient: EventHubProducerClient) (ct: CancellationToken) (internalUsageEvent: InternalUsageEvent) : Task<unit> = task {        
+    
+    // [<Extension>] // Currently not exposed to C#
+    let SubmitMeteringUpdateEvent (eventHubProducerClient: EventHubProducerClient) (meteringUpdateEvent: MeteringUpdateEvent) ([<Optional; DefaultParameterValue(CancellationToken())>] ct: CancellationToken) : Task<unit> = task {        
         let createBatchOptions = 
             let o = new CreateBatchOptions()
             //o.PartitionKey <- Guid.NewGuid().ToString()
@@ -21,7 +23,7 @@ module MeteringEventHubExtensions =
         let! eventBatch = eventHubProducerClient.CreateBatchAsync(options = createBatchOptions, cancellationToken = ct)
         
         let eventData = 
-            internalUsageEvent
+            meteringUpdateEvent
             |> Json.toStr
             |> (fun x -> new BinaryData(x))
             |> (fun x -> new EventData(x))
@@ -36,6 +38,9 @@ module MeteringEventHubExtensions =
 
         return ()
     }
+
+    let private SubmitUsage (eventHubProducerClient: EventHubProducerClient) (ct: CancellationToken) (internalUsageEvent: InternalUsageEvent) =
+        SubmitMeteringUpdateEvent eventHubProducerClient (UsageReported internalUsageEvent) ct
     
     [<Extension>]
     let SubmitManagedAppIntegerAsync (eventHubProducerClient: EventHubProducerClient) (meterName: string) (quantity: uint64) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> =
