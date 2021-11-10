@@ -15,8 +15,14 @@ module SubmitMeteringAPIUsageEvent =
         { Payload = e
           MarketplaceSubmissionResult.Result = 
             { UsageEventId = Guid.Empty.ToString()
-              MessageTime = e.EffectiveStartTime
-              ResourceURI = e.ResourceId |> InternalResourceId.toStr }
+              MessageTime = MeteringDateTime.now()
+              Status = "Accepted"
+              ResourceId = e.ResourceId |> InternalResourceId.toStr
+              ResourceURI = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+              Quantity = e.Quantity |> Quantity.createFloat
+              DimensionId = e.DimensionId
+              EffectiveStartTime = e.EffectiveStartTime
+              PlanId = e.PlanId }
             |> Ok
         }
         |> Task.FromResult
@@ -33,4 +39,5 @@ type MeteringConfigurationProvider =
     { CurrentTimeProvider: CurrentTimeProvider
       SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
       GracePeriod: Duration
-      ManagedResourceGroupResolver: DetermineManagedAppResourceGroupID }
+      ManagedResourceGroupResolver: DetermineManagedAppResourceGroupID
+      MeteringAPICredentials: MeteringAPICredentials }

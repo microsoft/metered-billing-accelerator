@@ -9,14 +9,20 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
 
 type MarketplaceSubmissionAcceptedResponse = 
     { UsageEventId: string
-      MessageTime: MeteringDateTime 
-      ResourceURI: string }
+      MessageTime: MeteringDateTime
+      Status: string
+      ResourceId: string
+      ResourceURI: string
+      Quantity: Quantity
+      DimensionId: DimensionId
+      EffectiveStartTime: MeteringDateTime
+      PlanId: PlanId }
 
 type MarketplaceSubmissionError =
     | Duplicate
     | BadResourceId
     | InvalidEffectiveStartTime
-    | CommunicationsProblem of exn
+    | CommunicationsProblem of string
 
 type MarketplaceSubmissionResult = 
     { Payload: MeteringAPIUsageEventDefinition 

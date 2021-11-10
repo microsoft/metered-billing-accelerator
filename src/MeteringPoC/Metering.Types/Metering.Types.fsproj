@@ -31,13 +31,14 @@
     <Compile Include="InternalMetersMapping.fs" />
     <Compile Include="MeteringAPIUsageEventDefinition.fs" />
     <Compile Include="DependencyInjection.fs" />
-    <Compile Include="MarketplaceClient.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
     <Compile Include="Meter.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />
     <Compile Include="MeteringEvent.fs" />
     <Compile Include="MeterCollection.fs" />
     <Compile Include="Json.fs" />
+    <Compile Include="MarketplaceClient.fs" />
+    <Compile Include="ClientSDK.fs" />
     <Compile Include="TestBusinessLogic.fs" />
   </ItemGroup>
   <ItemGroup>

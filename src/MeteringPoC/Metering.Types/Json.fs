@@ -395,30 +395,42 @@ module Json =
 
     
     module MarketplaceSubmissionAcceptedResponse =
-        let (messageTime, resourceUri, usageEventId) =
-            ("messageTime", "resourceUri", "usageEventId");
+        let (usageEventId, status, messageTime, resourceId, resourceUri, quantity, dimensionId, effectiveStartTime, planId) =
+            ("usageEventId", "status", "messageTime", "resourceId", "resourceUri", "quantity", "dimension", "effectiveStartTime", "planId");
 
         let Encoder (x: MarketplaceSubmissionAcceptedResponse) : JsonValue =
             [
-                (messageTime, x.MessageTime |> MeteringDateTime.Encoder)
-                (resourceUri, x.ResourceURI |> Encode.string)
                 (usageEventId, x.UsageEventId |> Encode.string)
+                (status, x.Status |> Encode.string)
+                (messageTime, x.MessageTime |> MeteringDateTime.Encoder)
+                (resourceId, x.ResourceId |> Encode.string)
+                (resourceUri, x.ResourceURI |> Encode.string)
+                (quantity, x.Quantity |> Quantity.Encoder)
+                (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
+                (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
+                (planId, x.PlanId |> PlanId.value |> Encode.string)
             ] |> Encode.object 
 
         let Decoder : Decoder<MarketplaceSubmissionAcceptedResponse> =
             Decode.object (fun get -> {
-                MessageTime = get.Required.Field messageTime MeteringDateTime.Decoder
-                ResourceURI = get.Required.Field resourceUri Decode.string
                 UsageEventId = get.Required.Field usageEventId Decode.string
+                Status =  get.Required.Field status Decode.string
+                MessageTime = get.Required.Field messageTime MeteringDateTime.Decoder
+                ResourceId = get.Required.Field resourceId Decode.string
+                ResourceURI = get.Required.Field resourceUri Decode.string
+                Quantity = get.Required.Field quantity Quantity.Decoder
+                DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create
+                EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
+                PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
             })
-    
+
     module MarketplaceSubmissionError =
         let Encoder (x: MarketplaceSubmissionError) : JsonValue =
             match x with
             | Duplicate -> nameof(Duplicate) |> Encode.string
             | BadResourceId -> nameof(BadResourceId) |> Encode.string
             | InvalidEffectiveStartTime -> nameof(InvalidEffectiveStartTime) |> Encode.string
-            | CommunicationsProblem exn -> $"Error: {exn.Message}" |> Encode.string
+            | CommunicationsProblem jsonBody -> jsonBody |> Encode.string
 
         let Decoder : Decoder<MarketplaceSubmissionError> =
             Decode.string |> Decode.andThen (fun v ->
@@ -426,10 +438,7 @@ module Json =
                 | nameof(Duplicate) -> Decode.succeed Duplicate
                 | nameof(BadResourceId) -> Decode.succeed BadResourceId
                 | nameof(InvalidEffectiveStartTime) -> Decode.succeed InvalidEffectiveStartTime
-                | x when x.StartsWith("Error: ") -> 
-                    let l = x.Substring(String.length "Error: ")
-                    Decode.succeed (CommunicationsProblem (exn l))
-                | _ -> Decode.fail (sprintf "Failed to decode `%s`" v)
+                | jsonBody -> Decode.succeed (CommunicationsProblem jsonBody)
                 )
 
     module MarketplaceSubmissionResult =
@@ -505,6 +514,7 @@ module Json =
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom BillingDimension.Encoder BillingDimension.Decoder
         |> Extra.withCustom MarketplaceSubmissionResult.Encoder MarketplaceSubmissionResult.Decoder
+        |> Extra.withCustom MarketplaceSubmissionAcceptedResponse.Encoder MarketplaceSubmissionAcceptedResponse.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom MeteredBillingUsageEvent.Encoder MeteredBillingUsageEvent.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder

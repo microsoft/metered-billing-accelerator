@@ -220,7 +220,8 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
             { CurrentTimeProvider = curr |> MeteringDateTime.fromStr |> CurrentTimeProvider.AlwaysReturnSameTime
               SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
               GracePeriod = Duration.FromHours(grace)
-              ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg" }
+              ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
+              MeteringAPICredentials = ManagedIdentity }
 
         let result = prev |> MeteringDateTime.fromStr |> BillingPeriod.previousBillingIntervalCanBeClosedWakeup (config.CurrentTimeProvider(), config.GracePeriod)
                 
@@ -267,7 +268,7 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
           PlanId = "plan" |> PlanId.create
           DimensionId = "dim" |> DimensionId.create
           EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
-      Result = "someerror" |> exn |> CommunicationsProblem |> Error
+      Result = "someerror" |> CommunicationsProblem |> Error
       }
     |> Json.toStr |> Json.fromStr<MarketplaceSubmissionResult>
     |> (fun x -> 
@@ -277,7 +278,7 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
         | Ok _ -> Assert.Fail "Should have been Error"
         | Error e -> 
             match e with 
-            | CommunicationsProblem ex -> Assert.AreEqual("someerror", ex.Message)
+            | CommunicationsProblem str -> Assert.AreEqual("someerror", str)
             | _ -> Assert.Fail $"Should have been {nameof(CommunicationsProblem)}"
 
         x
@@ -286,8 +287,14 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
         { change with 
             Result = 
                 { UsageEventId = "usageEventId 123"
-                  MessageTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
-                  ResourceURI = "nienei" } |> Ok })
+                  MessageTime = "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
+                  Status = "Accepted"
+                  ResourceId = change.Payload.ResourceId |> InternalResourceId.toStr
+                  ResourceURI = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+                  Quantity = change.Payload.Quantity |> Quantity.createFloat
+                  DimensionId = change.Payload.DimensionId
+                  EffectiveStartTime = change.Payload.EffectiveStartTime
+                  PlanId = change.Payload.PlanId } |> Ok })                
     |> Json.toStr |> Json.fromStr<MarketplaceSubmissionResult>
     |> (fun x -> 
         Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
@@ -298,3 +305,4 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
         x
     )
     |> ignore
+

@@ -4,6 +4,8 @@ open Metering.Types.EventHub
 open NodaTime
 open System.Net.Http
 open System.Threading.Tasks
+open System.Text.Json
+open System.Collections.Generic
 
 let parseConsumptionEvents (str: string) = 
     let multilineParse parser (str : string) =  
@@ -199,11 +201,29 @@ let main argv =
         
     let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
 
+    let (resourceId, cred) = 
+        (InternalResourceId.ManagedApp, ManagedIdentity)
+    
+    let (resourceId, cred) = 
+        let readCred = task {
+            let unversionedFile = "C:\Users\chgeuer\Desktop\metering_cred.json"
+            // { "saassub": "...", "tenantid": "...", "client_id": "...", "client_secret": "..." }
+            let! json = System.IO.File.ReadAllTextAsync(unversionedFile);
+            let dyn = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+            let (saasSub, tenantId, client_id, client_secret) = (dyn["saassub"], dyn["tenantid"], dyn["client_id"], dyn["client_secret"])
+            return (
+                InternalResourceId.fromStr saasSub, 
+                MeteringAPICredentials.createServicePrincipal tenantId client_id client_secret)
+        }
+        readCred.Result
+
+
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
           GracePeriod = Duration.FromHours(6.0)
-          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg" }
+          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
+          MeteringAPICredentials = cred }
 
     eventsFromEventHub
     |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
@@ -213,24 +233,37 @@ let main argv =
     |> ignore
 
 
-    let read (url: string) = 
-        task {
-            use c = new HttpClient()
-            let! b = c.GetStringAsync(url)
-            return b
-        }
+    //let read (url: string) = 
+    //    task {
+    //        use c = new HttpClient()
+    //        let! b = c.GetStringAsync(url)
+    //        return b
+    //    }
+    //
+    //let r = 
+    //    try
+    //        let x = read "https://www.microsoft.com/"
+    //        Ok x.Result
+    //    with 
+    //    | exn as e -> Error e.Message
+    //
+    //match r with
+    //| Ok msg -> 
+    //    printfn "%s" msg
+    //| Error e -> 
+    //    printfn "Error %s" e
+
+    (task {
+
+        let usage =
+            { ResourceId = resourceId
+              Quantity = 2.3m
+              PlanId = "free_monthly_yearly" |> PlanId.create
+              DimensionId = "datasourcecharge" |> DimensionId.create
+              EffectiveStartTime = "2021-11-09T03:00:00Z" |> MeteringDateTime.fromStr }
+        let submit = MarketplaceClient.submit config 
+        let! response = submit usage 
+        printfn "%A" response            
+    }).Wait()
         
-    let r = 
-        try
-            let x = read "https://www.microsoft.com/"
-            Ok x.Result
-        with 
-        | exn as e -> Error e.Message
-
-    match r with
-    | Ok msg -> 
-        printfn "%s" msg
-    | Error e -> 
-        printfn "Error %s" e
-
     0

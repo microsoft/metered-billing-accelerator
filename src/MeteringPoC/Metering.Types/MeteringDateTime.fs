@@ -32,3 +32,6 @@ module MeteringDateTime =
     let beginOfTheHour (m: MeteringDateTime) : MeteringDateTime =
         let adjuster (x: LocalTime) = new LocalTime(x.Hour,  0, 0, 0)
         MeteringDateTime(m.LocalDateTime.With(FSharpFuncUtil.Create adjuster), m.Zone, m.Offset)
+
+    let now () : MeteringDateTime =
+        ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc)

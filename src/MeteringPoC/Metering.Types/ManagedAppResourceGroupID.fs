@@ -32,7 +32,7 @@ module ManagedAppResourceGroupID =
                 | Ok x -> x
                 | Error e -> failwith e
 
-            let! armClient = InstanceMetadataClient.createWithAccessToken "https://management.azure.com/"
+            let! armClient = InstanceMetadataClient.createArmClient()
             let! armResponse = armClient.GetStringAsync $"{resourceGroupId}?api-version=2019-11-01"  // or 2019-07-01?
             let managedBy = 
                 match Decode.fromString ManagedByDecoder armResponse with
