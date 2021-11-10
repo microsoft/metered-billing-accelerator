@@ -232,33 +232,19 @@ let main argv =
     |> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
     |> ignore
 
-
-    //let read (url: string) = 
-    //    task {
-    //        use c = new HttpClient()
-    //        let! b = c.GetStringAsync(url)
-    //        return b
-    //    }
-    //
-    //let r = 
-    //    try
-    //        let x = read "https://www.microsoft.com/"
-    //        Ok x.Result
-    //    with 
-    //    | exn as e -> Error e.Message
-    //
-    //match r with
-    //| Ok msg -> 
-    //    printfn "%s" msg
-    //| Error e -> 
-    //    printfn "Error %s" e
-
     let usage =
         { ResourceId = resourceId
           Quantity = 2.3m
           PlanId = "free_monthly_yearly" |> PlanId.create
           DimensionId = "datasourcecharge" |> DimensionId.create
-          EffectiveStartTime = "2021-11-09T14:00:00Z" |> MeteringDateTime.fromStr }
-    printfn "%A" (MarketplaceClient.submit config usage).Result
+          EffectiveStartTime = "2021-11-09T17:00:00Z" |> MeteringDateTime.fromStr }
+    let result = (MarketplaceClient.submit config usage).Result
+    
+    result
+    |> Json.toStr
+    |> inspect ""
+    |> Json.fromStr<MarketplaceSubmissionResult>
+    |> inspecto ""
+    |> ignore
         
     0

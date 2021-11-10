@@ -1,8 +1,11 @@
-﻿namespace Metering.Types
+﻿
+
+namespace Metering.Types
 
 module Json =
     open System
     open Thoth.Json.Net
+    open Newtonsoft.Json.Linq
     open NodaTime.Text
 
     module MeteringDateTime =
@@ -12,7 +15,6 @@ module Json =
                 let x = pattern.Parse(v)
                 if x.Success
                 then Decode.succeed x.Value
-
                 else Decode.fail (sprintf "Failed to decode `%s`" v))
         
         // Use the first pattern as default, therefore the `|> List.head`
@@ -429,39 +431,34 @@ module Json =
             ("error", "body");
 
         let Encoder (x: MarketplaceSubmissionError) : JsonValue =
+            // TODO... Would be great to have JSON object structure in the body, instead of a string containing JSON... JsonValue.Parse 
+            let encodeBody : (string -> JToken) = Encode.string 
+            
             match x with
-            | Duplicate json ->
+            | Duplicate json -> (nameof(Duplicate), json)
+            | BadResourceId json -> (nameof(BadResourceId), json)
+            | InvalidEffectiveStartTime json -> (nameof(InvalidEffectiveStartTime), json)
+            | CommunicationsProblem json -> (nameof(CommunicationsProblem), json)
+            |> (fun (e, b) ->
                 [
-                    (error, nameof(Duplicate) |> Encode.string)
-                    (body, json |> Encode.string)
+                    (error, e |> Encode.string)
+                    (body, b |> encodeBody)
                 ] |> Encode.object 
-            | BadResourceId json -> 
-                [
-                    (error, nameof(BadResourceId) |> Encode.string)
-                    (body, json |> Encode.string)
-                ] |> Encode.object 
-            | InvalidEffectiveStartTime json -> 
-                [
-                    (error, nameof(InvalidEffectiveStartTime) |> Encode.string)
-                    (body, json |> Encode.string)
-                ] |> Encode.object 
-            | CommunicationsProblem json ->
-                [
-                    (error, nameof(InvalidEffectiveStartTime) |> Encode.string)
-                    (body, json |> Encode.string)
-                ] |> Encode.object 
+            )
 
         let Decoder : Decoder<MarketplaceSubmissionError> =
             Decode.object (fun get -> 
+                let errName = get.Required.Field error Decode.string
                 let json = get.Required.Field body Decode.string
-                let t = get.Required.Field error Decode.string
+                
+
                 let r = 
-                    match t with
+                    match errName with
                     | nameof(Duplicate) -> json |> Duplicate
                     | nameof(BadResourceId) -> json |> BadResourceId
                     | nameof(InvalidEffectiveStartTime) -> json |> InvalidEffectiveStartTime
-                    | _ -> json |> CommunicationsProblem
-                
+                    | nameof(CommunicationsProblem) -> json |> CommunicationsProblem
+                    | unknown -> failwith $"{nameof(MarketplaceSubmissionError)} '{unknown}' is unknown"
                 r
             )
 
@@ -499,15 +496,15 @@ module Json =
         let Encoder (x: MarketplaceSubmissionResult) : JsonValue =
             [
                 (payload, x.Payload |> MeteringAPIUsageEventDefinition.Encoder)
-                (result, x.Result |> ResultEncoder)
                 (httpHeaders, x.Headers |> AzureHttpResponseHeaders.Encoder)
+                (result, x.Result |> ResultEncoder)                
             ] |> Encode.object 
 
         let Decoder : Decoder<MarketplaceSubmissionResult> =
             Decode.object (fun get -> {
                 Payload = get.Required.Field payload MeteringAPIUsageEventDefinition.Decoder
-                Result = get.Required.Field result ResultDecoder
                 Headers = get.Required.Field httpHeaders AzureHttpResponseHeaders.Decoder
+                Result = get.Required.Field result ResultDecoder
             })
             
     module MeteringUpdateEvent =
