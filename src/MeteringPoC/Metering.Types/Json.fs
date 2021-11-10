@@ -425,25 +425,65 @@ module Json =
             })
 
     module MarketplaceSubmissionError =
+        let (error, body) =
+            ("error", "body");
+
         let Encoder (x: MarketplaceSubmissionError) : JsonValue =
             match x with
-            | Duplicate -> nameof(Duplicate) |> Encode.string
-            | BadResourceId -> nameof(BadResourceId) |> Encode.string
-            | InvalidEffectiveStartTime -> nameof(InvalidEffectiveStartTime) |> Encode.string
-            | CommunicationsProblem jsonBody -> jsonBody |> Encode.string
+            | Duplicate json ->
+                [
+                    (error, nameof(Duplicate) |> Encode.string)
+                    (body, json |> Encode.string)
+                ] |> Encode.object 
+            | BadResourceId json -> 
+                [
+                    (error, nameof(BadResourceId) |> Encode.string)
+                    (body, json |> Encode.string)
+                ] |> Encode.object 
+            | InvalidEffectiveStartTime json -> 
+                [
+                    (error, nameof(InvalidEffectiveStartTime) |> Encode.string)
+                    (body, json |> Encode.string)
+                ] |> Encode.object 
+            | CommunicationsProblem json ->
+                [
+                    (error, nameof(InvalidEffectiveStartTime) |> Encode.string)
+                    (body, json |> Encode.string)
+                ] |> Encode.object 
 
         let Decoder : Decoder<MarketplaceSubmissionError> =
-            Decode.string |> Decode.andThen (fun v ->
-                match v with
-                | nameof(Duplicate) -> Decode.succeed Duplicate
-                | nameof(BadResourceId) -> Decode.succeed BadResourceId
-                | nameof(InvalidEffectiveStartTime) -> Decode.succeed InvalidEffectiveStartTime
-                | jsonBody -> Decode.succeed (CommunicationsProblem jsonBody)
-                )
+            Decode.object (fun get -> 
+                let json = get.Required.Field body Decode.string
+                let t = get.Required.Field error Decode.string
+                let r = 
+                    match t with
+                    | nameof(Duplicate) -> json |> Duplicate
+                    | nameof(BadResourceId) -> json |> BadResourceId
+                    | nameof(InvalidEffectiveStartTime) -> json |> InvalidEffectiveStartTime
+                    | _ -> json |> CommunicationsProblem
+                
+                r
+            )
+
+    module AzureHttpResponseHeaders =
+        let (msrequestid, mscorrelationid) =
+            ("xMsRequestId", "xMsCorrelationId");
+
+        let Encoder (x: AzureHttpResponseHeaders) : JsonValue =
+            [
+                (msrequestid, x.RequestID |> Encode.string)
+                (mscorrelationid, x.CorrelationID |> Encode.string)
+            ] |> Encode.object 
+
+        let Decoder : Decoder<AzureHttpResponseHeaders> =
+            Decode.object (fun get -> {
+                RequestID = get.Required.Field msrequestid Decode.string
+                CorrelationID =  get.Required.Field mscorrelationid Decode.string
+            })
 
     module MarketplaceSubmissionResult =
-        let (payload, result) =
-            ("payload", "result");
+        let (payload, result, httpHeaders) =
+            ("payload", "result", "httpHeaders");
 
         let ResultEncoder (x: Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>) : JsonValue =
             match x with
@@ -460,12 +500,14 @@ module Json =
             [
                 (payload, x.Payload |> MeteringAPIUsageEventDefinition.Encoder)
                 (result, x.Result |> ResultEncoder)
+                (httpHeaders, x.Headers |> AzureHttpResponseHeaders.Encoder)
             ] |> Encode.object 
 
         let Decoder : Decoder<MarketplaceSubmissionResult> =
             Decode.object (fun get -> {
                 Payload = get.Required.Field payload MeteringAPIUsageEventDefinition.Decoder
                 Result = get.Required.Field result ResultDecoder
+                Headers = get.Required.Field httpHeaders AzureHttpResponseHeaders.Decoder
             })
             
     module MeteringUpdateEvent =

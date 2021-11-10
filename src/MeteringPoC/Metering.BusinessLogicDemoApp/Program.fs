@@ -253,17 +253,12 @@ let main argv =
     //| Error e -> 
     //    printfn "Error %s" e
 
-    (task {
-
-        let usage =
-            { ResourceId = resourceId
-              Quantity = 2.3m
-              PlanId = "free_monthly_yearly" |> PlanId.create
-              DimensionId = "datasourcecharge" |> DimensionId.create
-              EffectiveStartTime = "2021-11-09T03:00:00Z" |> MeteringDateTime.fromStr }
-        let submit = MarketplaceClient.submit config 
-        let! response = submit usage 
-        printfn "%A" response            
-    }).Wait()
+    let usage =
+        { ResourceId = resourceId
+          Quantity = 2.3m
+          PlanId = "free_monthly_yearly" |> PlanId.create
+          DimensionId = "datasourcecharge" |> DimensionId.create
+          EffectiveStartTime = "2021-11-09T14:00:00Z" |> MeteringDateTime.fromStr }
+    printfn "%A" (MarketplaceClient.submit config usage).Result
         
     0

@@ -19,12 +19,20 @@ type MarketplaceSubmissionAcceptedResponse =
       PlanId: PlanId }
 
 type MarketplaceSubmissionError =
-    | Duplicate
-    | BadResourceId
-    | InvalidEffectiveStartTime
+    | Duplicate of string
+    | BadResourceId of string
+    | InvalidEffectiveStartTime of string
     | CommunicationsProblem of string
 
+type AzureHttpResponseHeaders =
+    { /// The `x-ms-requestid` HTTP header.
+      RequestID: string 
+
+      /// The `x-ms-correlationid` HTTP header
+      CorrelationID: string }
+
 type MarketplaceSubmissionResult = 
-    { Payload: MeteringAPIUsageEventDefinition 
+    { Payload: MeteringAPIUsageEventDefinition
+      Headers: AzureHttpResponseHeaders
       Result: Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError> }
     

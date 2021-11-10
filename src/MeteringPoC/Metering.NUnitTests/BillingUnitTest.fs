@@ -268,6 +268,9 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
           PlanId = "plan" |> PlanId.create
           DimensionId = "dim" |> DimensionId.create
           EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
+      Headers = 
+        { RequestID = Guid.NewGuid().ToString()
+          CorrelationID = Guid.NewGuid().ToString() }
       Result = "someerror" |> CommunicationsProblem |> Error
       }
     |> Json.toStr |> Json.fromStr<MarketplaceSubmissionResult>

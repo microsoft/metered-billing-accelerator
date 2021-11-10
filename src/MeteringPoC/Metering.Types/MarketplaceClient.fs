@@ -18,24 +18,29 @@ module MarketplaceClient =
 
             let! response = client.SendAsync(request)
             let! json = response.Content.ReadAsStringAsync()
-            
+
+            let header name = String.concat " " (seq <| response.Headers.GetValues(name))
+
+            let azureHeader = 
+                { RequestID = header "x-ms-requestid" 
+                  CorrelationID = header "x-ms-correlationid"}
+
             let result =
                 match response.StatusCode with
                 | HttpStatusCode.OK -> 
-                    printf "CCC %s" json
                     json |> Json.fromStr<MarketplaceSubmissionAcceptedResponse> |> Ok
-                | HttpStatusCode.Conflict -> Duplicate |> Error
+                | HttpStatusCode.Conflict -> json |> Duplicate |> Error
                 | HttpStatusCode.BadRequest ->
                     try
                         let jsonBody = JsonDocument.Parse(json)
                         // I'm not proud of this
                         match ((jsonBody.RootElement.GetProperty("details"))[0]).GetProperty("target").GetString() with
-                        | "resourceId" -> BadResourceId |> Error
-                        | "effectiveStartTime" -> InvalidEffectiveStartTime |> Error
+                        | "resourceId" -> json |> BadResourceId |> Error
+                        | "effectiveStartTime" -> json |> InvalidEffectiveStartTime |> Error
                         | _ -> json |> CommunicationsProblem |> Error
                     with 
                     | _ -> json |> CommunicationsProblem |> Error
                 | _ -> json |> CommunicationsProblem |> Error
             
-            return { Payload = usage; Result = result }
+            return { Payload = usage; Result = result; Headers = azureHeader }
         }

@@ -112,17 +112,18 @@ module InstanceMetadataClient =
     let createArmClient () =
         create 
             ManagedIdentity
-            "https://management.azure.com/"
-            "https://management.azure.com/"
+            "https://management.azure.com/" // resource
+            "https://management.azure.com/" // uri
 
     let createMarketplaceClient cred =
+        let documentedEndpoint = "marketplaceapi.microsoft.com"
+        let seeminglyNewEndpoint = "saasapi.azure.com"
+
         // https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/pc-saas-registration#get-the-token-with-an-http-post
         create
             cred
-            "20e940b3-4c77-4b0b-9a53-9e16a1b010a7"
-            "https://marketplaceapi.microsoft.com/"
-                
-
+            "20e940b3-4c77-4b0b-9a53-9e16a1b010a7" // resource
+            $"https://{seeminglyNewEndpoint}/"
 
     //let private demo =
     //    let inspect header a =
