@@ -2,20 +2,29 @@
 
 open System
 open System.Threading
+open System.Threading.Tasks
 open System.Runtime.CompilerServices
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Producer
 open Metering.Types
+open System.Runtime.InteropServices
 
 [<Extension>]
 module MeteringEventHubExtensions =
-    let private SubmitUsage (producer: EventHubProducerClient) (ct: CancellationToken) (internalUsageEvent: InternalUsageEvent) = task {
+    let private SubmitUsage (eventHubProducerClient: EventHubProducerClient) (ct: CancellationToken) (internalUsageEvent: InternalUsageEvent) : Task<unit> = task {        
+        let createBatchOptions = 
+            let o = new CreateBatchOptions()
+            //o.PartitionKey <- Guid.NewGuid().ToString()
+            //o.PartitionId <- ".."
+            o
+
+        let! eventBatch = eventHubProducerClient.CreateBatchAsync(options = createBatchOptions, cancellationToken = ct)
         
-        // PartitionKey = Guid.NewGuid().ToString(),
-        // PartitionId = ids[id],
-        let! eventBatch = producer.CreateBatchAsync((new CreateBatchOptions()), cancellationToken = ct)
-        
-        let eventData = new EventData(new BinaryData(Json.toStr(internalUsageEvent)))
+        let eventData = 
+            internalUsageEvent
+            |> Json.toStr
+            |> (fun x -> new BinaryData(x))
+            |> (fun x -> new EventData(x))
 
         //eventData.Properties.Add("SendingApplication", typeof(EventHubDemoProgram).Assembly.Location);
         if not (eventBatch.TryAdd(eventData))
@@ -23,37 +32,39 @@ module MeteringEventHubExtensions =
         else ()
 
         // options: new SendEventOptions() {  PartitionId = "...", PartitionKey = "..." },
-        return! (producer.SendAsync(eventBatch, cancellationToken = ct))
-    }
+        let! () = eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = ct)
 
-    [<Extension>]
-    let SubmitManagedAppIntegerAsync (producer: EventHubProducerClient) (meterName: string) (v: uint64) (ct: CancellationToken) =
-        { InternalUsageEvent.InternalResourceId = InternalResourceId.ManagedApp
-          Quantity = v |> Quantity.createInt 
-          Timestamp = MeteringDateTime.now(); MeterName = meterName |> ApplicationInternalMeterName.create; Properties = None
-        }
-        |> SubmitUsage producer ct
+        return ()
+    }
     
     [<Extension>]
-    let SubmitManagedAppFloatAsync (producer: EventHubProducerClient) (meterName: string) (v: decimal) (ct: CancellationToken) =
+    let SubmitManagedAppIntegerAsync (eventHubProducerClient: EventHubProducerClient) (meterName: string) (quantity: uint64) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> =
         { InternalUsageEvent.InternalResourceId = InternalResourceId.ManagedApp
-          Quantity = v |> Quantity.createFloat
+          Quantity = quantity |> Quantity.createInt 
           Timestamp = MeteringDateTime.now(); MeterName = meterName |> ApplicationInternalMeterName.create; Properties = None
         }
-        |> SubmitUsage producer ct
+        |> SubmitUsage eventHubProducerClient cancellationToken
+    
+    [<Extension>]
+    let SubmitManagedAppFloatAsync (eventHubProducerClient: EventHubProducerClient) (meterName: string) (quantity: decimal) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> =
+        { InternalUsageEvent.InternalResourceId = InternalResourceId.ManagedApp
+          Quantity = quantity |> Quantity.createFloat
+          Timestamp = MeteringDateTime.now(); MeterName = meterName |> ApplicationInternalMeterName.create; Properties = None
+        }
+        |> SubmitUsage eventHubProducerClient cancellationToken
 
     [<Extension>]
-    let SubmitSaasIntegerAsync (producer: EventHubProducerClient) (saasId: string) (meterName: string) (v: uint64) (ct: CancellationToken) =
+    let SubmitSaasIntegerAsync (eventHubProducerClient: EventHubProducerClient) (saasId: string) (meterName: string) (quantity: uint64) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> =
         { InternalUsageEvent.InternalResourceId = saasId |> SaaSSubscriptionID.create |> InternalResourceId.SaaSSubscription
-          Quantity = v |> Quantity.createInt 
+          Quantity = quantity |> Quantity.createInt 
           Timestamp = MeteringDateTime.now(); MeterName = meterName |> ApplicationInternalMeterName.create; Properties = None
         }
-        |> SubmitUsage producer ct
+        |> SubmitUsage eventHubProducerClient cancellationToken
 
     [<Extension>]
-    let SubmitSaasFloatAsync (producer: EventHubProducerClient) (saasId: string) (meterName: string) (v: decimal) (ct: CancellationToken) =
+    let SubmitSaasFloatAsync (eventHubProducerClient: EventHubProducerClient) (saasId: string) (meterName: string) (quantity: decimal) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> =
         { InternalUsageEvent.InternalResourceId = saasId |> SaaSSubscriptionID.create |> InternalResourceId.SaaSSubscription
-          Quantity = v |> Quantity.createFloat
+          Quantity = quantity |> Quantity.createFloat
           Timestamp = MeteringDateTime.now(); MeterName = meterName |> ApplicationInternalMeterName.create; Properties = None
         }
-        |> SubmitUsage producer ct
+        |> SubmitUsage eventHubProducerClient cancellationToken

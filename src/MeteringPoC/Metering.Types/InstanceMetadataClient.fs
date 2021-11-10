@@ -1,14 +1,12 @@
 ﻿namespace Metering.Types
 
 open System
-open System.Text
+open System.Collections.Generic
+open System.Threading.Tasks
 open System.Net.Http
 open System.Net.Http.Json
 open System.Web
 open Microsoft.FSharp.Control
-open System.Threading.Tasks
-open Thoth.Json.Net
-open System.Collections.Generic
 
 type ServicePrincipalCredential = 
     { client_id : string 
