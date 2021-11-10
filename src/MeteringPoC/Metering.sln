@@ -19,14 +19,13 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BusinessLogicDemoA
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BE422FBF-7D05-4571-AAFA-874471D110F2}"
 	ProjectSection(SolutionItems) = preProject
-		File1.fsx = File1.fsx
 		global.json = global.json
 		state-transistions.md = state-transistions.md
 	EndProjectSection
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.NUnitTests", "Metering.NUnitTests\Metering.NUnitTests.fsproj", "{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleMeteringSubmissionClient", "SimpleMeteringSubmissionClient\SimpleMeteringSubmissionClient.csproj", "{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleMeteringSubmissionClient", "SimpleMeteringSubmissionClient\SimpleMeteringSubmissionClient.csproj", "{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
