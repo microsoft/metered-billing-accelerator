@@ -6,6 +6,8 @@ open System.Net.Http
 open System.Threading.Tasks
 open System.Text.Json
 open System.Collections.Generic
+open Azure.Messaging.EventHubs.Consumer
+open System.Threading
 
 let parseConsumptionEvents (str: string) = 
     let multilineParse parser (str : string) =  
@@ -246,5 +248,28 @@ let main argv =
     |> Json.fromStr<MarketplaceSubmissionResult>
     |> inspecto ""
     |> ignore
+     
+    let cred = Metering.DemoCredentials.Get(
+        consumerGroupName = EventHubConsumerClient.DefaultConsumerGroupName)
+    
+    let snapshotStorage =
+        new Azure.Storage.Blobs.BlobContainerClient(
+            blobContainerUri = new Uri($"https://{cred.SnapshotStorage.StorageAccountName}.blob.core.windows.net/{cred.SnapshotStorage.StorageContainerName}/"),
+            credential = cred.TokenCredential)
+    
+
+    //let tx = Aggregator.GetBlobNames checkpointStorage CancellationToken.None
+    //let x  = tx.Result
+    //x
+    //|> Seq.toList
+    //|> List.iter(printfn "blob %s")
+
+    let events = 
+        eventsFromEventHub
+        |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+        |> Json.toStr                             |> inspect "meters"
+        |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
+    (Aggregator.StoreLastState snapshotStorage  CancellationToken.None events).Wait()
+
     0

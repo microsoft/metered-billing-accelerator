@@ -9,6 +9,7 @@ module MeteringDateTime =
     let private toPattern p = 
         ZonedDateTimePattern.CreateWithInvariantCulture(p, DateTimeZoneProviders.Bcl)
 
+    
     let onlySecond = "yyyy-MM-ddTHH:mm:ss" |> toPattern
     let onlySecondZulu = "yyyy-MM-ddTHH:mm:ss'Z'" |> toPattern
     let withNanoSecondsInZulu = "yyyy-MM-ddTHH:mm:ss.FFFFFFF'Z'" |> toPattern
@@ -18,7 +19,10 @@ module MeteringDateTime =
             onlySecondZulu
             onlySecond 
         ]
-        
+    
+    let blobName : (MeteringDateTime -> string) = 
+        ("yyyy-MM-dd--HH-mm-ss" |> toPattern).Format
+
     let toStr (d: MeteringDateTime) : string =
         d |> withNanoSecondsInZulu.Format
     

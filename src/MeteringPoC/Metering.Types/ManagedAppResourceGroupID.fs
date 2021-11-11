@@ -26,7 +26,7 @@ module ManagedAppResourceGroupID =
         task {
             // Determine the resource ID we're running in, using the instance metadata endpoint
             let c = InstanceMetadataClient.clientWithMetadataTrue "http://169.254.169.254/"
-            let! imdsJson = c.GetStringAsync "metadata/instance?api-version=2021-02-01"
+            let! imdsJson = c.GetStringAsync "metadata/instance?api-version=2021-02-01" // TODO do we need &format=json as well ?
             let resourceGroupId = 
                 match Decode.fromString RecourceGroupIdDecoder imdsJson with
                 | Ok x -> x
