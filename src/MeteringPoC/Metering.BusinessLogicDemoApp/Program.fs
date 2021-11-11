@@ -270,6 +270,24 @@ let main argv =
         |> Json.toStr                             |> inspect "meters"
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
-    (Aggregator.StoreLastState snapshotStorage  CancellationToken.None events).Wait()
+    
+
+    (task {
+        let! () = Aggregator.StoreLastState snapshotStorage CancellationToken.None events
+
+        let partitionId = 
+            events
+            |> MeterCollection.lastUpdate
+            |> (fun x -> x.Value.PartitionID)
+
+        let! meters = Aggregator.LoadLastState snapshotStorage partitionId CancellationToken.None
+
+        meters
+        |> Json.toStr
+        |> inspect "read"
+        |> ignore
+
+        return ()
+    }).Wait()
 
     0

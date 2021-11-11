@@ -10,6 +10,7 @@ open Azure
 open Azure.Storage.Blobs
 open Azure.Storage.Blobs.Specialized
 open Azure.Storage.Sas
+open Metering.Types.EventHub
 
 module Aggregator =
     //let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
@@ -74,11 +75,32 @@ module Aggregator =
             return ()
         }
 
+    let LoadLastState
+        (snapshotContainerClient: BlobContainerClient)
+        (partitionID: PartitionID)
+        ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
+        : Task<MeterCollection> =
+        task {
+            let blobName = $"partition-{partitionID}/latest.json"
+
+            let blob =
+                snapshotContainerClient.GetBlobClient(blobName)
+
+            let! content = blob.DownloadContentAsync(cancellationToken = cancellationToken)
+
+            return
+                content.Value.Content
+                |> (fun x -> x.ToArray())
+                |> (fun x -> Encoding.UTF8.GetString(x))
+                |> Json.fromStr<MeterCollection>
+        }
+
+
     let StoreLastState
         (snapshotContainerClient: BlobContainerClient)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         (meterCollection: MeterCollection)
-        =
+        : Task =
         match meterCollection |> MeterCollection.lastUpdate with
         | None -> Task.CompletedTask
         | Some lastUpdate ->
