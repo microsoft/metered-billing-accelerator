@@ -1,45 +1,34 @@
 ﻿namespace Metering.Types
 
 open System
-open System.Collections.Generic
 open System.IO
 open System.Text
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
+open Azure
 open Azure.Storage.Blobs
 open Azure.Storage.Blobs.Specialized
 open Azure.Storage.Sas
 
 module Aggregator =
-    let GetBlobNames
-        (snapshotContainerClient: BlobContainerClient)
-        ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
-        : Task<List<string>> =
-        task {
-            let blobs =
-                snapshotContainerClient.GetBlobsAsync(cancellationToken = cancellationToken)
+    //let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    //    task {
+    //        let blobs = snapshotContainerClient.GetBlobsAsync(cancellationToken = cancellationToken)
+    //        let n = blobs.GetAsyncEnumerator(cancellationToken = cancellationToken)
+    //        let resultList = new List<string>()
+    //        let! h = n.MoveNextAsync()
+    //        let mutable hasNext = h
+    //        while hasNext do
+    //            let item = n.Current
+    //            resultList.Add(item.Properties.CreatedOn.ToString())
+    //            let! h = n.MoveNextAsync()
+    //            hasNext <- h
+    //        return resultList
+    //    }
 
-            let n =
-                blobs.GetAsyncEnumerator(cancellationToken = cancellationToken)
-
-            let resultList = new List<string>()
-
-            let! h = n.MoveNextAsync()
-            let mutable hasNext = h
-
-            while hasNext do
-                let item = n.Current
-                resultList.Add(item.Properties.CreatedOn.ToString())
-
-                let! h = n.MoveNextAsync()
-                hasNext <- h
-
-            return resultList
-        }
-
-    let CopyBlobAsync
-        (blobServiceClient: BlobServiceClient)
+    /// Copies the source blob to the destination
+    let private CopyBlobAsync
         (source: BlobClient)
         (destination: BlobClient)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
@@ -49,6 +38,11 @@ module Aggregator =
             let aMinuteAgo = now.AddMinutes(-1.0)
             let inTenMinutes = now.AddMinutes(10.0)
             let oneDay = now.AddDays(1.0)
+
+            let blobServiceClient =
+                source
+                    .GetParentBlobContainerClient()
+                    .GetParentBlobServiceClient()
 
             // https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-user-delegation-sas-create-dotnet
             let! userDelegationKey =
@@ -112,19 +106,18 @@ module Aggregator =
 
                 let! _ =
                     if not exists.Value then
-                        blobDate.UploadAsync(content = stream, cancellationToken = cancellationToken)
+                        try
+                            blobDate.UploadAsync(content = stream, cancellationToken = cancellationToken)
+                        with
+                        | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" ->
+                            Task.FromResult(null)
                     else
                         Task.FromResult(null)
 
                 let latestBlob =
                     snapshotContainerClient.GetBlobClient(blobCopyName)
 
-                let! _ =
-                    CopyBlobAsync
-                        (snapshotContainerClient.GetParentBlobServiceClient())
-                        blobDate
-                        latestBlob
-                        cancellationToken
+                let! _ = CopyBlobAsync blobDate latestBlob cancellationToken
 
                 return ()
             }
