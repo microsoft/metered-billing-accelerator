@@ -227,27 +227,27 @@ let main argv =
           ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
           MeteringAPICredentials = cred }
 
-    eventsFromEventHub
-    |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
-    |> Json.toStr                             |> inspect "meters"
-    |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
-    |> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
-    |> ignore
+    //eventsFromEventHub
+    //|> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+    //|> Json.toStr                             |> inspect "meters"
+    //|> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
+    //|> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
+    //|> ignore
 
-    let usage =
-        { ResourceId = resourceId
-          Quantity = 2.3m
-          PlanId = "free_monthly_yearly" |> PlanId.create
-          DimensionId = "datasourcecharge" |> DimensionId.create
-          EffectiveStartTime = "2021-11-09T17:00:00Z" |> MeteringDateTime.fromStr }
-    let result = (MarketplaceClient.submit config usage).Result
+    //let usage =
+    //    { ResourceId = resourceId
+    //      Quantity = 2.3m
+    //      PlanId = "free_monthly_yearly" |> PlanId.create
+    //      DimensionId = "datasourcecharge" |> DimensionId.create
+    //      EffectiveStartTime = "2021-11-09T17:00:00Z" |> MeteringDateTime.fromStr }
+    //let result = (MarketplaceClient.submit config usage).Result
     
-    result
-    |> Json.toStr
-    |> inspect ""
-    |> Json.fromStr<MarketplaceSubmissionResult>
-    |> inspecto ""
-    |> ignore
+    //result
+    //|> Json.toStr
+    //|> inspect ""
+    //|> Json.fromStr<MarketplaceSubmissionResult>
+    //|> inspecto ""
+    //|> ignore
      
     let cred = Metering.DemoCredentials.Get(
         consumerGroupName = EventHubConsumerClient.DefaultConsumerGroupName)
@@ -258,11 +258,11 @@ let main argv =
             credential = cred.TokenCredential)
     
 
-    //let tx = Aggregator.GetBlobNames checkpointStorage CancellationToken.None
-    //let x  = tx.Result
-    //x
-    //|> Seq.toList
-    //|> List.iter(printfn "blob %s")
+    ////let tx = Aggregator.GetBlobNames checkpointStorage CancellationToken.None
+    ////let x  = tx.Result
+    ////x
+    ////|> Seq.toList
+    ////|> List.iter(printfn "blob %s")
 
     let events = 
         eventsFromEventHub
@@ -270,7 +270,6 @@ let main argv =
         |> Json.toStr                             |> inspect "meters"
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
-    
 
     (task {
         let! () = Aggregator.StoreLastState snapshotStorage CancellationToken.None events
@@ -282,10 +281,14 @@ let main argv =
 
         let! meters = Aggregator.LoadLastState snapshotStorage partitionId CancellationToken.None
 
-        meters
-        |> Json.toStr
-        |> inspect "read"
-        |> ignore
+        match meters with
+        | Some meter -> 
+            meter
+            |> inspecto "read"
+            |> Json.toStr
+            |> ignore
+        | None -> printfn "No state found"
+
 
         return ()
     }).Wait()

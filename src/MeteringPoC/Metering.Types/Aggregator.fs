@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.IO.Compression
 open System.Text
 open System.Threading
 open System.Threading.Tasks
@@ -13,6 +14,30 @@ open Azure.Storage.Sas
 open Metering.Types.EventHub
 
 module Aggregator =
+
+    let toUTF8String (bytes: byte[]) = Encoding.UTF8.GetString(bytes)
+
+    let toUTF8Bytes (str: string) = Encoding.UTF8.GetBytes(str)
+
+    let gzipCompress (input: Stream) : Stream =
+        use output = new MemoryStream()        
+        using (new GZipStream(output, CompressionMode.Compress)) (fun gzip -> input.CopyTo(gzip))
+        new MemoryStream(output.ToArray())
+    
+    let gzipDecompress (input: Stream) : Stream =
+        use output = new MemoryStream()
+        using (new GZipStream(output, CompressionMode.Decompress)) (fun gzip -> gzip.CopyTo(output))
+        new MemoryStream(output.ToArray())
+
+    let asJSONStream (t: 'T) = t |> Json.toStr |> toUTF8Bytes |> (fun x -> new MemoryStream(x))
+
+    let fromJSONStream<'T> (stream: Stream) : Task<'T> =
+        task {
+            use ms = new MemoryStream()
+            let! _ = stream.CopyToAsync(ms)
+            return ms.ToArray() |> toUTF8String |> Json.fromStr<'T>
+        }
+
     //let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
     //    task {
     //        let blobs = snapshotContainerClient.GetBlobsAsync(cancellationToken = cancellationToken)
@@ -79,22 +104,21 @@ module Aggregator =
         (snapshotContainerClient: BlobContainerClient)
         (partitionID: PartitionID)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
-        : Task<MeterCollection> =
+        : Task<MeterCollection option> =
         task {
             let blobName = $"partition-{partitionID}/latest.json"
 
             let blob =
                 snapshotContainerClient.GetBlobClient(blobName)
-
-            let! content = blob.DownloadContentAsync(cancellationToken = cancellationToken)
-
-            return
-                content.Value.Content
-                |> (fun x -> x.ToArray())
-                |> (fun x -> Encoding.UTF8.GetString(x))
-                |> Json.fromStr<MeterCollection>
+            
+            try
+                let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
+                let! meterCollection = content.Value.Content |> fromJSONStream<MeterCollection>
+                return Some meterCollection
+            with
+            | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobNotFound" ->
+                return None
         }
-
 
     let StoreLastState
         (snapshotContainerClient: BlobContainerClient)
@@ -115,20 +139,12 @@ module Aggregator =
                 let blobCopyName =
                     $"partition-{lastUpdate.PartitionID}/latest.json"
 
-                use stream =
-                    meterCollection
-                    |> Json.toStr
-                    |> (fun x -> Encoding.UTF8.GetBytes(x))
-                    |> (fun x -> new MemoryStream(x))
-
-                let blobDate =
-                    snapshotContainerClient.GetBlobClient(blobDateName)
-
+                let blobDate = snapshotContainerClient.GetBlobClient(blobDateName)
                 let! exists = blobDate.ExistsAsync(cancellationToken = cancellationToken)
-
                 let! _ =
                     if not exists.Value then
                         try
+                            use stream = meterCollection |> asJSONStream
                             blobDate.UploadAsync(content = stream, cancellationToken = cancellationToken)
                         with
                         | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" ->
