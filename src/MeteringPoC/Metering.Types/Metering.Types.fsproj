@@ -10,11 +10,17 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.10.0" />
     <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
     <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
+    <PackageReference Include="Azure.Identity" Version="1.5.0" />
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
+    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
     <PackageReference Include="NodaTime" Version="3.0.9" />
     <PackageReference Include="Thoth.Json.Net" Version="7.1.0" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Metering.DemoCredentials\Metering.DemoCredentials.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="InstanceMetadataClient.fs" />
@@ -52,6 +58,7 @@
     <Compile Include="MarketplaceClient.fs" />
     <Compile Include="ClientSDK.fs" />
     <Compile Include="TestBusinessLogic.fs" />
+    <Compile Include="MeterCollectionStore.fs" />
     <Compile Include="Aggregator.fs" />
   </ItemGroup>
 </Project>

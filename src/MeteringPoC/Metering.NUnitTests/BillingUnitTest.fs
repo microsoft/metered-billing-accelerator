@@ -235,7 +235,7 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
 [<Test>]
 let QuantitySerialization() =
     let test (idx, v) =
-        Assert.AreEqual(v, v |> Json.toStr |> Json.fromStr<Quantity>, sprintf "Failure testc case #%d" idx)
+        Assert.AreEqual(v, v |> Json.toStr 1 |> Json.fromStr<Quantity>, sprintf "Failure testc case #%d" idx)
 
     [
         Infinite
@@ -273,7 +273,7 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
           CorrelationID = Guid.NewGuid().ToString() }
       Result = "someerror" |> CommunicationsProblem |> Error
       }
-    |> Json.toStr |> Json.fromStr<MarketplaceSubmissionResult>
+    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
     |> (fun x -> 
         Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
 
@@ -298,7 +298,7 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
                   DimensionId = change.Payload.DimensionId
                   EffectiveStartTime = change.Payload.EffectiveStartTime
                   PlanId = change.Payload.PlanId } |> Ok })                
-    |> Json.toStr |> Json.fromStr<MarketplaceSubmissionResult>
+    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
     |> (fun x -> 
         Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
 

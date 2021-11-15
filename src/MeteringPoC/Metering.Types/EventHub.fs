@@ -7,7 +7,7 @@ open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.Types
 
-type SequenceNumber = uint64
+type SequenceNumber = int64
 
 type PartitionID = string
 
@@ -16,10 +16,20 @@ type MessagePosition =
       SequenceNumber: SequenceNumber
       PartitionTimestamp: MeteringDateTime }
 
+module MessagePosition =
+    let startingPosition (someMessagePosition: MessagePosition option) =
+        match someMessagePosition with
+        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber + 1L)
+        | None -> EventPosition.Earliest
+        
 type SeekPosition =
     | FromSequenceNumber of SequenceNumber: SequenceNumber 
     | Earliest
     | FromTail
+
+type EventsToCatchup =
+    { NumberOfEvents: int64
+      TimeDelta: System.TimeSpan }
 
 type EventHubConnectionDetails =
     { Credential: TokenCredential 

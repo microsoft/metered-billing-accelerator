@@ -1,13 +1,15 @@
 ﻿open System
-open Metering.Types
-open Metering.Types.EventHub
-open NodaTime
 open System.Net.Http
-open System.Threading.Tasks
 open System.Text.Json
+open System.Threading
+open System.Threading.Tasks
 open System.Collections.Generic
 open Azure.Messaging.EventHubs.Consumer
-open System.Threading
+open NodaTime
+open FSharp.Control.Reactive
+open Metering
+open Metering.Types
+open Metering.Types.EventHub
 
 let parseConsumptionEvents (str: string) = 
     let multilineParse parser (str : string) =  
@@ -44,7 +46,7 @@ let parseConsumptionEvents (str: string) =
                             Properties = props |> parseProps }
                         MessagePosition = {
                             PartitionID = "1"
-                            SequenceNumber = sequencenr |> UInt64.Parse
+                            SequenceNumber = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                     }
                 | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
@@ -57,7 +59,7 @@ let parseConsumptionEvents (str: string) =
                             Properties = None }
                         MessagePosition = {
                             PartitionID = "1"
-                            SequenceNumber = sequencenr |> UInt64.Parse
+                            SequenceNumber = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                     }
                 | _ -> None
@@ -267,25 +269,25 @@ let main argv =
     let events = 
         eventsFromEventHub
         |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
-        |> Json.toStr                             |> inspect "meters"
+        |> Json.toStr 1                             |> inspect "meters"
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
 
     (task {
-        let! () = Aggregator.StoreLastState snapshotStorage CancellationToken.None events
+        let! () = MeterCollectionStore.storeLastState snapshotStorage CancellationToken.None events
 
         let partitionId = 
             events
             |> MeterCollection.lastUpdate
             |> (fun x -> x.Value.PartitionID)
 
-        let! meters = Aggregator.LoadLastState snapshotStorage partitionId CancellationToken.None
+        let! meters = MeterCollectionStore.loadLastState snapshotStorage partitionId CancellationToken.None
 
         match meters with
         | Some meter -> 
             meter
             |> inspecto "read"
-            |> Json.toStr
+            |> Json.toStr 4
             |> ignore
         | None -> printfn "No state found"
 
@@ -293,4 +295,13 @@ let main argv =
         return ()
     }).Wait()
 
+    
+    let obs1 = Observable.single 1
+    let obs2 = Observable.single "A"
+    
+    Observable.zip obs1 obs2
+    |> Observable.subscribe (printfn "%A")
+    |> ignore
+
+    // (Aggregator.createObservable snapshotStorage "1" CancellationToken.None).Wait()
     0

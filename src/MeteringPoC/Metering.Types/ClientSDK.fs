@@ -15,20 +15,19 @@ module MeteringEventHubExtensions =
     // [<Extension>] // Currently not exposed to C#
     let SubmitMeteringUpdateEvent (eventHubProducerClient: EventHubProducerClient) (meteringUpdateEvent: MeteringUpdateEvent) ([<Optional; DefaultParameterValue(CancellationToken())>] ct: CancellationToken) : Task<unit> = task {        
         let createBatchOptions = 
-            let o = new CreateBatchOptions()
-            //o.PartitionKey <- Guid.NewGuid().ToString()
-            //o.PartitionId <- ".."
-            o
+            let cbo = new CreateBatchOptions()
+            cbo.PartitionKey <- meteringUpdateEvent |> MeteringUpdateEvent.partitionKey
+            cbo
 
         let! eventBatch = eventHubProducerClient.CreateBatchAsync(options = createBatchOptions, cancellationToken = ct)
         
         let eventData = 
             meteringUpdateEvent
-            |> Json.toStr
+            |> Json.toStr 0
             |> (fun x -> new BinaryData(x))
             |> (fun x -> new EventData(x))
-
-        //eventData.Properties.Add("SendingApplication", typeof(EventHubDemoProgram).Assembly.Location);
+        
+        eventData.Properties.Add("SendingApplication", (System.Reflection.Assembly.GetEntryAssembly().FullName))
         if not (eventBatch.TryAdd(eventData))
         then failwith "The event could not be added."
         else ()

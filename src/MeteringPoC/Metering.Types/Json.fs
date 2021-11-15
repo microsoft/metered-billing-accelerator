@@ -1,12 +1,12 @@
-﻿
-
-namespace Metering.Types
+﻿namespace Metering.Types
 
 module Json =
     open System
     open Thoth.Json.Net
     open Newtonsoft.Json.Linq
     open NodaTime.Text
+    open System.Runtime.InteropServices
+    
 
     module MeteringDateTime =
         let private makeEncoder<'T> (pattern : IPattern<'T>) : Encoder<'T> = pattern.Format >> Encode.string
@@ -51,7 +51,7 @@ module Json =
         let Encoder (x: MessagePosition) : JsonValue =
             [
                 (partitionId, x.PartitionID |> Encode.string)
-                (sequenceNumber, x.SequenceNumber |> Encode.uint64)
+                (sequenceNumber, x.SequenceNumber |> Encode.int64)
                 (partitionTimestamp, x.PartitionTimestamp |> MeteringDateTime.Encoder)
             ]
             |> Encode.object 
@@ -59,7 +59,7 @@ module Json =
         let Decoder : Decoder<MessagePosition> =
             Decode.object (fun get -> {
                 PartitionID = get.Required.Field partitionId Decode.string
-                SequenceNumber = get.Required.Field sequenceNumber Decode.uint64
+                SequenceNumber = get.Required.Field sequenceNumber Decode.int64
                 PartitionTimestamp = get.Required.Field partitionTimestamp MeteringDateTime.Decoder
             })
 
@@ -568,7 +568,7 @@ module Json =
 
     let enriched = Extra.empty |> enrich
 
-    let toStr o = Encode.Auto.toString(4, o, extra = enriched)
+    let toStr ([<Optional; DefaultParameterValue(0)>] space: int) o = Encode.Auto.toString(space, o, extra = enriched)
         
     let fromStr<'T> json = 
         match Decode.Auto.fromString<'T>(json, extra = enriched) with

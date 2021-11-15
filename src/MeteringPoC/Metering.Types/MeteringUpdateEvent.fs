@@ -14,3 +14,11 @@ type MeteringUpdateEvent =
     /// A heart beat signal to flush potential billing periods
     | AggregatorBooted
 
+module MeteringUpdateEvent =
+    let partitionKey (mue: MeteringUpdateEvent) : string =
+        match mue with
+        | SubscriptionPurchased x -> x.Subscription.InternalResourceId |> InternalResourceId.toStr
+        | UsageReported x -> x.InternalResourceId |> InternalResourceId.toStr
+        | UsageSubmittedToAPI x -> x.Payload.ResourceId  |> InternalResourceId.toStr
+        | AggregatorBooted -> null
+        

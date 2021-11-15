@@ -10,8 +10,8 @@ module MarketplaceClient =
     let submit (config: MeteringConfigurationProvider) (usage: MeteringAPIUsageEventDefinition) : Task<MarketplaceSubmissionResult> = 
         task {
             let! client = InstanceMetadataClient.createMarketplaceClient config.MeteringAPICredentials
-            let json = usage |> Json.toStr
-
+            let json = usage |> Json.toStr 0
+ 
             let meteringApiVersion = "2018-08-31"
             let request = new HttpRequestMessage(HttpMethod.Post, $"/api/usageEvent?api-version={meteringApiVersion}")
             request.Content <- new StringContent(json, Encoding.UTF8, "application/json")

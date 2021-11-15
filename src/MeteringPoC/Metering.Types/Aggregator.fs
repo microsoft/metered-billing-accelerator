@@ -1,161 +1,113 @@
 ﻿namespace Metering.Types
 
 open System
-open System.IO
-open System.IO.Compression
-open System.Text
+open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
+open System.Reactive.Linq
 open System.Runtime.InteropServices
-open Azure
 open Azure.Storage.Blobs
-open Azure.Storage.Blobs.Specialized
-open Azure.Storage.Sas
+open Azure.Messaging.EventHubs.Consumer
+open Metering
 open Metering.Types.EventHub
 
-module Aggregator =
-
-    let toUTF8String (bytes: byte[]) = Encoding.UTF8.GetString(bytes)
-
-    let toUTF8Bytes (str: string) = Encoding.UTF8.GetBytes(str)
-
-    let gzipCompress (input: Stream) : Stream =
-        use output = new MemoryStream()        
-        using (new GZipStream(output, CompressionMode.Compress)) (fun gzip -> input.CopyTo(gzip))
-        new MemoryStream(output.ToArray())
-    
-    let gzipDecompress (input: Stream) : Stream =
-        use output = new MemoryStream()
-        using (new GZipStream(output, CompressionMode.Decompress)) (fun gzip -> gzip.CopyTo(output))
-        new MemoryStream(output.ToArray())
-
-    let asJSONStream (t: 'T) = t |> Json.toStr |> toUTF8Bytes |> (fun x -> new MemoryStream(x))
-
-    let fromJSONStream<'T> (stream: Stream) : Task<'T> =
+module Aggregator = 
+    let handle (partitionEvent: PartitionEvent) = 
         task {
-            use ms = new MemoryStream()
-            let! _ = stream.CopyToAsync(ms)
-            return ms.ToArray() |> toUTF8String |> Json.fromStr<'T>
-        }
-
-    //let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-    //    task {
-    //        let blobs = snapshotContainerClient.GetBlobsAsync(cancellationToken = cancellationToken)
-    //        let n = blobs.GetAsyncEnumerator(cancellationToken = cancellationToken)
-    //        let resultList = new List<string>()
-    //        let! h = n.MoveNextAsync()
-    //        let mutable hasNext = h
-    //        while hasNext do
-    //            let item = n.Current
-    //            resultList.Add(item.Properties.CreatedOn.ToString())
-    //            let! h = n.MoveNextAsync()
-    //            hasNext <- h
-    //        return resultList
-    //    }
-
-    /// Copies the source blob to the destination
-    let private CopyBlobAsync
-        (source: BlobClient)
-        (destination: BlobClient)
-        ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
-        =
-        task {
-            let now = DateTimeOffset.UtcNow
-            let aMinuteAgo = now.AddMinutes(-1.0)
-            let inTenMinutes = now.AddMinutes(10.0)
-            let oneDay = now.AddDays(1.0)
-
-            let blobServiceClient =
-                source
-                    .GetParentBlobContainerClient()
-                    .GetParentBlobServiceClient()
-
-            // https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-user-delegation-sas-create-dotnet
-            let! userDelegationKey =
-                blobServiceClient.GetUserDelegationKeyAsync(
-                    startsOn = aMinuteAgo,
-                    expiresOn = oneDay,
-                    cancellationToken = cancellationToken
-                )
-
-            let sasBuilder =
-                new BlobSasBuilder(permissions = BlobContainerSasPermissions.Read, expiresOn = inTenMinutes)
-
-            sasBuilder.StartsOn <- aMinuteAgo
-            sasBuilder.Resource <- "b"
-            sasBuilder.BlobContainerName <- source.BlobContainerName
-            sasBuilder.BlobName <- source.Name
-
-            let blobUriBuilder = new BlobUriBuilder(source.Uri)
-
-            blobUriBuilder.Sas <-
-                sasBuilder.ToSasQueryParameters(userDelegationKey.Value, blobServiceClient.AccountName)
-
-            let! _ =
-                destination.SyncCopyFromUriAsync(
-                    source = (blobUriBuilder.ToUri()),
-                    cancellationToken = cancellationToken
-                )
-
+            let lastEnqueuedEvent = partitionEvent.Partition.ReadLastEnqueuedEventProperties()
+            let timedelta = lastEnqueuedEvent.LastReceivedTime.Value.Subtract(partitionEvent.Data.EnqueuedTime)
+            let sn = partitionEvent.Data.SequenceNumber
+            let sequenceDelta = lastEnqueuedEvent.SequenceNumber.Value - sn;
+            
+            //string readFromPartition = partitionEvent.Partition.PartitionId;
+            //byte[] eventBodyBytes = partitionEvent.Data.EventBody.ToArray();
+            printf $"partition {partitionEvent.Partition.PartitionId} sequence# {partitionEvent.Data.SequenceNumber} catchup {timedelta} ({sequenceDelta} events)"
             return ()
         }
 
-    let LoadLastState
-        (snapshotContainerClient: BlobContainerClient)
-        (partitionID: PartitionID)
-        ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
-        : Task<MeterCollection option> =
-        task {
-            let blobName = $"partition-{partitionID}/latest.json"
-
-            let blob =
-                snapshotContainerClient.GetBlobClient(blobName)
+    // 
+    let asyncForeach (handler: ('t -> Task<Unit>)) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) (asncEnumerable: IAsyncEnumerable<'t>) : Task<Unit> =
+        task { 
+            let asyncEnumerator = asncEnumerable.GetAsyncEnumerator(cancellationToken = cancellationToken)
             
-            try
-                let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
-                let! meterCollection = content.Value.Content |> fromJSONStream<MeterCollection>
-                return Some meterCollection
-            with
-            | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobNotFound" ->
-                return None
+            let! h = asyncEnumerator.MoveNextAsync()
+            let mutable hasNext = h
+            while hasNext do
+                let! _ = handler(asyncEnumerator.Current)
+
+                let! h = asyncEnumerator.MoveNextAsync()
+                hasNext <- h
+
+            return ()
         }
+    
+    //let readEventHub (config: DemoCredential) (someMessagePosition: MessagePosition option) (handler: (PartitionEvent -> Task<Unit>)) =
+        //task {
+        //    let eventHubConsumerClient = new EventHubConsumerClient(
+        //        consumerGroup = config.EventHubInformation.ConsumerGroup,
+        //        fullyQualifiedNamespace = $"{config.EventHubInformation.EventHubNamespaceName}.servicebus.windows.net",
+        //        eventHubName = config.EventHubInformation.EventHubInstanceName,
+        //        credential = config.TokenCredential)
 
-    let StoreLastState
-        (snapshotContainerClient: BlobContainerClient)
-        ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
-        (meterCollection: MeterCollection)
-        : Task =
-        match meterCollection |> MeterCollection.lastUpdate with
-        | None -> Task.CompletedTask
-        | Some lastUpdate ->
-            task {
-                let timestamp =
-                    lastUpdate.PartitionTimestamp
-                    |> MeteringDateTime.blobName
+        //    let! ids = eventHubConsumerClient.GetPartitionIdsAsync()            
+        //    let firstPartitionId = ids[0]
+            
+        //    let runtime = TimeSpan.FromSeconds(60)
+        //    use cts = new CancellationTokenSource ()
+        //    cts.CancelAfter(runtime)
+        //    let cancellationToken = cts.Token
+        //    printfn $"Start reading across all partitions now for {runtime}"
 
-                let blobDateName =
-                    $"partition-{lastUpdate.PartitionID}/{timestamp}---sequencenr-{lastUpdate.SequenceNumber}.json"
+        //    let readOptions = new ReadEventOptions()
+        //    readOptions.TrackLastEnqueuedEventProperties <- true
+        //    //readOptions.MaximumWaitTime <- TimeSpan.FromSeconds(2)
 
-                let blobCopyName =
-                    $"partition-{lastUpdate.PartitionID}/latest.json"
+        //    let startingPosition =
+        //        match someMessagePosition with
+        //        | None -> EventPosition.Earliest
+        //        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber + 1L)
+            
 
-                let blobDate = snapshotContainerClient.GetBlobClient(blobDateName)
-                let! exists = blobDate.ExistsAsync(cancellationToken = cancellationToken)
-                let! _ =
-                    if not exists.Value then
-                        try
-                            use stream = meterCollection |> asJSONStream
-                            blobDate.UploadAsync(content = stream, cancellationToken = cancellationToken)
-                        with
-                        | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" ->
-                            Task.FromResult(null)
-                    else
-                        Task.FromResult(null)
+        //    let subscribe : Func<IObserver<PartitionEvent>, IDisposable> =
+        //        let x (o: IObserver<PartitionEvent>) =
+        //            let cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+        //            let innerCancellationToken = cts.Token
 
-                let latestBlob =
-                    snapshotContainerClient.GetBlobClient(blobCopyName)
+        //            let z = (task {
+        //                eventHubConsumerClient.ReadEventsFromPartitionAsync(
+        //                    partitionId = "", 
+        //                    startingPosition = startingPosition,
+        //                    readOptions = readOptions,
+        //                    cancellationToken = cts.Token)
+        //                |> asyncForeach handler cts.Token 
+        //            }) :> Task
 
-                let! _ = CopyBlobAsync blobDate latestBlob cancellationToken
+                    
+        //            let _ = Task.Run(
+        //                action = (), 
+        //                cancellationToken = innerCancellationToken)
+        //            new CancellationDisposable(cts)                
+        //        x |> FSharpFuncUtil.Create
 
-                return ()
-            }
+        //    let observable = Observable.Create<PartitionEvent>(subscribe)
+        //    return ()
+        //}
+        
+    
+        
+    //let createObservable (snapshotContainerClient: BlobContainerClient) (partitionID: PartitionID) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<IObservable<MeterCollection>> =
+    //    task {
+    //        let cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+    //        let! someInitialCollection = MeterCollectionStore.loadLastState snapshotContainerClient partitionID cancellationToken
+
+    //        let someMessagePosition = someInitialCollection |> Option.bind(fun m -> m |> MeterCollection.lastUpdate)
+
+    //        let demo config = 
+    //            readEventHub 
+    //                config
+    //                someMessagePosition
+    //                handle
+
+    //        return failwith "not implemented"
+    //    }
+    

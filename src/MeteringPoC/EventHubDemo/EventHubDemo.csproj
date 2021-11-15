@@ -10,5 +10,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.DemoCredentials\Metering.DemoCredentials.csproj" />
+    <ProjectReference Include="..\Metering.Messaging\Metering.Messaging.csproj" />
+    <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
   </ItemGroup>
 </Project>
