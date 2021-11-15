@@ -2,6 +2,8 @@
 {
     using Azure.Core;
     using Azure.Identity;
+    using Azure.Messaging.EventHubs;
+    using Azure.Messaging.EventHubs.Consumer;
     using Azure.Storage.Blobs;
     using Metering.Types.EventHub;
     using System.IO;
@@ -31,6 +33,8 @@
                     StorageContainerName: "snapshots")
                 );
 
+        private static string GetNamespace(this DemoCredential config) => $"{config.EventHubInformation.EventHubNamespaceName}.servicebus.windows.net";
+
         public static BlobContainerClient GetSnapshotStorage(this DemoCredential config) => new(
                 blobContainerUri: new Uri($"https://{config.SnapshotStorage.StorageAccountName}.blob.core.windows.net/{config.SnapshotStorage.StorageContainerName}/"),
                 credential: config.TokenCredential);
@@ -41,9 +45,18 @@
 
         public static EventHubConnectionDetails GetEventHubConnectionDetails(this DemoCredential config) => new(
                 credential: config.TokenCredential,
-                eventHubNamespace: $"{config.EventHubInformation.EventHubNamespaceName}.servicebus.windows.net",
+                eventHubNamespace: config.GetNamespace(),
                 eventHubName: config.EventHubInformation.EventHubInstanceName,
                 consumerGroupName: config.EventHubInformation.ConsumerGroup,
                 checkpointStorage: config.GetCheckpointStorage());
+        
+        public static EventHubConsumerClient CreateEventHubConsumerClient(this DemoCredential config) => new(
+                    consumerGroup: config.EventHubInformation.ConsumerGroup,
+                    fullyQualifiedNamespace: config.GetNamespace(),
+                    eventHubName: config.EventHubInformation.EventHubInstanceName,
+                    credential: config.TokenCredential);
+
+        public static EventProcessorClient CreateEventHubProcessorClient(this DemoCredential config) =>
+            EventHubConnectionDetailsModule.createProcessor(config.GetEventHubConnectionDetails());
     }
 }

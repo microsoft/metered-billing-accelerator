@@ -39,27 +39,34 @@ type EventHubConnectionDetails =
       CheckpointStorage: BlobContainerClient }
 
 module EventHubConnectionDetails =
-    let createProcessor (details: EventHubConnectionDetails) : EventProcessorClient =
+    let createProcessor (eventHubConnectionDetails: EventHubConnectionDetails) : EventProcessorClient =
         let clientOptions = new EventProcessorClientOptions()
         clientOptions.TrackLastEnqueuedEventProperties <- true
         clientOptions.PrefetchCount <- 100
 
         new EventProcessorClient(
-            checkpointStore = details.CheckpointStorage,
-            consumerGroup = details.ConsumerGroupName,
-            fullyQualifiedNamespace = details.EventHubNamespace,
-            eventHubName = details.EventHubName,
-            credential = details.Credential,
+            checkpointStore = eventHubConnectionDetails.CheckpointStorage,
+            consumerGroup = eventHubConnectionDetails.ConsumerGroupName,
+            fullyQualifiedNamespace = eventHubConnectionDetails.EventHubNamespace,
+            eventHubName = eventHubConnectionDetails.EventHubName,
+            credential = eventHubConnectionDetails.Credential,
             clientOptions = clientOptions)
 
-
-type Event =
-    { EventData: EventData
+type Event<'t> =
+    { EventData: 't
       LastEnqueuedEventProperties: LastEnqueuedEventProperties
       PartitionContext: PartitionContext }
 
-type EventHubProcessorEvent =
-    | Event of Event
+type EventHubProcessorEvent<'t> =
+    | Event of Event<'t>
     | EventHubError of ProcessErrorEventArgs
     | PartitionInitializing of PartitionInitializingEventArgs
     | PartitionClosing of PartitionClosingEventArgs
+
+module EventHubProcessorEvent =
+    let toStr<'t> (converter: 't -> string) (e: EventHubProcessorEvent<'t>) : string =
+        match e with
+        | Event e -> $"Event: {e.PartitionContext.PartitionId}: {e.EventData |> converter}"
+        | EventHubError e -> $"Error: {e.PartitionId}: {e.Exception.Message}"
+        | PartitionInitializing e -> $"Initializing: {e.PartitionId}"
+        | PartitionClosing e -> $"Closing: {e.PartitionId}"

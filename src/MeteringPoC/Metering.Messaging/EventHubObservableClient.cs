@@ -15,19 +15,20 @@
 
     public static class EventHubObservableClient
     {
-        public static IObservable<EventHubProcessorEvent> CreateObservable(this EventProcessorClient processor, 
+        public static IObservable<EventHubProcessorEvent<T>> CreateEventHubProcessorEventObservable<T>(this EventProcessorClient processor,
             Func<PartitionInitializingEventArgs, CancellationToken, Task<EventPosition>> determinePosition,
+            Func<EventData, T> converter,
             CancellationToken cancellationToken = default)
         {
-            return Observable.Create<EventHubProcessorEvent>(o =>
+            return Observable.Create<EventHubProcessorEvent<T>>(o =>
             {
                 var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 var innerCancellationToken = cts.Token;
 
                 async Task ProcessEvent(ProcessEventArgs processEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent.NewEvent(new Event(
-                        eventData: processEventArgs.Data, 
+                    o.OnNext(EventHubProcessorEvent<T>.NewEvent(new(
+                        eventData: converter(processEventArgs.Data), 
                         lastEnqueuedEventProperties: processEventArgs.Partition.ReadLastEnqueuedEventProperties(), 
                         partitionContext: processEventArgs.Partition)));
                     await processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
@@ -35,17 +36,17 @@
                 };
                 Task ProcessError (ProcessErrorEventArgs processErrorEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent.NewEventHubError(processErrorEventArgs));
+                    o.OnNext(EventHubProcessorEvent<T>.NewEventHubError(processErrorEventArgs));
                     return Task.CompletedTask;
                 };
                 async Task PartitionInitializing(PartitionInitializingEventArgs partitionInitializingEventArgs)
                 {
                     partitionInitializingEventArgs.DefaultStartingPosition = await determinePosition(partitionInitializingEventArgs, innerCancellationToken);
-                    o.OnNext(EventHubProcessorEvent.NewPartitionInitializing(partitionInitializingEventArgs));
+                    o.OnNext(EventHubProcessorEvent<T>.NewPartitionInitializing(partitionInitializingEventArgs));
                 };
                 Task PartitionClosing(PartitionClosingEventArgs partitionClosingEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent.NewPartitionClosing(partitionClosingEventArgs));
+                    o.OnNext(EventHubProcessorEvent<T>.NewPartitionClosing(partitionClosingEventArgs));
                     return Task.CompletedTask;
                 };
 
@@ -85,16 +86,10 @@
         }
 
         public static IObservable<(MeteringEvent, EventsToCatchup)> CreateAggregatorObservable(
-            DemoCredential config, FSharpOption<MessagePosition> someMessagePosition, CancellationToken cancellationToken = default)
+            this EventHubConsumerClient eventHubConsumerClient, FSharpOption<MessagePosition> someMessagePosition, CancellationToken cancellationToken = default)
         {
             return Observable.Create<(MeteringEvent, EventsToCatchup)>(o =>
             {
-                var eventHubConsumerClient = new EventHubConsumerClient(
-                    consumerGroup: config.EventHubInformation.ConsumerGroup,
-                    fullyQualifiedNamespace: $"{config.EventHubInformation.EventHubNamespaceName}.servicebus.windows.net",
-                    eventHubName: config.EventHubInformation.EventHubInstanceName,
-                    credential: config.TokenCredential);
-
                 var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 var innerCancellationToken = cts.Token;
 

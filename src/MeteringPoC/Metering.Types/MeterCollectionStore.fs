@@ -155,4 +155,7 @@ module MeterCollectionStore =
 
                 return ()
             }
-    
+
+    let isLoaded<'T> (state: 'T option) : bool = 
+        state.IsSome
+        

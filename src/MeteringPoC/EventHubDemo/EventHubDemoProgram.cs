@@ -1,61 +1,68 @@
 ﻿using Azure.Messaging.EventHubs.Consumer;
+using Azure.Messaging.EventHubs.Processor;
 using Metering;
 using Metering.Messaging;
 using Metering.Types;
 using Metering.Types.EventHub;
-using Microsoft.FSharp.Core;
 using System;
 using System.Reflection;
 using System.Threading;
 
+// https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
+
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-DemoCredential config = DemoCredentials.Get(
+var config = DemoCredentials.Get(
     consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+var processor = config.CreateEventHubProcessorClient();
+var consumerClient = config.CreateEventHubConsumerClient();
 
 Console.WriteLine(config.EventHubInformation.EventHubNamespaceName);
 
-using CancellationTokenSource producerCts = new();
+async Task<EventPosition> DeterminePosition(PartitionInitializingEventArgs arg, CancellationToken cancellationToken = default)
+{
+    var someMeters = await MeterCollectionStore.loadLastState(
+        snapshotContainerClient: config.GetSnapshotStorage(),
+        partitionID: arg.PartitionId,
+        cancellationToken: cancellationToken);
 
-// https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
+    var lastUpdate = MeterCollectionModule.lastUpdate(someMeters);
+    var eventPosition = MessagePositionModule.startingPosition(lastUpdate);
 
-EventHubConsumerClient eventHubConsumerClient = new(
-    consumerGroup: config.EventHubInformation.ConsumerGroup,
-    fullyQualifiedNamespace: $"{config.EventHubInformation.EventHubNamespaceName}.servicebus.windows.net",
-    eventHubName: config.EventHubInformation.EventHubInstanceName,
-    credential: config.TokenCredential
-);
+    var message = MeterCollectionStore.isLoaded(someMeters)
+        ? $"Loaded state for {arg.PartitionId}, starting {eventPosition}"
+        : $"Could not load state for {arg.PartitionId}";
+    Console.WriteLine(message);
 
-var processor = EventHubConnectionDetailsModule.createProcessor(config.GetEventHubConnectionDetails());
-IObservable<EventHubProcessorEvent> processorEvents = processor.CreateObservable(
-    determinePosition: async (arg, ct) =>
-        {
-            var someMeters = await MeterCollectionStore.loadLastState(
-                snapshotContainerClient: config.GetSnapshotStorage(),
-                partitionID: arg.PartitionId,
-                cancellationToken: producerCts.Token);
+    return eventPosition;
+}
 
-            var lastUpdate = MeterCollectionModule.lastUpdate(someMeters);
-            var eventPosition = MessagePositionModule.startingPosition(lastUpdate);
+using CancellationTokenSource cts = new();
 
-            return eventPosition;
-        },
-    cancellationToken: producerCts.Token);
-
-IObservable<(MeteringEvent, EventsToCatchup)> observable2 = EventHubObservableClient.CreateAggregatorObservable(
-        config: DemoCredentials.Get(EventHubConsumerClient.DefaultConsumerGroupName),
-        someMessagePosition: FSharpOption<MessagePosition>.None,
-        cancellationToken: producerCts.Token);
+IObservable<EventHubProcessorEvent<MeteringUpdateEvent>> processorEvents = processor.CreateEventHubProcessorEventObservable(
+    determinePosition: DeterminePosition,
+    converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
+    cancellationToken: cts.Token);
 
 processorEvents.Subscribe(onNext: e => {
-    Console.WriteLine($"{e}");
+    Func<MeteringUpdateEvent, string> conv = (e) => MeteringUpdateEventModule.partitionKey(e);
+    var str = EventHubProcessorEvent.toStr<MeteringUpdateEvent>(converter: conv.ToFSharpFunc(), e);
+    Console.WriteLine(str);
 });
 
-observable2.Subscribe(onNext: x => {
-    var (e, d) = x;
-    Console.WriteLine($"{e} {x}");
-});
+
+//IObservable<(MeteringEvent, EventsToCatchup)> observable2 = consumerClient.CreateAggregatorObservable(
+//        someMessagePosition: FSharpOption<MessagePosition>.None,
+//        cancellationToken: cts.Token);
+
+//observable2.Subscribe(onNext: x => {
+//    var (e, d) = x;
+//    Console.WriteLine($"{e} {x}");
+//});
+
+
+
 
 await Console.Out.WriteLineAsync("Press <Return> to close...");
 _ = await Console.In.ReadLineAsync();
-producerCts.Cancel();
+cts.Cancel();
