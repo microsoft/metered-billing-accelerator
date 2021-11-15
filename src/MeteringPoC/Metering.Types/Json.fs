@@ -384,6 +384,7 @@ module Json =
     module MeterCollection =
         let Encoder (x: MeterCollection) = 
             x
+            |> MeterCollection.value
             |> Map.toSeq |> Seq.toList
             |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder))
             |> Encode.object
@@ -393,7 +394,7 @@ module Json =
                 (k |> InternalResourceId.fromStr, v)
 
             (Decode.keyValuePairs Meter.Decoder)
-            |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed)
+            |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> MeterCollection.create |> Decode.succeed)
 
     
     module MarketplaceSubmissionAcceptedResponse =
