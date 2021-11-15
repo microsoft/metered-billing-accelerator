@@ -16,7 +16,7 @@
     public static class EventHubObservableClient
     {
         public static IObservable<EventHubProcessorEvent<T>> CreateEventHubProcessorEventObservable<T>(this EventProcessorClient processor,
-            Func<PartitionInitializingEventArgs, CancellationToken, Task<EventPosition>> determinePosition,
+            Func<PartitionInitializingEventArgs, CancellationToken, Task<(EventPosition, FSharpOption<MeterCollection>)>> determineInitialState,
             Func<EventData, T> converter,
             CancellationToken cancellationToken = default)
         {
@@ -41,7 +41,8 @@
                 };
                 async Task PartitionInitializing(PartitionInitializingEventArgs partitionInitializingEventArgs)
                 {
-                    partitionInitializingEventArgs.DefaultStartingPosition = await determinePosition(partitionInitializingEventArgs, innerCancellationToken);
+                    var (position, someMeters) = await determineInitialState(partitionInitializingEventArgs, innerCancellationToken);
+                    partitionInitializingEventArgs.DefaultStartingPosition = position;
                     o.OnNext(EventHubProcessorEvent<T>.NewPartitionInitializing(partitionInitializingEventArgs));
                 };
                 Task PartitionClosing(PartitionClosingEventArgs partitionClosingEventArgs)

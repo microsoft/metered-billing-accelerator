@@ -4,9 +4,8 @@ using Metering;
 using Metering.Messaging;
 using Metering.Types;
 using Metering.Types.EventHub;
-using System;
+using Microsoft.FSharp.Core;
 using System.Reflection;
-using System.Threading;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
@@ -19,7 +18,7 @@ var consumerClient = config.CreateEventHubConsumerClient();
 
 Console.WriteLine(config.EventHubInformation.EventHubNamespaceName);
 
-async Task<EventPosition> DeterminePosition(PartitionInitializingEventArgs arg, CancellationToken cancellationToken = default)
+async Task<(EventPosition, FSharpOption<MeterCollection>)> DetermineInitialState(PartitionInitializingEventArgs arg, CancellationToken cancellationToken = default)
 {
     var someMeters = await MeterCollectionStore.loadLastState(
         snapshotContainerClient: config.GetSnapshotStorage(),
@@ -33,14 +32,14 @@ async Task<EventPosition> DeterminePosition(PartitionInitializingEventArgs arg, 
         ? $"Loaded state for {arg.PartitionId}, starting {eventPosition}"
         : $"Could not load state for {arg.PartitionId}";
     Console.WriteLine(message);
-
-    return eventPosition;
+    
+    return (eventPosition, someMeters);
 }
 
 using CancellationTokenSource cts = new();
 
 IObservable<EventHubProcessorEvent<MeteringUpdateEvent>> processorEvents = processor.CreateEventHubProcessorEventObservable(
-    determinePosition: DeterminePosition,
+    determineInitialState: DetermineInitialState,
     converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
     cancellationToken: cts.Token);
 
