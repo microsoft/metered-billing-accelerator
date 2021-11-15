@@ -11,7 +11,7 @@ open Azure.Messaging.EventHubs.Consumer
 open Metering
 open Metering.Types.EventHub
 
-module Aggregator = 
+module AggregatorUnused = 
     let handle (partitionEvent: PartitionEvent) = 
         task {
             let lastEnqueuedEvent = partitionEvent.Partition.ReadLastEnqueuedEventProperties()

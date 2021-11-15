@@ -7,15 +7,18 @@ type MeterCollection = Map<InternalResourceId, Meter>
 module MeterCollection =
     let empty : MeterCollection = Map.empty
 
-    let lastUpdate (meters: MeterCollection) : MessagePosition option = 
-        if meters |> Seq.isEmpty 
-        then None
-        else
-            meters
-            |> Map.toSeq
-            |> Seq.maxBy (fun (_subType, meter) -> meter.LastProcessedMessage.SequenceNumber)
-            |> (fun (_, meter) -> meter.LastProcessedMessage)
-            |> Some
+    let lastUpdate (someMeterCollection: MeterCollection option) : MessagePosition option = 
+        match someMeterCollection with 
+        | None -> None
+        | Some meters -> 
+            if meters |> Seq.isEmpty 
+            then None
+            else
+                meters
+                |> Map.toSeq
+                |> Seq.maxBy (fun (_subType, meter) -> meter.LastProcessedMessage.SequenceNumber)
+                |> (fun (_, meter) -> meter.LastProcessedMessage)
+                |> Some
 
     let usagesToBeReported (meters: MeterCollection) : MeteringAPIUsageEventDefinition list =
         if meters |> Seq.isEmpty 

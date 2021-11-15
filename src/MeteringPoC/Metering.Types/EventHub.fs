@@ -38,6 +38,21 @@ type EventHubConnectionDetails =
       ConsumerGroupName: string
       CheckpointStorage: BlobContainerClient }
 
+module EventHubConnectionDetails =
+    let createProcessor (details: EventHubConnectionDetails) : EventProcessorClient =
+        let clientOptions = new EventProcessorClientOptions()
+        clientOptions.TrackLastEnqueuedEventProperties <- true
+        clientOptions.PrefetchCount <- 100
+
+        new EventProcessorClient(
+            checkpointStore = details.CheckpointStorage,
+            consumerGroup = details.ConsumerGroupName,
+            fullyQualifiedNamespace = details.EventHubNamespace,
+            eventHubName = details.EventHubName,
+            credential = details.Credential,
+            clientOptions = clientOptions)
+
+
 type Event =
     { EventData: EventData
       LastEnqueuedEventProperties: LastEnqueuedEventProperties

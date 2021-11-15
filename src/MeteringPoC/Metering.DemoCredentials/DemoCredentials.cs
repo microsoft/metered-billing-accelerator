@@ -2,6 +2,8 @@
 {
     using Azure.Core;
     using Azure.Identity;
+    using Azure.Storage.Blobs;
+    using Metering.Types.EventHub;
     using System.IO;
 
     public record StorageContainerInformation(string StorageAccountName, string StorageContainerName);
@@ -28,5 +30,20 @@
                     StorageAccountName: "meteringhack",
                     StorageContainerName: "snapshots")
                 );
+
+        public static BlobContainerClient GetSnapshotStorage(this DemoCredential config) => new(
+                blobContainerUri: new Uri($"https://{config.SnapshotStorage.StorageAccountName}.blob.core.windows.net/{config.SnapshotStorage.StorageContainerName}/"),
+                credential: config.TokenCredential);
+
+        public static BlobContainerClient GetCheckpointStorage(this DemoCredential config) => new(
+                blobContainerUri: new Uri($"https://{config.CheckpointStorage.StorageAccountName}.blob.core.windows.net/{config.CheckpointStorage.StorageContainerName}/"),
+                credential: config.TokenCredential);
+
+        public static EventHubConnectionDetails GetEventHubConnectionDetails(this DemoCredential config) => new(
+                credential: config.TokenCredential,
+                eventHubNamespace: $"{config.EventHubInformation.EventHubNamespaceName}.servicebus.windows.net",
+                eventHubName: config.EventHubInformation.EventHubInstanceName,
+                consumerGroupName: config.EventHubInformation.ConsumerGroup,
+                checkpointStorage: config.GetCheckpointStorage());
     }
 }

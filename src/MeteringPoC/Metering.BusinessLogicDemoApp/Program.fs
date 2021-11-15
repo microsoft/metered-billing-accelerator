@@ -277,7 +277,7 @@ let main argv =
         let! () = MeterCollectionStore.storeLastState snapshotStorage CancellationToken.None events
 
         let partitionId = 
-            events
+            Some events
             |> MeterCollection.lastUpdate
             |> (fun x -> x.Value.PartitionID)
 

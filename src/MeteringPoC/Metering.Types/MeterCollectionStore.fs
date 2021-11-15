@@ -131,7 +131,7 @@ module MeterCollectionStore =
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         (meterCollection: MeterCollection)
         : Task =
-        match meterCollection |> MeterCollection.lastUpdate with
+        match meterCollection |> Some |> MeterCollection.lastUpdate with
         | None -> Task.CompletedTask
         | Some lastUpdate ->
             task {

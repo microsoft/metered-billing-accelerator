@@ -13,13 +13,13 @@ open Metering.Types
 module MeteringEventHubExtensions =
     
     // [<Extension>] // Currently not exposed to C#
-    let SubmitMeteringUpdateEvent (eventHubProducerClient: EventHubProducerClient) (meteringUpdateEvent: MeteringUpdateEvent) ([<Optional; DefaultParameterValue(CancellationToken())>] ct: CancellationToken) : Task<unit> = task {        
+    let SubmitMeteringUpdateEvent (eventHubProducerClient: EventHubProducerClient) (meteringUpdateEvent: MeteringUpdateEvent) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> = task {        
         let createBatchOptions = 
             let cbo = new CreateBatchOptions()
             cbo.PartitionKey <- meteringUpdateEvent |> MeteringUpdateEvent.partitionKey
             cbo
 
-        let! eventBatch = eventHubProducerClient.CreateBatchAsync(options = createBatchOptions, cancellationToken = ct)
+        let! eventBatch = eventHubProducerClient.CreateBatchAsync(options = createBatchOptions, cancellationToken = cancellationToken)
         
         let eventData = 
             meteringUpdateEvent
@@ -33,7 +33,7 @@ module MeteringEventHubExtensions =
         else ()
 
         // options: new SendEventOptions() {  PartitionId = "...", PartitionKey = "..." },
-        let! () = eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = ct)
+        let! () = eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = cancellationToken)
 
         return ()
     }
