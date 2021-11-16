@@ -1,0 +1,50 @@
+﻿{
+  "planId": "free_monthly_yearly",
+  "billingDimensions": [
+    {
+      "dimension": "nodecharge",
+      "name": "Per Node Connected",
+      "unitOfMeasure": "node/hour",
+      "includedQuantity": {
+        "monthly": "1000",
+        "annually": "10000"
+      }
+    },
+    {
+      "dimension": "cpucharge",
+      "name": "Per CPU Connected",
+      "unitOfMeasure": "cpu/hour",
+      "includedQuantity": {
+        "monthly": "1000",
+        "annually": "10000"
+      }
+    },
+    {
+      "dimension": "datasourcecharge",
+      "name": "Per Datasource Integration",
+      "unitOfMeasure": "ds/hour",
+      "includedQuantity": {
+        "monthly": "1000",
+        "annually": "10000"
+      }
+    },
+    {
+      "dimension": "messagecharge",
+      "name": "Per Message Transmitted",
+      "unitOfMeasure": "message/hour",
+      "includedQuantity": {
+        "monthly": "1000",
+        "annually": "10000"
+      }
+    },
+    {
+      "dimension": "objectcharge",
+      "name": "Per Object Detected",
+      "unitOfMeasure": "object/hour",
+      "includedQuantity": {
+        "monthly": "1000",
+        "annually": "10000"
+      }
+    }
+  ]
+}

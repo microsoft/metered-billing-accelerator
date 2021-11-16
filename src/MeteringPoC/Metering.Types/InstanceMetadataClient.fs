@@ -9,19 +9,19 @@ open System.Web
 open Microsoft.FSharp.Control
 
 type ServicePrincipalCredential = 
-    { client_id : string 
-      client_secret : string
-      aad_tenant_id : string}
+    { clientId : string 
+      clientSecret : string
+      tenantId : string }
 
 type MeteringAPICredentials =
     | ManagedIdentity
     | ServicePrincipalCredential of ServicePrincipalCredential
 
 module MeteringAPICredentials =
-    let createServicePrincipal aad_tenant_id  client_id client_secret =
-        { client_id = client_id
-          client_secret = client_secret
-          aad_tenant_id = aad_tenant_id } |> ServicePrincipalCredential
+    let createServicePrincipal tenantId clientId clientSecret =
+        { clientId = clientId
+          clientSecret = clientSecret
+          tenantId = tenantId } |> ServicePrincipalCredential
 
 module InstanceMetadataClient = 
     type TokenResponse = { access_token: string }
@@ -68,12 +68,12 @@ module InstanceMetadataClient =
                     return access_token
                 | ServicePrincipalCredential spc ->
                     let uri = 
-                        $"https://login.microsoftonline.com/{spc.aad_tenant_id}/oauth2/token"
+                        $"https://login.microsoftonline.com/{spc.tenantId}/oauth2/token"
 
                     let content = 
                         [ "grant_type", "client_credentials"
-                          "client_id", spc.client_id
-                          "client_secret", spc.client_secret 
+                          "client_id", spc.clientId
+                          "client_secret", spc.clientSecret 
                           "resource", resource |> HttpUtility.UrlEncode ]
                         |> List.map (fun (x,y) -> new KeyValuePair<string,string>(x,y))
                         |> (fun x -> new FormUrlEncodedContent(x))

@@ -260,11 +260,7 @@ let main argv =
     let cred = Metering.DemoCredentials.Get(
         consumerGroupName = EventHubConsumerClient.DefaultConsumerGroupName)
     
-    let snapshotStorage =
-        new Azure.Storage.Blobs.BlobContainerClient(
-            blobContainerUri = new Uri($"https://{cred.SnapshotStorage.StorageAccountName}.blob.core.windows.net/{cred.SnapshotStorage.StorageContainerName}/"),
-            credential = cred.TokenCredential)
-    
+    let snapshotStorage = cred.GetSnapshotStorage();
 
     ////let tx = Aggregator.GetBlobNames checkpointStorage CancellationToken.None
     ////let x  = tx.Result

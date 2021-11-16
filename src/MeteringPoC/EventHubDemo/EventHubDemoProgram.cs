@@ -11,10 +11,14 @@ using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.Me
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-var config = DemoCredentials.Get(
-    consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+var config = DemoCredentials.Get(consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+
+var meteringConfig = MeteringConfigurationProviderModule.create(
+    meteringApiCreds: config.MeteringAPICredentials,
+    marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
+
 var processor = config.CreateEventHubProcessorClient();
-var consumerClient = config.CreateEventHubConsumerClient();
+//var consumerClient = config.CreateEventHubConsumerClient();
 
 Console.WriteLine(config.EventHubInformation.EventHubNamespaceName);
 
@@ -31,8 +35,6 @@ var groupedByPartitionId = processor
         cancellationToken: cts.Token)
     .GroupBy(EventHubProcessorEvent.partitionId);
 
-var meteringConfig = MeteringConfigurationProviderModule.Dummy;
-
 groupedByPartitionId.Subscribe(onNext: group => {
     var partitionId = PartitionIDModule.value(group.Key);
     Console.WriteLine($"New group: {partitionId}");
@@ -43,8 +45,10 @@ groupedByPartitionId.Subscribe(onNext: group => {
             seed: MeterCollectionModule.Uninitialized,
             accumulator: accumulator
         ).Subscribe(onNext: x => {
-            
-            Console.WriteLine($"event: {partitionId}: {Json.toStr(0,x.Value)}");
+            Console.WriteLine($"event: {partitionId}: {Json.toStr(0, x.Value)}");
+            MeterCollectionStore.storeLastState(
+                snapshotContainerClient: config.GetSnapshotStorage(),
+                meterCollection: x.Value).Wait();
         });
 });
  

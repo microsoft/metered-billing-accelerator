@@ -1,5 +1,6 @@
 ﻿namespace Metering.Types
 
+open System
 open System.Net
 open System.Net.Http
 open System.Text
@@ -44,3 +45,5 @@ module MarketplaceClient =
             
             return { Payload = usage; Result = result; Headers = azureHeader }
         }
+    
+    let submitCsharp : Func<MeteringConfigurationProvider, MeteringAPIUsageEventDefinition, Task<MarketplaceSubmissionResult>> = submit

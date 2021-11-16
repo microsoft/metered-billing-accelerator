@@ -44,10 +44,9 @@ module SubmitMeteringAPIUsageEvent =
      )
 
 module MeteringConfigurationProvider =
-    let Dummy = 
+    let create meteringApiCreds (marketplaceClient: SubmitMeteringAPIUsageEvent) = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-          SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard 
+          SubmitMeteringAPIUsageEvent = marketplaceClient
           GracePeriod = Duration.FromHours(2.0)
           ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveManagedByFromARM
-          MeteringAPICredentials = MeteringAPICredentials.ManagedIdentity }
-
+          MeteringAPICredentials = meteringApiCreds }

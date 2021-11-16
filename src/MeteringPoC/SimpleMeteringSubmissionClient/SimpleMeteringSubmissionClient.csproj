@@ -9,4 +9,12 @@
     <ProjectReference Include="..\Metering.DemoCredentials\Metering.DemoCredentials.csproj" />
     <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Update="mapping.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="plan.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>
