@@ -1,5 +1,7 @@
 ﻿namespace Metering.Types.EventHub
 
+open System.Threading
+open System.Threading.Tasks
 open Azure.Core
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
@@ -53,20 +55,28 @@ module EventHubConnectionDetails =
             clientOptions = clientOptions)
 
 type Event<'t> =
-    { EventData: 't
+    { ProcessEventArgs: ProcessEventArgs
+      EventData: 't
       LastEnqueuedEventProperties: LastEnqueuedEventProperties
       PartitionContext: PartitionContext }
 
-type EventHubProcessorEvent<'t> =
-    | Event of Event<'t>
+type PartitionInitializing<'state> =
+    { PartitionInitializingEventArgs: PartitionInitializingEventArgs
+      InitialState: 'state}
+
+type PartitionClosing =
+    { PartitionClosingEventArgs: PartitionClosingEventArgs }
+
+type EventHubProcessorEvent<'state, 'event> =
+    | Event of Event<'event>
     | EventHubError of ProcessErrorEventArgs
-    | PartitionInitializing of PartitionInitializingEventArgs
-    | PartitionClosing of PartitionClosingEventArgs
+    | PartitionInitializing of PartitionInitializing<'state>
+    | PartitionClosing of PartitionClosing
 
 module EventHubProcessorEvent =
-    let toStr<'t> (converter: 't -> string) (e: EventHubProcessorEvent<'t>) : string =
+    let toStr<'state, 'event> (converter: 'event -> string) (e: EventHubProcessorEvent<'state, 'event>) : string =
         match e with
         | Event e -> $"Event: {e.PartitionContext.PartitionId}: {e.EventData |> converter}"
         | EventHubError e -> $"Error: {e.PartitionId}: {e.Exception.Message}"
-        | PartitionInitializing e -> $"Initializing: {e.PartitionId}"
-        | PartitionClosing e -> $"Closing: {e.PartitionId}"
+        | PartitionInitializing e -> $"Initializing: {e.PartitionInitializingEventArgs.PartitionId}"
+        | PartitionClosing e -> $"Closing: {e.PartitionClosingEventArgs.PartitionId}"

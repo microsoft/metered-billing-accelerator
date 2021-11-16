@@ -1,8 +1,11 @@
 ﻿namespace Metering.Types
 
+open Azure.Messaging.EventHubs.Consumer
 open Metering.Types.EventHub
 
 type MeterCollection = MeterCollection of Map<InternalResourceId, Meter>
+
+type SomeMeterCollection = MeterCollection option
 
 module MeterCollection =
     let value (MeterCollection x) = x
@@ -23,6 +26,11 @@ module MeterCollection =
                 |> Seq.maxBy (fun (_subType, meter) -> meter.LastProcessedMessage.SequenceNumber)
                 |> (fun (_, meter) -> meter.LastProcessedMessage)
                 |> Some
+
+    let getEventPosition (someMeters: MeterCollection option) : EventPosition =
+        someMeters
+        |> lastUpdate
+        |> MessagePosition.startingPosition
 
     let usagesToBeReported (meters: MeterCollection) : MeteringAPIUsageEventDefinition list =
         if meters |> value |> Seq.isEmpty 

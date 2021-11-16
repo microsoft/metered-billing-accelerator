@@ -15,39 +15,58 @@
 
     public static class EventHubObservableClient
     {
-        public static IObservable<EventHubProcessorEvent<T>> CreateEventHubProcessorEventObservable<T>(this EventProcessorClient processor,
-            Func<PartitionInitializingEventArgs, CancellationToken, Task<(EventPosition, FSharpOption<MeterCollection>)>> determineInitialState,
-            Func<EventData, T> converter,
+        public static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateEventHubProcessorEventObservable<TState, TEvent>(
+            this EventProcessorClient processor,
+            Func<PartitionInitializingEventArgs, CancellationToken, Task<TState>> determineInitialState,
+            Func<TState, EventPosition> determinePosition,
+            Func<EventData, TEvent> converter,
             CancellationToken cancellationToken = default)
         {
-            return Observable.Create<EventHubProcessorEvent<T>>(o =>
+            return Observable.Create<EventHubProcessorEvent<TState, TEvent>>(o =>
             {
                 var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 var innerCancellationToken = cts.Token;
 
-                async Task ProcessEvent(ProcessEventArgs processEventArgs)
+                Task ProcessEvent(ProcessEventArgs processEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent<T>.NewEvent(new(
-                        eventData: converter(processEventArgs.Data), 
-                        lastEnqueuedEventProperties: processEventArgs.Partition.ReadLastEnqueuedEventProperties(), 
-                        partitionContext: processEventArgs.Partition)));
-                    await processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
+                    var evnt = EventHubProcessorEvent<TState, TEvent>.NewEvent(new(
+                        processEventArgs: processEventArgs,
+                        eventData: converter(processEventArgs.Data),
+                        lastEnqueuedEventProperties: processEventArgs.Partition.ReadLastEnqueuedEventProperties(),
+                        partitionContext: processEventArgs.Partition));
 
+                    o.OnNext(evnt);
+
+                    // We're not doing checkpointing here, but let that happen downsteam... That's why EventHubProcessorEvent contains the ProcessEventArgs
+                    // processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
+                    return Task.CompletedTask; 
                 };
+
                 Task ProcessError (ProcessErrorEventArgs processErrorEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent<T>.NewEventHubError(processErrorEventArgs));
+                    o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubError(processErrorEventArgs));
                     return Task.CompletedTask;
                 };
+
                 async Task PartitionInitializing(PartitionInitializingEventArgs partitionInitializingEventArgs)
                 {
-                    var (position, someMeters) = await determineInitialState(partitionInitializingEventArgs, innerCancellationToken);
-                    partitionInitializingEventArgs.DefaultStartingPosition = position;
-                    o.OnNext(EventHubProcessorEvent<T>.NewPartitionInitializing(partitionInitializingEventArgs));
+                    var initialState = await determineInitialState(partitionInitializingEventArgs, innerCancellationToken);
+                    partitionInitializingEventArgs.DefaultStartingPosition = determinePosition(initialState); 
+                    
+
+                    var evnt = EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
+                        new PartitionInitializing<TState>(
+                            partitionInitializingEventArgs: partitionInitializingEventArgs,
+                            initialState: initialState));
+                    o.OnNext(evnt);
                 };
+
                 Task PartitionClosing(PartitionClosingEventArgs partitionClosingEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent<T>.NewPartitionClosing(partitionClosingEventArgs));
+                    var evnt = EventHubProcessorEvent<TState, TEvent>.NewPartitionClosing(
+                        new PartitionClosing(
+                            partitionClosingEventArgs));
+                    o.OnNext(evnt);
                     return Task.CompletedTask;
                 };
 
@@ -87,7 +106,9 @@
         }
 
         public static IObservable<(MeteringEvent, EventsToCatchup)> CreateAggregatorObservable(
-            this EventHubConsumerClient eventHubConsumerClient, FSharpOption<MessagePosition> someMessagePosition, CancellationToken cancellationToken = default)
+            this EventHubConsumerClient eventHubConsumerClient,
+            FSharpOption<MessagePosition> someMessagePosition,
+            CancellationToken cancellationToken = default)
         {
             return Observable.Create<(MeteringEvent, EventsToCatchup)>(o =>
             {
