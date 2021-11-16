@@ -31,8 +31,12 @@ IObservable <EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>> p
         converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
         cancellationToken: cts.Token);
 
+IObservable<IGroupedObservable<string, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>>> x = processorEvents.GroupBy(a => EventHubProcessorEvent.partitionId(a));
+
+
+
 processorEvents.Subscribe(onNext: e => {
-    Func<MeteringUpdateEvent, string> conv = MeteringUpdateEventModule.partitionKey;
+    Func<MeteringUpdateEvent, string> conv = e => $"partitionKey {MeteringUpdateEventModule.partitionKey(e)} - {e.GetType()}";
     var str = EventHubProcessorEvent.toStr<SomeMeterCollection, MeteringUpdateEvent>(converter: conv.ToFSharpFunc(), e);
     Console.WriteLine(str);
 });

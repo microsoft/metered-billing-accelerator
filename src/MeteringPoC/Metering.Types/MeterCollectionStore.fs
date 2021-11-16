@@ -10,7 +10,6 @@ open System.Runtime.InteropServices
 open Azure
 open Azure.Storage.Blobs
 open Azure.Storage.Blobs.Specialized
-open Azure.Messaging.EventHubs.Consumer
 open Azure.Storage.Sas
 open Metering.Types.EventHub
 

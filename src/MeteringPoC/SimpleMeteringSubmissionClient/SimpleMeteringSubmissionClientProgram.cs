@@ -2,11 +2,16 @@
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Producer;
 using Metering;
-
+using Metering.Types;
+using System.Security.Cryptography;
+using System.Linq;
+using System.Text;
 
 #pragma warning disable CS8601 // Possible null reference assignment.
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 #pragma warning restore CS8601 // Possible null reference assignment.
+
+static string guidFromStr(string str) => new Guid(SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(str)).Take(16).ToArray()).ToString();
 
 using CancellationTokenSource producerCts = new();
 // producerCts.CancelAfter(TimeSpan.FromSeconds(100));
@@ -29,10 +34,26 @@ var producerTask = Task.Run(async () =>
 
     try
     {
+        var saasId = guidFromStr("sub1");
+
+        var planJson = @"{ ""planId"": ""plan2"", ""billingDimensions"": [
+           { ""dimension"": ""MachineLearningJob"", ""name"": ""An expensive machine learning job"", ""unitOfMeasure"": ""machine learning jobs"", ""includedQuantity"": { ""monthly"": ""10"" } },
+           { ""dimension"": ""EMailCampaign"", ""name"": ""An e-mail sent for campaign usage"", ""unitOfMeasure"": ""e-mails"", ""includedQuantity"": { ""monthly"": ""250000"" } } ] }";
+
+        SubscriptionCreationInformation sci = new(
+            subscription: new(
+                plan: Json.fromStr<Plan>(planJson),
+                internalResourceId: InternalResourceIdModule.fromStr(saasId),
+                renewalInterval: RenewalInterval.Monthly,
+                subscriptionStart: MeteringDateTimeModule.now()),
+            internalMetersMapping: Json.fromStr<InternalMetersMapping>(@"{ ""email"": ""EMailCampaign"", ""ml"": ""MachineLearningJob"" }"));
+
+        await producer.CreateSubscription(sci, producerCts.Token);
+
         while (!producerCts.IsCancellationRequested)
         {
             await Console.Out.WriteLineAsync("emit event");
-            await producer.SubmitManagedAppIntegerAsync(meterName: "ML", quantity: 1);
+            await producer.SubmitSaasIntegerAsync(saasId: saasId, meterName: "ML", quantity: 1, producerCts.Token);
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
     }

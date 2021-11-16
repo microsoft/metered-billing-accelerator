@@ -81,9 +81,19 @@ type EventHubProcessorEvent<'TState, 'TEvent> =
     | PartitionClosing of PartitionClosing
 
 module EventHubProcessorEvent =
+    let partitionId =
+        function
+        | PartitionInitializing e -> e.PartitionInitializingEventArgs.PartitionId
+        | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId
+        | EventHubEvent e -> e.PartitionContext.PartitionId
+        | EventHubError e -> e.PartitionId
+
     let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
+        let pi = e |> partitionId
+
         match e with
-        | EventHubEvent e -> $"EventHub: {e.PartitionContext.PartitionId}: {e.EventData |> converter}"
-        | EventHubError e -> $"Error: {e.PartitionId}: {e.Exception.Message}"
-        | PartitionInitializing e -> $"Initializing: {e.PartitionInitializingEventArgs.PartitionId}"
-        | PartitionClosing e -> $"Closing: {e.PartitionClosingEventArgs.PartitionId}"
+        | PartitionInitializing e -> $"{pi} Initializing"
+        | EventHubEvent e -> $"{pi} Event: {e.EventData |> converter}"
+        | EventHubError e -> $"{pi} Error: {e.Exception.Message}"
+        | PartitionClosing e -> $"{pi} Closing"
+    

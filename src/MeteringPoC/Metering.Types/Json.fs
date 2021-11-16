@@ -290,13 +290,13 @@ module Json =
     module InternalMetersMapping =
         let Encoder (x: InternalMetersMapping) = 
             x
-            |> Map.toSeq |> Seq.toList
+            |> InternalMetersMapping.value |> Map.toSeq |> Seq.toList
             |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.value, v |> DimensionId.value |> Encode.string))
             |> Encode.object
 
         let Decoder : Decoder<InternalMetersMapping> =
             (Decode.keyValuePairs Decode.string)
-            |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.create, v |> DimensionId.create)) |> Map.ofList |> Decode.succeed)
+            |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.create, v |> DimensionId.create)) |> Map.ofList |> InternalMetersMapping.create |> Decode.succeed)
         
     module CurrentMeterValues = 
         let (dimensionId, meterValue) =

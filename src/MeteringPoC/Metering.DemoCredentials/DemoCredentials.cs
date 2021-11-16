@@ -22,7 +22,7 @@
                     clientId: "9fc61765-75a9-4aef-80d1-83b052e58b42",
                     clientSecret: File.ReadAllText(@"C:\Users\chgeuer\Desktop\Metering Hack\client_secret").Trim()),
                 EventHubInformation: new(
-                    EventHubNamespaceName: "meteringhack-standard",
+                    EventHubNamespaceName: "meterhack1", //"meteringhack-standard",
                     EventHubInstanceName: "hub1",
                     ConsumerGroup: consumerGroupName),
                 CheckpointStorage: new(

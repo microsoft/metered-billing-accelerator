@@ -50,7 +50,7 @@ module Meter =
     let handleUsageEvent (config: MeteringConfigurationProvider) ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : Meter) : Meter =
         let updateConsumption (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
             let dimension : DimensionId = 
-                state.InternalMetersMapping |> Map.find event.MeterName
+                state.InternalMetersMapping |> InternalMetersMapping.value |> Map.find event.MeterName
                 
             if currentMeterValues |> Map.containsKey dimension
             then 
