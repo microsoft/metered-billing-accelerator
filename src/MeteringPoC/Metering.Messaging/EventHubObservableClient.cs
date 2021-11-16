@@ -134,7 +134,7 @@
                                 var meteringEvent = new MeteringEvent(
                                     meteringUpdateEvent: meteringUpdateEvent,
                                     messagePosition: new MessagePosition(
-                                            partitionID: partitionEvent.Partition.ToString(),
+                                            partitionID: PartitionIDModule.create(partitionEvent.Partition.PartitionId),
                                             sequenceNumber: partitionEvent.Data.SequenceNumber,
                                             partitionTimestamp: ZonedDateTime.FromDateTimeOffset(partitionEvent.Data.EnqueuedTime)));
 

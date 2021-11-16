@@ -1,7 +1,5 @@
 ﻿namespace Metering.Types.EventHub
 
-open System.Threading
-open System.Threading.Tasks
 open Azure.Core
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
@@ -11,7 +9,11 @@ open Metering.Types
 
 type SequenceNumber = int64
 
-type PartitionID = string
+type PartitionID = PartitionID of string
+
+module PartitionID =
+    let value (PartitionID x) = x
+    let create x = (PartitionID x)
 
 type MessagePosition = 
     { PartitionID: PartitionID
@@ -81,12 +83,13 @@ type EventHubProcessorEvent<'TState, 'TEvent> =
     | PartitionClosing of PartitionClosing
 
 module EventHubProcessorEvent =
-    let partitionId =
-        function
+    let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
+        match e with
         | PartitionInitializing e -> e.PartitionInitializingEventArgs.PartitionId
         | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId
         | EventHubEvent e -> e.PartitionContext.PartitionId
         | EventHubError e -> e.PartitionId
+        |> PartitionID.create
 
     let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
         let pi = e |> partitionId

@@ -50,7 +50,7 @@ module Json =
 
         let Encoder (x: MessagePosition) : JsonValue =
             [
-                (partitionId, x.PartitionID |> Encode.string)
+                (partitionId, x.PartitionID |> PartitionID.value |> Encode.string)
                 (sequenceNumber, x.SequenceNumber |> Encode.int64)
                 (partitionTimestamp, x.PartitionTimestamp |> MeteringDateTime.Encoder)
             ]
@@ -58,7 +58,7 @@ module Json =
 
         let Decoder : Decoder<MessagePosition> =
             Decode.object (fun get -> {
-                PartitionID = get.Required.Field partitionId Decode.string
+                PartitionID = (get.Required.Field partitionId Decode.string) |> PartitionID.create
                 SequenceNumber = get.Required.Field sequenceNumber Decode.int64
                 PartitionTimestamp = get.Required.Field partitionTimestamp MeteringDateTime.Decoder
             })

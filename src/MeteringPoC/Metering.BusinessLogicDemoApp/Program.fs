@@ -45,7 +45,7 @@ let parseConsumptionEvents (str: string) =
                             Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
                             Properties = props |> parseProps }
                         MessagePosition = {
-                            PartitionID = "1"
+                            PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                     }
@@ -58,7 +58,7 @@ let parseConsumptionEvents (str: string) =
                             Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
                             Properties = None }
                         MessagePosition = {
-                            PartitionID = "1"
+                            PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                     }

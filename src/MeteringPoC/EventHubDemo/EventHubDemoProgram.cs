@@ -25,15 +25,13 @@ IObservable <EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>> p
     processor.CreateEventHubProcessorEventObservable<SomeMeterCollection, MeteringUpdateEvent>(
         determineInitialState: (arg, ct) => MeterCollectionStore.loadLastState(
             snapshotContainerClient: config.GetSnapshotStorage(),
-            partitionID: arg.PartitionId,
+            partitionID: PartitionIDModule.create(arg.PartitionId),
             cancellationToken: ct),
         determinePosition: MeterCollectionModule.getEventPosition,
         converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
         cancellationToken: cts.Token);
 
-IObservable<IGroupedObservable<string, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>>> x = processorEvents.GroupBy(a => EventHubProcessorEvent.partitionId(a));
-
-
+var groupedByPartitionId = processorEvents.GroupBy(EventHubProcessorEvent.partitionId);
 
 processorEvents.Subscribe(onNext: e => {
     Func<MeteringUpdateEvent, string> conv = e => $"partitionKey {MeteringUpdateEventModule.partitionKey(e)} - {e.GetType()}";
