@@ -54,29 +54,36 @@ module EventHubConnectionDetails =
             credential = eventHubConnectionDetails.Credential,
             clientOptions = clientOptions)
 
-type Event<'t> =
+type EventHubEvent<'TEvent> =
     { ProcessEventArgs: ProcessEventArgs
-      EventData: 't
+      PartitionContext: PartitionContext
       LastEnqueuedEventProperties: LastEnqueuedEventProperties
-      PartitionContext: PartitionContext }
+      EventData: 'TEvent }
 
-type PartitionInitializing<'state> =
+module EventHubEvent =
+    let create (processEventArgs: ProcessEventArgs) (convert: EventData -> 'TEvent) : EventHubEvent<'TEvent> =  
+        { ProcessEventArgs = processEventArgs
+          PartitionContext = processEventArgs.Partition
+          LastEnqueuedEventProperties = (processEventArgs.Partition.ReadLastEnqueuedEventProperties())
+          EventData = processEventArgs.Data |> convert }
+
+type PartitionInitializing<'TState> =
     { PartitionInitializingEventArgs: PartitionInitializingEventArgs
-      InitialState: 'state}
+      InitialState: 'TState }
 
 type PartitionClosing =
     { PartitionClosingEventArgs: PartitionClosingEventArgs }
 
-type EventHubProcessorEvent<'state, 'event> =
-    | Event of Event<'event>
+type EventHubProcessorEvent<'TState, 'TEvent> =
+    | EventHubEvent of EventHubEvent<'TEvent>
     | EventHubError of ProcessErrorEventArgs
-    | PartitionInitializing of PartitionInitializing<'state>
+    | PartitionInitializing of PartitionInitializing<'TState>
     | PartitionClosing of PartitionClosing
 
 module EventHubProcessorEvent =
-    let toStr<'state, 'event> (converter: 'event -> string) (e: EventHubProcessorEvent<'state, 'event>) : string =
+    let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
         match e with
-        | Event e -> $"Event: {e.PartitionContext.PartitionId}: {e.EventData |> converter}"
+        | EventHubEvent e -> $"EventHub: {e.PartitionContext.PartitionId}: {e.EventData |> converter}"
         | EventHubError e -> $"Error: {e.PartitionId}: {e.Exception.Message}"
         | PartitionInitializing e -> $"Initializing: {e.PartitionInitializingEventArgs.PartitionId}"
         | PartitionClosing e -> $"Closing: {e.PartitionClosingEventArgs.PartitionId}"

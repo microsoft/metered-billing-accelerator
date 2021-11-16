@@ -29,13 +29,9 @@
 
                 Task ProcessEvent(ProcessEventArgs processEventArgs)
                 {
-                    var evnt = EventHubProcessorEvent<TState, TEvent>.NewEvent(new(
-                        processEventArgs: processEventArgs,
-                        eventData: converter(processEventArgs.Data),
-                        lastEnqueuedEventProperties: processEventArgs.Partition.ReadLastEnqueuedEventProperties(),
-                        partitionContext: processEventArgs.Partition));
-
-                    o.OnNext(evnt);
+                    o.OnNext(
+                        EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(
+                            EventHubEvent.create(processEventArgs, converter.ToFSharpFunc())));
 
                     // We're not doing checkpointing here, but let that happen downsteam... That's why EventHubProcessorEvent contains the ProcessEventArgs
                     // processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
@@ -44,7 +40,9 @@
 
                 Task ProcessError (ProcessErrorEventArgs processErrorEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubError(processErrorEventArgs));
+                    o.OnNext(
+                        EventHubProcessorEvent<TState, TEvent>.NewEventHubError(
+                            processErrorEventArgs));
                     return Task.CompletedTask;
                 };
 

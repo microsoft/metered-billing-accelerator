@@ -72,3 +72,11 @@ module MeteringEventHubExtensions =
           Timestamp = MeteringDateTime.now(); MeterName = meterName |> ApplicationInternalMeterName.create; Properties = None
         }
         |> SubmitUsage eventHubProducerClient cancellationToken
+
+    [<Extension>]
+    let CreateSubscription (eventHubProducerClient: EventHubProducerClient) (sci: SubscriptionCreationInformation) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> =
+        SubmitMeteringUpdateEvent eventHubProducerClient (SubscriptionPurchased sci) cancellationToken
+
+    [<Extension>]
+    let ReportUsageSubmitted (eventHubProducerClient: EventHubProducerClient) (msr: MarketplaceSubmissionResult) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> =
+        SubmitMeteringUpdateEvent eventHubProducerClient (UsageSubmittedToAPI msr) cancellationToken
