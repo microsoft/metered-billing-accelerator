@@ -3,6 +3,7 @@
 open System
 open System.Threading.Tasks
 open NodaTime
+open Azure.Storage.Blobs
 
 type MeteringClient = 
     InternalUsageEvent -> Task
@@ -16,7 +17,8 @@ and MeteringConfigurationProvider =
       SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
       GracePeriod: Duration
       ManagedResourceGroupResolver: DetermineManagedAppResourceGroupID
-      MeteringAPICredentials: MeteringAPICredentials }
+      MeteringAPICredentials: MeteringAPICredentials 
+      SnapshotStorage: BlobContainerClient }
 
 module CurrentTimeProvider =
     let LocalSystem : CurrentTimeProvider = (fun () -> ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
@@ -44,9 +46,10 @@ module SubmitMeteringAPIUsageEvent =
      )
 
 module MeteringConfigurationProvider =
-    let create meteringApiCreds (marketplaceClient: SubmitMeteringAPIUsageEvent) = 
+    let create meteringApiCreds (marketplaceClient: SubmitMeteringAPIUsageEvent) snapshotStorage = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = marketplaceClient
           GracePeriod = Duration.FromHours(2.0)
           ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveManagedByFromARM
-          MeteringAPICredentials = meteringApiCreds }
+          MeteringAPICredentials = meteringApiCreds 
+          SnapshotStorage = snapshotStorage }

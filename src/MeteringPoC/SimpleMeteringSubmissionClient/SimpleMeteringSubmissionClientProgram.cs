@@ -39,7 +39,7 @@ _ = Task.Run(async () =>
         while (!cts.IsCancellationRequested)
         {
             await Console.Out.WriteLineAsync("emit event");
-            await eventHubProducerClient.SubmitSaasIntegerAsync(saasId: saasId, meterName: "ml", quantity: 1, cts.Token);
+            await eventHubProducerClient.SubmitSaasIntegerAsync(saasId: saasId, meterName: "cpu", quantity: 1, cts.Token);
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
     }

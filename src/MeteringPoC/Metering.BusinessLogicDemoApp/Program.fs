@@ -233,7 +233,8 @@ let main argv =
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
           GracePeriod = Duration.FromHours(6.0)
           ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
-          MeteringAPICredentials = cred }
+          MeteringAPICredentials = cred
+          SnapshotStorage = null }
 
     //eventsFromEventHub
     //|> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized

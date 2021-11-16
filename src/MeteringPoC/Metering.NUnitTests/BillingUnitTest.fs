@@ -221,7 +221,8 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
               SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
               GracePeriod = Duration.FromHours(grace)
               ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
-              MeteringAPICredentials = ManagedIdentity }
+              MeteringAPICredentials = ManagedIdentity
+              SnapshotStorage = null }
 
         let result = prev |> MeteringDateTime.fromStr |> BillingPeriod.previousBillingIntervalCanBeClosedWakeup (config.CurrentTimeProvider(), config.GracePeriod)
                 

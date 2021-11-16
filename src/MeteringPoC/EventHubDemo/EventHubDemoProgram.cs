@@ -15,7 +15,8 @@ var config = DemoCredentials.Get(consumerGroupName: EventHubConsumerClient.Defau
 
 var meteringConfig = MeteringConfigurationProviderModule.create(
     meteringApiCreds: config.MeteringAPICredentials,
-    marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
+    marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc(),
+    snapshotStorage: config.GetSnapshotStorage());
 
 var processor = config.CreateEventHubProcessorClient();
 //var consumerClient = config.CreateEventHubConsumerClient();
