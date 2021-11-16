@@ -48,6 +48,9 @@ let parseConsumptionEvents (str: string) =
                             PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                        EventsToCatchup = {
+                            NumberOfEvents = 1L
+                            TimeDelta = TimeSpan.FromSeconds(0) }
                     }
                 | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
                     Some {
@@ -61,6 +64,9 @@ let parseConsumptionEvents (str: string) =
                             PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                        EventsToCatchup = {
+                            NumberOfEvents = 1L
+                            TimeDelta = TimeSpan.FromSeconds(0) }
                     }
                 | _ -> None
         events

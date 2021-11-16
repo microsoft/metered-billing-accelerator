@@ -6,13 +6,15 @@ open Metering.Types.EventHub
 type MeterCollection = MeterCollection of Map<InternalResourceId, Meter>
 
 type SomeMeterCollection = MeterCollection option
-
+ 
 module MeterCollection =
     let value (MeterCollection x) = x
     let create x = (MeterCollection x)
 
     let empty : MeterCollection = Map.empty |> create
-
+    
+    let Uninitialized : (SomeMeterCollection) = None
+    
     let lastUpdate (someMeterCollection: MeterCollection option) : MessagePosition option = 
         match someMeterCollection with 
         | None -> None
@@ -63,7 +65,6 @@ module MeterCollection =
             state |> value
             |> Map.change usage.InternalResourceId (Option.bind ((Meter.handleUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
         |> create
-
             
     let meterCollectionHandleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvents: MeteringEvent list) : MeterCollection =
         meteringEvents |> List.fold (meterCollectionHandleMeteringEvent config) state

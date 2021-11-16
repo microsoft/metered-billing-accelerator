@@ -49,17 +49,22 @@ module Meter =
     
     let handleUsageEvent (config: MeteringConfigurationProvider) ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : Meter) : Meter =
         let updateConsumption (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
-            let dimension : DimensionId = 
-                state.InternalMetersMapping |> InternalMetersMapping.value |> Map.find event.MeterName
-                
-            if currentMeterValues |> Map.containsKey dimension
-            then 
+            let someDimension : DimensionId option = 
+                state.InternalMetersMapping |> InternalMetersMapping.value |> Map.tryFind event.MeterName
+            
+            match someDimension with 
+            | None -> 
+                // TODO: Log that an unknown meter was reported
                 currentMeterValues
-                |> Map.change dimension (MeterValue.someHandleQuantity event.Quantity currentPosition)
-            else
-                let newConsumption = ConsumedQuantity (ConsumedQuantity.create event.Timestamp event.Quantity)
-                currentMeterValues
-                |> Map.add dimension newConsumption
+            | Some dimension ->
+                if currentMeterValues |> Map.containsKey dimension
+                then 
+                    currentMeterValues
+                    |> Map.change dimension (MeterValue.someHandleQuantity event.Quantity currentPosition)
+                else
+                    let newConsumption = ConsumedQuantity (ConsumedQuantity.create event.Timestamp event.Quantity)
+                    currentMeterValues
+                    |> Map.add dimension newConsumption
         
         let closePreviousIntervalIfNeeded : (Meter -> Meter) = 
             let last = state.LastProcessedMessage.PartitionTimestamp

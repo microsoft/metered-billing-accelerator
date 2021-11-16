@@ -4,14 +4,45 @@ open System
 open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
-open System.Reactive.Linq
 open System.Runtime.InteropServices
-open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs.Consumer
-open Metering
 open Metering.Types.EventHub
 
-module AggregatorUnused = 
+module MeteringAggregator =
+    let aggregate (config: MeteringConfigurationProvider) (meters: MeterCollection option) (e: EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>) : MeterCollection option =
+        match meters with 
+        | None ->
+            match e with
+            | PartitionInitializing x -> x.InitialState
+            | EventHubError _ -> MeterCollection.Uninitialized
+            | PartitionClosing _ -> MeterCollection.Uninitialized
+            | EventHubEvent _ -> MeterCollection.Uninitialized
+        | Some meterCollection ->
+            match e with
+            | PartitionInitializing _ -> Some meterCollection
+            | PartitionClosing x -> Some meterCollection
+            | EventHubError x -> Some meterCollection
+            | EventHubEvent eventHubEvent ->
+                let meteringEvent : MeteringEvent =
+                    { MeteringUpdateEvent = eventHubEvent.EventData
+                      MessagePosition =
+                        { PartitionID = eventHubEvent.ProcessEventArgs.Partition.PartitionId |> PartitionID
+                          SequenceNumber = eventHubEvent.ProcessEventArgs.Data.SequenceNumber
+                          PartitionTimestamp = eventHubEvent.ProcessEventArgs.Data.EnqueuedTime |> MeteringDateTime.FromDateTimeOffset }
+                      EventsToCatchup = 
+                        { NumberOfEvents = eventHubEvent.LastEnqueuedEventProperties.SequenceNumber.Value - eventHubEvent.ProcessEventArgs.Data.SequenceNumber
+                          TimeDelta = eventHubEvent.LastEnqueuedEventProperties.LastReceivedTime.Value.Subtract(eventHubEvent.ProcessEventArgs.Data.EnqueuedTime) } }
+
+                let result = 
+                    meteringEvent
+                    |> MeterCollection.meterCollectionHandleMeteringEvent config meterCollection
+                    |> Some
+
+                result
+
+    let createAggregator (config: MeteringConfigurationProvider) : Func<MeterCollection option, EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>, MeterCollection option> =
+        aggregate config
+
     let handle (partitionEvent: PartitionEvent) = 
         task {
             let lastEnqueuedEvent = partitionEvent.Partition.ReadLastEnqueuedEventProperties()

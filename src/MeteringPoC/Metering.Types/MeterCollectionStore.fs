@@ -121,8 +121,9 @@ module MeterCollectionStore =
                 return Some meterCollection
             with
             | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobNotFound" ->
-                return None
+                return Some MeterCollection.empty
             | e -> 
+                // TODO log some weird exception
                 return None
         }
 
@@ -158,4 +159,3 @@ module MeterCollectionStore =
 
     let isLoaded<'T> (state: 'T option) : bool = 
         state.IsSome
-        

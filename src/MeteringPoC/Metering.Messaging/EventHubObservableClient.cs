@@ -134,9 +134,12 @@
                                 var meteringEvent = new MeteringEvent(
                                     meteringUpdateEvent: meteringUpdateEvent,
                                     messagePosition: new MessagePosition(
-                                            partitionID: PartitionIDModule.create(partitionEvent.Partition.PartitionId),
-                                            sequenceNumber: partitionEvent.Data.SequenceNumber,
-                                            partitionTimestamp: ZonedDateTime.FromDateTimeOffset(partitionEvent.Data.EnqueuedTime)));
+                                        partitionID: PartitionIDModule.create(partitionEvent.Partition.PartitionId),
+                                        sequenceNumber: partitionEvent.Data.SequenceNumber,
+                                        partitionTimestamp: ZonedDateTime.FromDateTimeOffset(partitionEvent.Data.EnqueuedTime)),
+                                    eventsToCatchup: new EventsToCatchup(
+                                        numberOfEvents: lastEnqueuedEvent.SequenceNumber.Value - partitionEvent.Data.SequenceNumber,
+                                        timeDelta: lastEnqueuedEvent.LastReceivedTime.Value.Subtract(partitionEvent.Data.EnqueuedTime)));
 
                                 var item = (meteringEvent, eventsToCatchup);
 

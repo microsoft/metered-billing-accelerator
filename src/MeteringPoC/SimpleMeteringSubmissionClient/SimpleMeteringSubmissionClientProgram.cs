@@ -34,26 +34,29 @@ var producerTask = Task.Run(async () =>
 
     try
     {
-        var saasId = guidFromStr("sub1");
+        var saasId = guidFromStr("sub4");
 
         var planJson = @"{ ""planId"": ""plan2"", ""billingDimensions"": [
            { ""dimension"": ""MachineLearningJob"", ""name"": ""An expensive machine learning job"", ""unitOfMeasure"": ""machine learning jobs"", ""includedQuantity"": { ""monthly"": ""10"" } },
            { ""dimension"": ""EMailCampaign"", ""name"": ""An e-mail sent for campaign usage"", ""unitOfMeasure"": ""e-mails"", ""includedQuantity"": { ""monthly"": ""250000"" } } ] }";
 
-        SubscriptionCreationInformation sci = new(
-            subscription: new(
-                plan: Json.fromStr<Plan>(planJson),
-                internalResourceId: InternalResourceIdModule.fromStr(saasId),
-                renewalInterval: RenewalInterval.Monthly,
-                subscriptionStart: MeteringDateTimeModule.now()),
-            internalMetersMapping: Json.fromStr<InternalMetersMapping>(@"{ ""email"": ""EMailCampaign"", ""ml"": ""MachineLearningJob"" }"));
-
-        await producer.CreateSubscription(sci, producerCts.Token);
+        bool createSub = false;
+        if (createSub)
+        {
+            SubscriptionCreationInformation sci = new(
+                subscription: new(
+                    plan: Json.fromStr<Plan>(planJson),
+                    internalResourceId: InternalResourceIdModule.fromStr(saasId),
+                    renewalInterval: RenewalInterval.Monthly,
+                    subscriptionStart: MeteringDateTimeModule.now()),
+                internalMetersMapping: Json.fromStr<InternalMetersMapping>(@"{ ""email"": ""EMailCampaign"", ""ml"": ""MachineLearningJob"" }"));
+            await producer.CreateSubscription(sci, producerCts.Token);
+        }
 
         while (!producerCts.IsCancellationRequested)
         {
             await Console.Out.WriteLineAsync("emit event");
-            await producer.SubmitSaasIntegerAsync(saasId: saasId, meterName: "ML", quantity: 1, producerCts.Token);
+            await producer.SubmitSaasIntegerAsync(saasId: saasId, meterName: "ml", quantity: 1, producerCts.Token);
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
     }

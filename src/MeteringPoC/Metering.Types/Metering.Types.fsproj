@@ -56,6 +56,6 @@
     <Compile Include="ClientSDK.fs" />
     <Compile Include="TestBusinessLogic.fs" />
     <Compile Include="MeterCollectionStore.fs" />
-    <Compile Include="Aggregator.fs" />
+    <Compile Include="MeteringAggregator.fs" />
   </ItemGroup>
 </Project>

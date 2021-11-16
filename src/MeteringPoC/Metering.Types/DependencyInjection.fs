@@ -7,11 +7,23 @@ open NodaTime
 type MeteringClient = 
     InternalUsageEvent -> Task
 
-type SubmitMeteringAPIUsageEvent =
-    MeteringAPIUsageEventDefinition -> Task<MarketplaceSubmissionResult>
+type CurrentTimeProvider =
+    unit -> MeteringDateTime
 
+type SubmitMeteringAPIUsageEvent = MeteringConfigurationProvider -> MeteringAPIUsageEventDefinition -> Task<MarketplaceSubmissionResult>
+and MeteringConfigurationProvider = 
+    { CurrentTimeProvider: CurrentTimeProvider
+      SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
+      GracePeriod: Duration
+      ManagedResourceGroupResolver: DetermineManagedAppResourceGroupID
+      MeteringAPICredentials: MeteringAPICredentials }
+
+module CurrentTimeProvider =
+    let LocalSystem : CurrentTimeProvider = (fun () -> ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
+    let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
+      
 module SubmitMeteringAPIUsageEvent =
-    let Discard : SubmitMeteringAPIUsageEvent = (fun e -> 
+    let Discard : SubmitMeteringAPIUsageEvent = (fun _cfg e -> 
         { Payload = e
           Headers = 
             { RequestID = Guid.NewGuid().ToString()
@@ -31,16 +43,11 @@ module SubmitMeteringAPIUsageEvent =
         |> Task.FromResult
      )
 
-type CurrentTimeProvider =
-    unit -> MeteringDateTime
+module MeteringConfigurationProvider =
+    let Dummy = 
+        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+          SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard 
+          GracePeriod = Duration.FromHours(2.0)
+          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveManagedByFromARM
+          MeteringAPICredentials = MeteringAPICredentials.ManagedIdentity }
 
-module CurrentTimeProvider =
-    let LocalSystem : CurrentTimeProvider = (fun () -> ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
-    let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
-
-type MeteringConfigurationProvider = 
-    { CurrentTimeProvider: CurrentTimeProvider
-      SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
-      GracePeriod: Duration
-      ManagedResourceGroupResolver: DetermineManagedAppResourceGroupID
-      MeteringAPICredentials: MeteringAPICredentials }
