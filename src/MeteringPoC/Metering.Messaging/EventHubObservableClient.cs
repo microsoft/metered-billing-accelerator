@@ -3,67 +3,68 @@
     using Azure.Messaging.EventHubs;
     using Azure.Messaging.EventHubs.Consumer;
     using Azure.Messaging.EventHubs.Processor;
+    using Metering.Types;
     using Metering.Types.EventHub;
+    using Microsoft.FSharp.Core;
+    using NodaTime;
     using System;
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
     using System.Threading;
     using System.Threading.Tasks;
 
-    public class EventHubObservableClient
+    public static class EventHubObservableClient
     {
-        private readonly EventHubConnectionDetails EventHubConnectionDetails;
-
-        private readonly EventProcessorClient processor;
-
-        public EventHubObservableClient(EventHubConnectionDetails details)
+        public static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateEventHubProcessorEventObservable<TState, TEvent>(
+            this EventProcessorClient processor,
+            Func<PartitionInitializingEventArgs, CancellationToken, Task<TState>> determineInitialState,
+            Func<TState, EventPosition> determinePosition,
+            Func<EventData, TEvent> converter,
+            CancellationToken cancellationToken = default)
         {
-            this.EventHubConnectionDetails = details;
-
-            this.processor = new(
-                 checkpointStore: details.CheckpointStorage,
-                 consumerGroup: details.ConsumerGroupName,
-                 fullyQualifiedNamespace: details.EventHubNamespace,
-                 eventHubName: details.EventHubName,
-                 credential: details.Credential,
-                 clientOptions: new()
-                 {
-                     TrackLastEnqueuedEventProperties = true,
-                     PrefetchCount = 100,
-                 });
-        }
-
-        public IObservable<EventHubProcessorEvent> CreateObservable(
-            Func<PartitionInitializingEventArgs, CancellationToken, Task<EventPosition>> determinePosition,
-            CancellationToken cancellationToken)
-        {
-            return Observable.Create<EventHubProcessorEvent>(o =>
+            return Observable.Create<EventHubProcessorEvent<TState, TEvent>>(o =>
             {
                 var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 var innerCancellationToken = cts.Token;
 
-                async Task ProcessEvent(ProcessEventArgs processEventArgs)
+                Task ProcessEvent(ProcessEventArgs processEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent.NewEvent(new Event(
-                        eventData: processEventArgs.Data, 
-                        lastEnqueuedEventProperties: processEventArgs.Partition.ReadLastEnqueuedEventProperties(), 
-                        partitionContext: processEventArgs.Partition)));
-                    await processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
+                    o.OnNext(
+                        EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(
+                            EventHubEvent.create(processEventArgs, converter.ToFSharpFunc())));
 
+                    // We're not doing checkpointing here, but let that happen downsteam... That's why EventHubProcessorEvent contains the ProcessEventArgs
+                    // processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
+                    return Task.CompletedTask; 
                 };
+
                 Task ProcessError (ProcessErrorEventArgs processErrorEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent.NewEventHubError(processErrorEventArgs));
+                    o.OnNext(
+                        EventHubProcessorEvent<TState, TEvent>.NewEventHubError(
+                            processErrorEventArgs));
                     return Task.CompletedTask;
                 };
+
                 async Task PartitionInitializing(PartitionInitializingEventArgs partitionInitializingEventArgs)
                 {
-                    partitionInitializingEventArgs.DefaultStartingPosition = await determinePosition(partitionInitializingEventArgs, innerCancellationToken);
-                    o.OnNext(EventHubProcessorEvent.NewPartitionInitializing(partitionInitializingEventArgs));
+                    var initialState = await determineInitialState(partitionInitializingEventArgs, innerCancellationToken);
+                    partitionInitializingEventArgs.DefaultStartingPosition = determinePosition(initialState); 
+                    
+
+                    var evnt = EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
+                        new PartitionInitializing<TState>(
+                            partitionInitializingEventArgs: partitionInitializingEventArgs,
+                            initialState: initialState));
+                    o.OnNext(evnt);
                 };
+
                 Task PartitionClosing(PartitionClosingEventArgs partitionClosingEventArgs)
                 {
-                    o.OnNext(EventHubProcessorEvent.NewPartitionClosing(partitionClosingEventArgs));
+                    var evnt = EventHubProcessorEvent<TState, TEvent>.NewPartitionClosing(
+                        new PartitionClosing(
+                            partitionClosingEventArgs));
+                    o.OnNext(evnt);
                     return Task.CompletedTask;
                 };
 
@@ -97,6 +98,63 @@
                         processor.PartitionClosingAsync -= PartitionClosing;
                     }
                 }, cancellationToken: innerCancellationToken);
+
+                return new CancellationDisposable(cts);
+            });
+        }
+
+        public static IObservable<(MeteringEvent, EventsToCatchup)> CreateAggregatorObservable(
+            this EventHubConsumerClient eventHubConsumerClient,
+            FSharpOption<MessagePosition> someMessagePosition,
+            CancellationToken cancellationToken = default)
+        {
+            return Observable.Create<(MeteringEvent, EventsToCatchup)>(o =>
+            {
+                var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var innerCancellationToken = cts.Token;
+
+                _ = Task.Run(
+                    async () =>
+                    {
+                        await foreach (var partitionEvent in eventHubConsumerClient.ReadEventsFromPartitionAsync(
+                            partitionId: "",
+                            startingPosition: MessagePositionModule.startingPosition(someMessagePosition),
+                            readOptions: new ReadEventOptions() { TrackLastEnqueuedEventProperties = true },
+                            cancellationToken: cts.Token))
+                        {
+                            try
+                            {
+                                var lastEnqueuedEvent = partitionEvent.Partition.ReadLastEnqueuedEventProperties();
+                                var eventsToCatchup = new EventsToCatchup(
+                                    numberOfEvents: lastEnqueuedEvent.SequenceNumber.Value - partitionEvent.Data.SequenceNumber,
+                                    timeDelta: lastEnqueuedEvent.LastReceivedTime.Value.Subtract(partitionEvent.Data.EnqueuedTime));
+
+                                var bodyString = partitionEvent.Data.EventBody.ToString();
+                                var meteringUpdateEvent = Json.fromStr<MeteringUpdateEvent>(bodyString);
+                                var meteringEvent = new MeteringEvent(
+                                    meteringUpdateEvent: meteringUpdateEvent,
+                                    messagePosition: new MessagePosition(
+                                        partitionID: PartitionIDModule.create(partitionEvent.Partition.PartitionId),
+                                        sequenceNumber: partitionEvent.Data.SequenceNumber,
+                                        partitionTimestamp: ZonedDateTime.FromDateTimeOffset(partitionEvent.Data.EnqueuedTime)),
+                                    eventsToCatchup: new EventsToCatchup(
+                                        numberOfEvents: lastEnqueuedEvent.SequenceNumber.Value - partitionEvent.Data.SequenceNumber,
+                                        timeDelta: lastEnqueuedEvent.LastReceivedTime.Value.Subtract(partitionEvent.Data.EnqueuedTime)));
+
+                                var item = (meteringEvent, eventsToCatchup);
+
+                                o.OnNext(item);
+                            }
+                            catch (Exception ex)
+                            {
+                                await Console.Error.WriteLineAsync(ex.Message);
+                            }
+                            innerCancellationToken.ThrowIfCancellationRequested();
+                        }
+
+                        o.OnCompleted();
+                    },
+                    innerCancellationToken);
 
                 return new CancellationDisposable(cts);
             });

@@ -3,7 +3,10 @@
 module Json =
     open System
     open Thoth.Json.Net
+    open Newtonsoft.Json.Linq
     open NodaTime.Text
+    open System.Runtime.InteropServices
+    
 
     module MeteringDateTime =
         let private makeEncoder<'T> (pattern : IPattern<'T>) : Encoder<'T> = pattern.Format >> Encode.string
@@ -12,7 +15,6 @@ module Json =
                 let x = pattern.Parse(v)
                 if x.Success
                 then Decode.succeed x.Value
-
                 else Decode.fail (sprintf "Failed to decode `%s`" v))
         
         // Use the first pattern as default, therefore the `|> List.head`
@@ -48,16 +50,16 @@ module Json =
 
         let Encoder (x: MessagePosition) : JsonValue =
             [
-                (partitionId, x.PartitionID |> Encode.string)
-                (sequenceNumber, x.SequenceNumber |> Encode.uint64)
+                (partitionId, x.PartitionID |> PartitionID.value |> Encode.string)
+                (sequenceNumber, x.SequenceNumber |> Encode.int64)
                 (partitionTimestamp, x.PartitionTimestamp |> MeteringDateTime.Encoder)
             ]
             |> Encode.object 
 
         let Decoder : Decoder<MessagePosition> =
             Decode.object (fun get -> {
-                PartitionID = get.Required.Field partitionId Decode.string
-                SequenceNumber = get.Required.Field sequenceNumber Decode.uint64
+                PartitionID = (get.Required.Field partitionId Decode.string) |> PartitionID.create
+                SequenceNumber = get.Required.Field sequenceNumber Decode.int64
                 PartitionTimestamp = get.Required.Field partitionTimestamp MeteringDateTime.Decoder
             })
 
@@ -288,13 +290,13 @@ module Json =
     module InternalMetersMapping =
         let Encoder (x: InternalMetersMapping) = 
             x
-            |> Map.toSeq |> Seq.toList
+            |> InternalMetersMapping.value |> Map.toSeq |> Seq.toList
             |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.value, v |> DimensionId.value |> Encode.string))
             |> Encode.object
 
         let Decoder : Decoder<InternalMetersMapping> =
             (Decode.keyValuePairs Decode.string)
-            |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.create, v |> DimensionId.create)) |> Map.ofList |> Decode.succeed)
+            |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.create, v |> DimensionId.create)) |> Map.ofList |> InternalMetersMapping.create |> Decode.succeed)
         
     module CurrentMeterValues = 
         let (dimensionId, meterValue) =
@@ -382,6 +384,7 @@ module Json =
     module MeterCollection =
         let Encoder (x: MeterCollection) = 
             x
+            |> MeterCollection.value
             |> Map.toSeq |> Seq.toList
             |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder))
             |> Encode.object
@@ -391,50 +394,94 @@ module Json =
                 (k |> InternalResourceId.fromStr, v)
 
             (Decode.keyValuePairs Meter.Decoder)
-            |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed)
+            |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> MeterCollection.create |> Decode.succeed)
 
     
     module MarketplaceSubmissionAcceptedResponse =
-        let (messageTime, resourceUri, usageEventId) =
-            ("messageTime", "resourceUri", "usageEventId");
+        let (usageEventId, status, messageTime, resourceId, resourceUri, quantity, dimensionId, effectiveStartTime, planId) =
+            ("usageEventId", "status", "messageTime", "resourceId", "resourceUri", "quantity", "dimension", "effectiveStartTime", "planId");
 
         let Encoder (x: MarketplaceSubmissionAcceptedResponse) : JsonValue =
             [
-                (messageTime, x.MessageTime |> MeteringDateTime.Encoder)
-                (resourceUri, x.ResourceURI |> Encode.string)
                 (usageEventId, x.UsageEventId |> Encode.string)
+                (status, x.Status |> Encode.string)
+                (messageTime, x.MessageTime |> MeteringDateTime.Encoder)
+                (resourceId, x.ResourceId |> Encode.string)
+                (resourceUri, x.ResourceURI |> Encode.string)
+                (quantity, x.Quantity |> Quantity.Encoder)
+                (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
+                (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
+                (planId, x.PlanId |> PlanId.value |> Encode.string)
             ] |> Encode.object 
 
         let Decoder : Decoder<MarketplaceSubmissionAcceptedResponse> =
             Decode.object (fun get -> {
-                MessageTime = get.Required.Field messageTime MeteringDateTime.Decoder
-                ResourceURI = get.Required.Field resourceUri Decode.string
                 UsageEventId = get.Required.Field usageEventId Decode.string
+                Status =  get.Required.Field status Decode.string
+                MessageTime = get.Required.Field messageTime MeteringDateTime.Decoder
+                ResourceId = get.Required.Field resourceId Decode.string
+                ResourceURI = get.Required.Field resourceUri Decode.string
+                Quantity = get.Required.Field quantity Quantity.Decoder
+                DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create
+                EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
+                PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
             })
-    
+
     module MarketplaceSubmissionError =
+        let (error, body) =
+            ("error", "body");
+
         let Encoder (x: MarketplaceSubmissionError) : JsonValue =
+            // TODO... Would be great to have JSON object structure in the body, instead of a string containing JSON... JsonValue.Parse 
+            let encodeBody : (string -> JToken) = Encode.string 
+            
             match x with
-            | Duplicate -> nameof(Duplicate) |> Encode.string
-            | BadResourceId -> nameof(BadResourceId) |> Encode.string
-            | InvalidEffectiveStartTime -> nameof(InvalidEffectiveStartTime) |> Encode.string
-            | CommunicationsProblem exn -> $"Error: {exn.Message}" |> Encode.string
+            | Duplicate json -> (nameof(Duplicate), json)
+            | BadResourceId json -> (nameof(BadResourceId), json)
+            | InvalidEffectiveStartTime json -> (nameof(InvalidEffectiveStartTime), json)
+            | CommunicationsProblem json -> (nameof(CommunicationsProblem), json)
+            |> (fun (e, b) ->
+                [
+                    (error, e |> Encode.string)
+                    (body, b |> encodeBody)
+                ] |> Encode.object 
+            )
 
         let Decoder : Decoder<MarketplaceSubmissionError> =
-            Decode.string |> Decode.andThen (fun v ->
-                match v with
-                | nameof(Duplicate) -> Decode.succeed Duplicate
-                | nameof(BadResourceId) -> Decode.succeed BadResourceId
-                | nameof(InvalidEffectiveStartTime) -> Decode.succeed InvalidEffectiveStartTime
-                | x when x.StartsWith("Error: ") -> 
-                    let l = x.Substring(String.length "Error: ")
-                    Decode.succeed (CommunicationsProblem (exn l))
-                | _ -> Decode.fail (sprintf "Failed to decode `%s`" v)
-                )
+            Decode.object (fun get -> 
+                let errName = get.Required.Field error Decode.string
+                let json = get.Required.Field body Decode.string
+                
+
+                let r = 
+                    match errName with
+                    | nameof(Duplicate) -> json |> Duplicate
+                    | nameof(BadResourceId) -> json |> BadResourceId
+                    | nameof(InvalidEffectiveStartTime) -> json |> InvalidEffectiveStartTime
+                    | nameof(CommunicationsProblem) -> json |> CommunicationsProblem
+                    | unknown -> failwith $"{nameof(MarketplaceSubmissionError)} '{unknown}' is unknown"
+                r
+            )
+
+    module AzureHttpResponseHeaders =
+        let (msrequestid, mscorrelationid) =
+            ("xMsRequestId", "xMsCorrelationId");
+
+        let Encoder (x: AzureHttpResponseHeaders) : JsonValue =
+            [
+                (msrequestid, x.RequestID |> Encode.string)
+                (mscorrelationid, x.CorrelationID |> Encode.string)
+            ] |> Encode.object 
+
+        let Decoder : Decoder<AzureHttpResponseHeaders> =
+            Decode.object (fun get -> {
+                RequestID = get.Required.Field msrequestid Decode.string
+                CorrelationID =  get.Required.Field mscorrelationid Decode.string
+            })
 
     module MarketplaceSubmissionResult =
-        let (payload, result) =
-            ("payload", "result");
+        let (payload, result, httpHeaders) =
+            ("payload", "result", "httpHeaders");
 
         let ResultEncoder (x: Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>) : JsonValue =
             match x with
@@ -450,12 +497,14 @@ module Json =
         let Encoder (x: MarketplaceSubmissionResult) : JsonValue =
             [
                 (payload, x.Payload |> MeteringAPIUsageEventDefinition.Encoder)
-                (result, x.Result |> ResultEncoder)
+                (httpHeaders, x.Headers |> AzureHttpResponseHeaders.Encoder)
+                (result, x.Result |> ResultEncoder)                
             ] |> Encode.object 
 
         let Decoder : Decoder<MarketplaceSubmissionResult> =
             Decode.object (fun get -> {
                 Payload = get.Required.Field payload MeteringAPIUsageEventDefinition.Decoder
+                Headers = get.Required.Field httpHeaders AzureHttpResponseHeaders.Decoder
                 Result = get.Required.Field result ResultDecoder
             })
             
@@ -505,6 +554,7 @@ module Json =
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom BillingDimension.Encoder BillingDimension.Decoder
         |> Extra.withCustom MarketplaceSubmissionResult.Encoder MarketplaceSubmissionResult.Decoder
+        |> Extra.withCustom MarketplaceSubmissionAcceptedResponse.Encoder MarketplaceSubmissionAcceptedResponse.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom MeteredBillingUsageEvent.Encoder MeteredBillingUsageEvent.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder
@@ -519,7 +569,7 @@ module Json =
 
     let enriched = Extra.empty |> enrich
 
-    let toStr o = Encode.Auto.toString(4, o, extra = enriched)
+    let toStr ([<Optional; DefaultParameterValue(0)>] space: int) o = Encode.Auto.toString(space, o, extra = enriched)
         
     let fromStr<'T> json = 
         match Decode.Auto.fromString<'T>(json, extra = enriched) with

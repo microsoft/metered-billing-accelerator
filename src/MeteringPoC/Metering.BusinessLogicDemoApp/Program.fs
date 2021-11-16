@@ -1,9 +1,15 @@
 ﻿open System
+open System.Net.Http
+open System.Text.Json
+open System.Threading
+open System.Threading.Tasks
+open System.Collections.Generic
+open Azure.Messaging.EventHubs.Consumer
+open NodaTime
+open FSharp.Control.Reactive
+open Metering
 open Metering.Types
 open Metering.Types.EventHub
-open NodaTime
-open System.Net.Http
-open System.Threading.Tasks
 
 let parseConsumptionEvents (str: string) = 
     let multilineParse parser (str : string) =  
@@ -39,9 +45,12 @@ let parseConsumptionEvents (str: string) =
                             Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
                             Properties = props |> parseProps }
                         MessagePosition = {
-                            PartitionID = "1"
-                            SequenceNumber = sequencenr |> UInt64.Parse
+                            PartitionID = "1" |> PartitionID.create
+                            SequenceNumber = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                        EventsToCatchup = {
+                            NumberOfEvents = 1L
+                            TimeDelta = TimeSpan.FromSeconds(0) }
                     }
                 | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
                     Some {
@@ -52,9 +61,12 @@ let parseConsumptionEvents (str: string) =
                             Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
                             Properties = None }
                         MessagePosition = {
-                            PartitionID = "1"
-                            SequenceNumber = sequencenr |> UInt64.Parse
+                            PartitionID = "1" |> PartitionID.create
+                            SequenceNumber = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                        EventsToCatchup = {
+                            NumberOfEvents = 1L
+                            TimeDelta = TimeSpan.FromSeconds(0) }
                     }
                 | _ -> None
         events
@@ -199,38 +211,103 @@ let main argv =
         
     let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
 
+    let (resourceId, cred) = 
+        (InternalResourceId.ManagedApp, ManagedIdentity)
+    
+    let (resourceId, cred) = 
+        let readCred = task {
+            let unversionedFile = "C:\Users\chgeuer\Desktop\metering_cred.json"
+            // { "saassub": "...", "tenantid": "...", "client_id": "...", "client_secret": "..." }
+            let! json = System.IO.File.ReadAllTextAsync(unversionedFile);
+            let dyn = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+            let (saasSub, tenantId, client_id, client_secret) = (dyn["saassub"], dyn["tenantid"], dyn["client_id"], dyn["client_secret"])
+            return (
+                InternalResourceId.fromStr saasSub, 
+                MeteringAPICredentials.createServicePrincipal tenantId client_id client_secret)
+        }
+        readCred.Result
+
+
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
           GracePeriod = Duration.FromHours(6.0)
-          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg" }
+          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
+          MeteringAPICredentials = cred }
 
-    eventsFromEventHub
-    |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
-    |> Json.toStr                             |> inspect "meters"
-    |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
-    |> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
+    //eventsFromEventHub
+    //|> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+    //|> Json.toStr                             |> inspect "meters"
+    //|> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
+    //|> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
+    //|> ignore
+
+    //let usage =
+    //    { ResourceId = resourceId
+    //      Quantity = 2.3m
+    //      PlanId = "free_monthly_yearly" |> PlanId.create
+    //      DimensionId = "datasourcecharge" |> DimensionId.create
+    //      EffectiveStartTime = "2021-11-09T17:00:00Z" |> MeteringDateTime.fromStr }
+    //let result = (MarketplaceClient.submit config usage).Result
+    
+    //result
+    //|> Json.toStr
+    //|> inspect ""
+    //|> Json.fromStr<MarketplaceSubmissionResult>
+    //|> inspecto ""
+    //|> ignore
+     
+    let cred = Metering.DemoCredentials.Get(
+        consumerGroupName = EventHubConsumerClient.DefaultConsumerGroupName)
+    
+    let snapshotStorage =
+        new Azure.Storage.Blobs.BlobContainerClient(
+            blobContainerUri = new Uri($"https://{cred.SnapshotStorage.StorageAccountName}.blob.core.windows.net/{cred.SnapshotStorage.StorageContainerName}/"),
+            credential = cred.TokenCredential)
+    
+
+    ////let tx = Aggregator.GetBlobNames checkpointStorage CancellationToken.None
+    ////let x  = tx.Result
+    ////x
+    ////|> Seq.toList
+    ////|> List.iter(printfn "blob %s")
+
+    let events = 
+        eventsFromEventHub
+        |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+        |> Json.toStr 1                             |> inspect "meters"
+        |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
+        
+
+    (task {
+        let! () = MeterCollectionStore.storeLastState snapshotStorage CancellationToken.None events
+
+        let partitionId = 
+            Some events
+            |> MeterCollection.lastUpdate
+            |> (fun x -> x.Value.PartitionID)
+
+        let! meters = MeterCollectionStore.loadLastState snapshotStorage partitionId CancellationToken.None
+
+        match meters with
+        | Some meter -> 
+            meter
+            |> inspecto "read"
+            |> Json.toStr 4
+            |> ignore
+        | None -> printfn "No state found"
+
+
+        return ()
+    }).Wait()
+
+    
+    let obs1 = Observable.single 1
+    let obs2 = Observable.single "A"
+    
+    Observable.zip obs1 obs2
+    |> Observable.subscribe (printfn "%A")
     |> ignore
 
-
-    let read (url: string) = 
-        task {
-            use c = new HttpClient()
-            let! b = c.GetStringAsync(url)
-            return b
-        }
-        
-    let r = 
-        try
-            let x = read "https://www.microsoft.com/"
-            Ok x.Result
-        with 
-        | exn as e -> Error e.Message
-
-    match r with
-    | Ok msg -> 
-        printfn "%s" msg
-    | Error e -> 
-        printfn "Error %s" e
-
+    // (Aggregator.createObservable snapshotStorage "1" CancellationToken.None).Wait()
     0

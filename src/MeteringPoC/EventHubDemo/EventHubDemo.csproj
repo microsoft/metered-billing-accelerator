@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Azure.Identity" Version="1.5.0" />
@@ -10,5 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.DemoCredentials\Metering.DemoCredentials.csproj" />
+    <ProjectReference Include="..\Metering.Messaging\Metering.Messaging.csproj" />
+    <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
   </ItemGroup>
 </Project>

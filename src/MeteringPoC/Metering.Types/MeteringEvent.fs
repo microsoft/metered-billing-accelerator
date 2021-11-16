@@ -4,4 +4,5 @@ open Metering.Types.EventHub
 
 type MeteringEvent =
     { MeteringUpdateEvent: MeteringUpdateEvent
-      MessagePosition: MessagePosition }
+      MessagePosition: MessagePosition
+      EventsToCatchup: EventsToCatchup }

@@ -1,27 +1,45 @@
 ﻿namespace Metering.Types
 
+open Azure.Messaging.EventHubs.Consumer
 open Metering.Types.EventHub
 
-type MeterCollection = Map<InternalResourceId, Meter>
+type MeterCollection = MeterCollection of Map<InternalResourceId, Meter>
 
+type SomeMeterCollection = MeterCollection option
+ 
 module MeterCollection =
-    let empty : MeterCollection = Map.empty
+    let value (MeterCollection x) = x
+    let create x = (MeterCollection x)
 
-    let lastUpdate (meters: MeterCollection) : MessagePosition option = 
-        if meters |> Seq.isEmpty 
-        then None
-        else
-            meters
-            |> Map.toSeq
-            |> Seq.maxBy (fun (_subType, meter) -> meter.LastProcessedMessage.SequenceNumber)
-            |> (fun (_, meter) -> meter.LastProcessedMessage)
-            |> Some
+    let empty : MeterCollection = Map.empty |> create
+    
+    let Uninitialized : (SomeMeterCollection) = None
+    
+    let lastUpdate (someMeterCollection: MeterCollection option) : MessagePosition option = 
+        match someMeterCollection with 
+        | None -> None
+        | Some meters -> 
+            if meters |> value |> Seq.isEmpty 
+            then None
+            else
+                meters
+                |> value
+                |> Map.toSeq
+                |> Seq.maxBy (fun (_subType, meter) -> meter.LastProcessedMessage.SequenceNumber)
+                |> (fun (_, meter) -> meter.LastProcessedMessage)
+                |> Some
+
+    let getEventPosition (someMeters: MeterCollection option) : EventPosition =
+        someMeters
+        |> lastUpdate
+        |> MessagePosition.startingPosition
 
     let usagesToBeReported (meters: MeterCollection) : MeteringAPIUsageEventDefinition list =
-        if meters |> Seq.isEmpty 
+        if meters |> value |> Seq.isEmpty 
         then []
         else
             meters
+            |> value
             |> Seq.map (fun x -> x.Value.UsageToBeReported)
             |> Seq.concat
             |> List.ofSeq
@@ -33,19 +51,20 @@ module MeterCollection =
 
         match meteringEvent.MeteringUpdateEvent with
         | SubscriptionPurchased s -> 
-            state
+            state |> value
             |> Map.add s.Subscription.InternalResourceId (Meter.createNewSubscription s meteringEvent.MessagePosition)
         | AggregatorBooted ->
-            state
+            state |> value
             |> Map.toSeq
             |> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorBooted config))
             |> Map.ofSeq
         | UsageSubmittedToAPI submission ->
-            state
+            state |> value
             |> Map.change submission.Payload.ResourceId (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some))
         | UsageReported usage -> 
-            state
+            state |> value
             |> Map.change usage.InternalResourceId (Option.bind ((Meter.handleUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
+        |> create
             
     let meterCollectionHandleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvents: MeteringEvent list) : MeterCollection =
         meteringEvents |> List.fold (meterCollectionHandleMeteringEvent config) state
