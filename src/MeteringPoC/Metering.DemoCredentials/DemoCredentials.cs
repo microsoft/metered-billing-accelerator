@@ -8,50 +8,47 @@
     using Azure.Storage.Blobs;
     using Metering.Types;
     using Metering.Types.EventHub;
-    using System.IO;
-
-    public record StorageContainerInformation(string StorageAccountName, string StorageContainerName);
-
+    
     public record AzureEventHubInformation(string EventHubNamespaceName, string EventHubInstanceName, string ConsumerGroup);
 
     public record DemoCredential(
         TokenCredential InfraCredential, 
         AzureEventHubInformation EventHubInformation, 
-        StorageContainerInformation CheckpointStorage, 
-        StorageContainerInformation SnapshotStorage, 
+        string CheckpointStorageURL, 
+        string SnapshotStorageURL, 
         MeteringAPICredentials MeteringAPICredentials);
 
     public static class DemoCredentials
     {
+        private static string GetVar(string name) => Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User);
+
+        public static string SomeValidSaaSSubscriptionID = "fdc778a6-1281-40e4-cade-4a5fc11f5440";
+
         public static DemoCredential Get(string consumerGroupName) => new(
-            InfraCredential: new ClientSecretCredential(
-                tenantId: "chgeuerfte.onmicrosoft.com",
-                clientId: "9fc61765-75a9-4aef-80d1-83b052e58b42",
-                clientSecret: File.ReadAllText(@"C:\Users\chgeuer\Desktop\Metering Hack\infra.client_secret").Trim()),
-            EventHubInformation: new(
-                EventHubNamespaceName: "meterhack1", //"meteringhack-standard",
-                EventHubInstanceName: "hub1",
-                ConsumerGroup: consumerGroupName),
-            CheckpointStorage: new(
-                StorageAccountName: "meteringhack",
-                StorageContainerName: "checkpoint"),
-            SnapshotStorage: new(
-                StorageAccountName: "meteringhack",
-                StorageContainerName: "snapshots"),
             MeteringAPICredentials: MeteringAPICredentialsModule.createServicePrincipal(
-                tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47",
-                clientId: "04da7278-de25-45f7-ae17-741d339bb986",
-                clientSecret: File.ReadAllText(@"C:\Users\chgeuer\Desktop\Metering Hack\04da7278-de25-45f7-ae17-741d339bb986.client_secret").Trim())
+                tenantId: GetVar("AZURE_METERING_MARKETPLACE_TENANT_ID"),
+                clientId: GetVar("AZURE_METERING_MARKETPLACE_CLIENT_ID"),
+                clientSecret: GetVar("AZURE_METERING_MARKETPLACE_CLIENT_SECRET")),
+            InfraCredential: new ClientSecretCredential(
+                tenantId: GetVar("AZURE_METERING_INFRA_TENANT_ID"),  
+                clientId: GetVar("AZURE_METERING_INFRA_CLIENT_ID"),
+                clientSecret: GetVar("AZURE_METERING_INFRA_CLIENT_SECRET")),
+            EventHubInformation: new(
+                EventHubNamespaceName: GetVar("AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME"),
+                EventHubInstanceName: GetVar("AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME"),
+                ConsumerGroup: consumerGroupName),
+            CheckpointStorageURL: GetVar("AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER"),
+            SnapshotStorageURL: GetVar("AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER")
             );
 
         private static string GetNamespace(this DemoCredential config) => $"{config.EventHubInformation.EventHubNamespaceName}.servicebus.windows.net";
 
         public static BlobContainerClient GetSnapshotStorage(this DemoCredential config) => new(
-            blobContainerUri: new Uri($"https://{config.SnapshotStorage.StorageAccountName}.blob.core.windows.net/{config.SnapshotStorage.StorageContainerName}/"),
+            blobContainerUri: new Uri(config.SnapshotStorageURL),
             credential: config.InfraCredential);
 
         public static BlobContainerClient GetCheckpointStorage(this DemoCredential config) => new(
-            blobContainerUri: new Uri($"https://{config.CheckpointStorage.StorageAccountName}.blob.core.windows.net/{config.CheckpointStorage.StorageContainerName}/"),
+            blobContainerUri: new Uri(config.CheckpointStorageURL),
             credential: config.InfraCredential);
 
         public static EventHubConnectionDetails GetEventHubConnectionDetails(this DemoCredential config) => new(

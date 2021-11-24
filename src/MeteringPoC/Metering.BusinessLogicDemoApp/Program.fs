@@ -215,19 +215,10 @@ let main argv =
         (InternalResourceId.ManagedApp, ManagedIdentity)
     
     let (resourceId, cred) = 
-        let readCred = task {
-            let unversionedFile = "C:\Users\chgeuer\Desktop\metering_cred.json"
-            // { "saassub": "...", "tenantid": "...", "client_id": "...", "client_secret": "..." }
-            let! json = System.IO.File.ReadAllTextAsync(unversionedFile);
-            let dyn = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-            let (saasSub, tenantId, client_id, client_secret) = (dyn["saassub"], dyn["tenantid"], dyn["client_id"], dyn["client_secret"])
-            return (
-                InternalResourceId.fromStr saasSub, 
-                MeteringAPICredentials.createServicePrincipal tenantId client_id client_secret)
-        }
-        readCred.Result
-
-
+        let rid = InternalResourceId.fromStr DemoCredentials.SomeValidSaaSSubscriptionID
+        let meterCred = (DemoCredentials.Get(consumerGroupName = EventHubConsumerClient.DefaultConsumerGroupName)).MeteringAPICredentials
+        (rid, meterCred)
+         
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
