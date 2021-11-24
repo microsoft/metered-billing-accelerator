@@ -218,7 +218,7 @@ let main argv =
     
     let (resourceId, cred) = 
         let rid = InternalResourceId.fromStr SomeValidSaaSSubscriptionID
-        let meterCred = (DemoCredential.get(EventHubConsumerClient.DefaultConsumerGroupName)).MeteringAPICredentials
+        let meterCred = (DemoCredential.getFromEnvironment(EventHubConsumerClient.DefaultConsumerGroupName)).MeteringAPICredentials
         (rid, meterCred)
          
     let config = 
@@ -251,7 +251,7 @@ let main argv =
     //|> inspecto ""
     //|> ignore
      
-    let cred = DemoCredential.get(EventHubConsumerClient.DefaultConsumerGroupName)
+    let cred = DemoCredential.getFromEnvironment(EventHubConsumerClient.DefaultConsumerGroupName)
     
     let snapshotStorage = cred |> DemoCredential.GetSnapshotStorage
 

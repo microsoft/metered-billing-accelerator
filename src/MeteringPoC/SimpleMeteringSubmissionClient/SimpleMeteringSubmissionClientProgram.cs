@@ -1,8 +1,8 @@
-﻿using Azure.Messaging.EventHubs.Consumer;
+﻿using System.Security.Cryptography;
+using System.Text;
+using Azure.Messaging.EventHubs.Consumer;
 using Metering;
 using Metering.Types;
-using System.Security.Cryptography;
-using System.Text;
 
 #pragma warning disable CS8601 // Possible null reference assignment.
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
@@ -10,13 +10,13 @@ Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name
 
 static string guidFromStr(string str) => new Guid(SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(str)).Take(16).ToArray()).ToString();
 
-async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.ReadAllTextAsync(name));
+static async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.ReadAllTextAsync(name));
 
 using CancellationTokenSource cts = new();
 
 _ = Task.Run(async () =>
 {
-    var config = DemoCredentialModule.get(consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+    var config = DemoCredentialModule.getFromEnvironment(consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
     var eventHubProducerClient = config.CreateEventHubProducerClient();
 
     try

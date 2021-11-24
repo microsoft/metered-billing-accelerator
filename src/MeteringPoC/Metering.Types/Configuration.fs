@@ -8,6 +8,7 @@ open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
 open Azure.Messaging.EventHubs
+open Microsoft.Extensions.Configuration
 
 type ServicePrincipalCredential = 
     { clientId : string 
@@ -110,22 +111,26 @@ module DemoCredential =
             credential = eventHubConnectionDetails.Credential,
             clientOptions = clientOptions)
     
-    let get (consumerGroupName: string) : DemoCredential =
-        let infraCred = 
-            new ClientSecretCredential(
-                tenantId = ("AZURE_METERING_INFRA_TENANT_ID" |> get_var),  
-                clientId = ("AZURE_METERING_INFRA_CLIENT_ID" |> get_var),
-                clientSecret = ("AZURE_METERING_INFRA_CLIENT_SECRET" |> get_var))
-
+    [<Extension>]
+    let getFromConfig (cfg: IConfigurationRoot) (consumerGroupName: string) : DemoCredential =
         { MeteringAPICredentials = 
-            { clientId = "AZURE_METERING_MARKETPLACE_CLIENT_ID" |> get_var
-              clientSecret = "AZURE_METERING_MARKETPLACE_CLIENT_SECRET"  |> get_var
-              tenantId = "AZURE_METERING_MARKETPLACE_TENANT_ID"  |> get_var }
+            { clientId = cfg.Item("MARKETPLACE_CLIENT_ID")
+              clientSecret = cfg.Item("MARKETPLACE_CLIENT_SECRET")
+              tenantId = cfg.Item("MARKETPLACE_TENANT_ID") }
             |> ServicePrincipalCredential
-          InfraCredential = infraCred
+          InfraCredential = new ClientSecretCredential(
+              tenantId = (cfg.Item("INFRA_TENANT_ID")),  
+              clientId = (cfg.Item("INFRA_CLIENT_ID")),
+              clientSecret = (cfg.Item("INFRA_CLIENT_SECRET")))
           EventHubInformation = 
-             { EventHubNamespaceName = "AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME" |> get_var
-               EventHubInstanceName = "AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME" |> get_var
-               ConsumerGroup = consumerGroupName }
-          CheckpointStorageURL = "AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER" |> get_var
-          SnapshotStorageURL = "AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER" |> get_var }
+            { EventHubNamespaceName = cfg.Item("INFRA_EVENTHUB_NAMESPACENAME")
+              EventHubInstanceName = cfg.Item("INFRA_EVENTHUB_INSTANCENAME")
+              ConsumerGroup = consumerGroupName }
+          CheckpointStorageURL = cfg.Item("INFRA_CHECKPOINTS_CONTAINER")
+          SnapshotStorageURL = cfg.Item("INFRA_SNAPSHOTS_CONTAINER") }
+
+    let getFromEnvironment (consumerGroupName: string) : DemoCredential =
+        let builder = new ConfigurationBuilder()
+        let builder = EnvironmentVariablesExtensions.AddEnvironmentVariables(builder, prefix = "AZURE_METERING_")
+        let configuration = builder.Build()
+        getFromConfig configuration EventHubConsumerClient.DefaultConsumerGroupName
