@@ -10,7 +10,7 @@ using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.Me
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-var config = DemoCredentialModule.getFromEnvironment(
+var config = MeteringConnectionsModule.getFromEnvironment(
     consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
 
 var meteringConfig = MeteringConfigurationProviderModule.create(

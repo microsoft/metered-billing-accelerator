@@ -5,7 +5,7 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Program.fs" />
+    <Compile Include="BusinessLogicDemoApp.Program.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />

@@ -37,78 +37,77 @@ type EventHubConnectionDetails =
       ConsumerGroupName: string
       CheckpointStorage: BlobContainerClient }
             
-type DemoCredential =
+type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials 
-      //InfraCredential: TokenCredential 
       EventHubConsumerClient: EventHubConsumerClient
       EventHubProducerClient: EventHubProducerClient
       EventProcessorClient: EventProcessorClient
-      CheckpointStorage: BlobContainerClient
       SnapshotStorage: BlobContainerClient }
 
+module MeteringConnections =
+    let private environmentVariablePrefix = "AZURE_METERING_"
 
-module DemoCredential =
-    let private getFromConfig (cfg: IConfigurationRoot) (consumerGroupName: string) : DemoCredential =
-        let x n = cfg.Item(n)
-
+    let private getFromConfig (get: (string -> string)) (consumerGroupName: string) =
         let meteringApiCredential = 
-            { clientId = "MARKETPLACE_CLIENT_ID" |> x
-              clientSecret = "MARKETPLACE_CLIENT_SECRET" |> x
-              tenantId = "MARKETPLACE_TENANT_ID" |> x } |> ServicePrincipalCredential
+            { clientId = "MARKETPLACE_CLIENT_ID" |> get
+              clientSecret = "MARKETPLACE_CLIENT_SECRET" |> get
+              tenantId = "MARKETPLACE_TENANT_ID" |> get } |> ServicePrincipalCredential
 
-        let infraCred = new ClientSecretCredential(
-            tenantId = ("INFRA_TENANT_ID"  |> x),  
-            clientId = ("INFRA_CLIENT_ID" |> x),
-            clientSecret = ("INFRA_CLIENT_SECRET" |> x))
+        let infraStructureCredential = new ClientSecretCredential(
+            tenantId = ("INFRA_TENANT_ID"  |> get),  
+            clientId = ("INFRA_CLIENT_ID" |> get),
+            clientSecret = ("INFRA_CLIENT_SECRET" |> get))
 
-        let bc (c: TokenCredential) u = new BlobContainerClient(blobContainerUri = new Uri(u), credential = c)
-        let checkpointStorage  = "INFRA_CHECKPOINTS_CONTAINER" |> x |> bc infraCred
-        let snapStorage = "INFRA_SNAPSHOTS_CONTAINER"  |> x |> bc infraCred
+        let containerClientWithCredential (tokenCred: TokenCredential) uri = new BlobContainerClient(blobContainerUri = new Uri(uri), credential = tokenCred)
+        let checkpointStorage  = "INFRA_CHECKPOINTS_CONTAINER" |> get |> containerClientWithCredential infraStructureCredential
+        let snapStorage = "INFRA_SNAPSHOTS_CONTAINER"  |> get |> containerClientWithCredential infraStructureCredential
 
-        let nsn = "INFRA_EVENTHUB_NAMESPACENAME" |> x
+        let nsn = "INFRA_EVENTHUB_NAMESPACENAME" |> get
         let fullyQualifiedNamespace = $"{nsn}.servicebus.windows.net"
-        let instanceName = "INFRA_EVENTHUB_INSTANCENAME" |> x
+        let instanceName = "INFRA_EVENTHUB_INSTANCENAME" |> get
 
-        let connectionOptions = new EventHubConnectionOptions()
-        connectionOptions.TransportType <- EventHubsTransportType.AmqpTcp
-        let producerClientOptions = new EventHubProducerClientOptions()
-        producerClientOptions.ConnectionOptions <- connectionOptions
-        let eventHubProducerClient = new EventHubProducerClient(
-            fullyQualifiedNamespace = fullyQualifiedNamespace,
-            eventHubName = fullyQualifiedNamespace,
-            credential = infraCred,
-            clientOptions = producerClientOptions)
+        let processorClient = 
+            let clientOptions = new EventProcessorClientOptions()
+            clientOptions.TrackLastEnqueuedEventProperties <- true
+            clientOptions.PrefetchCount <- 100
+            new EventProcessorClient(
+                checkpointStore = checkpointStorage,
+                consumerGroup = consumerGroupName,
+                fullyQualifiedNamespace = fullyQualifiedNamespace,
+                eventHubName = instanceName,
+                credential = infraStructureCredential,
+                clientOptions = clientOptions)
 
-        let clientOptions = new EventProcessorClientOptions()
-        clientOptions.TrackLastEnqueuedEventProperties <- true
-        clientOptions.PrefetchCount <- 100
+        let consumerClient = 
+            new EventHubConsumerClient (
+                consumerGroup = consumerGroupName,
+                fullyQualifiedNamespace = fullyQualifiedNamespace,
+                eventHubName = instanceName,
+                credential = infraStructureCredential)
 
-        let eventHubConsumerClientOptions = new EventHubConsumerClientOptions()
-
-        let eventHubConsumerClient = new EventHubConsumerClient (
-            consumerGroup = consumerGroupName,
-            fullyQualifiedNamespace = fullyQualifiedNamespace,
-            eventHubName = instanceName,
-            credential = infraCred,
-            clientOptions = eventHubConsumerClientOptions)
-
-        let eventProcessorClient = new EventProcessorClient(
-            checkpointStore = checkpointStorage,
-            consumerGroup = consumerGroupName,
-            fullyQualifiedNamespace = fullyQualifiedNamespace,
-            eventHubName = instanceName,
-            credential = infraCred,
-            clientOptions = clientOptions)
+        let producerClient =
+            let connectionOptions = new EventHubConnectionOptions()
+            connectionOptions.TransportType <- EventHubsTransportType.AmqpTcp
+            let producerClientOptions = new EventHubProducerClientOptions()
+            producerClientOptions.ConnectionOptions <- connectionOptions
+            new EventHubProducerClient(
+                fullyQualifiedNamespace = fullyQualifiedNamespace,
+                eventHubName = fullyQualifiedNamespace,
+                credential = infraStructureCredential,
+                clientOptions = producerClientOptions)
 
         { MeteringAPICredentials = meteringApiCredential
-          EventHubConsumerClient = eventHubConsumerClient
-          EventHubProducerClient = eventHubProducerClient
-          EventProcessorClient = eventProcessorClient
-          CheckpointStorage = checkpointStorage
+          EventHubConsumerClient = consumerClient
+          EventHubProducerClient = producerClient
+          EventProcessorClient = processorClient
           SnapshotStorage = snapStorage }
 
-    let getFromEnvironment (consumerGroupName: string) : DemoCredential =
-        let builder = new ConfigurationBuilder()
-        let builder = EnvironmentVariablesExtensions.AddEnvironmentVariables(builder, prefix = "AZURE_METERING_")
-        let configuration = builder.Build()
-        getFromConfig configuration EventHubConsumerClient.DefaultConsumerGroupName
+    let getFromEnvironment (consumerGroupName: string) =
+        let configuration =
+            EnvironmentVariablesExtensions.AddEnvironmentVariables(
+                new ConfigurationBuilder(),
+                prefix = environmentVariablePrefix).Build()
+
+        getFromConfig
+            (fun name -> configuration.Item(name))
+            EventHubConsumerClient.DefaultConsumerGroupName

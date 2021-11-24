@@ -16,7 +16,7 @@ using CancellationTokenSource cts = new();
 
 _ = Task.Run(async () =>
 {
-    var config = DemoCredentialModule.getFromEnvironment(consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+    var config = MeteringConnectionsModule.getFromEnvironment(consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
     var eventHubProducerClient = config.EventHubProducerClient;
 
     try
