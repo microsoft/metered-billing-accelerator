@@ -214,9 +214,11 @@ let main argv =
     let (resourceId, cred) = 
         (InternalResourceId.ManagedApp, ManagedIdentity)
     
+    let SomeValidSaaSSubscriptionID = "fdc778a6-1281-40e4-cade-4a5fc11f5440"
+    
     let (resourceId, cred) = 
-        let rid = InternalResourceId.fromStr DemoCredentials.SomeValidSaaSSubscriptionID
-        let meterCred = (DemoCredentials.Get(consumerGroupName = EventHubConsumerClient.DefaultConsumerGroupName)).MeteringAPICredentials
+        let rid = InternalResourceId.fromStr SomeValidSaaSSubscriptionID
+        let meterCred = (DemoCredential.get(EventHubConsumerClient.DefaultConsumerGroupName)).MeteringAPICredentials
         (rid, meterCred)
          
     let config = 
@@ -249,10 +251,9 @@ let main argv =
     //|> inspecto ""
     //|> ignore
      
-    let cred = Metering.DemoCredentials.Get(
-        consumerGroupName = EventHubConsumerClient.DefaultConsumerGroupName)
+    let cred = DemoCredential.get(EventHubConsumerClient.DefaultConsumerGroupName)
     
-    let snapshotStorage = cred.GetSnapshotStorage();
+    let snapshotStorage = cred |> DemoCredential.GetSnapshotStorage
 
     ////let tx = Aggregator.GetBlobNames checkpointStorage CancellationToken.None
     ////let x  = tx.Result

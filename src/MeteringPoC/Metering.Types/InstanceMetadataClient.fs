@@ -8,21 +8,6 @@ open System.Net.Http.Json
 open System.Web
 open Microsoft.FSharp.Control
 
-type ServicePrincipalCredential = 
-    { clientId : string 
-      clientSecret : string
-      tenantId : string }
-
-type MeteringAPICredentials =
-    | ManagedIdentity
-    | ServicePrincipalCredential of ServicePrincipalCredential
-
-module MeteringAPICredentials =
-    let createServicePrincipal tenantId clientId clientSecret =
-        { clientId = clientId
-          clientSecret = clientSecret
-          tenantId = tenantId } |> ServicePrincipalCredential
-
 module InstanceMetadataClient = 
     type TokenResponse = { access_token: string }
     

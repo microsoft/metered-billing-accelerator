@@ -6,12 +6,23 @@ using Metering.Messaging;
 using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
+using Microsoft.Extensions.Configuration;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-var config = DemoCredentials.Get(consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+var builder = new ConfigurationBuilder().AddEnvironmentVariables(prefix: "AZURE_METERING_");
+var configuration = builder.Build();
+
+string MARKETPLACE_CLIENT_ID = configuration["MARKETPLACE_CLIENT_ID"];
+string MARKETPLACE_CLIENT_SECRET = configuration["MARKETPLACE_CLIENT_SECRET"];
+string MARKETPLACE_TENANT_ID = configuration["MARKETPLACE_TENANT_ID"];
+
+var config = DemoCredentialModule.get(consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+
+
+
 
 var meteringConfig = MeteringConfigurationProviderModule.create(
     meteringApiCreds: config.MeteringAPICredentials,

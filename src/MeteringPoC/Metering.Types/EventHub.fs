@@ -35,27 +35,6 @@ type EventsToCatchup =
     { NumberOfEvents: int64
       TimeDelta: System.TimeSpan }
 
-type EventHubConnectionDetails =
-    { Credential: TokenCredential 
-      EventHubNamespace: string
-      EventHubName: string
-      ConsumerGroupName: string
-      CheckpointStorage: BlobContainerClient }
-
-module EventHubConnectionDetails =
-    let createProcessor (eventHubConnectionDetails: EventHubConnectionDetails) : EventProcessorClient =
-        let clientOptions = new EventProcessorClientOptions()
-        clientOptions.TrackLastEnqueuedEventProperties <- true
-        clientOptions.PrefetchCount <- 100
-
-        new EventProcessorClient(
-            checkpointStore = eventHubConnectionDetails.CheckpointStorage,
-            consumerGroup = eventHubConnectionDetails.ConsumerGroupName,
-            fullyQualifiedNamespace = eventHubConnectionDetails.EventHubNamespace,
-            eventHubName = eventHubConnectionDetails.EventHubName,
-            credential = eventHubConnectionDetails.Credential,
-            clientOptions = clientOptions)
-
 type EventHubEvent<'TEvent> =
     { ProcessEventArgs: ProcessEventArgs
       PartitionContext: PartitionContext
