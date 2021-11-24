@@ -16,19 +16,19 @@ var config = DemoCredentialModule.getFromEnvironment(
 var meteringConfig = MeteringConfigurationProviderModule.create(
     meteringApiCreds: config.MeteringAPICredentials,
     marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc(),
-    snapshotStorage: config.GetSnapshotStorage());
+    snapshotStorage: config.SnapshotStorage);
 
-var processor = config.CreateEventHubProcessorClient();
-//var consumerClient = config.CreateEventHubConsumerClient();
+var processor = config.EventProcessorClient;
+// var consumerClient = config.EventHubConsumerClient;
 
-Console.WriteLine(config.EventHubInformation.EventHubNamespaceName);
+//Console.WriteLine(config.CreateEventHubConsumerClient..EventHubInformation.EventHubNamespaceName);
 
 using CancellationTokenSource cts = new();
 
 var groupedByPartitionId = processor
     .CreateEventHubProcessorEventObservable<SomeMeterCollection, MeteringUpdateEvent>(
         determineInitialState: (arg, ct) => MeterCollectionStore.loadLastState(
-            snapshotContainerClient: config.GetSnapshotStorage(),
+            snapshotContainerClient: config.SnapshotStorage,
             partitionID: PartitionIDModule.create(arg.PartitionId),
             cancellationToken: ct),
         determinePosition: MeterCollectionModule.getEventPosition,
@@ -48,7 +48,7 @@ groupedByPartitionId.Subscribe(onNext: group => {
         ).Subscribe(onNext: x => {
             Console.WriteLine($"event: {partitionId}: {Json.toStr(0, x.Value)}");
             MeterCollectionStore.storeLastState(
-                snapshotContainerClient: config.GetSnapshotStorage(),
+                snapshotContainerClient: config.SnapshotStorage,
                 meterCollection: x.Value).Wait();
         });
 });

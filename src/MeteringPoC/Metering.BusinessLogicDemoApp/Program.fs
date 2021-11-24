@@ -253,7 +253,7 @@ let main argv =
      
     let cred = DemoCredential.getFromEnvironment(EventHubConsumerClient.DefaultConsumerGroupName)
     
-    let snapshotStorage = cred |> DemoCredential.GetSnapshotStorage
+    let snapshotStorage = cred.SnapshotStorage
 
     ////let tx = Aggregator.GetBlobNames checkpointStorage CancellationToken.None
     ////let x  = tx.Result

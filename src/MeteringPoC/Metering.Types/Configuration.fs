@@ -39,95 +39,73 @@ type EventHubConnectionDetails =
             
 type DemoCredential =
     { MeteringAPICredentials: MeteringAPICredentials 
-      InfraCredential: TokenCredential 
-      EventHubInformation: AzureEventHubInformation
-      CheckpointStorageURL: string
-      SnapshotStorageURL: string }
+      //InfraCredential: TokenCredential 
+      EventHubConsumerClient: EventHubConsumerClient
+      EventHubProducerClient: EventHubProducerClient
+      EventProcessorClient: EventProcessorClient
+      CheckpointStorage: BlobContainerClient
+      SnapshotStorage: BlobContainerClient }
 
 
-[<Extension>]
 module DemoCredential =
-    let private get_var name =
-        Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User)
+    let private getFromConfig (cfg: IConfigurationRoot) (consumerGroupName: string) : DemoCredential =
+        let x n = cfg.Item(n)
 
-    let GetNamespace (config: DemoCredential) =
-        $"{config.EventHubInformation.EventHubNamespaceName}.servicebus.windows.net"
+        let meteringApiCredential = 
+            { clientId = "MARKETPLACE_CLIENT_ID" |> x
+              clientSecret = "MARKETPLACE_CLIENT_SECRET" |> x
+              tenantId = "MARKETPLACE_TENANT_ID" |> x } |> ServicePrincipalCredential
 
-    [<Extension>]
-    let GetSnapshotStorage (config: DemoCredential) = 
-        new BlobContainerClient(
-            blobContainerUri = new Uri(config.SnapshotStorageURL),
-            credential = config.InfraCredential)
+        let infraCred = new ClientSecretCredential(
+            tenantId = ("INFRA_TENANT_ID"  |> x),  
+            clientId = ("INFRA_CLIENT_ID" |> x),
+            clientSecret = ("INFRA_CLIENT_SECRET" |> x))
 
-    [<Extension>]
-    let GetCheckpointStorage (config: DemoCredential) = 
-        new BlobContainerClient(
-            blobContainerUri = new Uri(config.CheckpointStorageURL),
-            credential = config.InfraCredential)
+        let bc (c: TokenCredential) u = new BlobContainerClient(blobContainerUri = new Uri(u), credential = c)
+        let checkpointStorage  = "INFRA_CHECKPOINTS_CONTAINER" |> x |> bc infraCred
+        let snapStorage = "INFRA_SNAPSHOTS_CONTAINER"  |> x |> bc infraCred
 
-    [<Extension>]
-    let GetEventHubConnectionDetails (config: DemoCredential) =
-        { Credential = config.InfraCredential 
-          EventHubNamespace = config |> GetNamespace
-          EventHubName = config.EventHubInformation.EventHubInstanceName
-          ConsumerGroupName = config.EventHubInformation.ConsumerGroup
-          CheckpointStorage = config |> GetCheckpointStorage }
-    
-    [<Extension>]
-    let CreateEventHubConsumerClient (config: DemoCredential) =
-        new EventHubConsumerClient (
-            consumerGroup = config.EventHubInformation.ConsumerGroup,
-            fullyQualifiedNamespace = (config |> GetNamespace),
-            eventHubName = config.EventHubInformation.EventHubInstanceName,
-            credential = config.InfraCredential);
+        let nsn = "INFRA_EVENTHUB_NAMESPACENAME" |> x
+        let fullyQualifiedNamespace = $"{nsn}.servicebus.windows.net"
+        let instanceName = "INFRA_EVENTHUB_INSTANCENAME" |> x
 
-    [<Extension>]
-    let CreateEventHubProducerClient (config: DemoCredential) =
         let connectionOptions = new EventHubConnectionOptions()
         connectionOptions.TransportType <- EventHubsTransportType.AmqpTcp
-
-        let clientOptions = new EventHubProducerClientOptions()
-        clientOptions.ConnectionOptions <- connectionOptions
-
-        new EventHubProducerClient(
-            fullyQualifiedNamespace = (config |> GetNamespace),
-            eventHubName = config.EventHubInformation.EventHubInstanceName,
-            credential = config.InfraCredential,
-            clientOptions = clientOptions)
-
-    [<Extension>]
-    let CreateEventHubProcessorClient(config: DemoCredential) =
-        let eventHubConnectionDetails = config |> GetEventHubConnectionDetails
+        let producerClientOptions = new EventHubProducerClientOptions()
+        producerClientOptions.ConnectionOptions <- connectionOptions
+        let eventHubProducerClient = new EventHubProducerClient(
+            fullyQualifiedNamespace = fullyQualifiedNamespace,
+            eventHubName = fullyQualifiedNamespace,
+            credential = infraCred,
+            clientOptions = producerClientOptions)
 
         let clientOptions = new EventProcessorClientOptions()
         clientOptions.TrackLastEnqueuedEventProperties <- true
         clientOptions.PrefetchCount <- 100
 
-        new EventProcessorClient(
-            checkpointStore = eventHubConnectionDetails.CheckpointStorage,
-            consumerGroup = eventHubConnectionDetails.ConsumerGroupName,
-            fullyQualifiedNamespace = eventHubConnectionDetails.EventHubNamespace,
-            eventHubName = eventHubConnectionDetails.EventHubName,
-            credential = eventHubConnectionDetails.Credential,
+        let eventHubConsumerClientOptions = new EventHubConsumerClientOptions()
+
+        let eventHubConsumerClient = new EventHubConsumerClient (
+            consumerGroup = consumerGroupName,
+            fullyQualifiedNamespace = fullyQualifiedNamespace,
+            eventHubName = instanceName,
+            credential = infraCred,
+            clientOptions = eventHubConsumerClientOptions)
+
+        let eventProcessorClient = new EventProcessorClient(
+            checkpointStore = checkpointStorage,
+            consumerGroup = consumerGroupName,
+            fullyQualifiedNamespace = fullyQualifiedNamespace,
+            eventHubName = instanceName,
+            credential = infraCred,
             clientOptions = clientOptions)
-    
-    [<Extension>]
-    let getFromConfig (cfg: IConfigurationRoot) (consumerGroupName: string) : DemoCredential =
-        { MeteringAPICredentials = 
-            { clientId = cfg.Item("MARKETPLACE_CLIENT_ID")
-              clientSecret = cfg.Item("MARKETPLACE_CLIENT_SECRET")
-              tenantId = cfg.Item("MARKETPLACE_TENANT_ID") }
-            |> ServicePrincipalCredential
-          InfraCredential = new ClientSecretCredential(
-              tenantId = (cfg.Item("INFRA_TENANT_ID")),  
-              clientId = (cfg.Item("INFRA_CLIENT_ID")),
-              clientSecret = (cfg.Item("INFRA_CLIENT_SECRET")))
-          EventHubInformation = 
-            { EventHubNamespaceName = cfg.Item("INFRA_EVENTHUB_NAMESPACENAME")
-              EventHubInstanceName = cfg.Item("INFRA_EVENTHUB_INSTANCENAME")
-              ConsumerGroup = consumerGroupName }
-          CheckpointStorageURL = cfg.Item("INFRA_CHECKPOINTS_CONTAINER")
-          SnapshotStorageURL = cfg.Item("INFRA_SNAPSHOTS_CONTAINER") }
+
+        { MeteringAPICredentials = meteringApiCredential
+          EventHubConsumerClient = eventHubConsumerClient
+          EventHubProducerClient = eventHubProducerClient
+          EventProcessorClient = eventProcessorClient
+          CheckpointStorage = checkpointStorage
+          SnapshotStorage = snapStorage }
 
     let getFromEnvironment (consumerGroupName: string) : DemoCredential =
         let builder = new ConfigurationBuilder()
