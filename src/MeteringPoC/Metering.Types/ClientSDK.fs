@@ -13,30 +13,31 @@ open Metering.Types
 module MeteringEventHubExtensions =
     
     // [<Extension>] // Currently not exposed to C#
-    let SubmitMeteringUpdateEvent (eventHubProducerClient: EventHubProducerClient) (meteringUpdateEvent: MeteringUpdateEvent) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> = task {        
-        let createBatchOptions = 
-            let cbo = new CreateBatchOptions()
-            cbo.PartitionKey <- meteringUpdateEvent |> MeteringUpdateEvent.partitionKey
-            cbo
+    let SubmitMeteringUpdateEvent (eventHubProducerClient: EventHubProducerClient) (meteringUpdateEvent: MeteringUpdateEvent) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<unit> =
+        task {
+            let createBatchOptions = 
+                let cbo = new CreateBatchOptions()
+                cbo.PartitionKey <- meteringUpdateEvent |> MeteringUpdateEvent.partitionKey
+                cbo
 
-        let! eventBatch = eventHubProducerClient.CreateBatchAsync(options = createBatchOptions, cancellationToken = cancellationToken)
-        
-        let eventData = 
-            meteringUpdateEvent
-            |> Json.toStr 0
-            |> (fun x -> new BinaryData(x))
-            |> (fun x -> new EventData(x))
-        
-        eventData.Properties.Add("SendingApplication", (System.Reflection.Assembly.GetEntryAssembly().FullName))
-        if not (eventBatch.TryAdd(eventData))
-        then failwith "The event could not be added."
-        else ()
+            let! eventBatch = eventHubProducerClient.CreateBatchAsync(options = createBatchOptions, cancellationToken = cancellationToken)
+            
+            let eventData = 
+                meteringUpdateEvent
+                |> Json.toStr 0
+                |> (fun x -> new BinaryData(x))
+                |> (fun x -> new EventData(x))
+            
+            eventData.Properties.Add("SendingApplication", (System.Reflection.Assembly.GetEntryAssembly().FullName))
+            if not (eventBatch.TryAdd(eventData))
+            then failwith "The event could not be added."
+            else ()
 
-        // options: new SendEventOptions() {  PartitionId = "...", PartitionKey = "..." },
-        let! () = eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = cancellationToken)
+            // options: new SendEventOptions() {  PartitionId = "...", PartitionKey = "..." },
+            let! () = eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = cancellationToken)
 
-        return ()
-    }
+            return ()
+        }
 
     let private SubmitUsage (eventHubProducerClient: EventHubProducerClient) (ct: CancellationToken) (internalUsageEvent: InternalUsageEvent) =
         SubmitMeteringUpdateEvent eventHubProducerClient (UsageReported internalUsageEvent) ct

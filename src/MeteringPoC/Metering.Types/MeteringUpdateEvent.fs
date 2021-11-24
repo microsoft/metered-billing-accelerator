@@ -21,4 +21,12 @@ module MeteringUpdateEvent =
         | UsageReported x -> x.InternalResourceId |> InternalResourceId.toStr
         | UsageSubmittedToAPI x -> x.Payload.ResourceId  |> InternalResourceId.toStr
         | AggregatorBooted -> null
+
+    let toStr (mue: MeteringUpdateEvent) : string =
+        match mue with
+        | SubscriptionPurchased x -> x |> SubscriptionCreationInformation.toStr
+        | UsageReported x -> x |> InternalUsageEvent.toStr
+        | UsageSubmittedToAPI x -> x |> MarketplaceSubmissionResult.toStr
+        | AggregatorBooted -> nameof(AggregatorBooted)
+
         
