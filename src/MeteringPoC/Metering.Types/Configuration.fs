@@ -1,14 +1,13 @@
 ﻿namespace Metering.Types
 
 open System
-open System.Runtime.CompilerServices
+open Microsoft.Extensions.Configuration
 open Azure.Core
 open Azure.Identity
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
 open Azure.Messaging.EventHubs
-open Microsoft.Extensions.Configuration
 
 type ServicePrincipalCredential = 
     { clientId : string 

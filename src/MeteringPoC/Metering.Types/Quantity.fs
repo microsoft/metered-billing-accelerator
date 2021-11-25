@@ -12,7 +12,8 @@ type Quantity =
             | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (decimal a + b)
             | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a + decimal b)
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a + b)
-            | (_, _) -> Infinite
+            | (Infinite, _) -> Infinite
+            | (_, Infinite) -> Infinite
 
     static member (-) (a: Quantity, b: Quantity) =
         match (a, b) with
@@ -20,8 +21,7 @@ type Quantity =
             | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (decimal a - b)
             | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - decimal b)
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a - b)
-            | (Infinite, MeteringInt _) -> Infinite
-            | (Infinite, MeteringFloat _) -> Infinite
+            | (Infinite, _) -> Infinite
             | (_, Infinite) -> failwith "This must never happen"
 
     //static member createInt i = (MeteringInt i)
