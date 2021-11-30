@@ -27,7 +27,7 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
         Task ProcessEvent(ProcessEventArgs processEventArgs)
         {
             var e = EventHubEvent.create(processEventArgs, converter.ToFSharpFunc());
-            if (FSharpOption<EventHubEvent<TEvent>>.get_IsSome(e))
+            if (e.IsSome())
             {
                 o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(e.Value));
             }
