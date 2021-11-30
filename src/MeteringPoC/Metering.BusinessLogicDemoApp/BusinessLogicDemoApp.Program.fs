@@ -20,8 +20,7 @@ let parseConsumptionEvents (str: string) =
           TimeDeltaSeconds = 0.0
           LastOffset = 1L
           LastSequenceNumber = 100L
-          LastEnqueuedTime = dateStr |> MeteringDateTime.fromStr
-          LastReceivedTime = dateStr |> MeteringDateTime.fromStr }
+          LastEnqueuedTime = dateStr |> MeteringDateTime.fromStr }
 
     let parseUsageEvents events =
         let parseUsageEvent (s: string) =
@@ -107,8 +106,7 @@ let demoAggregation config =
                     EventsToCatchup =
                         { LastOffset = 100L
                           LastSequenceNumber = 100L
-                          LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr 
-                          LastReceivedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr 
+                          LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr                           
                           NumberOfEvents = 1
                           TimeDeltaSeconds = 1.0 }}       
         )

@@ -57,5 +57,6 @@
     <Compile Include="TestBusinessLogic.fs" />
     <Compile Include="MeterCollectionStore.fs" />
     <Compile Include="MeteringAggregator.fs" />
+    <Compile Include="EventHubObservableClient.fs" />
   </ItemGroup>
 </Project>

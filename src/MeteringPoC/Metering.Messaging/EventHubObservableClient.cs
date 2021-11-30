@@ -21,7 +21,8 @@
             Func<EventData, TEvent> converter,
             CancellationToken cancellationToken = default)
         {
-            return Observable.Create<EventHubProcessorEvent<TState, TEvent>>(o =>
+            
+            return Observable.Create<EventHubProcessorEvent<TState, TEvent>>(subscribe: o =>
             {
                 var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 var innerCancellationToken = cts.Token;

@@ -125,10 +125,12 @@ CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(config.EventProcessor
         converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
         cancellationToken: cts.Token)
     .Subscribe(onNext: e => {
-    if (e.IsEventHubEvent)
-    {                
-        Console.WriteLine(EventHubProcessorEvent.toStr(
-            FSharpFunc<MeteringUpdateEvent, string>.FromConverter(MeteringUpdateEventModule.toStr), e));
+        if (e.IsEventHubEvent)
+    {
+            var ev = EventHubProcessorEvent.getEvent<SomeMeterCollection, MeteringUpdateEvent>(e);
+
+            //Console.WriteLine(EventHubProcessorEvent.toStr(FSharpFunc<MeteringUpdateEvent, string>.FromConverter(MeteringUpdateEventModule.toStr), e));
+            Console.WriteLine(ev);
     }
 });
 

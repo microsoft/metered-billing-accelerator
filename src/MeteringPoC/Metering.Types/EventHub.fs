@@ -6,6 +6,7 @@ open Azure.Messaging.EventHubs.Processor
 open Metering.Types
 open System.Runtime.CompilerServices
 open NodaTime
+open System
 
 type SequenceNumber = int64
 
@@ -41,10 +42,15 @@ type SeekPosition =
     | FromTail
 
 type EventsToCatchup =
-    { LastOffset: int64
+    { /// The sequence number observed the last event to be enqueued in the partition.
+      LastOffset: int64
+
+      /// The sequence number observed the last event to be enqueued in the partition.
       LastSequenceNumber: int64
+
+      /// The date and time, in UTC, that the last event was enqueued in the partition.
       LastEnqueuedTime: MeteringDateTime
-      LastReceivedTime: MeteringDateTime
+
       NumberOfEvents: int64
       TimeDeltaSeconds: float }
 
@@ -55,15 +61,13 @@ module EventsToCatchup =
         let lastSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
         let lastOffset = lastEnqueuedEvent.Offset.Value
         let lastEnqueuedTime = lastEnqueuedEvent.EnqueuedTime.Value |> MeteringDateTime.fromDateTimeOffset
-        let lastReceivedTime = lastEnqueuedEvent.LastReceivedTime.Value|> MeteringDateTime.fromDateTimeOffset
         let lastEnqueuedEventSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
         
         { LastOffset = lastOffset
           LastSequenceNumber = lastSequenceNumber
           LastEnqueuedTime = lastEnqueuedTime
-          LastReceivedTime = lastReceivedTime
           NumberOfEvents = lastEnqueuedEventSequenceNumber - data.SequenceNumber
-          TimeDeltaSeconds = ((lastReceivedTime - eventEnqueuedTime).TotalSeconds) }
+          TimeDeltaSeconds = ((lastEnqueuedTime - eventEnqueuedTime).TotalSeconds) }
 
 type EventHubEvent<'TEvent> =
     { MessagePosition: MessagePosition
@@ -88,26 +92,32 @@ type PartitionInitializing<'TState> =
 type PartitionClosing =
     { PartitionClosingEventArgs: PartitionClosingEventArgs }
 
-type EventHubProcessorEvent<'TState, 'TEvent> =
-    | EventHubEvent of EventHubEvent<'TEvent>
-    | EventHubError of (PartitionID * exn)
+type EventHubProcessorEvent<'TState, 'TEvent> =    
     | PartitionInitializing of PartitionInitializing<'TState>
     | PartitionClosing of PartitionClosing
+    | EventHubEvent of EventHubEvent<'TEvent>
+    | EventHubError of (PartitionID * exn)
 
 module EventHubProcessorEvent =
+    
+
     let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
         match e with
         | PartitionInitializing e -> e.PartitionInitializingEventArgs.PartitionId |> PartitionID.create
         | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId |> PartitionID.create
         | EventHubEvent e -> e.MessagePosition.PartitionID
-        | EventHubError (partitionId,_ex) -> partitionId
+        | EventHubError (partitionId,_) -> partitionId
         
     let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
         let pi = e |> partitionId
 
         match e with
         | PartitionInitializing e -> $"{pi} Initializing"
+        | PartitionClosing e -> $"{pi} Closing"
         | EventHubEvent e -> $"{pi} Event: {e.EventData |> converter}"
         | EventHubError (partitionId,ex) -> $"{pi} Error: {ex.Message}"
-        | PartitionClosing e -> $"{pi} Closing"
     
+    let getEvent<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : EventHubEvent<'TEvent> =
+        match e with
+        | EventHubEvent e -> e
+        | _ -> raise (new ArgumentException(message = $"Not an {nameof(EventHubEvent)}", paramName = nameof(e)))
