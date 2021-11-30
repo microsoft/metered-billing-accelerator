@@ -29,7 +29,7 @@ module MessagePosition =
         | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber + 1L)
         | None -> EventPosition.Earliest
     
-    let fromPartitionEvent (partitionId: string) (eventData: EventData) : MessagePosition =
+    let create (partitionId: string) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId |> PartitionID.PartitionID
           SequenceNumber = eventData.SequenceNumber
           Offset = eventData.Offset
@@ -41,28 +41,30 @@ type SeekPosition =
     | FromTail
 
 type EventsToCatchup =
-    { NumberOfEvents: int64
-      TimeDelta: Duration
-      LastOffset: int64
+    { LastOffset: int64
       LastSequenceNumber: int64
       LastEnqueuedTime: MeteringDateTime
-      LastReceivedTime: MeteringDateTime }
+      LastReceivedTime: MeteringDateTime
+      NumberOfEvents: int64
+      TimeDeltaSeconds: float }
 
 module EventsToCatchup =
     let create (data: EventData) (lastEnqueuedEvent: LastEnqueuedEventProperties) : EventsToCatchup =
+        // if lastEnqueuedEvent = null or 
         let eventEnqueuedTime = data.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset
         let lastSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
         let lastOffset = lastEnqueuedEvent.Offset.Value
         let lastEnqueuedTime = lastEnqueuedEvent.EnqueuedTime.Value |> MeteringDateTime.fromDateTimeOffset
         let lastReceivedTime = lastEnqueuedEvent.LastReceivedTime.Value|> MeteringDateTime.fromDateTimeOffset
-
+        let lastEnqueuedEventSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
+        
         { LastOffset = lastOffset
           LastSequenceNumber = lastSequenceNumber
           LastEnqueuedTime = lastEnqueuedTime
           LastReceivedTime = lastReceivedTime
-          NumberOfEvents = lastEnqueuedEvent.SequenceNumber.Value - data.SequenceNumber
-          TimeDelta = lastReceivedTime - eventEnqueuedTime }
- 
+          NumberOfEvents = lastEnqueuedEventSequenceNumber - data.SequenceNumber
+          TimeDeltaSeconds = ((lastReceivedTime - eventEnqueuedTime).TotalSeconds) }
+
 type EventHubEvent<'TEvent> =
     { MessagePosition: MessagePosition
       EventsToCatchup: EventsToCatchup
@@ -73,7 +75,7 @@ module EventHubEvent =
         if processEventArgs.HasEvent
         then 
             let lastEnqueuedEventProperties = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
-            { MessagePosition = MessagePosition.fromPartitionEvent processEventArgs.Partition.PartitionId processEventArgs.Data
+            { MessagePosition = MessagePosition.create processEventArgs.Partition.PartitionId processEventArgs.Data
               EventsToCatchup = EventsToCatchup.create processEventArgs.Data lastEnqueuedEventProperties
               EventData = processEventArgs.Data |> convert }
             |> Some
@@ -88,7 +90,7 @@ type PartitionClosing =
 
 type EventHubProcessorEvent<'TState, 'TEvent> =
     | EventHubEvent of EventHubEvent<'TEvent>
-    | EventHubError of (PartitionID * exn) // ProcessErrorEventArgs
+    | EventHubError of (PartitionID * exn)
     | PartitionInitializing of PartitionInitializing<'TState>
     | PartitionClosing of PartitionClosing
 

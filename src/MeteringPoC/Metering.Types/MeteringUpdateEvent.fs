@@ -28,5 +28,4 @@ module MeteringUpdateEvent =
         | UsageReported x -> x |> InternalUsageEvent.toStr
         | UsageSubmittedToAPI x -> x |> MarketplaceSubmissionResult.toStr
         | AggregatorBooted -> nameof(AggregatorBooted)
-
         

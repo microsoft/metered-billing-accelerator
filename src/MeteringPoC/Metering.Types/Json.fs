@@ -7,7 +7,6 @@ module Json =
     open NodaTime.Text
     open System.Runtime.InteropServices
     
-
     module MeteringDateTime =
         let private makeEncoder<'T> (pattern : IPattern<'T>) : Encoder<'T> = pattern.Format >> Encode.string
         let private makeDecoder<'T> (pattern : IPattern<'T>) : Decoder<'T> = 
@@ -546,6 +545,7 @@ module Json =
     let enrich x =
         x
         |> Extra.withUInt64
+        |> Extra.withInt64
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
         |> Extra.withCustom EventHubJSON.Encoder EventHubJSON.Decoder

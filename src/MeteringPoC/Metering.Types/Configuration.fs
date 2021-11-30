@@ -19,10 +19,20 @@ type MeteringAPICredentials =
     | ServicePrincipalCredential of ServicePrincipalCredential
 
 module MeteringAPICredentials =
-    let createServicePrincipal tenantId clientId clientSecret =
+    let createManagedIdentity () : MeteringAPICredentials = 
+        ManagedIdentity
+
+    let createServicePrincipal tenantId clientId clientSecret : MeteringAPICredentials =
         { ClientId = clientId
           ClientSecret = clientSecret
           TenantId = tenantId } |> ServicePrincipalCredential
+
+module InfraStructureCredentials =
+    let createManagedIdentity () : TokenCredential = 
+        new DefaultAzureCredential()
+
+    let createServicePrincipal tenantId clientId clientSecret : TokenCredential =
+        new ClientSecretCredential(tenantId = tenantId, clientId = clientId, clientSecret = clientSecret)    
 
 type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials 
@@ -36,18 +46,18 @@ module MeteringConnections =
 
     let private getFromConfig (get: (string -> string)) (consumerGroupName: string) =
         let meteringApiCredential = 
-            { ClientId = "MARKETPLACE_CLIENT_ID" |> get
-              ClientSecret = "MARKETPLACE_CLIENT_SECRET" |> get
-              TenantId = "MARKETPLACE_TENANT_ID" |> get } |> ServicePrincipalCredential
+            match ("MARKETPLACE_TENANT_ID" |> get, "MARKETPLACE_CLIENT_ID" |> get, "MARKETPLACE_CLIENT_SECRET" |> get) with
+            | ("", "", "") -> ManagedIdentity
+            | (t,i,s) -> MeteringAPICredentials.createServicePrincipal t i s
 
-        let infraStructureCredential = new ClientSecretCredential(
-            tenantId = ("INFRA_TENANT_ID"  |> get),  
-            clientId = ("INFRA_CLIENT_ID" |> get),
-            clientSecret = ("INFRA_CLIENT_SECRET" |> get))
-
-        let containerClientWithCredential (tokenCred: TokenCredential) uri = new BlobContainerClient(blobContainerUri = new Uri(uri), credential = tokenCred)
-        let checkpointStorage  = "INFRA_CHECKPOINTS_CONTAINER" |> get |> containerClientWithCredential infraStructureCredential
-        let snapStorage = "INFRA_SNAPSHOTS_CONTAINER" |> get |> containerClientWithCredential infraStructureCredential
+        let infraStructureCredential = 
+            match ("INFRA_TENANT_ID" |> get, "INFRA_CLIENT_ID" |> get, "INFRA_CLIENT_SECRET" |> get) with
+            | ("", "", "") -> InfraStructureCredentials.createManagedIdentity()
+            | (t,i,s) -> InfraStructureCredentials.createServicePrincipal t i s
+        
+        let containerClientWith (cred: TokenCredential) uri = new BlobContainerClient(blobContainerUri = new Uri(uri), credential = cred)
+        let checkpointStorage = "INFRA_CHECKPOINTS_CONTAINER" |> get |> containerClientWith infraStructureCredential
+        let snapStorage = "INFRA_SNAPSHOTS_CONTAINER" |> get |> containerClientWith infraStructureCredential
 
         let instanceName = "INFRA_EVENTHUB_INSTANCENAME" |> get
         let nsn = "INFRA_EVENTHUB_NAMESPACENAME" |> get
@@ -91,6 +101,7 @@ module MeteringConnections =
 
     let getFromEnvironment (consumerGroupName: string) =
         let configuration =
+            // Doing this convoluted syntax as c# extension methods seem unavailable.
             EnvironmentVariablesExtensions.AddEnvironmentVariables(
                 new ConfigurationBuilder(),
                 prefix = environmentVariablePrefix).Build()
