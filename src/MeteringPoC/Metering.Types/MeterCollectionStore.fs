@@ -103,9 +103,9 @@ module MeterCollectionStore =
             return ()
         }
 
-    let private latestName (partitionId: PartitionID) = $"partition-{partitionId}/latest.json.gz"
+    let private latestName (partitionId: PartitionID) = $"partition-{partitionId |> PartitionID.value}/latest.json.gz"
 
-    let private currentName (lastUpdate: MessagePosition) = $"partition-{lastUpdate.PartitionID}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
+    let private currentName (lastUpdate: MessagePosition) = $"partition-{lastUpdate.PartitionID |> PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
     
     let loadLastState
         (snapshotContainerClient: BlobContainerClient)

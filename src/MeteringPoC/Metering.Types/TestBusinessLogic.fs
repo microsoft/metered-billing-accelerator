@@ -7,13 +7,14 @@ type BusinessLogic = // The business logic takes the current state, and a comman
     Meter option -> MeteringEvent -> Meter option 
 
 module DummyLogic =
-    let private testAPI =
+    let private testAPI snapshotStorage =
         let config =
             { CurrentTimeProvider = "2021-10-27--21-35-00" |> MeteringDateTime.fromStr |> CurrentTimeProvider.AlwaysReturnSameTime
               SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
               GracePeriod = Duration.FromHours(6.0)
               ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
-              MeteringAPICredentials = ManagedIdentity }
+              MeteringAPICredentials = ManagedIdentity
+              SnapshotStorage = snapshotStorage }
         let inputs : (MeteringEvent list) = []
         let state = MeterCollection.empty
         let result = inputs |> MeterCollection.meterCollectionHandleMeteringEvents config state

@@ -1,13 +1,10 @@
-﻿open System
+﻿module foo
+
+open System
 open System.Net.Http
-open System.Text.Json
 open System.Threading
-open System.Threading.Tasks
-open System.Collections.Generic
 open Azure.Messaging.EventHubs.Consumer
 open NodaTime
-open FSharp.Control.Reactive
-open Metering
 open Metering.Types
 open Metering.Types.EventHub
 
@@ -17,6 +14,14 @@ let parseConsumptionEvents (str: string) =
         |> (fun s -> s.Split([|"\n"|], StringSplitOptions.RemoveEmptyEntries))
         |> Array.toList
         |> parser
+
+    let dummyEventsToCatchUp dateStr =
+        { NumberOfEvents = 1L
+          TimeDeltaSeconds = 0.0
+          LastOffset = 1L
+          LastSequenceNumber = 100L
+          LastEnqueuedTime = dateStr |> MeteringDateTime.fromStr
+          LastReceivedTime = dateStr |> MeteringDateTime.fromStr }
 
     let parseUsageEvents events =
         let parseUsageEvent (s: string) =
@@ -47,10 +52,9 @@ let parseConsumptionEvents (str: string) =
                         MessagePosition = {
                             PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
+                            Offset = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
-                        EventsToCatchup = {
-                            NumberOfEvents = 1L
-                            TimeDelta = TimeSpan.FromSeconds(0) }
+                        EventsToCatchup = dummyEventsToCatchUp datestr
                     }
                 | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
                     Some {
@@ -63,10 +67,9 @@ let parseConsumptionEvents (str: string) =
                         MessagePosition = {
                             PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
+                            Offset = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
-                        EventsToCatchup = {
-                            NumberOfEvents = 1L
-                            TimeDelta = TimeSpan.FromSeconds(0) }
+                        EventsToCatchup = dummyEventsToCatchUp datestr
                     }
                 | _ -> None
         events
@@ -83,28 +86,36 @@ let inspect header a =
     
     a
 
-let inspecto header a =
+let inspecto (header: string) (a: 'a) : 'a =
     if String.IsNullOrEmpty header 
     then printfn "%A" a
     else printfn "%s: %A" header a
     
     a
 
-[<EntryPoint>]
-let main argv = 
-    //"2021-11-05T10:00:25.7798568Z"
-    //|> MeteringDateTime.fromStr  
-    //|> MeteringDateTime.toStr
-    //|> inspecto "n"
+let demoAggregation config =
+    let parseSub = 
+        Json.fromStr<SubscriptionCreationInformation> 
+        >> SubscriptionPurchased
+        >> (fun mue -> 
+                  { MeteringUpdateEvent = mue
+                    MessagePosition = 
+                        { PartitionID = "1" |> PartitionID.create
+                          SequenceNumber = 1L
+                          Offset = 1
+                          PartitionTimestamp = "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr } 
+                    EventsToCatchup =
+                        { LastOffset = 100L
+                          LastSequenceNumber = 100L
+                          LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr 
+                          LastReceivedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr 
+                          NumberOfEvents = 1
+                          TimeDeltaSeconds = 1.0 }}       
+        )
 
- 
     // 11111111-8a88-4a47-a691-1b31c289fb33 is a sample GUID of a SaaS subscription
     let sub1 =
-        """
-{
-  "MeteringUpdateEvent": {
-    "type": "SubscriptionPurchased",
-    "value": {
+        """{
      "subscription": {
        "renewalInterval": "Monthly",
        "subscriptionStart": "2021-10-01T12:20:33",
@@ -115,22 +126,10 @@ let main argv =
            { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
            { "dimension": "EMailCampaign", "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } },
      "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
-    }
-  },
-  "MessagePosition": {
-    "partitionTimestamp": "2021-10-01T12:20:34",
-    "sequenceNumber": "1",
-    "partitionId": "1"
-  }
-}
-    """ |> Json.fromStr<MeteringEvent>
+    }""" |> parseSub
 
     let sub2 =
-        """
-{
-  "MeteringUpdateEvent": {
-    "type": "SubscriptionPurchased",
-    "value": {
+        """{
      "subscription": {
        "renewalInterval": "Monthly",
        "subscriptionStart": "2021-10-13T09:20:33",
@@ -141,24 +140,11 @@ let main argv =
            { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
            { "dimension": "EMailCampaign", "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } },
      "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
-    }
-  },
-  "MessagePosition": {
-    "partitionTimestamp": "2021-10-13T09:20:36",
-    "sequenceNumber": "1",
-    "partitionId": "1"
-  }
-}
-    """ |> Json.fromStr<MeteringEvent>
+    }""" |> parseSub
 
 
-    
     let sub3 =
-        """
-{
-  "MeteringUpdateEvent": {
-    "type": "SubscriptionPurchased",
-    "value": {
+        """{
      "subscription": {
            "renewalInterval": "Monthly",
            "subscriptionStart": "2021-11-04T16:12:26",
@@ -172,16 +158,8 @@ let main argv =
                { "dimension": "messagecharge", "name": "Per Message Transmitted", "unitOfMeasure": "message/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
                { "dimension": "objectcharge", "name": "Per Object Detected", "unitOfMeasure": "object/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } } ] } },
      "metersMapping": { "nde": "nodecharge", "cpu": "cpucharge", "dta": "datasourcecharge", "msg": "messagecharge", "obj": "objectcharge"}
-    }
-  },
-  "MessagePosition": {
-    "partitionTimestamp": "2021-11-04T16:12:30",
-    "sequenceNumber": "1",
-    "partitionId": "1"
-  }
-}
-    """ |> Json.fromStr<MeteringEvent>
-    
+    }""" |> parseSub
+
 
     // 11111111-8a88-4a47-a691-1b31c289fb33 2021-10-01T12:20:34
     // 22222222-8a88-4a47-a691-1b31c289fb33 2021-10-13T09:20:36
@@ -208,86 +186,58 @@ let main argv =
         001019 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | dta   |     3
         001020 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | cpu   |     30001
         """ |> parseConsumptionEvents
-        
+    
     let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
 
-    let (resourceId, cred) = 
-        (InternalResourceId.ManagedApp, ManagedIdentity)
+    eventsFromEventHub
+    |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+    |> Json.toStr 2
+    |> inspect ""
+    |> Json.fromStr<MeterCollection>
+    |> inspecto "newBalance"
+    |> MeterCollection.usagesToBeReported
+    |> Json.toStr 2
+    |> inspect "usage"
+    |> ignore
+
+    eventsFromEventHub
+
+/// Demonstrates a real marketplace API invocation
+let demoUsageSubmission config =
+    let SomeValidSaaSSubscriptionID = "fdc778a6-1281-40e4-cade-4a5fc11f5440"
+
+    let usage =
+        { ResourceId = InternalResourceId.fromStr SomeValidSaaSSubscriptionID
+          Quantity = 2.3m
+          PlanId = "free_monthly_yearly" |> PlanId.create
+          DimensionId = "datasourcecharge" |> DimensionId.create
+          EffectiveStartTime = "2021-11-29T17:00:00Z" |> MeteringDateTime.fromStr }
     
-    let (resourceId, cred) = 
-        let readCred = task {
-            let unversionedFile = "C:\Users\chgeuer\Desktop\metering_cred.json"
-            // { "saassub": "...", "tenantid": "...", "client_id": "...", "client_secret": "..." }
-            let! json = System.IO.File.ReadAllTextAsync(unversionedFile);
-            let dyn = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-            let (saasSub, tenantId, client_id, client_secret) = (dyn["saassub"], dyn["tenantid"], dyn["client_id"], dyn["client_secret"])
-            return (
-                InternalResourceId.fromStr saasSub, 
-                MeteringAPICredentials.createServicePrincipal tenantId client_id client_secret)
-        }
-        readCred.Result
+    let result = (MarketplaceClient.submit config usage).Result
 
+    result
+    |> Json.toStr 2
+    |> inspect "MarketplaceSubmissionResult"
+    |> Json.fromStr<MarketplaceSubmissionResult>
+    |> inspecto ""
+    |> ignore
 
-    let config = 
-        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-          SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
-          GracePeriod = Duration.FromHours(6.0)
-          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
-          MeteringAPICredentials = cred }
-
-    //eventsFromEventHub
-    //|> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
-    //|> Json.toStr                             |> inspect "meters"
-    //|> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
-    //|> MeterCollection.usagesToBeReported |> Json.toStr |> inspect  "usage"
-    //|> ignore
-
-    //let usage =
-    //    { ResourceId = resourceId
-    //      Quantity = 2.3m
-    //      PlanId = "free_monthly_yearly" |> PlanId.create
-    //      DimensionId = "datasourcecharge" |> DimensionId.create
-    //      EffectiveStartTime = "2021-11-09T17:00:00Z" |> MeteringDateTime.fromStr }
-    //let result = (MarketplaceClient.submit config usage).Result
-    
-    //result
-    //|> Json.toStr
-    //|> inspect ""
-    //|> Json.fromStr<MarketplaceSubmissionResult>
-    //|> inspecto ""
-    //|> ignore
-     
-    let cred = Metering.DemoCredentials.Get(
-        consumerGroupName = EventHubConsumerClient.DefaultConsumerGroupName)
-    
-    let snapshotStorage =
-        new Azure.Storage.Blobs.BlobContainerClient(
-            blobContainerUri = new Uri($"https://{cred.SnapshotStorage.StorageAccountName}.blob.core.windows.net/{cred.SnapshotStorage.StorageContainerName}/"),
-            credential = cred.TokenCredential)
-    
-
-    ////let tx = Aggregator.GetBlobNames checkpointStorage CancellationToken.None
-    ////let x  = tx.Result
-    ////x
-    ////|> Seq.toList
-    ////|> List.iter(printfn "blob %s")
-
+let demoStorage config eventsFromEventHub =
     let events = 
         eventsFromEventHub
         |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
         |> Json.toStr 1                             |> inspect "meters"
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
-
     (task {
-        let! () = MeterCollectionStore.storeLastState snapshotStorage CancellationToken.None events
+        let! () = MeterCollectionStore.storeLastState config.SnapshotStorage CancellationToken.None events
 
         let partitionId = 
             Some events
             |> MeterCollection.lastUpdate
             |> (fun x -> x.Value.PartitionID)
 
-        let! meters = MeterCollectionStore.loadLastState snapshotStorage partitionId CancellationToken.None
+        let! meters = MeterCollectionStore.loadLastState config.SnapshotStorage partitionId CancellationToken.None
 
         match meters with
         | Some meter -> 
@@ -297,17 +247,24 @@ let main argv =
             |> ignore
         | None -> printfn "No state found"
 
-
         return ()
     }).Wait()
 
-    
-    let obs1 = Observable.single 1
-    let obs2 = Observable.single "A"
-    
-    Observable.zip obs1 obs2
-    |> Observable.subscribe (printfn "%A")
-    |> ignore
+[<EntryPoint>]
+let main argv = 
+    let cred = MeteringConnections.getFromEnvironment(EventHubConsumerClient.DefaultConsumerGroupName)
 
-    // (Aggregator.createObservable snapshotStorage "1" CancellationToken.None).Wait()
+    let config = 
+        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+          SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
+          GracePeriod = Duration.FromHours(6.0)
+          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
+          MeteringAPICredentials = cred.MeteringAPICredentials
+          SnapshotStorage = null }
+
+    demoUsageSubmission config
+
+    //let eventsFromEventHub = demoAggregation config
+    //demoStorage config eventsFromEventHub
+
     0

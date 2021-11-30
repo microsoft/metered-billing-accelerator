@@ -36,3 +36,13 @@ type MarketplaceSubmissionResult =
       Headers: AzureHttpResponseHeaders
       Result: Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError> }
     
+module MarketplaceSubmissionResult =
+    let toStr (x: MarketplaceSubmissionResult) : string =
+        match x.Result with
+        | Ok x -> $"{x.EffectiveStartTime |> MeteringDateTime.toStr}: Usage submitted: {x.ResourceId} {x.PlanId |> PlanId.value}/{x.DimensionId |> DimensionId.value}={x.Quantity |> Quantity.valueAsFloat}"
+        | Error e -> 
+            match e with
+            | Duplicate _ -> $"Duplicate: {x.Payload.EffectiveStartTime} {x.Payload.ResourceId}"
+            | BadResourceId _ -> $"Bad resource ID: {x.Payload.ResourceId}" 
+            | InvalidEffectiveStartTime _ -> $"InvalidEffectiveStartTime: {x.Payload.EffectiveStartTime} {x.Payload.ResourceId}"
+            | CommunicationsProblem msg -> "Something bad happened: {msg}"

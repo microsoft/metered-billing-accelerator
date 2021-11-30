@@ -11,11 +11,13 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Types", "Metering.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.Messaging", "Metering.Messaging\Metering.Messaging.csproj", "{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.DemoCredentials", "Metering.DemoCredentials\Metering.DemoCredentials.csproj", "{C095B9AD-B2A6-4483-A41C-BA0CA24B849C}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demos", "Demos", "{63515470-9590-4E66-9C64-9F0D3B86547E}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BusinessLogicDemoApp", "Metering.BusinessLogicDemoApp\Metering.BusinessLogicDemoApp.fsproj", "{F0A33057-5480-41D5-B71E-DD9483552DF6}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.NUnitTests", "Metering.NUnitTests\Metering.NUnitTests.fsproj", "{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleMeteringSubmissionClient", "SimpleMeteringSubmissionClient\SimpleMeteringSubmissionClient.csproj", "{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BE422FBF-7D05-4571-AAFA-874471D110F2}"
 	ProjectSection(SolutionItems) = preProject
@@ -24,9 +26,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		state-transistions.md = state-transistions.md
 	EndProjectSection
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.NUnitTests", "Metering.NUnitTests\Metering.NUnitTests.fsproj", "{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SimpleMeteringSubmissionClient", "SimpleMeteringSubmissionClient\SimpleMeteringSubmissionClient.csproj", "{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DumpHub", "DumpHub\DumpHub.csproj", "{BEE18D93-5B0E-4BF6-95C1-F6D4DAF0B39B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -50,10 +50,6 @@ Global
 		{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{C095B9AD-B2A6-4483-A41C-BA0CA24B849C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{C095B9AD-B2A6-4483-A41C-BA0CA24B849C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{C095B9AD-B2A6-4483-A41C-BA0CA24B849C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C095B9AD-B2A6-4483-A41C-BA0CA24B849C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -66,6 +62,10 @@ Global
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEE18D93-5B0E-4BF6-95C1-F6D4DAF0B39B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEE18D93-5B0E-4BF6-95C1-F6D4DAF0B39B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEE18D93-5B0E-4BF6-95C1-F6D4DAF0B39B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEE18D93-5B0E-4BF6-95C1-F6D4DAF0B39B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -73,9 +73,9 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{95CDBE90-61F1-4969-8416-9937CBC51974} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{94DAE948-0F8A-4CB1-8F54-D467F387D4FE} = {63515470-9590-4E66-9C64-9F0D3B86547E}
-		{C095B9AD-B2A6-4483-A41C-BA0CA24B849C} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{F0A33057-5480-41D5-B71E-DD9483552DF6} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1} = {63515470-9590-4E66-9C64-9F0D3B86547E}
+		{BEE18D93-5B0E-4BF6-95C1-F6D4DAF0B39B} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D3FA63C3-048D-4660-A9A0-7299AF2C0417}

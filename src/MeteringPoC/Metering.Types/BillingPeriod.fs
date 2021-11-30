@@ -5,11 +5,11 @@ open NodaTime
 type BillingPeriodResult =
     /// The given date is before the customer subscribed to the offer.
     | DateBeforeSubscription 
-    // The date belongs to a previous BillingPeriod.
+    /// The date belongs to a previous BillingPeriod.
     | DateBelongsToPreviousBillingPeriod
-    // The date belongs to the current BillingPeriod.
+    /// The date belongs to the current BillingPeriod.
     | SameBillingPeriod
-    // The date is n BillingPeriods ago
+    /// The date is n BillingPeriods ago
     | BillingPeriodsAgo of uint
 
 type CloseBillingPeriod =
@@ -53,13 +53,13 @@ module BillingPeriod =
     let getBillingPeriodDelta (sub: Subscription) (previous: MeteringDateTime) (current: MeteringDateTime) : BillingPeriodResult =
         let dbp = determineBillingPeriod sub 
         match (dbp previous, dbp current) with
-            | (Error(DayBeforeSubscription), _) -> DateBeforeSubscription
-            | (_, Error(DayBeforeSubscription)) -> DateBeforeSubscription
-            | Ok({ Index = p}), Ok({Index = c}) -> 
-                match (p, c) with
-                    | (p, c) when p < c -> BillingPeriodsAgo (c - p)
-                    | (p, c) when p = c -> SameBillingPeriod
-                    | _ -> DateBelongsToPreviousBillingPeriod
+        | (Error(DayBeforeSubscription), _) -> DateBeforeSubscription
+        | (_, Error(DayBeforeSubscription)) -> DateBeforeSubscription
+        | Ok({ Index = p}), Ok({Index = c}) -> 
+            match (p, c) with
+            | (p, c) when p < c -> BillingPeriodsAgo (c - p)
+            | (p, c) when p = c -> SameBillingPeriod
+            | _ -> DateBelongsToPreviousBillingPeriod
 
     let previousBillingIntervalCanBeClosedNewEvent (previous: MeteringDateTime) (eventTime: MeteringDateTime) : CloseBillingPeriod =
         if previous.Hour <> eventTime.Hour || eventTime - previous >= Duration.FromHours(1.0)
