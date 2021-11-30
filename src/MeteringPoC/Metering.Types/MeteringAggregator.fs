@@ -25,13 +25,8 @@ module MeteringAggregator =
             | EventHubEvent eventHubEvent ->
                 let meteringEvent : MeteringEvent =
                     { MeteringUpdateEvent = eventHubEvent.EventData
-                      MessagePosition =
-                        { PartitionID = eventHubEvent.ProcessEventArgs.Partition.PartitionId |> PartitionID
-                          SequenceNumber = eventHubEvent.ProcessEventArgs.Data.SequenceNumber
-                          PartitionTimestamp = eventHubEvent.ProcessEventArgs.Data.EnqueuedTime |> MeteringDateTime.FromDateTimeOffset }
-                      EventsToCatchup = 
-                        { NumberOfEvents = eventHubEvent.LastEnqueuedEventProperties.SequenceNumber.Value - eventHubEvent.ProcessEventArgs.Data.SequenceNumber
-                          TimeDelta = eventHubEvent.LastEnqueuedEventProperties.LastReceivedTime.Value.Subtract(eventHubEvent.ProcessEventArgs.Data.EnqueuedTime) } }
+                      MessagePosition = eventHubEvent.MessagePosition
+                      EventsToCatchup = eventHubEvent.EventsToCatchup }
 
                 let result = 
                     meteringEvent

@@ -43,6 +43,21 @@ module MeterCollection =
             |> Seq.map (fun x -> x.Value.UsageToBeReported)
             |> Seq.concat
             |> List.ofSeq
+    
+    let private addOnlyIfNotExists<'Key,'T when 'Key: comparison> (key: 'Key) (value: 'T) (table: Map<'Key,'T>) : Map<'Key,'T> =
+        if Map.containsKey key table
+        then table
+        else Map.add key value table
+
+    let handleSubscriptionPurchased<'Key,'T when 'Key: comparison> (key: 'Key) (value: 'T) (table: Map<'Key,'T>) : Map<'Key,'T> =
+        let ignoreAdditionalSubscriptionMessages = true
+
+        let handle = 
+            if ignoreAdditionalSubscriptionMessages 
+            then addOnlyIfNotExists 
+            else Map.add
+
+        handle key value table
 
     let meterCollectionHandleMeteringEvent (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvent: MeteringEvent) : MeterCollection =    
         // SubscriptionPurchased should add / overwrite existing entry
@@ -51,20 +66,27 @@ module MeterCollection =
 
         match meteringEvent.MeteringUpdateEvent with
         | SubscriptionPurchased s -> 
-            state |> value
-            |> Map.add s.Subscription.InternalResourceId (Meter.createNewSubscription s meteringEvent.MessagePosition)
+            state
+            |> value
+            |> handleSubscriptionPurchased s.Subscription.InternalResourceId (Meter.createNewSubscription s meteringEvent.MessagePosition)
+            |> create
         | AggregatorBooted ->
-            state |> value
+            state
+            |> value
             |> Map.toSeq
             |> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorBooted config))
             |> Map.ofSeq
+            |> create
         | UsageSubmittedToAPI submission ->
-            state |> value
+            state
+            |> value
             |> Map.change submission.Payload.ResourceId (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some))
+            |> create
         | UsageReported usage -> 
-            state |> value
+            state
+            |> value
             |> Map.change usage.InternalResourceId (Option.bind ((Meter.handleUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
-        |> create
+            |> create
             
     let meterCollectionHandleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvents: MeteringEvent list) : MeterCollection =
         meteringEvents |> List.fold (meterCollectionHandleMeteringEvent config) state

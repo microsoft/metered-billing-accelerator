@@ -11,6 +11,10 @@ type MeteringClient =
 type CurrentTimeProvider =
     unit -> MeteringDateTime
 
+module CurrentTimeProvider =
+    let LocalSystem : CurrentTimeProvider = (fun () -> ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
+    let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
+
 type SubmitMeteringAPIUsageEvent = MeteringConfigurationProvider -> MeteringAPIUsageEventDefinition -> Task<MarketplaceSubmissionResult>
 and MeteringConfigurationProvider = 
     { CurrentTimeProvider: CurrentTimeProvider
@@ -20,10 +24,6 @@ and MeteringConfigurationProvider =
       MeteringAPICredentials: MeteringAPICredentials 
       SnapshotStorage: BlobContainerClient }
 
-module CurrentTimeProvider =
-    let LocalSystem : CurrentTimeProvider = (fun () -> ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
-    let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
-      
 module SubmitMeteringAPIUsageEvent =
     let Discard : SubmitMeteringAPIUsageEvent = (fun _cfg e -> 
         { Payload = e
@@ -46,10 +46,10 @@ module SubmitMeteringAPIUsageEvent =
      )
 
 module MeteringConfigurationProvider =
-    let create meteringApiCreds (marketplaceClient: SubmitMeteringAPIUsageEvent) snapshotStorage = 
+    let create (config: MeteringConnections) (marketplaceClient: SubmitMeteringAPIUsageEvent) : MeteringConfigurationProvider = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = marketplaceClient
           GracePeriod = Duration.FromHours(2.0)
           ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveManagedByFromARM
-          MeteringAPICredentials = meteringApiCreds 
-          SnapshotStorage = snapshotStorage }
+          MeteringAPICredentials = config.MeteringAPICredentials
+          SnapshotStorage = config.SnapshotStorage }

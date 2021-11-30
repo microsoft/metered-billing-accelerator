@@ -17,6 +17,7 @@ module MeteringEventHubExtensions =
         task {
             let createBatchOptions = 
                 let cbo = new CreateBatchOptions()
+                printfn "Writing to partition %s" (meteringUpdateEvent |> MeteringUpdateEvent.partitionKey)
                 cbo.PartitionKey <- meteringUpdateEvent |> MeteringUpdateEvent.partitionKey
                 cbo
 

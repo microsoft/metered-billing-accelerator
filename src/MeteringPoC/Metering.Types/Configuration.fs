@@ -10,9 +10,9 @@ open Azure.Messaging.EventHubs.Producer
 open Azure.Messaging.EventHubs
 
 type ServicePrincipalCredential = 
-    { clientId : string 
-      clientSecret : string
-      tenantId : string }
+    { ClientId: string 
+      ClientSecret: string
+      TenantId: string }
 
 type MeteringAPICredentials =
     | ManagedIdentity
@@ -20,22 +20,10 @@ type MeteringAPICredentials =
 
 module MeteringAPICredentials =
     let createServicePrincipal tenantId clientId clientSecret =
-        { clientId = clientId
-          clientSecret = clientSecret
-          tenantId = tenantId } |> ServicePrincipalCredential
+        { ClientId = clientId
+          ClientSecret = clientSecret
+          TenantId = tenantId } |> ServicePrincipalCredential
 
-type AzureEventHubInformation =
-    { EventHubNamespaceName: string 
-      EventHubInstanceName: string
-      ConsumerGroup: string }
-
-type EventHubConnectionDetails =
-    { Credential: TokenCredential 
-      EventHubNamespace: string
-      EventHubName: string
-      ConsumerGroupName: string
-      CheckpointStorage: BlobContainerClient }
-            
 type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials 
       EventHubConsumerClient: EventHubConsumerClient
@@ -48,9 +36,9 @@ module MeteringConnections =
 
     let private getFromConfig (get: (string -> string)) (consumerGroupName: string) =
         let meteringApiCredential = 
-            { clientId = "MARKETPLACE_CLIENT_ID" |> get
-              clientSecret = "MARKETPLACE_CLIENT_SECRET" |> get
-              tenantId = "MARKETPLACE_TENANT_ID" |> get } |> ServicePrincipalCredential
+            { ClientId = "MARKETPLACE_CLIENT_ID" |> get
+              ClientSecret = "MARKETPLACE_CLIENT_SECRET" |> get
+              TenantId = "MARKETPLACE_TENANT_ID" |> get } |> ServicePrincipalCredential
 
         let infraStructureCredential = new ClientSecretCredential(
             tenantId = ("INFRA_TENANT_ID"  |> get),  
@@ -59,11 +47,11 @@ module MeteringConnections =
 
         let containerClientWithCredential (tokenCred: TokenCredential) uri = new BlobContainerClient(blobContainerUri = new Uri(uri), credential = tokenCred)
         let checkpointStorage  = "INFRA_CHECKPOINTS_CONTAINER" |> get |> containerClientWithCredential infraStructureCredential
-        let snapStorage = "INFRA_SNAPSHOTS_CONTAINER"  |> get |> containerClientWithCredential infraStructureCredential
+        let snapStorage = "INFRA_SNAPSHOTS_CONTAINER" |> get |> containerClientWithCredential infraStructureCredential
 
+        let instanceName = "INFRA_EVENTHUB_INSTANCENAME" |> get
         let nsn = "INFRA_EVENTHUB_NAMESPACENAME" |> get
         let fullyQualifiedNamespace = $"{nsn}.servicebus.windows.net"
-        let instanceName = "INFRA_EVENTHUB_INSTANCENAME" |> get
 
         let processorClient = 
             let clientOptions = new EventProcessorClientOptions()
@@ -91,7 +79,7 @@ module MeteringConnections =
             producerClientOptions.ConnectionOptions <- connectionOptions
             new EventHubProducerClient(
                 fullyQualifiedNamespace = fullyQualifiedNamespace,
-                eventHubName = fullyQualifiedNamespace,
+                eventHubName = instanceName,
                 credential = infraStructureCredential,
                 clientOptions = producerClientOptions)
 

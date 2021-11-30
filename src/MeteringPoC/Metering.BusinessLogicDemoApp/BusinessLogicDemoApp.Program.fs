@@ -1,13 +1,11 @@
-﻿open System
+﻿module foo
+
+open System
 open System.Net.Http
-open System.Text.Json
 open System.Threading
-open System.Threading.Tasks
-open System.Collections.Generic
 open Azure.Messaging.EventHubs.Consumer
 open NodaTime
 open FSharp.Control.Reactive
-open Metering
 open Metering.Types
 open Metering.Types.EventHub
 
@@ -47,10 +45,15 @@ let parseConsumptionEvents (str: string) =
                         MessagePosition = {
                             PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
+                            Offset = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                         EventsToCatchup = {
                             NumberOfEvents = 1L
-                            TimeDelta = TimeSpan.FromSeconds(0) }
+                            TimeDelta = Duration.Zero
+                            LastOffset = 1L
+                            LastSequenceNumber = 100L
+                            LastEnqueuedTime = datestr |> MeteringDateTime.fromStr
+                            LastReceivedTime = datestr |> MeteringDateTime.fromStr }
                     }
                 | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
                     Some {
@@ -63,10 +66,15 @@ let parseConsumptionEvents (str: string) =
                         MessagePosition = {
                             PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
+                            Offset = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                         EventsToCatchup = {
                             NumberOfEvents = 1L
-                            TimeDelta = TimeSpan.FromSeconds(0) }
+                            TimeDelta = Duration.Zero
+                            LastOffset = 1L
+                            LastSequenceNumber = 100L
+                            LastEnqueuedTime = datestr |> MeteringDateTime.fromStr
+                            LastReceivedTime = datestr |> MeteringDateTime.fromStr }
                     }
                 | _ -> None
         events
@@ -289,14 +297,6 @@ let main argv =
 
         return ()
     }).Wait()
-
-    
-    let obs1 = Observable.single 1
-    let obs2 = Observable.single "A"
-    
-    Observable.zip obs1 obs2
-    |> Observable.subscribe (printfn "%A")
-    |> ignore
 
     // (Aggregator.createObservable snapshotStorage "1" CancellationToken.None).Wait()
     0

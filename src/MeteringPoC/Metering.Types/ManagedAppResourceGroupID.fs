@@ -3,7 +3,7 @@
 open System.Threading.Tasks
 open Thoth.Json.Net
  
-/// For Azure Application Managed Apps plans, the resourceId is the Managed App resource group Id. +
+/// For Azure Application Managed Apps plans, the resourceId is the Managed App resource group Id.
 type ManagedAppResourceGroupID = private ManagedAppResourceGroupID of string
 
 type DetermineManagedAppResourceGroupID = Task<ManagedAppResourceGroupID>
@@ -14,8 +14,8 @@ module ManagedAppResourceGroupID =
 
     let private RecourceGroupIdDecoder : Decoder<string>  =
         Decode.object (fun get -> 
-            let s x = get.Required.At [ "compute"; x ] Decode.string
-            $"""/subscriptions/{s "subscriptionId"}/resourceGroups/{s "resourceGroupName"}"""
+            let get x = get.Required.At [ "compute"; x ] Decode.string
+            $"""/subscriptions/{get "subscriptionId"}/resourceGroups/{get "resourceGroupName"}"""
         )
 
     let private ManagedByDecoder : Decoder<string> =
@@ -46,4 +46,3 @@ module ManagedAppResourceGroupID =
         task {
             return dummyValue  |> create
         }
-        

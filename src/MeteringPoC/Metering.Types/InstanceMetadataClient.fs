@@ -53,12 +53,12 @@ module InstanceMetadataClient =
                     return access_token
                 | ServicePrincipalCredential spc ->
                     let uri = 
-                        $"https://login.microsoftonline.com/{spc.tenantId}/oauth2/token"
+                        $"https://login.microsoftonline.com/{spc.TenantId}/oauth2/token"
 
                     let content = 
                         [ "grant_type", "client_credentials"
-                          "client_id", spc.clientId
-                          "client_secret", spc.clientSecret 
+                          "client_id", spc.ClientId
+                          "client_secret", spc.ClientSecret 
                           "resource", resource |> HttpUtility.UrlEncode ]
                         |> List.map (fun (x,y) -> new KeyValuePair<string,string>(x,y))
                         |> (fun x -> new FormUrlEncodedContent(x))
@@ -108,41 +108,4 @@ module InstanceMetadataClient =
         create
             cred
             "20e940b3-4c77-4b0b-9a53-9e16a1b010a7" // resource
-            $"https://{seeminglyNewEndpoint}/"
-
-    //let private demo =
-    //    let inspect header a =
-    //        if String.IsNullOrEmpty header 
-    //        then printfn "%s" a
-    //        else printfn "%s: %s" header a
-    //        a
-
-    //    task {
-    //        let! access_token = 
-    //            "https://management.azure.com/" 
-    //            |> get_access_token 
-
-    //        access_token
-    //        |> inspect "access_token"
-    //        |> ignore
-    //    }
-    //    |> Async.AwaitTask
-    //    |> Async.RunSynchronously
-
-    //    task {
-    //        let! client = 
-    //            "https://management.azure.com/"
-    //            |> create 
-
-    //        client
-    //        |> (fun (client : HttpClient) -> 
-    //            task {
-    //                return! client.GetStringAsync("/subscriptions?api-version=2020-01-01")
-    //            }
-    //            |> Async.AwaitTask
-    //            |> Async.RunSynchronously)
-    //        |> inspect "subscriptions"
-    //        |> ignore
-    //    }
-    //    |> Async.AwaitTask
-    //    |> Async.RunSynchronously
+            $"https://{seeminglyNewEndpoint}/"     // uri

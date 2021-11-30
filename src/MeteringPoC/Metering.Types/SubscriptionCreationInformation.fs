@@ -7,5 +7,4 @@ type SubscriptionCreationInformation =
         
 module SubscriptionCreationInformation =
     let toStr { Subscription = s } : string =
-        $"{s.InternalResourceId} {s.RenewalInterval} subscribed {s.SubscriptionStart}"
-        
+        $"{s.SubscriptionStart |> MeteringDateTime.toStr}: SubscriptionCreation ID={s.InternalResourceId |> InternalResourceId.toStr} {s.RenewalInterval}"

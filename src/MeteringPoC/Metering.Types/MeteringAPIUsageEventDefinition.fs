@@ -39,7 +39,7 @@ type MarketplaceSubmissionResult =
 module MarketplaceSubmissionResult =
     let toStr (x: MarketplaceSubmissionResult) : string =
         match x.Result with
-        | Ok x -> $"Successfully submitted: {x.EffectiveStartTime} {x.ResourceId} {x.PlanId}/{x.DimensionId}={x.Quantity}"
+        | Ok x -> $"{x.EffectiveStartTime |> MeteringDateTime.toStr}: Usage submitted: {x.ResourceId} {x.PlanId |> PlanId.value}/{x.DimensionId |> DimensionId.value}={x.Quantity |> Quantity.valueAsFloat}"
         | Error e -> 
             match e with
             | Duplicate _ -> $"Duplicate: {x.Payload.EffectiveStartTime} {x.Payload.ResourceId}"

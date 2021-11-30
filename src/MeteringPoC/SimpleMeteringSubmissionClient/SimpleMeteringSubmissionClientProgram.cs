@@ -23,7 +23,7 @@ _ = Task.Run(async () =>
     {
         var saasId = guidFromStr("sub4");
 
-        bool createSub = false;
+        bool createSub = true;
         if (createSub)
         {
             SubscriptionCreationInformation sci = new(
@@ -42,6 +42,10 @@ _ = Task.Run(async () =>
             await eventHubProducerClient.SubmitSaasIntegerAsync(saasId: saasId, meterName: "cpu", quantity: 1, cts.Token);
             await Task.Delay(TimeSpan.FromSeconds(1));
         }
+    }
+    catch (Exception e)
+    {
+        await Console.Error.WriteLineAsync(e.Message);
     }
     finally
     {

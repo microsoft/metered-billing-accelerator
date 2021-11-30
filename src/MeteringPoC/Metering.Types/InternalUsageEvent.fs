@@ -9,4 +9,4 @@ type InternalUsageEvent = // From app to aggregator
 
 module InternalUsageEvent =
     let toStr (x: InternalUsageEvent) : string =
-        $"{x.Timestamp}: {x.InternalResourceId} {x.MeterName}={x.Quantity}"
+        $"{x.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {x.InternalResourceId |> InternalResourceId.toStr} {x.MeterName |> ApplicationInternalMeterName.value}={x.Quantity |> Quantity.valueAsFloat}"

@@ -45,13 +45,14 @@ module Json =
     module EventHubJSON =
         open Metering.Types.EventHub
 
-        let (partitionId, sequenceNumber, partitionTimestamp) = 
-            ("partitionId", "sequenceNumber", "partitionTimestamp")
+        let (partitionId, sequenceNumber, partitionTimestamp, offset) = 
+            ("partitionId", "sequenceNumber", "partitionTimestamp", "offset")
 
         let Encoder (x: MessagePosition) : JsonValue =
             [
                 (partitionId, x.PartitionID |> PartitionID.value |> Encode.string)
                 (sequenceNumber, x.SequenceNumber |> Encode.int64)
+                (offset, x.Offset |> Encode.int64)
                 (partitionTimestamp, x.PartitionTimestamp |> MeteringDateTime.Encoder)
             ]
             |> Encode.object 
@@ -60,7 +61,8 @@ module Json =
             Decode.object (fun get -> {
                 PartitionID = (get.Required.Field partitionId Decode.string) |> PartitionID.create
                 SequenceNumber = get.Required.Field sequenceNumber Decode.int64
-                PartitionTimestamp = get.Required.Field partitionTimestamp MeteringDateTime.Decoder
+                Offset = get.Required.Field offset Decode.int64
+                PartitionTimestamp = get.Required.Field partitionTimestamp MeteringDateTime.Decoder                
             })
 
     module ConsumedQuantity =
