@@ -28,9 +28,11 @@
 
                 Task ProcessEvent(ProcessEventArgs processEventArgs)
                 {
-                    o.OnNext(
-                        EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(
-                            EventHubEvent.create(processEventArgs, converter.ToFSharpFunc())));
+                    var e = EventHubEvent.create(processEventArgs, converter.ToFSharpFunc());
+                    if (FSharpOption<EventHubEvent<TEvent>>.get_IsSome(e))
+                    {
+                        o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(e.Value));
+                    }
 
                     // We're not doing checkpointing here, but let that happen downsteam... That's why EventHubProcessorEvent contains the ProcessEventArgs
                     // processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);

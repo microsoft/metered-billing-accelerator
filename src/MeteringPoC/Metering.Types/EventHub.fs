@@ -69,13 +69,15 @@ type EventHubEvent<'TEvent> =
       EventData: 'TEvent }
 
 module EventHubEvent =
-    let create (processEventArgs: ProcessEventArgs) (convert: EventData -> 'TEvent) : EventHubEvent<'TEvent> =  
-        let lastEnqueuedEventProperties = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
-
-        // TODO check processEventArgs.HasEvent  
-        { MessagePosition = MessagePosition.fromPartitionEvent processEventArgs.Partition.PartitionId processEventArgs.Data
-          EventsToCatchup = EventsToCatchup.create processEventArgs.Data lastEnqueuedEventProperties
-          EventData = processEventArgs.Data |> convert }
+    let create (processEventArgs: ProcessEventArgs) (convert: EventData -> 'TEvent) : EventHubEvent<'TEvent> option =  
+        if processEventArgs.HasEvent
+        then 
+            let lastEnqueuedEventProperties = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
+            { MessagePosition = MessagePosition.fromPartitionEvent processEventArgs.Partition.PartitionId processEventArgs.Data
+              EventsToCatchup = EventsToCatchup.create processEventArgs.Data lastEnqueuedEventProperties
+              EventData = processEventArgs.Data |> convert }
+            |> Some
+        else None
 
 type PartitionInitializing<'TState> =
     { PartitionInitializingEventArgs: PartitionInitializingEventArgs
