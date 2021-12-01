@@ -2,7 +2,7 @@
 
 open Metering.Types.EventHub
 
-// TODO delete me
+// TODO Can you refactor me away?
 type MeteringEvent =
     { MeteringUpdateEvent: MeteringUpdateEvent
       MessagePosition: MessagePosition

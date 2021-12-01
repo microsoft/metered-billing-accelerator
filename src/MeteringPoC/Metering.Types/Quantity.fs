@@ -23,14 +23,6 @@ type Quantity =
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a - b)
             | (Infinite, _) -> Infinite
             | (_, Infinite) -> failwith "This must never happen"
-
-    //static member createInt i = (MeteringInt i)
-    //static member someInt = (Quantity.createInt |> Some)
-    //
-    //member this.valueAsInt =
-    //    match this with 
-    //    | MeteringInt i -> i
-    //    | MeteringFloat f -> uint64 f
         
 module Quantity =
     let createInt i = (MeteringInt i)
@@ -49,4 +41,3 @@ module Quantity =
         | MeteringInt i -> decimal i
         | MeteringFloat f -> f
         | Infinite -> failwith "Trying to convert Infinity to a decimal"
-

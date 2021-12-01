@@ -58,9 +58,7 @@ subscriptions.Add(groupedSub);
 
 void handleCollection (PartitionID partitionId, MeterCollection meterCollection) {
     Console.WriteLine($"event: {partitionId.value()}: {Json.toStr(0, meterCollection)}");
-    //MeterCollectionStore.storeLastState(
-    //    snapshotContainerClient: config.SnapshotStorage,
-    //    meterCollection: x).Wait();
+    MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
 };
 
 await Console.Out.WriteLineAsync("Press <Return> to close...");

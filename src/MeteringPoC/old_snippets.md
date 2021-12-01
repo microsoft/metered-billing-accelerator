@@ -464,3 +464,39 @@ namespace Metering
     }
 }
 ```
+
+## fsharp trying to handle the AsyncAwaitables from the Azure SDK
+
+```fsharp
+let private asyncForeach (handler: ('t -> Task<Unit>)) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) (asncEnumerable: IAsyncEnumerable<'t>) : Task<Unit> =
+    task { 
+        let asyncEnumerator = asncEnumerable.GetAsyncEnumerator(cancellationToken = cancellationToken)
+            
+        let! h = asyncEnumerator.MoveNextAsync()
+        let mutable hasNext = h
+        while hasNext do
+            let! _ = handler(asyncEnumerator.Current)
+
+            let! h = asyncEnumerator.MoveNextAsync()
+            hasNext <- h
+
+        return ()
+    }
+
+let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    task {
+        let blobs = snapshotContainerClient.GetBlobsAsync(cancellationToken = cancellationToken)
+        let n = blobs.GetAsyncEnumerator(cancellationToken = cancellationToken)
+        let resultList = new List<string>()
+        let! h = n.MoveNextAsync()
+        let mutable hasNext = h
+        while hasNext do
+            let item = n.Current
+            resultList.Add(item.Properties.CreatedOn.ToString())
+            let! h = n.MoveNextAsync()
+            hasNext <- h
+        return resultList
+    }
+```
+
+

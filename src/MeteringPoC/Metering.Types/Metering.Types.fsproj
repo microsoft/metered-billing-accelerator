@@ -56,7 +56,6 @@
     <Compile Include="Json.fs" />
     <Compile Include="MarketplaceClient.fs" />
     <Compile Include="ClientSDK.fs" />
-    <Compile Include="TestBusinessLogic.fs" />
     <Compile Include="MeterCollectionStore.fs" />
     <Compile Include="MeteringAggregator.fs" />
     <Compile Include="EventHubObservableClient.fs" />
