@@ -21,8 +21,7 @@ and MeteringConfigurationProvider =
       SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
       GracePeriod: Duration
       ManagedResourceGroupResolver: DetermineManagedAppResourceGroupID
-      MeteringAPICredentials: MeteringAPICredentials 
-      SnapshotStorage: BlobContainerClient }
+      MeteringConnections: MeteringConnections }
 
 module SubmitMeteringAPIUsageEvent =
     let Discard : SubmitMeteringAPIUsageEvent = (fun _cfg e -> 
@@ -46,10 +45,9 @@ module SubmitMeteringAPIUsageEvent =
      )
 
 module MeteringConfigurationProvider =
-    let create (config: MeteringConnections) (marketplaceClient: SubmitMeteringAPIUsageEvent) : MeteringConfigurationProvider = 
+    let create (connections: MeteringConnections) (marketplaceClient: SubmitMeteringAPIUsageEvent) : MeteringConfigurationProvider = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = marketplaceClient
           GracePeriod = Duration.FromHours(2.0)
           ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveManagedByFromARM
-          MeteringAPICredentials = config.MeteringAPICredentials
-          SnapshotStorage = config.SnapshotStorage }
+          MeteringConnections = connections }

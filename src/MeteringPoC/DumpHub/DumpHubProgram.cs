@@ -3,10 +3,8 @@
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Processor;
-using Metering.Messaging;
 using Metering.Types;
 using Metering.Types.EventHub;
-using Microsoft.FSharp.Core;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reflection;
@@ -111,24 +109,26 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-var config = MeteringConnectionsModule.getFromEnvironment(
-    consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+var connections = MeteringConnectionsModule.getFromEnvironment();
 
-var meteringConfig = MeteringConfigurationProviderModule.create(config: config,
+var meteringConfig = MeteringConfigurationProviderModule.create(
+    connections: connections,
     marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
-Console.WriteLine($"Reading from {config.EventProcessorClient.FullyQualifiedNamespace}");
+Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
 
 using CancellationTokenSource cts = new();
 
-CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(config.EventProcessorClient,
+CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(connections.EventProcessorClient,
         converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
         cancellationToken: cts.Token)
     .Subscribe(onNext: e => {
-    if (e.IsEventHubEvent)
-    {                
-        Console.WriteLine(EventHubProcessorEvent.toStr(
-            FSharpFunc<MeteringUpdateEvent, string>.FromConverter(MeteringUpdateEventModule.toStr), e));
+        if (e.IsEventHubEvent)
+    {
+            var ev = EventHubProcessorEvent.getEvent<SomeMeterCollection, MeteringUpdateEvent>(e);
+
+            //Console.WriteLine(EventHubProcessorEvent.toStr(FSharpFunc<MeteringUpdateEvent, string>.FromConverter(MeteringUpdateEventModule.toStr), e));
+            Console.WriteLine(ev);
     }
 });
 

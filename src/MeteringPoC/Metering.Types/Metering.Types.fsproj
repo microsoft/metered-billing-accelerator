@@ -20,7 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FSharpFuncUtil.fs" />
-    <Compile Include="Configuration.fs" />
+    <Compile Include="MeteringAPICredentials.fs" />
+    <Compile Include="InfraStructureCredentials.fs" />
+    <Compile Include="MeteringConnections.fs" />
     <Compile Include="InstanceMetadataClient.fs" />
     <Compile Include="MeteringDateTime.fs" />
     <Compile Include="EventHub.fs" />
@@ -54,8 +56,8 @@
     <Compile Include="Json.fs" />
     <Compile Include="MarketplaceClient.fs" />
     <Compile Include="ClientSDK.fs" />
-    <Compile Include="TestBusinessLogic.fs" />
     <Compile Include="MeterCollectionStore.fs" />
     <Compile Include="MeteringAggregator.fs" />
+    <Compile Include="EventHubObservableClient.fs" />
   </ItemGroup>
 </Project>

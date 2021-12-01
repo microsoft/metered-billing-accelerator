@@ -24,7 +24,7 @@ type public FSharpFuncUtil =
 
     // https://blogs.msdn.microsoft.com/jaredpar/2010/07/27/converting-system-funct1-tn-to-fsharpfuncttresult/
     [<Extension>] 
-    static member ToFSharpFunc<'a,'b> (func: Converter<'a,'b>) = fun x -> func.Invoke(x)
+    static member ConverterToFSharpFunc<'a,'b> (converter: Converter<'a,'b>) = fun x -> converter.Invoke(x)
 
     [<Extension>] 
     static member ToFSharpFunc<'a,'b> (func: Func<'a,'b>) = fun a -> func.Invoke(a)

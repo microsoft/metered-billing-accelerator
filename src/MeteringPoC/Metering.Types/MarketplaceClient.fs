@@ -10,7 +10,7 @@ open System.Threading.Tasks
 module MarketplaceClient =
     let submit (config: MeteringConfigurationProvider) (usage: MeteringAPIUsageEventDefinition) : Task<MarketplaceSubmissionResult> = 
         task {
-            let! client = InstanceMetadataClient.createMarketplaceClient config.MeteringAPICredentials
+            let! client = InstanceMetadataClient.createMarketplaceClient config.MeteringConnections.MeteringAPICredentials
             let json = usage |> Json.toStr 0
  
             let meteringApiVersion = "2018-08-31"

@@ -18,5 +18,5 @@ type MeteredBillingUsageEvent =
         /// ID of the plan purchased for the offer.
         PlanId: PlanId } 
 
-type MeteredBillingUsageEventBatch = MeteredBillingUsageEvent list
-
+//type MeteredBillingUsageEventBatch =
+//    MeteredBillingUsageEvent list
