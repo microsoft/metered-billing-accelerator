@@ -123,16 +123,16 @@ module EventHubObservableClient =
 
         Observable.Create<EventHubProcessorEvent<'TState, 'TEvent>>(fsharpFunction)
 
-    let create (connconnections: MeteringConnections) (cancellationToken: CancellationToken) = 
+    let create (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
         
         let determineInitialState (args: PartitionInitializingEventArgs) ct =
             MeterCollectionStore.loadLastState 
-                connconnections.SnapshotStorage 
+                config 
                 (args.PartitionId |> PartitionID.create)
                 ct
 
         CreateEventHubProcessorEventObservableFSharp
-            connconnections.EventProcessorClient
+            config.MeteringConnections.EventProcessorClient
             determineInitialState
             MeterCollection.getEventPosition
             (fun x -> Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()))

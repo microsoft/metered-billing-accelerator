@@ -3,36 +3,10 @@
 open System
 open Microsoft.Extensions.Configuration
 open Azure.Core
-open Azure.Identity
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
 open Azure.Messaging.EventHubs
-
-type ServicePrincipalCredential = 
-    { ClientId: string 
-      ClientSecret: string
-      TenantId: string }
-
-type MeteringAPICredentials =
-    | ManagedIdentity
-    | ServicePrincipalCredential of ServicePrincipalCredential
-
-module MeteringAPICredentials =
-    let createManagedIdentity () : MeteringAPICredentials = 
-        ManagedIdentity
-
-    let createServicePrincipal tenantId clientId clientSecret : MeteringAPICredentials =
-        { ClientId = clientId
-          ClientSecret = clientSecret
-          TenantId = tenantId } |> ServicePrincipalCredential
-
-module InfraStructureCredentials =
-    let createManagedIdentity () : TokenCredential = 
-        new DefaultAzureCredential()
-
-    let createServicePrincipal tenantId clientId clientSecret : TokenCredential =
-        new ClientSecretCredential(tenantId = tenantId, clientId = clientId, clientSecret = clientSecret)    
 
 type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials 

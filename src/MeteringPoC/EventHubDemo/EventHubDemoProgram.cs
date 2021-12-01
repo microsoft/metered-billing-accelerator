@@ -12,17 +12,17 @@ using CancellationTokenSource cts = new();
 
 MeteringConnections connections = MeteringConnectionsModule.getFromEnvironment();
 
-Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
-
-var groupedByPartitionId = Metering.EventHubObservableClient.create(connections, cts.Token);
-
-MeteringConfigurationProvider meteringConfig = 
+MeteringConfigurationProvider config =
     MeteringConfigurationProviderModule.create(
-        config: connections,
+        connections: connections,
         marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
+Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
+
+var groupedByPartitionId = Metering.EventHubObservableClient.create(config, cts.Token);
+
 Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator = 
-    MeteringAggregator.createAggregator(meteringConfig);
+    MeteringAggregator.createAggregator(config);
 
 List<IDisposable> subscriptions = new();
 

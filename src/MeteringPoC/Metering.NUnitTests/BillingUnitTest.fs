@@ -216,15 +216,10 @@ let Test_previousBillingIntervalCanBeClosedNewEvent() =
 [<Test>]
 let Test_previousBillingIntervalCanBeClosedWakeup() =
     let test (idx, (prev, curr, (grace: float), expected)) =
-        let config =
-            { CurrentTimeProvider = curr |> MeteringDateTime.fromStr |> CurrentTimeProvider.AlwaysReturnSameTime
-              SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
-              GracePeriod = Duration.FromHours(grace)
-              ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
-              MeteringAPICredentials = ManagedIdentity
-              SnapshotStorage = null }
+        let currentTime = curr |> MeteringDateTime.fromStr
+        let gracePeriod = Duration.FromHours(grace)
 
-        let result = prev |> MeteringDateTime.fromStr |> BillingPeriod.previousBillingIntervalCanBeClosedWakeup (config.CurrentTimeProvider(), config.GracePeriod)
+        let result = prev |> MeteringDateTime.fromStr |> BillingPeriod.previousBillingIntervalCanBeClosedWakeup (currentTime, gracePeriod)
                 
         Assert.AreEqual(expected, result, sprintf "Failure testc case #%d" idx)
 

@@ -20,7 +20,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FSharpFuncUtil.fs" />
-    <Compile Include="Configuration.fs" />
+    <Compile Include="MeteringAPICredentials.fs" />
+    <Compile Include="InfraStructureCredentials.fs" />
+    <Compile Include="MeteringConnections.fs" />
     <Compile Include="InstanceMetadataClient.fs" />
     <Compile Include="MeteringDateTime.fs" />
     <Compile Include="EventHub.fs" />

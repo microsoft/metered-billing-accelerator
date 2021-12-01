@@ -228,14 +228,14 @@ let demoStorage config eventsFromEventHub =
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
     (task {
-        let! () = MeterCollectionStore.storeLastState config.SnapshotStorage CancellationToken.None events
+        let! () = MeterCollectionStore.storeLastState config CancellationToken.None events
 
         let partitionId = 
             Some events
             |> MeterCollection.lastUpdate
             |> (fun x -> x.Value.PartitionID)
 
-        let! meters = MeterCollectionStore.loadLastState config.SnapshotStorage partitionId CancellationToken.None
+        let! meters = MeterCollectionStore.loadLastState config partitionId CancellationToken.None
 
         match meters with
         | Some meter -> 
@@ -250,15 +250,12 @@ let demoStorage config eventsFromEventHub =
 
 [<EntryPoint>]
 let main argv = 
-    let cred = MeteringConnections.getFromEnvironment()
-
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
           GracePeriod = Duration.FromHours(6.0)
           ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
-          MeteringAPICredentials = cred.MeteringAPICredentials
-          SnapshotStorage = null }
+          MeteringConnections = MeteringConnections.getFromEnvironment() }
 
     demoUsageSubmission config
 

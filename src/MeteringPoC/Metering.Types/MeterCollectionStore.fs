@@ -108,12 +108,12 @@ module MeterCollectionStore =
     let private currentName (lastUpdate: MessagePosition) = $"partition-{lastUpdate.PartitionID |> PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
     
     let loadLastState
-        (snapshotContainerClient: BlobContainerClient)
+        (config: MeteringConfigurationProvider)
         (partitionID: PartitionID)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : Task<MeterCollection option> =
         task {
-            let blob = snapshotContainerClient.GetBlobClient(latestName partitionID)
+            let blob = config.MeteringConnections.SnapshotStorage.GetBlobClient(latestName partitionID)
             
             try
                 let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
@@ -128,7 +128,7 @@ module MeterCollectionStore =
         }
 
     let storeLastState
-        (snapshotContainerClient: BlobContainerClient)
+        (config: MeteringConfigurationProvider)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         (meterCollection: MeterCollection)
         : Task =
@@ -136,7 +136,7 @@ module MeterCollectionStore =
         | None -> Task.CompletedTask
         | Some lastUpdate ->
             task {
-                let blobDate = snapshotContainerClient.GetBlobClient(currentName lastUpdate)
+                let blobDate = config.MeteringConnections.SnapshotStorage.GetBlobClient(currentName lastUpdate)
                 let! exists = blobDate.ExistsAsync(cancellationToken = cancellationToken)
                 let! _ =
                     if not exists.Value then
@@ -150,7 +150,7 @@ module MeterCollectionStore =
                         Task.FromResult(null)
 
                 let latestBlob =
-                    snapshotContainerClient.GetBlobClient(latestName lastUpdate.PartitionID)
+                    config.MeteringConnections.SnapshotStorage.GetBlobClient(latestName lastUpdate.PartitionID)
 
                 let! _ = CopyBlobAsync blobDate latestBlob cancellationToken
 

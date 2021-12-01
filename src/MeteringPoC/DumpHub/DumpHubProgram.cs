@@ -109,16 +109,17 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-var config = MeteringConnectionsModule.getFromEnvironment();
+var connections = MeteringConnectionsModule.getFromEnvironment();
 
-var meteringConfig = MeteringConfigurationProviderModule.create(config: config,
+var meteringConfig = MeteringConfigurationProviderModule.create(
+    connections: connections,
     marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
-Console.WriteLine($"Reading from {config.EventProcessorClient.FullyQualifiedNamespace}");
+Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
 
 using CancellationTokenSource cts = new();
 
-CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(config.EventProcessorClient,
+CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(connections.EventProcessorClient,
         converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
         cancellationToken: cts.Token)
     .Subscribe(onNext: e => {
