@@ -1,8 +1,7 @@
-﻿using Azure.Messaging.EventHubs.Consumer;
+﻿using System.Reactive.Linq;
+using System.Reflection;
 using Metering.Types;
 using Metering.Types.EventHub;
-using System.Reactive.Linq;
-using System.Reflection;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
@@ -38,7 +37,19 @@ var groupedSub = groupedByPartitionId.Subscribe(onNext: group => {
         .Select(x => x.Value)
         //.StartWith()
         //.PublishLast()
-        .Subscribe(onNext: coll => handleCollection(partitionId, coll));
+        .Subscribe(
+            onNext: coll => handleCollection(partitionId, coll),
+            onError: ex => { 
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Error.WriteLine($"Error {partitionId.value()}: {ex.Message}"); 
+                Console.ResetColor();
+            },
+            onCompleted: () =>
+            {   
+                Console.ForegroundColor = ConsoleColor.Blue; 
+                Console.WriteLine($"Closing {partitionId.value()}");
+                Console.ResetColor();
+            });
     
     subscriptions.Add(subscription);
 });

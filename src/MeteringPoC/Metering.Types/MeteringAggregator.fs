@@ -14,14 +14,9 @@ module MeteringAggregator =
         | None ->
             match e with
             | PartitionInitializing x -> x.InitialState
-            | EventHubError _ -> MeterCollection.Uninitialized
-            | PartitionClosing _ -> MeterCollection.Uninitialized
-            | EventHubEvent _ -> MeterCollection.Uninitialized
+            | _ -> None
         | Some meterCollection ->
             match e with
-            | PartitionInitializing _ -> Some meterCollection
-            | PartitionClosing x -> Some meterCollection
-            | EventHubError x -> Some meterCollection
             | EventHubEvent eventHubEvent ->
                 let meteringEvent : MeteringEvent =
                     { MeteringUpdateEvent = eventHubEvent.EventData
@@ -34,6 +29,8 @@ module MeteringAggregator =
                     |> Some
 
                 result
+            | _ -> None
+
 
     let createAggregator (config: MeteringConfigurationProvider) : Func<MeterCollection option, EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>, MeterCollection option> =
         aggregate config

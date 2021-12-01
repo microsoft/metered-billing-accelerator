@@ -32,7 +32,13 @@ module EventHubObservableClient =
 
             let ProcessEvent (processEventArgs: ProcessEventArgs) =
                 match (EventHubEvent.create processEventArgs converter) with
-                | Some e -> o.OnNext(EventHubEvent e)
+                | Some e -> 
+                    
+                    Console.ForegroundColor <- ConsoleColor.Red
+                    printfn "\n\n%A\n\n" e
+                    Console.ResetColor()
+
+                    o.OnNext(EventHubEvent e)
                 | None -> ()
 
                 // We're not doing checkpointing here, but let that happen downsteam... That's why EventHubProcessorEvent contains the ProcessEventArgs
@@ -44,15 +50,15 @@ module EventHubObservableClient =
                     processErrorEventArgs.PartitionId |> PartitionID
 
                 let ex = processErrorEventArgs.Exception
-                let evnt = EventHubError(partitionId, ex)
-                o.OnNext(evnt)
+                //let evnt = EventHubError(partitionId, ex)
+                o.OnError(ex)
                 Task.CompletedTask
 
             let PartitionClosing (partitionClosingEventArgs: PartitionClosingEventArgs) =
                 let evnt: EventHubProcessorEvent<'TState, 'TEvent> =
                     PartitionClosing { PartitionClosingEventArgs = partitionClosingEventArgs }
 
-                o.OnNext(evnt)
+                o.OnCompleted()
                 Task.CompletedTask
 
             let PartitionInitializing (partitionInitializingEventArgs: PartitionInitializingEventArgs) : Task =
