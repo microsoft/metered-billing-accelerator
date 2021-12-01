@@ -250,7 +250,7 @@ let demoStorage config eventsFromEventHub =
 
 [<EntryPoint>]
 let main argv = 
-    let cred = MeteringConnections.getFromEnvironment(EventHubConsumerClient.DefaultConsumerGroupName)
+    let cred = MeteringConnections.getFromEnvironment()
 
     let config = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem

@@ -5,11 +5,7 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventHubDemo", "EventHubDemo\EventHubDemo.csproj", "{95CDBE90-61F1-4969-8416-9937CBC51974}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.ObservableProcessorDemo", "Metering.ObservableProcessorDemo\Metering.ObservableProcessorDemo.csproj", "{94DAE948-0F8A-4CB1-8F54-D467F387D4FE}"
-EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Types", "Metering.Types\Metering.Types.fsproj", "{226EDFF4-5827-4DE8-B534-119A8ABA3B85}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.Messaging", "Metering.Messaging\Metering.Messaging.csproj", "{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demos", "Demos", "{63515470-9590-4E66-9C64-9F0D3B86547E}"
 EndProject
@@ -22,6 +18,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BE422FBF-7D05-4571-AAFA-874471D110F2}"
 	ProjectSection(SolutionItems) = preProject
 		global.json = global.json
+		old_snippets.md = old_snippets.md
 		README.md = README.md
 		state-transistions.md = state-transistions.md
 	EndProjectSection
@@ -38,18 +35,10 @@ Global
 		{95CDBE90-61F1-4969-8416-9937CBC51974}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{95CDBE90-61F1-4969-8416-9937CBC51974}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{95CDBE90-61F1-4969-8416-9937CBC51974}.Release|Any CPU.Build.0 = Release|Any CPU
-		{94DAE948-0F8A-4CB1-8F54-D467F387D4FE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{94DAE948-0F8A-4CB1-8F54-D467F387D4FE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{94DAE948-0F8A-4CB1-8F54-D467F387D4FE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{94DAE948-0F8A-4CB1-8F54-D467F387D4FE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{226EDFF4-5827-4DE8-B534-119A8ABA3B85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{226EDFF4-5827-4DE8-B534-119A8ABA3B85}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{226EDFF4-5827-4DE8-B534-119A8ABA3B85}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{226EDFF4-5827-4DE8-B534-119A8ABA3B85}.Release|Any CPU.Build.0 = Release|Any CPU
-		{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{02F85D3B-0F5C-4806-8ABD-6A0828273F2A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -72,7 +61,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{95CDBE90-61F1-4969-8416-9937CBC51974} = {63515470-9590-4E66-9C64-9F0D3B86547E}
-		{94DAE948-0F8A-4CB1-8F54-D467F387D4FE} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{F0A33057-5480-41D5-B71E-DD9483552DF6} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{BEE18D93-5B0E-4BF6-95C1-F6D4DAF0B39B} = {63515470-9590-4E66-9C64-9F0D3B86547E}

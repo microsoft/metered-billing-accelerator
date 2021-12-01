@@ -133,4 +133,3 @@ module EventHubObservableClient =
             cancellationToken
         |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))
 
-        

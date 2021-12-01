@@ -3,10 +3,8 @@
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Processor;
-using Metering.Messaging;
 using Metering.Types;
 using Metering.Types.EventHub;
-using Microsoft.FSharp.Core;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reflection;
@@ -111,8 +109,7 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-var config = MeteringConnectionsModule.getFromEnvironment(
-    consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+var config = MeteringConnectionsModule.getFromEnvironment();
 
 var meteringConfig = MeteringConfigurationProviderModule.create(config: config,
     marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());

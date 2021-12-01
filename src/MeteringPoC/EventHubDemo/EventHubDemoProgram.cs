@@ -1,8 +1,4 @@
-﻿using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Consumer;
-using Azure.Messaging.EventHubs.Processor;
-using Metering;
-using Metering.Messaging;
+﻿using Azure.Messaging.EventHubs.Consumer;
 using Metering.Types;
 using Metering.Types.EventHub;
 using System.Reactive.Linq;
@@ -13,40 +9,13 @@ using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.Me
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-MeteringConnections connections = MeteringConnectionsModule.getFromEnvironment(
-    consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+using CancellationTokenSource cts = new();
 
+MeteringConnections connections = MeteringConnectionsModule.getFromEnvironment();
 
 Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
 
-using CancellationTokenSource cts = new();
-
-
-var groupedByPartitionId = Metering.EventHubObservableClient
-    .create(connections, cts.Token);
-
-//Task<SomeMeterCollection> determineInitialState (PartitionInitializingEventArgs arg, CancellationToken ct) => 
-//    MeterCollectionStore.loadLastState(
-//        snapshotContainerClient: connections.SnapshotStorage,
-//        partitionID: PartitionIDModule.create(arg.PartitionId),
-//        cancellationToken: ct);
-//IObservable<IGroupedObservable<PartitionID, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>>> groupedByPartitionId =
-//    connections.EventProcessorClient
-//        .CreateEventHubProcessorEventObservable<SomeMeterCollection, MeteringUpdateEvent>(
-//            determineInitialState: determineInitialState,
-//            determinePosition: MeterCollectionModule.getEventPosition,
-//            converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
-//            cancellationToken: cts.Token)
-//        .GroupBy(EventHubProcessorEvent.partitionId);
-
-//IObservable<IGroupedObservable<PartitionID, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>>> groupedByPartitionId =
-//    config.EventProcessorClient
-//        .CreateEventHubProcessorEventObservableFSharp<SomeMeterCollection, MeteringUpdateEvent>(
-//            determineInitialState: FSharpFuncUtil.ToFSharpFunc<PartitionInitializingEventArgs, CancellationToken, Task<SomeMeterCollection>>(determineInitialState),
-//            determinePosition: FSharpFuncUtil.ToFSharpFunc<SomeMeterCollection, EventPosition>(func: MeterCollectionModule.getEventPosition),
-//            converter: FSharpFuncUtil.ToFSharpFunc<EventData, MeteringUpdateEvent>(x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString())),
-//            cancellationToken: cts.Token)
-//        .GroupBy(EventHubProcessorEvent.partitionId);
+var groupedByPartitionId = Metering.EventHubObservableClient.create(connections, cts.Token);
 
 MeteringConfigurationProvider meteringConfig = 
     MeteringConfigurationProviderModule.create(

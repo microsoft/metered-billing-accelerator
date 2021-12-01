@@ -99,7 +99,7 @@ module MeteringConnections =
           EventProcessorClient = processorClient
           SnapshotStorage = snapStorage }
 
-    let getFromEnvironment (consumerGroupName: string) =
+    let getFromEnvironmentWithSpecificConsumerGroup (consumerGroupName: string) =
         let configuration =
             // Doing this convoluted syntax as c# extension methods seem unavailable.
             EnvironmentVariablesExtensions.AddEnvironmentVariables(
@@ -109,3 +109,6 @@ module MeteringConnections =
         getFromConfig
             (fun name -> configuration.Item(name))
             EventHubConsumerClient.DefaultConsumerGroupName
+
+    let getFromEnvironment () =
+        getFromEnvironmentWithSpecificConsumerGroup EventHubConsumerClient.DefaultConsumerGroupName

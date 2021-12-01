@@ -1,6 +1,5 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using Azure.Messaging.EventHubs.Consumer;
 using Metering;
 using Metering.Types;
 
@@ -16,7 +15,7 @@ using CancellationTokenSource cts = new();
 
 _ = Task.Run(async () =>
 {
-    var config = MeteringConnectionsModule.getFromEnvironment(consumerGroupName: EventHubConsumerClient.DefaultConsumerGroupName);
+    var config = MeteringConnectionsModule.getFromEnvironment();
     var eventHubProducerClient = config.EventHubProducerClient;
 
     try
