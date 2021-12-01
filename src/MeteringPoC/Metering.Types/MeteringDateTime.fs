@@ -21,7 +21,7 @@ module MeteringDateTime =
         ]
 
     let blobName : (MeteringDateTime -> string) =
-        ("yyyy-MM/yyyy-MM-dd/yyyy-MM-dd--HH-mm-ss" |> toPattern).Format
+        ("yyyy-MM-dd--HH-mm-ss" |> toPattern).Format
 
     let toStr (d: MeteringDateTime) : string =
         d |> withNanoSecondsInZulu.Format
