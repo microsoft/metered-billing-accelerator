@@ -34,9 +34,7 @@ module EventHubObservableClient =
                 match (EventHubEvent.create processEventArgs converter) with
                 | Some e -> 
                     
-                    Console.ForegroundColor <- ConsoleColor.Red
-                    printfn "\n\n%A\n\n" e
-                    Console.ResetColor()
+                    Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
 
                     o.OnNext(EventHubEvent e)
                 | None -> ()
@@ -66,7 +64,8 @@ module EventHubObservableClient =
                     let! (initialState: 'TState) =
                         determineInitialState partitionInitializingEventArgs innerCancellationToken
 
-                    partitionInitializingEventArgs.DefaultStartingPosition <- determinePosition initialState 
+                    let startingPosition = determinePosition initialState
+                    partitionInitializingEventArgs.DefaultStartingPosition <- startingPosition
 
                     let evnt =
                         PartitionInitializing

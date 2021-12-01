@@ -13,18 +13,23 @@ static async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.Read
 
 using CancellationTokenSource cts = new();
 
-_ = Task.Run(async () =>
+var config = MeteringConnectionsModule.getFromEnvironment();
+var eventHubProducerClient = config.EventHubProducerClient;
+
+try
 {
-    var config = MeteringConnectionsModule.getFromEnvironment();
-    var eventHubProducerClient = config.EventHubProducerClient;
-
-    try
+    var (subName,saasId) = ("", "");
+    while (true)
     {
-        var saasId = guidFromStr("sub4");
+        await Console.Out.WriteLineAsync("c sub or s sub to submit to a particular subscription>  ");
+        var command = await Console.In.ReadLineAsync();
 
-        bool createSub = true;
-        if (createSub)
+
+        if (command.ToLower().StartsWith("c"))
         {
+            subName = command.Split(' ')[1];
+            saasId = guidFromStr(subName);
+
             SubscriptionCreationInformation sci = new(
                 internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
                 subscription: new(
@@ -32,25 +37,31 @@ _ = Task.Run(async () =>
                     internalResourceId: InternalResourceIdModule.fromStr(saasId),
                     renewalInterval: RenewalInterval.Monthly,
                     subscriptionStart: MeteringDateTimeModule.now()));
+
+            await Console.Out.WriteLineAsync($"Creating subscription {subName} ({saasId})");
             await eventHubProducerClient.CreateSubscription(sci, cts.Token);
         }
-
-        while (!cts.IsCancellationRequested)
+        else if (command.ToLower().StartsWith("s"))
         {
-            await Console.Out.WriteLineAsync("emit event");
+            subName = command.Split(' ')[1];
+            saasId = guidFromStr(subName);
+
+            await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
             await eventHubProducerClient.SubmitSaasIntegerAsync(saasId: saasId, meterName: "cpu", quantity: 1, cts.Token);
-            await Task.Delay(TimeSpan.FromSeconds(1));
+        }
+        else
+        {
+            await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
+            await eventHubProducerClient.SubmitSaasIntegerAsync(saasId: saasId, meterName: "cpu", quantity: 1, cts.Token);
         }
     }
-    catch (Exception e)
-    {
-        await Console.Error.WriteLineAsync(e.Message);
-    }
-    finally
-    {
-        await eventHubProducerClient.CloseAsync();
-    }
-}, cts.Token);
-
-_ = Console.ReadLine();
-cts.Cancel();
+}
+catch (Exception e)
+{
+    await Console.Error.WriteLineAsync(e.Message);
+}
+finally
+{
+    await eventHubProducerClient.CloseAsync();
+    cts.Cancel();
+}

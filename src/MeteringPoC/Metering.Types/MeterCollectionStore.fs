@@ -117,8 +117,8 @@ module MeterCollectionStore =
 
     let storeLastState
         (config: MeteringConfigurationProvider)
-        ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         (meterCollection: MeterCollection)
+        ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : Task =
         match meterCollection |> Some |> MeterCollection.lastUpdate with
         | None -> Task.CompletedTask

@@ -27,7 +27,7 @@ type MessagePosition =
 module MessagePosition =
     let startingPosition (someMessagePosition: MessagePosition option) =
         match someMessagePosition with
-        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber + 1L)
+        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber, isInclusive = false)
         | None -> EventPosition.Earliest
     
     let create (partitionId: string) (eventData: EventData) : MessagePosition =

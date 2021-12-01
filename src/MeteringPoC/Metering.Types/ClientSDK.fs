@@ -17,8 +17,8 @@ module MeteringEventHubExtensions =
         task {
             let createBatchOptions = 
                 let cbo = new CreateBatchOptions()
-                printfn "Writing to partition %s" (meteringUpdateEvent |> MeteringUpdateEvent.partitionKey)
-                cbo.PartitionKey <- meteringUpdateEvent |> MeteringUpdateEvent.partitionKey
+                let pk = meteringUpdateEvent |> MeteringUpdateEvent.partitionKey
+                cbo.PartitionKey <- pk
                 cbo
 
             let! eventBatch = eventHubProducerClient.CreateBatchAsync(options = createBatchOptions, cancellationToken = cancellationToken)

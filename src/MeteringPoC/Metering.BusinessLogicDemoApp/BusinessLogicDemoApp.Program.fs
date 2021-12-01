@@ -228,7 +228,7 @@ let demoStorage config eventsFromEventHub =
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
     (task {
-        let! () = MeterCollectionStore.storeLastState config CancellationToken.None events
+        let! () = MeterCollectionStore.storeLastState config events CancellationToken.None 
 
         let partitionId = 
             Some events
