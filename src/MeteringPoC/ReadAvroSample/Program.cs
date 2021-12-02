@@ -1,5 +1,4 @@
-﻿using Avro;
-using Avro.File;
+﻿using Avro.File;
 using Avro.Generic;
 using Azure.Messaging.EventHubs;
 using System.Collections.Immutable;
@@ -16,21 +15,7 @@ foreach (EventData eventData in stream.ReadAvroStreamToEventHubData().ToArray())
 
 internal class MyEventData : EventData
 {
-    internal MyEventData(
-        byte[] eventBody, 
-        IDictionary<string, object> properties,
-        IReadOnlyDictionary<string, object> systemProperties,
-        long sequenceNumber,
-        long offset,
-        DateTimeOffset enqueuedTime,
-        string partitionKey) : base(
-            eventBody: eventBody,
-            properties: properties, 
-            systemProperties: systemProperties,
-            sequenceNumber: sequenceNumber, 
-            offset: offset, 
-            enqueuedTime: enqueuedTime, 
-            partitionKey: partitionKey) { }
+    internal MyEventData(byte[] eventBody,  IDictionary<string, object> properties, IReadOnlyDictionary<string, object> systemProperties, long sequenceNumber, long offset, DateTimeOffset enqueuedTime, string partitionKey) : base(eventBody: eventBody, properties: properties, systemProperties: systemProperties, sequenceNumber: sequenceNumber, offset: offset, enqueuedTime: enqueuedTime, partitionKey: partitionKey) { }
 }
 
 public static class CaptureProcessorHostExtensions

@@ -25,16 +25,14 @@ MeteringConfigurationProvider config =
         connections: connections,
         marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
-Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
-
-var groupedByPartitionId = Metering.EventHubObservableClient.create(config, cts.Token);
+Console.WriteLine($"Reading from {connections.EventHubConfig.FullyQualifiedNamespace}");
 
 Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator = 
     MeteringAggregator.createAggregator(config);
 
 List<IDisposable> subscriptions = new();
 
-var groupedSub = groupedByPartitionId.Subscribe(onNext: group => {
+var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Subscribe(onNext: group => {
     var partitionId = group.Key;
     Console.WriteLine($"New group: {partitionId.value()}");
     IDisposable subscription = group

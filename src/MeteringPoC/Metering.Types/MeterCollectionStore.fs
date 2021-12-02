@@ -12,8 +12,11 @@ open Azure.Storage.Blobs
 open Azure.Storage.Blobs.Specialized
 open Azure.Storage.Sas
 open Metering.Types.EventHub
+open Azure.Storage.Blobs.Models
 
 module MeterCollectionStore =
+    open MeterCollectionLogic
+
     let private toUTF8String (bytes: byte[]) : string = Encoding.UTF8.GetString(bytes)
 
     let private toUTF8Bytes (str: string) : byte[] = Encoding.UTF8.GetBytes(str)
@@ -79,16 +82,21 @@ module MeterCollectionStore =
             blobUriBuilder.Sas <-
                 sasBuilder.ToSasQueryParameters(userDelegationKey.Value, blobServiceClient.AccountName)
 
+            let options = new BlobCopyFromUriOptions()
+            options.DestinationConditions <- new BlobRequestConditions()
+            
+            
             let! _ =
                 destination.SyncCopyFromUriAsync(
                     source = (blobUriBuilder.ToUri()),
+                    options = options,
                     cancellationToken = cancellationToken
                 )
 
             return ()
         }
 
-    let private prefix (config: MeteringConfigurationProvider) = $"{config.MeteringConnections.EventProcessorClient.FullyQualifiedNamespace}/{config.MeteringConnections.EventProcessorClient.EventHubName}"
+    let private prefix (config: MeteringConfigurationProvider) = $"{config.MeteringConnections.EventHubConfig.FullyQualifiedNamespace}/{config.MeteringConnections.EventHubConfig.InstanceName}"
     
     let private latestName (config: MeteringConfigurationProvider) (partitionId: PartitionID) = $"{config |> prefix}/{partitionId |> PartitionID.value}/latest.json.gz"
     
@@ -110,7 +118,7 @@ module MeterCollectionStore =
                 let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
                 let! meterCollection = content.Value.Content |> gzipDecompress |> fromJSONStream<MeterCollection>
                 
-                eprintfn $"Successfully downloaded state, last event was {partitionID |> PartitionID.value}-{meterCollection |> MeterCollection.getLastUpdate}"
+                eprintfn $"Successfully downloaded state, last event was {partitionID |> PartitionID.value}-{meterCollection |> getLastUpdate}"
                 return Some meterCollection
             with
             | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobNotFound" ->
@@ -127,32 +135,44 @@ module MeterCollectionStore =
         (meterCollection: MeterCollection)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : Task =
-        match meterCollection |> Some |> MeterCollection.lastUpdate with
-        | None -> Task.CompletedTask
+
+        match meterCollection |> Some |> lastUpdate with
+        | None -> Task.FromResult "Empty collection, skipped saving"
         | Some lastUpdate ->
+            let name = meterCollection |> getLastUpdate
+            eprintfn $"Trying to save \"{name}\""
             let current = currentName config lastUpdate
             let latest = latestName config lastUpdate.PartitionID
 
             task {
                 let blobDate = config.MeteringConnections.SnapshotStorage.GetBlobClient(current)
-                let! exists = blobDate.ExistsAsync(cancellationToken = cancellationToken)
-                let! _ =
-                    if not exists.Value then
-                        try
-                            use stream = meterCollection |> asJSONStream |> gzipCompress
-                            blobDate.UploadAsync(content = stream, cancellationToken = cancellationToken)
-                        with
-                        | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" ->
-                            Task.FromResult(null)
-                    else
-                        Task.FromResult(null)
+                
+                //let! exists = blobDate.ExistsAsync(cancellationToken = cancellationToken)
 
-                let latestBlob =
-                    config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
+                //if exists.Value then
+                //    eprintfn $"Already existed {name}"
+                //else
+                try
+                    use stream = meterCollection |> asJSONStream |> gzipCompress
+                    let! _ = blobDate.UploadAsync(content = stream, cancellationToken = cancellationToken)
+                    eprintfn $"Uploaded {name}"
+                    ignore <| stream.Seek(offset = 0L, origin = SeekOrigin.Begin)
+                    let latestBlob = config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
+                    let! _ = latestBlob.UploadAsync(content = stream, cancellationToken = cancellationToken)
+                    eprintfn $"Uploaded {name} to latest" 
+                with
+                | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" -> 
+                    eprintfn $"Already existed {name}"
 
-                let! _ = CopyBlobAsync blobDate latestBlob cancellationToken
+                //try
+                //    let latestBlob =
+                //        config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
+                //    let! _ = latestBlob.DeleteAsync(cancellationToken = cancellationToken)
+                //    let! _ = CopyBlobAsync blobDate latestBlob cancellationToken
+                //with
+                //| e -> eprintfn $"Delete/Copy problem {e.Message}"
 
-                return ()
+                eprintfn "Saved"
             }
 
     let isLoaded<'T> (state: 'T option) : bool = 

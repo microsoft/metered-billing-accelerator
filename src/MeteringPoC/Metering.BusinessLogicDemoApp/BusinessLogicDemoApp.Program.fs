@@ -188,12 +188,12 @@ let demoAggregation config =
     let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
 
     eventsFromEventHub
-    |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+    |> MeterCollectionLogic.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
     |> Json.toStr 2
     |> inspect ""
     |> Json.fromStr<MeterCollection>
     |> inspecto "newBalance"
-    |> MeterCollection.usagesToBeReported
+    |> MeterCollectionLogic.usagesToBeReported
     |> Json.toStr 2
     |> inspect "usage"
     |> ignore
@@ -223,7 +223,7 @@ let demoUsageSubmission config =
 let demoStorage config eventsFromEventHub =
     let events = 
         eventsFromEventHub
-        |> MeterCollection.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+        |> MeterCollectionLogic.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
         |> Json.toStr 1                             |> inspect "meters"
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
@@ -232,7 +232,7 @@ let demoStorage config eventsFromEventHub =
 
         let partitionId = 
             Some events
-            |> MeterCollection.lastUpdate
+            |> MeterCollectionLogic.lastUpdate
             |> (fun x -> x.Value.PartitionID)
 
         let! meters = MeterCollectionStore.loadLastState config partitionId CancellationToken.None

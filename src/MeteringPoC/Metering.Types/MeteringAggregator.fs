@@ -2,8 +2,12 @@
 
 open System
 open Metering.Types.EventHub
+open System.Runtime.CompilerServices
 
+[<Extension>]
 module MeteringAggregator =
+    open MeterCollectionLogic
+
     let aggregate (config: MeteringConfigurationProvider) (meters: MeterCollection option) (e: EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>) : MeterCollection option =
         match meters with 
         | None ->
@@ -13,19 +17,14 @@ module MeteringAggregator =
         | Some meterCollection ->
             match e with
             | EventHubEvent eventHubEvent ->
-                let meteringEvent : MeteringEvent =
-                    { MeteringUpdateEvent = eventHubEvent.EventData
-                      MessagePosition = eventHubEvent.MessagePosition
-                      EventsToCatchup = eventHubEvent.EventsToCatchup }
-
-                let result = 
-                    meteringEvent
-                    |> MeterCollection.meterCollectionHandleMeteringEvent config meterCollection
-                    |> Some
-
-                result
+                { MeteringUpdateEvent = eventHubEvent.EventData
+                  MessagePosition = eventHubEvent.MessagePosition
+                  EventsToCatchup = eventHubEvent.EventsToCatchup }
+                |> meterCollectionHandleMeteringEvent config meterCollection
+                |> Some
             | _ -> None
 
-
+    [<Extension>]
     let createAggregator (config: MeteringConfigurationProvider) : Func<MeterCollection option, EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>, MeterCollection option> =
         aggregate config
+

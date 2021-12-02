@@ -54,6 +54,7 @@
     <Compile Include="MeteringEvent.fs" />
     <Compile Include="MeterCollection.fs" />
     <Compile Include="Json.fs" />
+    <Compile Include="MeterCollectionLogic.fs" />
     <Compile Include="MarketplaceClient.fs" />
     <Compile Include="ClientSDK.fs" />
     <Compile Include="MeterCollectionStore.fs" />

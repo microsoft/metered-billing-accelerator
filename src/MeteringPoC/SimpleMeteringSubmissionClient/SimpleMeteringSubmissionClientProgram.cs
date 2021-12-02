@@ -14,7 +14,7 @@ static async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.Read
 using CancellationTokenSource cts = new();
 
 var config = MeteringConnectionsModule.getFromEnvironment();
-var eventHubProducerClient = config.EventHubProducerClient;
+var eventHubProducerClient = config.createEventHubProducerClient();
 
 try
 {

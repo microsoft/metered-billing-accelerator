@@ -12,7 +12,9 @@ type Meter =
 module Meter =
     let setCurrentMeterValues x s = { s with CurrentMeterValues = x }
     let applyToCurrentMeterValue f s = { s with CurrentMeterValues = (f s.CurrentMeterValues) }
-    let setLastProcessedMessage x s = { s with LastProcessedMessage = x }
+    let setLastProcessedMessage x s = 
+        printf "Updating %A" x
+        { s with LastProcessedMessage = x }
     let addUsageToBeReported x s = { s with UsageToBeReported = (x :: s.UsageToBeReported) }
     let addUsagesToBeReported x s = { s with UsageToBeReported = List.concat [ x; s.UsageToBeReported ] }
     

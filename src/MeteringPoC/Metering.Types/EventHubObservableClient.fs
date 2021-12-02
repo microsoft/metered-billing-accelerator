@@ -15,8 +15,8 @@ open Metering.Types.EventHub
 
 [<Extension>]
 module EventHubObservableClient =
-    [<Extension>]
-    let CreateEventHubProcessorEventObservableFSharp<'TState, 'TEvent>
+    
+    let private createInternal<'TState, 'TEvent>
         (processor: EventProcessorClient)
         (determineInitialState: PartitionInitializingEventArgs -> CancellationToken -> Task<'TState>)
         (determinePosition: 'TState -> EventPosition)
@@ -24,11 +24,18 @@ module EventHubObservableClient =
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : IObservable<EventHubProcessorEvent<'TState, 'TEvent>> =
 
+        let a = Action (fun () -> eprintf "outside cancelled")
+        cancellationToken.Register(a) |> ignore
+
         let fsharpFunction (o: IObserver<EventHubProcessorEvent<'TState, 'TEvent>>) : IDisposable =
-            let cts =
-                CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            let cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
 
             let innerCancellationToken = cts.Token
+
+            let x = Action (fun () -> 
+                eprintfn "innerCancellationToken is Cancelled"
+            )                        
+            innerCancellationToken.Register(callback = x) |> ignore
 
             let ProcessEvent (processEventArgs: ProcessEventArgs) =
                 try
@@ -135,6 +142,7 @@ module EventHubObservableClient =
 
         Observable.Create<EventHubProcessorEvent<'TState, 'TEvent>>(fsharpFunction)
 
+    [<Extension>]
     let create (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
         
         let determineInitialState (args: PartitionInitializingEventArgs) ct =
@@ -143,10 +151,10 @@ module EventHubObservableClient =
                 (args.PartitionId |> PartitionID.create)
                 ct
 
-        CreateEventHubProcessorEventObservableFSharp
-            config.MeteringConnections.EventProcessorClient
+        createInternal
+            (config.MeteringConnections |> MeteringConnections.createEventProcessorClient)
             determineInitialState
-            MeterCollection.getEventPosition
+            MeterCollectionLogic.getEventPosition
             (fun x -> Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()))
             cancellationToken
         |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))

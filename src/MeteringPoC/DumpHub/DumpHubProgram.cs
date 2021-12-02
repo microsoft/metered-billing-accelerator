@@ -115,11 +115,13 @@ var meteringConfig = MeteringConfigurationProviderModule.create(
     connections: connections,
     marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
-Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
+Console.WriteLine($"Reading from {connections.EventHubConfig.FullyQualifiedNamespace}");
 
 using CancellationTokenSource cts = new();
 
-CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(connections.EventProcessorClient,
+var eventProcessorClient = MeteringConnectionsModule.createEventProcessorClient(connections);
+
+CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(eventProcessorClient,
         converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
         cancellationToken: cts.Token)
     .Subscribe(onNext: e => {
