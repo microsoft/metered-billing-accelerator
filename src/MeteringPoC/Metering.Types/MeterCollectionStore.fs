@@ -88,7 +88,7 @@ module MeterCollectionStore =
             return ()
         }
 
-    let private prefix (config: MeteringConfigurationProvider) = $"{config.MeteringConnections.EventHubConsumerClient.FullyQualifiedNamespace}/{config.MeteringConnections.EventHubConsumerClient.EventHubName}"
+    let private prefix (config: MeteringConfigurationProvider) = $"{config.MeteringConnections.EventProcessorClient.FullyQualifiedNamespace}/{config.MeteringConnections.EventProcessorClient.EventHubName}"
     
     let private latestName (config: MeteringConfigurationProvider) (partitionId: PartitionID) = $"{config |> prefix}/{partitionId |> PartitionID.value}/latest.json.gz"
     
@@ -99,6 +99,9 @@ module MeterCollectionStore =
         (partitionID: PartitionID)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : Task<MeterCollection option> =
+
+        printfn $"Loading state for partition {partitionID |> PartitionID.value}"
+
         task {
             let latest = latestName config partitionID
             let blob = config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
@@ -106,12 +109,16 @@ module MeterCollectionStore =
             try
                 let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
                 let! meterCollection = content.Value.Content |> gzipDecompress |> fromJSONStream<MeterCollection>
+                
+                eprintfn $"Successfully downloaded state, last event was {partitionID |> PartitionID.value}-{meterCollection |> MeterCollection.getLastUpdate}"
                 return Some meterCollection
             with
             | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobNotFound" ->
+                eprintfn $"BlobNotFound for partition {partitionID |> PartitionID.value}"
                 return Some MeterCollection.empty
             | e -> 
                 // TODO log some weird exception
+                eprintfn $"Bad stuff happening {e.Message}"
                 return None
         }
 

@@ -31,48 +31,61 @@ module EventHubObservableClient =
             let innerCancellationToken = cts.Token
 
             let ProcessEvent (processEventArgs: ProcessEventArgs) =
-                match (EventHubEvent.create processEventArgs converter) with
-                | Some e -> 
-                    
-                    Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
-
-                    o.OnNext(EventHubEvent e)
-                | None -> ()
+                try
+                    match (EventHubEvent.create processEventArgs converter) with
+                    | Some e ->                     
+                        // Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
+                        printfn $"new event {e.MessagePosition.PartitionID |> PartitionID.value}-{e.MessagePosition.SequenceNumber}" 
+                        o.OnNext(EventHubEvent e)
+                    | None -> ()
+                with
+                | e -> eprintf $"ProcessEvent Exception {e.Message} " ;()
 
                 // We're not doing checkpointing here, but let that happen downsteam... That's why EventHubProcessorEvent contains the ProcessEventArgs
                 // processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
                 Task.CompletedTask
 
             let ProcessError (processErrorEventArgs: ProcessErrorEventArgs) =
-                let partitionId =
-                    processErrorEventArgs.PartitionId |> PartitionID
+                try
+                    let partitionId =
+                        processErrorEventArgs.PartitionId |> PartitionID
 
-                let ex = processErrorEventArgs.Exception
-                //let evnt = EventHubError(partitionId, ex)
-                o.OnError(ex)
+                    let ex = processErrorEventArgs.Exception
+                    o.OnError(ex)
+                with
+                | e -> eprintf $"ProcessError Exception {e.Message}" ;()
+                
                 Task.CompletedTask
 
             let PartitionClosing (partitionClosingEventArgs: PartitionClosingEventArgs) =
-                let evnt: EventHubProcessorEvent<'TState, 'TEvent> =
-                    PartitionClosing { PartitionClosingEventArgs = partitionClosingEventArgs }
+                try
+                    let evnt: EventHubProcessorEvent<'TState, 'TEvent> =
+                        PartitionClosing { PartitionClosingEventArgs = partitionClosingEventArgs }
 
-                o.OnCompleted()
+                    o.OnCompleted()
+                with
+                | e -> eprintf $"PartitionClosing Exception {e.Message}" ;()
+
                 Task.CompletedTask
 
             let PartitionInitializing (partitionInitializingEventArgs: PartitionInitializingEventArgs) : Task =
                 task {
-                    let! (initialState: 'TState) =
-                        determineInitialState partitionInitializingEventArgs innerCancellationToken
+                    try
+                        let! (initialState: 'TState) =
+                            determineInitialState partitionInitializingEventArgs innerCancellationToken
 
-                    let startingPosition = determinePosition initialState
-                    partitionInitializingEventArgs.DefaultStartingPosition <- startingPosition
+                        let startingPosition = determinePosition initialState
+                        partitionInitializingEventArgs.DefaultStartingPosition <- startingPosition
 
-                    let evnt =
-                        PartitionInitializing
-                            { PartitionInitializingEventArgs = partitionInitializingEventArgs
-                              InitialState = initialState }
+                        let evnt =
+                            PartitionInitializing
+                                { PartitionInitializingEventArgs = partitionInitializingEventArgs
+                                  InitialState = initialState }
 
-                    o.OnNext(evnt)
+                        o.OnNext(evnt)
+                    with
+                    | e -> eprintf $"PartitionInitializing Exception {e.Message}"
+
                     return ()
                 }
 

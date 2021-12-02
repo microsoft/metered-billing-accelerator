@@ -2,11 +2,13 @@
 
 open Azure.Messaging.EventHubs.Consumer
 open Metering.Types.EventHub
+open System.Runtime.CompilerServices
 
 type MeterCollection = MeterCollection of Map<InternalResourceId, Meter>
 
 type SomeMeterCollection = MeterCollection option
  
+[<Extension>]
 module MeterCollection =
     let value (MeterCollection x) = x
     let create x = (MeterCollection x)
@@ -33,6 +35,15 @@ module MeterCollection =
         someMeters
         |> lastUpdate
         |> MessagePosition.startingPosition
+
+    [<Extension>]
+    let getLastUpdate (meterCollection: MeterCollection) =
+        meterCollection
+        |> Some
+        |> lastUpdate
+        |> function
+           | None -> ""
+           | Some e -> $"{e.PartitionID |> PartitionID.value}-{e.SequenceNumber}"
 
     let usagesToBeReported (meters: MeterCollection) : MeteringAPIUsageEventDefinition list =
         if meters |> value |> Seq.isEmpty 

@@ -1,5 +1,7 @@
-﻿using System.Reactive.Linq;
+﻿using System.Diagnostics.Tracing;
+using System.Reactive.Linq;
 using System.Reflection;
+using Azure.Core.Diagnostics;
 using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
@@ -7,6 +9,12 @@ using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.Me
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
+
+//var start = DateTime.Now;
+//string elapsed() => DateTime.Now.Subtract(start).ToString();
+//using AzureEventSourceListener listener = new(level: EventLevel.LogAlways, log: (e, message) => {
+//    if (e.EventSource.Name.StartsWith("Azure-Messaging-EventHubs")) {
+//        Console.WriteLine($"{elapsed()} {e.EventName.W(45)} {e.Level.ToString().W(10)} {message}"); } });
 
 using CancellationTokenSource cts = new();
 
@@ -57,7 +65,7 @@ subscriptions.Add(groupedSub);
 
 
 void handleCollection (PartitionID partitionId, MeterCollection meterCollection) {
-    Console.WriteLine($"event: {partitionId.value()}: {Json.toStr(0, meterCollection)}");
+    Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdate()} {Json.toStr(0, meterCollection).UpTo(30)}");
     MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
 };
 
@@ -66,3 +74,9 @@ _ = await Console.In.ReadLineAsync();
 
 subscriptions.ForEach(subscription => subscription.Dispose());
 cts.Cancel();
+
+public static class E
+{
+    public static string UpTo(this string s, int length) =>  s.Length > length ? s[..length] : s;
+    public static string W(this string s, int width) => String.Format($"{{0,-{width}}}", s);
+}
