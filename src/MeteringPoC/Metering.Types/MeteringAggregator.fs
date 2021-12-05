@@ -12,7 +12,14 @@ module MeteringAggregator =
         match meters with 
         | None ->
             match e with
-            | PartitionInitializing x -> x.InitialState
+            | PartitionInitializing x -> 
+                x.InitialState
+            | EventHubEvent eventHubEvent ->
+                { MeteringUpdateEvent = eventHubEvent.EventData
+                  MessagePosition = eventHubEvent.MessagePosition
+                  EventsToCatchup = eventHubEvent.EventsToCatchup }
+                |> handleMeteringEvent config MeterCollection.Empty
+                |> Some
             | _ -> None
         | Some meterCollection ->
             match e with
@@ -20,7 +27,7 @@ module MeteringAggregator =
                 { MeteringUpdateEvent = eventHubEvent.EventData
                   MessagePosition = eventHubEvent.MessagePosition
                   EventsToCatchup = eventHubEvent.EventsToCatchup }
-                |> meterCollectionHandleMeteringEvent config meterCollection
+                |> handleMeteringEvent config meterCollection
                 |> Some
             | _ -> None
 

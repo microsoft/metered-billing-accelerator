@@ -7,9 +7,9 @@ type MeterValue =
     | IncludedQuantity of IncludedQuantity
 
 module MeterValue =
-    let createIncludedMonthly now amount =  IncludedQuantity { Annually = None; Monthly = Some amount; Created = now; LastUpdate = now }
-    let createIncludedAnnually now amount =  IncludedQuantity { Annually = Some amount; Monthly = None; Created = now; LastUpdate = now }
-    let createIncluded now monthlyAmount annualAmount =  IncludedQuantity { Annually = Some annualAmount; Monthly = Some monthlyAmount; Created = now; LastUpdate = now }
+    let createIncludedMonthly now amount = IncludedQuantity { Annually = None; Monthly = Some amount; Created = now; LastUpdate = now }
+    let createIncludedAnnually now amount = IncludedQuantity { Annually = Some amount; Monthly = None; Created = now; LastUpdate = now }
+    let createIncluded now monthlyAmount annualAmount = IncludedQuantity { Annually = Some annualAmount; Monthly = Some monthlyAmount; Created = now; LastUpdate = now }
       
     let topupMonthlyCredits (now: MeteringDateTime) (quantity: Quantity) (pri: RenewalInterval) (meterValue: MeterValue) : MeterValue =
         match meterValue with 

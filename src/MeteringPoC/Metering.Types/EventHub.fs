@@ -1,12 +1,11 @@
 ﻿namespace Metering.Types.EventHub
 
+open System
+open System.Runtime.CompilerServices
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.Types
-open System.Runtime.CompilerServices
-open NodaTime
-open System
 
 type SequenceNumber = int64
 
@@ -27,9 +26,9 @@ type MessagePosition =
 module MessagePosition =
     let startingPosition (someMessagePosition: MessagePosition option) =
         match someMessagePosition with
-        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber, isInclusive = false)
         | None -> EventPosition.Earliest
-    
+        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber, isInclusive = false) // If isInclusive=true, the specified event is included; otherwise the next event is returned.
+
     let create (partitionId: string) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId |> PartitionID.PartitionID
           SequenceNumber = eventData.SequenceNumber
@@ -96,17 +95,15 @@ type EventHubProcessorEvent<'TState, 'TEvent> =
     | PartitionInitializing of PartitionInitializing<'TState>
     | PartitionClosing of PartitionClosing
     | EventHubEvent of EventHubEvent<'TEvent>
-    | EventHubError of (PartitionID * exn)
+    | EventHubError of PartitionID:PartitionID * Exception:exn
 
 module EventHubProcessorEvent =
-    
-
     let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
         match e with
         | PartitionInitializing e -> e.PartitionInitializingEventArgs.PartitionId |> PartitionID.create
         | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId |> PartitionID.create
         | EventHubEvent e -> e.MessagePosition.PartitionID
-        | EventHubError (partitionId,_) -> partitionId
+        | EventHubError (partitionID, _) -> partitionID
         
     let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
         let pi = e |> partitionId

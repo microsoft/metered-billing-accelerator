@@ -41,8 +41,9 @@ module EventHubObservableClient =
                 try
                     match (EventHubEvent.create processEventArgs converter) with
                     | Some e ->                     
-                        // Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
-                        printfn $"new event {e.MessagePosition.PartitionID |> PartitionID.value}-{e.MessagePosition.SequenceNumber}" 
+                        Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
+                        
+                        printfn $"\n\nnew event {e.MessagePosition.PartitionID |> PartitionID.value}-{e.MessagePosition.SequenceNumber} {e}" 
                         o.OnNext(EventHubEvent e)
                     | None -> ()
                 with
@@ -81,8 +82,11 @@ module EventHubObservableClient =
                         let! (initialState: 'TState) =
                             determineInitialState partitionInitializingEventArgs innerCancellationToken
 
+                        printfn "Initial state %A" initialState
                         let startingPosition = determinePosition initialState
                         partitionInitializingEventArgs.DefaultStartingPosition <- startingPosition
+
+                        printfn "Starting position %A" startingPosition
 
                         let evnt =
                             PartitionInitializing
@@ -158,4 +162,3 @@ module EventHubObservableClient =
             (fun x -> Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()))
             cancellationToken
         |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))
-

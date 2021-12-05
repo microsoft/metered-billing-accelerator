@@ -41,7 +41,7 @@ module Json =
                 Decode.string |> Decode.andThen(decodeInfinite)
             ] |> Decode.oneOf
 
-    module EventHubJSON =
+    module MessagePosition =
         open Metering.Types.EventHub
 
         let (partitionId, sequenceNumber, partitionTimestamp, offset) = 
@@ -143,7 +143,6 @@ module Json =
             ] |> Decode.oneOf
 
     module RenewalInterval =
-        
         let Encoder (x: RenewalInterval) =
             match x with
             | Monthly -> nameof(Monthly) |> Encode.string
@@ -370,7 +369,7 @@ module Json =
                 (metersMapping, x.InternalMetersMapping |> InternalMetersMapping.Encoder)
                 (currentMeters, x.CurrentMeterValues |> CurrentMeterValues.Encoder)
                 (usageToBeReported, x.UsageToBeReported |> List.map MeteringAPIUsageEventDefinition.Encoder |> Encode.list)
-                (lastProcessedMessage, x.LastProcessedMessage |> EventHubJSON.Encoder)
+                (lastProcessedMessage, x.LastProcessedMessage |> MessagePosition.Encoder)
             ] |> Encode.object 
 
         let Decoder : Decoder<Meter> =
@@ -379,24 +378,31 @@ module Json =
                 InternalMetersMapping = get.Required.Field metersMapping InternalMetersMapping.Decoder
                 CurrentMeterValues = get.Required.Field currentMeters CurrentMeterValues.Decoder
                 UsageToBeReported = get.Required.Field usageToBeReported (Decode.list MeteringAPIUsageEventDefinition.Decoder)
-                LastProcessedMessage = get.Required.Field lastProcessedMessage EventHubJSON.Decoder
+                LastProcessedMessage = get.Required.Field lastProcessedMessage MessagePosition.Decoder
             })
 
     module MeterCollection =
-        let Encoder (x: MeterCollection) = 
-            x
-            |> MeterCollection.value
-            |> Map.toSeq |> Seq.toList
-            |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder))
-            |> Encode.object
+        let (meters, lastProcessedMessage) = ("meters", "lastProcessedMessage")
+
+
+        let Encoder (x: MeterCollection) : JsonValue =
+            [
+                (meters, x |> MeterCollection.value |> Map.toSeq |> Seq.toList |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder)) |> Encode.object)                
+            ]
+            |> (fun l -> 
+                match x.LastUpdate with
+                | None -> l
+                | Some lastUpdate -> (lastProcessedMessage, lastUpdate |> MessagePosition.Encoder) :: l)
+            |> Encode.object 
 
         let Decoder : Decoder<MeterCollection> =
             let turnKeyIntoSubscriptionType (k, v) =
                 (k |> InternalResourceId.fromStr, v)
 
-            (Decode.keyValuePairs Meter.Decoder)
-            |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> MeterCollection.create |> Decode.succeed)
-
+            Decode.object (fun get -> {
+                LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder 
+                MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed))
+            })
     
     module MarketplaceSubmissionAcceptedResponse =
         let (usageEventId, status, messageTime, resourceId, resourceUri, quantity, dimensionId, effectiveStartTime, planId) =
@@ -548,7 +554,7 @@ module Json =
         |> Extra.withInt64
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
-        |> Extra.withCustom EventHubJSON.Encoder EventHubJSON.Decoder
+        |> Extra.withCustom MessagePosition.Encoder MessagePosition.Decoder
         |> Extra.withCustom IncludedQuantitySpecification.Encoder IncludedQuantitySpecification.Decoder
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder

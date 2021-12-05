@@ -188,7 +188,7 @@ let demoAggregation config =
     let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
 
     eventsFromEventHub
-    |> MeterCollectionLogic.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+    |> MeterCollectionLogic.handleMeteringEvents config MeterCollection.Uninitialized
     |> Json.toStr 2
     |> inspect ""
     |> Json.fromStr<MeterCollection>
@@ -223,7 +223,7 @@ let demoUsageSubmission config =
 let demoStorage config eventsFromEventHub =
     let events = 
         eventsFromEventHub
-        |> MeterCollectionLogic.meterCollectionHandleMeteringEvents config MeterCollection.empty // We start completely uninitialized
+        |> MeterCollectionLogic.handleMeteringEvents config MeterCollection.Uninitialized // We start completely uninitialized
         |> Json.toStr 1                             |> inspect "meters"
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         

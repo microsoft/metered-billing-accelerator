@@ -15,13 +15,12 @@ module InstanceMetadataClient =
     // When running in SaaS, use service principal
 
     let clientWithMetadataTrue endpoint =
-        let client = new HttpClient()
-        client.BaseAddress <- new Uri(endpoint)
+        let client = new HttpClient(BaseAddress = new Uri(endpoint))
         client.DefaultRequestHeaders.Add("Metadata", "true")
         client
 
     let private get_access_token : (MeteringAPICredentials -> string -> Task<string>) =
-        let getMSIConfigFromEnvironment : (string * (string * string) option * string) =
+        let getMSIConfigFromEnvironment :  (string * (string * string) option * string) =
             let env s = 
                 match s |> Environment.GetEnvironmentVariable with
                 | v when String.IsNullOrWhiteSpace(v) -> None
@@ -63,8 +62,10 @@ module InstanceMetadataClient =
                         |> List.map (fun (x,y) -> new KeyValuePair<string,string>(x,y))
                         |> (fun x -> new FormUrlEncodedContent(x))
                               
-                    let request = new HttpRequestMessage(HttpMethod.Post, uri)
-                    request.Content <- content
+                    let request = new HttpRequestMessage(
+                        method = HttpMethod.Post,
+                        requestUri = uri,
+                        Content = content)
                         
                     let tokenClient = new HttpClient()
                     let! response = tokenClient.SendAsync(request)
@@ -88,24 +89,19 @@ module InstanceMetadataClient =
     let private create cred resource uri =
         task {
             let! access_token = get_access_token cred resource
-            let client = new HttpClient()
-            client.BaseAddress <- new Uri(uri)
+            let client = new HttpClient(BaseAddress = new Uri(uri))
             client.DefaultRequestHeaders.Add("Authorization", $"Bearer {access_token}")
             return client
         }
         
     let createArmClient () =
-        create 
+        create
             ManagedIdentity
             "https://management.azure.com/" // resource
             "https://management.azure.com/" // uri
 
     let createMarketplaceClient cred =
-        let documentedEndpoint = "marketplaceapi.microsoft.com"
-        let seeminglyNewEndpoint = "saasapi.azure.com"
-
-        // https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/pc-saas-registration#get-the-token-with-an-http-post
         create
             cred
-            "20e940b3-4c77-4b0b-9a53-9e16a1b010a7" // resource
-            $"https://{seeminglyNewEndpoint}/"     // uri
+            "20e940b3-4c77-4b0b-9a53-9e16a1b010a7" // resource according to https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/pc-saas-registration#get-the-token-with-an-http-post
+            "https://saasapi.azure.com" // "https://marketplaceapi.microsoft.com"

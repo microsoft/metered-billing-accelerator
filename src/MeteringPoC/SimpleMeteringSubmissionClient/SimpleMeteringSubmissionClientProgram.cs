@@ -3,9 +3,7 @@ using System.Text;
 using Metering;
 using Metering.Types;
 
-#pragma warning disable CS8601 // Possible null reference assignment.
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
-#pragma warning restore CS8601 // Possible null reference assignment.
 
 static string guidFromStr(string str) => new Guid(SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(str)).Take(16).ToArray()).ToString();
 
@@ -39,20 +37,20 @@ try
                     subscriptionStart: MeteringDateTimeModule.now()));
 
             await Console.Out.WriteLineAsync($"Creating subscription {subName} ({saasId})");
-            await eventHubProducerClient.CreateSubscription(sci, cts.Token);
+            await eventHubProducerClient.SubmitSubscriptionCreationAsync(sci, cts.Token);
         }
         else if (command.ToLower().StartsWith("s"))
         {
             subName = command.Split(' ')[1];
             saasId = guidFromStr(subName);
 
-            await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
-            await eventHubProducerClient.SubmitSaasIntegerAsync(saasId: saasId, meterName: "cpu", quantity: 1, cts.Token);
+            await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
+            await eventHubProducerClient.SubmitSaaSMeterAsync(saasId: saasId, meterName: "cpu", quantity: 1, cts.Token);
         }
         else
         {
             await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
-            await eventHubProducerClient.SubmitSaasIntegerAsync(saasId: saasId, meterName: "cpu", quantity: 1, cts.Token);
+            await eventHubProducerClient.SubmitSaaSMeterAsync(saasId: saasId, meterName: "cpu", quantity: 1.0M, cts.Token);
         }
     }
 }

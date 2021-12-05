@@ -1,7 +1,5 @@
-﻿using System.Diagnostics.Tracing;
-using System.Reactive.Linq;
+﻿using System.Reactive.Linq;
 using System.Reflection;
-using Azure.Core.Diagnostics;
 using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
@@ -40,6 +38,7 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
             seed: MeterCollectionModule.Uninitialized,
             accumulator: accumulator
         )
+        .Where(x => x.IsSome())
         .Select(x => x.Value)
         //.StartWith()
         //.PublishLast()
@@ -63,7 +62,7 @@ subscriptions.Add(groupedSub);
 
 
 void handleCollection (PartitionID partitionId, MeterCollection meterCollection) {
-    Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdate()} {Json.toStr(0, meterCollection).UpTo(30)}");
+    Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
     MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
 };
 

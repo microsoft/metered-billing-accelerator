@@ -1,18 +1,18 @@
 ﻿namespace Metering.Types
 
-open Azure.Messaging.EventHubs.Consumer
 open Metering.Types.EventHub
 open System.Runtime.CompilerServices
 
-type MeterCollection = MeterCollection of Map<InternalResourceId, Meter>
+type MeterCollection = 
+    { MeterCollection: Map<InternalResourceId, Meter>
+      LastUpdate: MessagePosition option }
 
 type SomeMeterCollection = MeterCollection option
  
 [<Extension>]
 module MeterCollection =
-    let value (MeterCollection x) = x
-    let create x = (MeterCollection x)
-
-    let empty : MeterCollection = Map.empty |> create
+    let value (x : MeterCollection) = x.MeterCollection
+    let create lu x = { MeterCollection = x; LastUpdate = Some lu }
     
-    let Uninitialized : (SomeMeterCollection) = None
+    let Uninitialized : (MeterCollection option) = None
+    let Empty = { MeterCollection = Map.empty; LastUpdate = None }
