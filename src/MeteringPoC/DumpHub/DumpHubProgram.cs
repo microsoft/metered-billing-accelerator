@@ -107,7 +107,7 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
-Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
+Console.Title = Assembly.GetExecutingAssembly().GetName().Name!;
 
 var connections = MeteringConnectionsModule.getFromEnvironment();
 

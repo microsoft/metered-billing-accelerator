@@ -69,13 +69,10 @@ module CaptureProcessor =
                     offset = offset, partitionKey = partitionKey)
         }
 
-    [<Extension>]
-    let ReadCaptureFromPosition 
-        (connections: MeteringConnections)
-        // (position: MessagePosition)
-        ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) 
-        : IEnumerable<EventData> =
-        
+    let readCaptureFromPosition 
+            (cancellationToken: CancellationToken) 
+            (connections: MeteringConnections)
+            : IEnumerable<EventData> =
         // failwith "completely untested"
         match connections.EventHubConfig.CaptureStorage with
         | None -> Seq.empty
@@ -92,6 +89,13 @@ module CaptureProcessor =
                         for i in items do
                             yield i
             }
+
+    [<Extension>]
+    let ReadCaptureFromPosition connections ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) = 
+        connections |> readCaptureFromPosition cancellationToken
+        
+        
+
     
     //let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
     //    task {

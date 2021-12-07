@@ -382,12 +382,12 @@ module Json =
             })
 
     module MeterCollection =
-        let (meters, lastProcessedMessage) = ("meters", "lastProcessedMessage")
-
+        let (meters, unprocessable, lastProcessedMessage) = ("meters", "unprocessable", "lastProcessedMessage")
 
         let Encoder (x: MeterCollection) : JsonValue =
             [
                 (meters, x |> MeterCollection.value |> Map.toSeq |> Seq.toList |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder)) |> Encode.object)                
+                (unprocessable, x.UnprocessableUsage |> List.map InternalUsageEvent.Encoder |> Encode.list)
             ]
             |> (fun l -> 
                 match x.LastUpdate with
@@ -400,8 +400,9 @@ module Json =
                 (k |> InternalResourceId.fromStr, v)
 
             Decode.object (fun get -> {
-                LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder 
                 MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed))
+                UnprocessableUsage = get.Required.Field unprocessable (Decode.list InternalUsageEvent.Decoder)
+                LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder
             })
     
     module MarketplaceSubmissionAcceptedResponse =

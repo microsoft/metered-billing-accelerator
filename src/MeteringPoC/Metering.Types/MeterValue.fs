@@ -116,3 +116,6 @@ module MeterValue =
         current
         |> Option.bind ((subtract quantity) >> Some) 
 
+    let toStr = function
+        | ConsumedQuantity cq -> cq |> ConsumedQuantity.toStr
+        | IncludedQuantity iq -> iq |> IncludedQuantity.toStr

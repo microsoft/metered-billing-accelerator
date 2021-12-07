@@ -61,6 +61,7 @@
     <Compile Include="ClientSDK.fs" />
     <Compile Include="MeterCollectionStore.fs" />
     <Compile Include="MeteringAggregator.fs" />
+    <Compile Include="Status.fs" />
     <Compile Include="EventHubObservableClient.fs" />
   </ItemGroup>
 </Project>

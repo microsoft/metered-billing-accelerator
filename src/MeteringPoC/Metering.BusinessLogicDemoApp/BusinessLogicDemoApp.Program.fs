@@ -3,8 +3,6 @@
 open System
 open System.Net.Http
 open System.Threading
-open Azure.Messaging.EventHubs.Consumer
-open NodaTime
 open Metering.Types
 open Metering.Types.EventHub
 
@@ -21,6 +19,7 @@ let parseConsumptionEvents (str: string) =
           LastOffset = 1L
           LastSequenceNumber = 100L
           LastEnqueuedTime = dateStr |> MeteringDateTime.fromStr }
+        |> Some
 
     let parseUsageEvents events =
         let parseUsageEvent (s: string) =
@@ -108,7 +107,7 @@ let demoAggregation config =
                           LastSequenceNumber = 100L
                           LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr                           
                           NumberOfEvents = 1
-                          TimeDeltaSeconds = 1.0 }}       
+                          TimeDeltaSeconds = 1.0 } |> Some }       
         )
 
     // 11111111-8a88-4a47-a691-1b31c289fb33 is a sample GUID of a SaaS subscription
@@ -250,14 +249,16 @@ let demoStorage config eventsFromEventHub =
 
 [<EntryPoint>]
 let main argv = 
-    let config = 
-        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-          SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
-          GracePeriod = Duration.FromHours(6.0)
-          ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
-          MeteringConnections = MeteringConnections.getFromEnvironment() }
 
-    demoUsageSubmission config
+
+    //let config = 
+    //    { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+    //      SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
+    //      GracePeriod = Duration.FromHours(6.0)
+    //      ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
+    //      MeteringConnections = MeteringConnections.getFromEnvironment() }
+
+    //demoUsageSubmission config
 
     //let eventsFromEventHub = demoAggregation config
     //demoStorage config eventsFromEventHub

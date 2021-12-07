@@ -305,3 +305,32 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
     )
     |> ignore
 
+[<Test>]
+let Quantity_Comparison() =
+    let fiveInt = Quantity.createInt 5UL
+    let tenInt = Quantity.createInt 10UL
+    let fiveFloat = Quantity.createFloat 5M
+    let tenFloat = Quantity.createFloat 10M
+    
+    Assert.AreEqual(fiveFloat, fiveInt)
+    Assert.AreEqual(tenFloat, tenInt)
+
+    Assert.IsTrue(fiveFloat < tenFloat)
+    Assert.IsTrue(fiveInt < tenFloat)
+    Assert.IsTrue(fiveFloat < tenInt)
+    Assert.IsTrue(fiveInt < tenInt)
+
+    Assert.IsTrue(tenFloat > fiveFloat)
+    Assert.IsTrue(tenFloat > fiveInt)
+    Assert.IsTrue(tenInt > fiveFloat)
+    Assert.IsTrue(tenInt > fiveInt)
+
+    Assert.IsTrue(fiveFloat <= tenFloat)
+    Assert.IsTrue(fiveInt <= tenFloat)
+    Assert.IsTrue(fiveFloat <= tenInt)
+    Assert.IsTrue(fiveInt <= tenInt)
+
+    Assert.IsTrue(tenFloat >= fiveFloat)
+    Assert.IsTrue(tenFloat >= fiveInt)
+    Assert.IsTrue(tenInt >= fiveFloat)
+    Assert.IsTrue(tenInt >= fiveInt)

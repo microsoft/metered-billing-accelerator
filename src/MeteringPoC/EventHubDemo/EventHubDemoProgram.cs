@@ -23,6 +23,21 @@ MeteringConfigurationProvider config =
         connections: connections,
         marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
+//foreach (var state in await config.fetchStates())
+//{
+//    Console.WriteLine($"Partition {state.Key}");
+//    Console.WriteLine(MeterCollectionModule.toStr(state.Value));
+//}
+
+//Console.ReadLine();
+//// Show how late we are
+//while (true)
+//{
+//    var status = await config.fetchEventsToCatchup();
+//    Console.WriteLine(status);
+//    await Task.Delay(TimeSpan.FromSeconds(1.2));
+//}
+
 Console.WriteLine($"Reading from {connections.EventHubConfig.FullyQualifiedNamespace}");
 
 Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator = 
@@ -60,9 +75,10 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
 });
 subscriptions.Add(groupedSub);
 
-
 void handleCollection (PartitionID partitionId, MeterCollection meterCollection) {
-    Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
+    //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
+
+    Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
     MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
 };
 

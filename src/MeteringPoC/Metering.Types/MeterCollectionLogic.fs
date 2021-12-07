@@ -11,17 +11,7 @@ module MeterCollectionLogic =
     let lastUpdate (someMeterCollection: MeterCollection option) : MessagePosition option = 
         match someMeterCollection with 
         | None -> None
-        | Some meters -> 
-            meters.LastUpdate 
-            //if meters |> value |> Seq.isEmpty 
-            //then None
-            //else
-            //    meters
-            //    |> value
-            //    |> Map.toSeq
-            //    |> Seq.maxBy (fun (_subType, meter) -> meter.LastProcessedMessage.SequenceNumber)
-            //    |> (fun (_, meter) -> meter.LastProcessedMessage)
-            //    |> Some
+        | Some meters -> meters.LastUpdate 
 
     [<Extension>]
     let getEventPosition (someMeters: MeterCollection option) : EventPosition =
@@ -60,42 +50,58 @@ module MeterCollectionLogic =
 
         handle key value table
 
+    let addUnprocessableMessage (usage: InternalUsageEvent) (state: MeterCollection) : MeterCollection =
+        { state with UnprocessableUsage = usage :: state.UnprocessableUsage }
+
+    let setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =    
+        { state with LastUpdate = Some messagePosition }
+        
     let handleMeteringEvent (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvent: MeteringEvent) : MeterCollection =    
         // SubscriptionPurchased should add / overwrite existing entry
         // AggregatorBooted should trigger on all entries
         // UsageReported and UsageSubmittedToAPI should fire on the appropriate entry
 
+        let applyMeters (handler: Map<InternalResourceId, Meter> -> Map<InternalResourceId, Meter>) (state: MeterCollection)  : MeterCollection =
+            let newMeterCollection = state |> value |> handler
+            { state with MeterCollection = newMeterCollection }
+
         match meteringEvent.MeteringUpdateEvent with
         | SubscriptionPurchased s -> 
             state
-            |> value
-            |> handleSubscriptionPurchased s.Subscription.InternalResourceId (Meter.createNewSubscription s meteringEvent.MessagePosition)
-            |> create meteringEvent.MessagePosition
+            |> applyMeters (handleSubscriptionPurchased s.Subscription.InternalResourceId (Meter.createNewSubscription s meteringEvent.MessagePosition))
+            |> setLastProcessed meteringEvent.MessagePosition
         | AggregatorBooted ->
             state
-            |> value
-            |> Map.toSeq
-            |> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorBooted config))
-            |> Map.ofSeq
-            |> create meteringEvent.MessagePosition
+            |> applyMeters (
+                Map.toSeq
+                >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorBooted config))
+                >> Map.ofSeq
+            )
+            |> setLastProcessed meteringEvent.MessagePosition
         | UsageSubmittedToAPI submission ->
             state
-            |> value
-            //|> Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission))
-            |> Map.change submission.Payload.ResourceId (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some))
-            |> create meteringEvent.MessagePosition
+            //|> applyMeters (Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission)))
+            |> applyMeters (Map.change submission.Payload.ResourceId (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some)))
+            |> setLastProcessed meteringEvent.MessagePosition
         | UsageReported usage -> 
-            let o = state |> value
-            let n = o |> Map.change usage.InternalResourceId (Option.bind ((Meter.handleUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
-            if o = n
-            then 
-                printfn $"collection old: {Json.toStr 0 o}"
-                printfn $"collection new: {Json.toStr 0 n}"
-                printfn $"event: {Json.toStr 0 usage}"
-                failwith "usage wasn't updated"
+            state 
+            |> (fun state -> 
+                let existingSubscription = state |> value |> Map.containsKey usage.InternalResourceId 
+                
+                if not existingSubscription
+                then 
+                    state |> addUnprocessableMessage usage
+                else
+                    let newMeterCollection =
+                        state |> value
+                        |> Map.change 
+                            usage.InternalResourceId 
+                            (Option.bind ((Meter.handleUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
 
-            n |> create meteringEvent.MessagePosition
-            
+                    { state with MeterCollection = newMeterCollection }
+            )
+            |> setLastProcessed meteringEvent.MessagePosition
+                            
     let handleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
         let state =
             match state with

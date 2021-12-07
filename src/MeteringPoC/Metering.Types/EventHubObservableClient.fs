@@ -12,6 +12,7 @@ open Azure.Messaging.EventHubs.Processor
 open Azure.Messaging.EventHubs.Consumer
 open Metering.Types
 open Metering.Types.EventHub
+open System.Text
 
 [<Extension>]
 module EventHubObservableClient =
@@ -147,6 +148,11 @@ module EventHubObservableClient =
         Observable.Create<EventHubProcessorEvent<'TState, 'TEvent>>(fsharpFunction)
 
     [<Extension>]
+    let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
+        // eventData.Body.ToArray() |> Encoding.UTF8.GetString |> Json.fromStr<MeteringUpdateEvent>
+        eventData.EventBody.ToString() |> Json.fromStr<MeteringUpdateEvent>
+        
+    [<Extension>]
     let create (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
         
         let determineInitialState (args: PartitionInitializingEventArgs) ct =
@@ -159,6 +165,6 @@ module EventHubObservableClient =
             (config.MeteringConnections |> MeteringConnections.createEventProcessorClient)
             determineInitialState
             MeterCollectionLogic.getEventPosition
-            (fun x -> Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()))
+            toMeteringUpdateEvent
             cancellationToken
         |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))

@@ -61,28 +61,40 @@ module EventsToCatchup =
         let lastOffset = lastEnqueuedEvent.Offset.Value
         let lastEnqueuedTime = lastEnqueuedEvent.EnqueuedTime.Value |> MeteringDateTime.fromDateTimeOffset
         let lastEnqueuedEventSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
+        let numberOfUnprocessedEvents = lastEnqueuedEventSequenceNumber - data.SequenceNumber
+        let timeDiffBetweenCurrentEventAndMostRecentEvent = (lastEnqueuedTime - eventEnqueuedTime).TotalSeconds
         
         { LastOffset = lastOffset
           LastSequenceNumber = lastSequenceNumber
           LastEnqueuedTime = lastEnqueuedTime
-          NumberOfEvents = lastEnqueuedEventSequenceNumber - data.SequenceNumber
-          TimeDeltaSeconds = ((lastEnqueuedTime - eventEnqueuedTime).TotalSeconds) }
+          NumberOfEvents = numberOfUnprocessedEvents
+          TimeDeltaSeconds = timeDiffBetweenCurrentEventAndMostRecentEvent }
 
 type EventHubEvent<'TEvent> =
     { MessagePosition: MessagePosition
-      EventsToCatchup: EventsToCatchup
+      EventsToCatchup: EventsToCatchup option
       EventData: 'TEvent }
 
 module EventHubEvent =
     let create (processEventArgs: ProcessEventArgs) (convert: EventData -> 'TEvent) : EventHubEvent<'TEvent> option =  
         if processEventArgs.HasEvent
         then 
-            let lastEnqueuedEventProperties = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
-            { MessagePosition = MessagePosition.create processEventArgs.Partition.PartitionId processEventArgs.Data
-              EventsToCatchup = EventsToCatchup.create processEventArgs.Data lastEnqueuedEventProperties
+            let catchUp = 
+                processEventArgs.Partition.ReadLastEnqueuedEventProperties()
+                |> EventsToCatchup.create processEventArgs.Data
+                |> Some
+
+            { MessagePosition = processEventArgs.Data |> MessagePosition.create processEventArgs.Partition.PartitionId 
+              EventsToCatchup = catchUp
               EventData = processEventArgs.Data |> convert }
             |> Some
         else None
+
+    let createFromEventData (partitionId: string) (convert: EventData -> 'TEvent) (data: EventData) : EventHubEvent<'TEvent> option =  
+        { MessagePosition = MessagePosition.create partitionId data
+          EventsToCatchup = None
+          EventData = data |> convert }
+        |> Some
 
 type PartitionInitializing<'TState> =
     { PartitionInitializingEventArgs: PartitionInitializingEventArgs
