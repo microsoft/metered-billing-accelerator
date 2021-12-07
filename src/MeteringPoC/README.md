@@ -44,8 +44,8 @@ setx.exe AZURE_METERING_INFRA_CLIENT_ID                   deadbeef-1234-4aef-80d
 setx.exe AZURE_METERING_INFRA_CLIENT_SECRET               sitrsneit239487234~nienienieni-ULYNE
 setx.exe AZURE_METERING_INFRA_TENANT_ID                   foobar.onmicrosoft.com
 
-setx.exe AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME      meterhack1
-setx.exe AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME       hub1
+setx.exe AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME      meterhack-standard
+setx.exe AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME       hub2
 
 setx.exe AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER       https://meteringhack.blob.core.windows.net/checkpoint
 setx.exe AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER         https://meteringhack.blob.core.windows.net/snapshots

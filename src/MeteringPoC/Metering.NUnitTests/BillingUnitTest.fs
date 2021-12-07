@@ -2,8 +2,9 @@ module Metering.NUnitTests.Billing
 
 open System
 open NUnit.Framework
-open Metering.Types
 open NodaTime
+open Metering.Types
+open Metering.Types.EventHub
 
 [<SetUp>]
 let Setup () = ()
@@ -25,7 +26,7 @@ let somePlan : Plan =
       BillingDimensions = Seq.empty }
 
 [<Test>]
-let Test_BillingPeriod_createFromIndex () =
+let ``BillingPeriod.createFromIndex`` () =
     let sub = Subscription.create somePlan ManagedApp Monthly (d "2021-05-13T12:00:03") 
 
     Assert.AreEqual(
@@ -35,7 +36,7 @@ let Test_BillingPeriod_createFromIndex () =
 type Subscription_determineBillingPeriod_Vector = { Purchase: (RenewalInterval * string); Expected: string; Candidate: string}
         
 [<Test>]
-let Test_BillingPeriod_determineBillingPeriod () =
+let ``BillingPeriod.determineBillingPeriod`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
         let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
@@ -57,7 +58,7 @@ let Test_BillingPeriod_determineBillingPeriod () =
 type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * string); BillingPeriodIndex: uint; Candidate: string; Expected: bool}
 
 [<Test>]
-let Test_BillingPeriod_isInBillingPeriod () =
+let ``BillingPeriod.isInBillingPeriod`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
         let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
@@ -76,7 +77,7 @@ let Test_BillingPeriod_isInBillingPeriod () =
 type BillingPeriod_getBillingPeriodDelta_Vector = { Purchase: (RenewalInterval * string); Previous: string; Current: string; Expected: BillingPeriodResult}
 
 [<Test>]
-let Test_BillingPeriod_getBillingPeriodDelta () =
+let ``BillingPeriod.getBillingPeriodDelta`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
         let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
@@ -97,7 +98,7 @@ let Test_BillingPeriod_getBillingPeriodDelta () =
 
 type MeterValue_subtractQuantityFromMeterValue_Vector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
 [<Test>]
-let Test_Logic_subtractQuantityFromMeterValue() =
+let ``MeterValue.subtractQuantity``() =
     let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
@@ -147,7 +148,7 @@ let Test_Logic_subtractQuantityFromMeterValue() =
 type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (uint64 * RenewalInterval) list; Expected: MeterValue}
 
 [<Test>]
-let Test_Logic_topupMonthlyCredits() =
+let ``MeterValue.topupMonthlyCredits``() =
     let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
@@ -198,7 +199,7 @@ let Test_Logic_topupMonthlyCredits() =
     ] |> runTestVectors test
 
 [<Test>]
-let Test_previousBillingIntervalCanBeClosedNewEvent() =
+let ``BillingPeriod.previousBillingIntervalCanBeClosedNewEvent``() =
     let test (idx, (prev, curEv, expected)) =
         let result : CloseBillingPeriod = 
             BillingPeriod.previousBillingIntervalCanBeClosedNewEvent
@@ -214,7 +215,7 @@ let Test_previousBillingIntervalCanBeClosedNewEvent() =
     ] |> runTestVectors test
 
 [<Test>]
-let Test_previousBillingIntervalCanBeClosedWakeup() =
+let ``BillingPeriod.previousBillingIntervalCanBeClosedWakeup`` () =
     let test (idx, (prev, curr, (grace: float), expected)) =
         let currentTime = curr |> MeteringDateTime.fromStr
         let gracePeriod = Duration.FromHours(grace)
@@ -229,7 +230,7 @@ let Test_previousBillingIntervalCanBeClosedWakeup() =
     ] |> runTestVectors test
 
 [<Test>]
-let QuantitySerialization() =
+let ``Quantity.Serialization`` () =
     let test (idx, v) =
         Assert.AreEqual(v, v |> Json.toStr 1 |> Json.fromStr<Quantity>, sprintf "Failure testc case #%d" idx)
 
@@ -240,7 +241,7 @@ let QuantitySerialization() =
     ] |> runTestVectors test
 
 [<Test>]
-let QuantityMath() =
+let ``Quantity.Math`` () =
     let q : (int -> Quantity) = uint64 >> Quantity.createInt
     let f : (float -> Quantity) = decimal >> Quantity.createFloat
     
@@ -257,7 +258,7 @@ let QuantityMath() =
     Assert.AreEqual(f 11.1, (q 3) + (f 8.1))
     
 [<Test>]
-let JsonRoundtrip_MarketplaceSubmissionResult() =
+let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =
     { MarketplaceSubmissionResult.Payload =
         { ResourceId = InternalResourceId.ManagedApp
           Quantity = 2.3m
@@ -306,7 +307,7 @@ let JsonRoundtrip_MarketplaceSubmissionResult() =
     |> ignore
 
 [<Test>]
-let Quantity_Comparison() =
+let ``Quantity.Comparison``() =
     let fiveInt = Quantity.createInt 5UL
     let tenInt = Quantity.createInt 10UL
     let fiveFloat = Quantity.createFloat 5M
@@ -334,3 +335,27 @@ let Quantity_Comparison() =
     Assert.IsTrue(tenFloat >= fiveInt)
     Assert.IsTrue(tenInt >= fiveFloat)
     Assert.IsTrue(tenInt >= fiveInt)
+
+[<Test>]
+let ``CaptureProcessor.isRelevantBlob`` () =
+    let isRelevant blobName =
+        CaptureProcessor.isRelevantBlob 
+            "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}"
+            ("meteringhack-standard", "hub2", "0")
+            blobName
+
+    Assert.IsTrue(isRelevant 
+        "meteringhack-standard/hub2/p0--2021-12-08--15-17-12.avro" 
+        (MeteringDateTime.create 2021 12 08 15 17 12))
+
+    Assert.IsFalse(isRelevant 
+        "meteringhack-standard/hub2/p0--2021-12-08--15-17-12.avro" 
+        (MeteringDateTime.create 2021 12 08 15 17 13))
+    
+[<Test>]
+let ``CaptureProcessor.getPrefixForRelevantBlobs`` () =
+    let ehContext = ("meteringhack-standard", "hub2", "0")
+
+    Assert.AreEqual(
+        "meteringhack-standard/hub2/p0--", 
+        CaptureProcessor.getPrefixForRelevantBlobs "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}" ehContext)

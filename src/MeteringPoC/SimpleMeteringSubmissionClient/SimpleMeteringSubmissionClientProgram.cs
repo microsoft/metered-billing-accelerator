@@ -14,6 +14,8 @@ using CancellationTokenSource cts = new();
 var config = MeteringConnectionsModule.getFromEnvironment();
 var eventHubProducerClient = config.createEventHubProducerClient();
 
+static ulong GetQuantity(string command) => command.Split(' ').Length > 2 ? ulong.Parse(command.Split(' ')[2]) : 1;
+
 try
 {
     var (subName,saasId) = ("", "");
@@ -21,7 +23,7 @@ try
     {
         await Console.Out.WriteLineAsync("c sub or s sub to submit to a particular subscription>  ");
         var command = await Console.In.ReadLineAsync();
-
+      
 
         if (command.ToLower().StartsWith("c"))
         {
@@ -43,9 +45,10 @@ try
         {
             subName = command.Split(' ')[1];
             saasId = guidFromStr(subName);
+            var count = GetQuantity(command);
 
             await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
-            await eventHubProducerClient.SubmitSaaSMeterAsync(saasId: saasId, meterName: "cpu", quantity: 1, cts.Token);
+            await eventHubProducerClient.SubmitSaaSMeterAsync(saasId: saasId, meterName: "cpu", quantity: count, cts.Token);
         }
         else
         {

@@ -5,6 +5,7 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.Globalization
 open System.IO
+open System.Text.RegularExpressions
 open System.Threading
 open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
@@ -33,19 +34,43 @@ module CaptureProcessor =
         | true, value -> value :?> 'T
         | false, _ -> raise <| new ArgumentException($"Missing field {fieldName} in {nameof(GenericRecord)} object.");
 
-    module private Tags =
-        let (n,e,p,y,m,d,H,M,S) = ("{Namespace}", "{EventHub}", "{PartitionId}", "{Year}", "{Month}", "{Day}", "{Hour}", "{Minute}", "{Second}")
+    let private createRegexPattern (captureFileNameFormat: string) ((namespaceName: string), (eventHubName: string), (partitionId: string)) : string =
+        $"{captureFileNameFormat}.avro"
+            .Replace("{Namespace}", namespaceName)
+            .Replace("{EventHub}", eventHubName)
+            .Replace("{PartitionId}", partitionId)
+            .Replace("{Year}", "(?<year>\d{4})")
+            .Replace("{Month}", "(?<month>\d{2})")
+            .Replace("{Day}", "(?<day>\d{2})")
+            .Replace("{Hour}", "(?<hour>\d{2})")
+            .Replace("{Minute}", "(?<minute>\d{2})")
+            .Replace("{Second}", "(?<second>\d{2})")
 
-    let private FormatStorageString (captureFileNameFormat: string) (cfg: EventHubConfig) (partitionContext: PartitionContext) =
-        captureFileNameFormat
-            .Replace(Tags.n, cfg.FullyQualifiedNamespace).Replace(Tags.e, cfg.InstanceName).Replace(Tags.p, partitionContext.PartitionId)
-            .Replace($"{Tags.y}/{Tags.m}/{Tags.d}/{Tags.H}/{Tags.M}/{Tags.S}", "");
-
-    let private GetStartString (captureFileNameFormat: string) (cfg: EventHubConfig) (partitionContext: PartitionContext) (startingAt: DateTime) =
-        captureFileNameFormat
-            .Replace(Tags.n, cfg.FullyQualifiedNamespace).Replace(Tags.e, cfg.InstanceName).Replace(Tags.p, partitionContext.PartitionId)
-            .Replace(Tags.y, startingAt.Year.ToString()).Replace(Tags.m, startingAt.Month.ToString("D2")).Replace(Tags.d, startingAt.Day.ToString("D2"))
-            .Replace(Tags.H, startingAt.Hour.ToString("D2")).Replace(Tags.M, startingAt.Minute.ToString("D2")).Replace(Tags.S, startingAt.Second.ToString("D2"));
+    let getPrefixForRelevantBlobs (captureFileNameFormat: string) ((namespaceName: string), (eventHubName: string), (partitionId: string)) : string =
+        let regexPattern = createRegexPattern captureFileNameFormat (namespaceName, eventHubName, partitionId)
+        let beginningOfACaptureGroup = "(?<"
+        regexPattern.Substring(startIndex = 0, length = regexPattern.IndexOf(beginningOfACaptureGroup))
+    
+    let isRelevantBlob (captureFileNameFormat: string) ((namespaceName: string), (eventHubName: string), (partitionId: string)) (blobName: string) (time: MeteringDateTime): bool = 
+        // Take an input format from , archiveDescription.destination.properties.archiveNameFormat
+        // https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-resource-manager-namespace-event-hub-enable-capture#capturenameformat
+        // "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}"
+        // and convert it into a regex, so we can check if a given blob fits the bill
+        // meteringhack-standard/hub2/p0--2021-12-06--15-17-12.avro
+    
+        let regex = 
+            new Regex(
+                pattern = createRegexPattern captureFileNameFormat (namespaceName, eventHubName, partitionId), 
+                options = RegexOptions.ExplicitCapture)
+    
+        let matcH = regex.Match(input = blobName)        
+        match matcH.Success with 
+        | false -> false
+        | true ->
+            let g (name: string) = matcH.Groups[name].Value |> Int32.Parse
+            let t = MeteringDateTime.create ("year" |> g) ("month" |> g) ("day" |> g) ("hour" |> g) ("minute" |> g) ("second" |> g)
+            (t - time).BclCompatibleTicks >= 0;
+    
 
     [<Extension>]
     let ReadEventDataFromAvroStream (stream: Stream) : IEnumerable<EventData> =
@@ -69,7 +94,7 @@ module CaptureProcessor =
                     offset = offset, partitionKey = partitionKey)
         }
 
-    let readCaptureFromPosition 
+    let readCaptureFromPosition
             (cancellationToken: CancellationToken) 
             (connections: MeteringConnections)
             : IEnumerable<EventData> =
