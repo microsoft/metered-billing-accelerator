@@ -3,9 +3,10 @@
     "ReadAvroSample": {
       "commandName": "Project",
       "environmentVariables": {
-        "AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME": "meteringhack-standard",
         "AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME": "hub2",
-        "AZURE_METERING_INFRA_CAPTURE_CONTAINER": "https://meteringhack.blob.core.windows.net/hub2capture"
+        "AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME": "meteringhack-standard",
+        "AZURE_METERING_INFRA_CAPTURE_CONTAINER": "https://meteringhack.blob.core.windows.net/hub2capture",
+        "AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT": "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}"
       }
     }
   }

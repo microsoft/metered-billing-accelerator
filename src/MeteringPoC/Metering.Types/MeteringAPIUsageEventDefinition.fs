@@ -7,6 +7,10 @@ type MeteringAPIUsageEventDefinition = // From aggregator to metering API
       DimensionId: DimensionId 
       EffectiveStartTime: MeteringDateTime }
 
+module MeteringAPIUsageEventDefinition =
+    let toStr (x: MeteringAPIUsageEventDefinition) : string =
+        $"Usage: {x.ResourceId |> InternalResourceId.toStr} {x.EffectiveStartTime} {x.PlanId}/{x.DimensionId}: {x.Quantity}"
+
 type MarketplaceSubmissionAcceptedResponse = 
     { UsageEventId: string
       MessageTime: MeteringDateTime

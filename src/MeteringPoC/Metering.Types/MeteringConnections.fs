@@ -9,13 +9,17 @@ open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
 open Azure.Messaging.EventHubs
 
+type CaptureStorage = 
+    { CaptureFileNameFormat: string
+      Storage: BlobContainerClient }
+
 type EventHubConfig =
     { NamespaceName: string
       FullyQualifiedNamespace: string
       InstanceName: string
       ConsumerGroupName: string
       CheckpointStorage: BlobContainerClient
-      CaptureStorage: BlobContainerClient option
+      CaptureStorage: CaptureStorage option
       InfraStructureCredentials: TokenCredential }
 
 type MeteringConnections =
@@ -37,20 +41,24 @@ module MeteringConnections =
             match ("MARKETPLACE_TENANT_ID" |> get, "MARKETPLACE_CLIENT_ID" |> get, "MARKETPLACE_CLIENT_SECRET" |> get) with
             | (Some t, Some i, Some s) -> MeteringAPICredentials.createServicePrincipal t i s
             | (None, None, None) -> ManagedIdentity
-            | _ -> failwith "The MeteringAPICredential configuration is incomplete."
+            | _ -> failwith $"The {nameof(MeteringAPICredentials)} configuration is incomplete."
             
         let infraStructureCredential = 
             match ("INFRA_TENANT_ID" |> get, "INFRA_CLIENT_ID" |> get, "INFRA_CLIENT_SECRET" |> get) with
             | (Some t, Some i, Some s) -> InfraStructureCredentials.createServicePrincipal t i s
             | (None, None, None) -> InfraStructureCredentials.createManagedIdentity()
-            | _ -> failwith "The InfraStructureCredential configuration is incomplete."
+            | _ -> failwith $"The {nameof(InfraStructureCredentials)} configuration is incomplete."
                     
         let containerClientWith (cred: TokenCredential) uri = new BlobContainerClient(blobContainerUri = new Uri(uri), credential = cred)
 
         let captureStorage =
-            match "INFRA_CAPTURE_CONTAINER" |> get with
-            | None -> None
-            | Some c -> c |> containerClientWith infraStructureCredential |> Some
+            match ("INFRA_CAPTURE_CONTAINER" |> get, "INFRA_CAPTURE_FILENAME_FORMAT" |> get) with
+            | (None, None) -> None
+            | (Some c, Some f) -> 
+                { Storage = c |> containerClientWith infraStructureCredential 
+                  CaptureFileNameFormat = f }
+                |> Some
+            |  _ -> failwith $"The {nameof(CaptureStorage)} configuration is incomplete."
 
         let nsn = "INFRA_EVENTHUB_NAMESPACENAME" |> getRequired
 

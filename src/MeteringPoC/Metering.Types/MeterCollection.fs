@@ -3,7 +3,6 @@
 open Metering.Types.EventHub
 open System.Runtime.CompilerServices
 
-
 type MeterCollection = 
     { MeterCollection: Map<InternalResourceId, Meter>
       UnprocessableUsage: InternalUsageEvent list

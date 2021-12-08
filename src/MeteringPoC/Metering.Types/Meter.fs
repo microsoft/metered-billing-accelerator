@@ -106,7 +106,15 @@ module Meter =
         |> topupMonthlyCreditsOnNewSubscription messagePosition.PartitionTimestamp
 
     let toStr (pid: string) (m: Meter) =
-        m.CurrentMeterValues
-        |> CurrentMeterValues.toStr
-        |> Seq.map(fun v -> $"{pid} {m.Subscription.InternalResourceId |> InternalResourceId.toStr}: {v}")
-        |> String.concat "\n"
+        let mStr =
+            m.CurrentMeterValues
+            |> CurrentMeterValues.toStr
+            |> Seq.map(fun v -> $"{pid} {m.Subscription.InternalResourceId |> InternalResourceId.toStr}: {v}")
+            |> String.concat "\n"
+
+        let uStr =
+            m.UsageToBeReported
+            |> Seq.map MeteringAPIUsageEventDefinition.toStr
+            |> String.concat "\n"
+
+        $"{mStr}\n{uStr}"

@@ -40,7 +40,7 @@ module EventHubObservableClient =
 
             let ProcessEvent (processEventArgs: ProcessEventArgs) =
                 try
-                    match (EventHubEvent.create processEventArgs converter) with
+                    match (EventHubEvent.createFromEventHub converter processEventArgs ) with
                     | Some e ->                     
                         Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
                         
@@ -135,7 +135,6 @@ module EventHubObservableClient =
                     }
 
                 Async.StartAsTask(a, cancellationToken = innerCancellationToken)
-
 
             let _ =
                 Task.Run(

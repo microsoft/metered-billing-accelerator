@@ -6,6 +6,7 @@ open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.Types
+open System.Collections.Generic
 
 type SequenceNumber = int64
 
@@ -34,7 +35,13 @@ module MessagePosition =
           SequenceNumber = eventData.SequenceNumber
           Offset = eventData.Offset
           PartitionTimestamp = eventData.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset }
-        
+    
+    let createData (partitionId: string) (sequenceNumber: int64) (offset: int64) (partitionTimestamp: MeteringDateTime) =
+        { PartitionID = partitionId |> PartitionID.create
+          SequenceNumber = sequenceNumber
+          Offset = offset
+          PartitionTimestamp = partitionTimestamp }
+ 
 type SeekPosition =
     | FromSequenceNumber of SequenceNumber: SequenceNumber 
     | Earliest
@@ -70,15 +77,30 @@ module EventsToCatchup =
           NumberOfEvents = numberOfUnprocessedEvents
           TimeDeltaSeconds = timeDiffBetweenCurrentEventAndMostRecentEvent }
 
+/// Indicate whether an event was read from EventHub, or from the associated capture storage.
+type EventSource =
+    | EventHub
+    | Capture of BlobName:string
+
+module EventSource =
+    let toStr = 
+        function
+        | EventHub -> "EventHub"
+        | Capture(BlobName=b) -> b
+
 type EventHubEvent<'TEvent> =
     { MessagePosition: MessagePosition
       EventsToCatchup: EventsToCatchup option
-      EventData: 'TEvent }
+      EventData: 'TEvent
+
+      /// Indicate whether an event was read from EventHub, or from the associated capture storage.      
+      Source: EventSource }
 
 module EventHubEvent =
-    let create (processEventArgs: ProcessEventArgs) (convert: EventData -> 'TEvent) : EventHubEvent<'TEvent> option =  
-        if processEventArgs.HasEvent
-        then 
+    let createFromEventHub (convert: EventData -> 'TEvent) (processEventArgs: ProcessEventArgs) : EventHubEvent<'TEvent> option =  
+        if not processEventArgs.HasEvent
+        then None
+        else
             let catchUp = 
                 processEventArgs.Partition.ReadLastEnqueuedEventProperties()
                 |> EventsToCatchup.create processEventArgs.Data
@@ -86,14 +108,15 @@ module EventHubEvent =
 
             { MessagePosition = processEventArgs.Data |> MessagePosition.create processEventArgs.Partition.PartitionId 
               EventsToCatchup = catchUp
-              EventData = processEventArgs.Data |> convert }
+              EventData = processEventArgs.Data |> convert
+              Source = EventHub }
             |> Some
-        else None
 
-    let createFromEventData (partitionId: string) (convert: EventData -> 'TEvent) (data: EventData) : EventHubEvent<'TEvent> option =  
+    let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: string) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
         { MessagePosition = MessagePosition.create partitionId data
           EventsToCatchup = None
-          EventData = data |> convert }
+          EventData = data |> convert 
+          Source = Capture(BlobName = blobName)}
         |> Some
 
 type PartitionInitializing<'TState> =
@@ -130,3 +153,16 @@ module EventHubProcessorEvent =
         match e with
         | EventHubEvent e -> e
         | _ -> raise (new ArgumentException(message = $"Not an {nameof(EventHubEvent)}", paramName = nameof(e)))
+
+module internal Capture =
+    type RehydratedFromCaptureEventData(
+        blobName: string, eventBody: byte[], 
+        properties: IDictionary<string, obj>, systemProperties: IReadOnlyDictionary<string, obj>, 
+        sequenceNumber: int64, offset: int64, enqueuedTime: DateTimeOffset, partitionKey: string) =                 
+        inherit EventData(new BinaryData(eventBody), properties, systemProperties, sequenceNumber, offset, enqueuedTime, partitionKey)
+        member this.BlobName = blobName
+    
+    let getBlobName (e: EventData) : string option =
+        match e with
+        | :? RehydratedFromCaptureEventData -> (downcast e : RehydratedFromCaptureEventData) |> (fun x -> x.BlobName) |> Some
+        | _ -> None 

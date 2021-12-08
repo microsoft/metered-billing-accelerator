@@ -79,6 +79,8 @@ void handleCollection (PartitionID partitionId, MeterCollection meterCollection)
     //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
 
     Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
+
+    Console.WriteLine(Json.toStr(2, meterCollection));
     MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
 };
 
