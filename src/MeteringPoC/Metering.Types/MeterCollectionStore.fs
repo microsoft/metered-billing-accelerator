@@ -100,22 +100,19 @@ module MeterCollectionStore =
     
     let private currentName (config: MeteringConfigurationProvider) (lastUpdate: MessagePosition) = $"{config |> prefix}/{lastUpdate.PartitionID |> PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
     
-    let loadLastState
+    let loadStateFromFilename
         (config: MeteringConfigurationProvider)
         (partitionID: PartitionID)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
+        (name: string)
         : Task<MeterCollection option> =
-
-        printfn $"Loading state for partition {partitionID |> PartitionID.value}"
-
         task {
-            let latest = latestName config partitionID
-            let blob = config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
-            
+            let blob = config.MeteringConnections.SnapshotStorage.GetBlobClient(name)
+    
             try
                 let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
                 let! meterCollection = content.Value.Content |> gzipDecompress |> fromJSONStream<MeterCollection>
-                
+        
                 eprintfn $"Successfully downloaded state, last event was {meterCollection |> getLastUpdateAsString}"
                 return Some meterCollection
             with
@@ -127,6 +124,14 @@ module MeterCollectionStore =
                 eprintfn $"Bad stuff happening {e.Message}"
                 return None
         }
+
+    let loadStateFromPosition config partitionID cancellationToken messagePosition =
+        currentName config messagePosition
+        |> loadStateFromFilename config partitionID cancellationToken
+
+    let loadLastState config partitionID cancellationToken =
+        latestName config partitionID
+        |> loadStateFromFilename config partitionID cancellationToken
 
     let storeLastState
         (config: MeteringConfigurationProvider)

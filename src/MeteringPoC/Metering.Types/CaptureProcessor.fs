@@ -174,8 +174,12 @@ module CaptureProcessor =
                 // and you're looking for an event with timestamp 2021-12-06--15-17-10, 
                 // you must select the last one with a timestamp prior the lookup one.
 
-                let indexOfTheFirstFullyRelevantCaptureFile = blobs |> Array.findIndex fullyRelevant
-                let indexOfTheFirstPartlyRelevantCaptureFile = indexOfTheFirstFullyRelevantCaptureFile - 1
+                let indexOfTheFirstFullyRelevantCaptureFileOption = blobs |> Array.tryFindIndex fullyRelevant
+
+                let indexOfTheFirstPartlyRelevantCaptureFile = 
+                    match indexOfTheFirstFullyRelevantCaptureFileOption with
+                    | None -> blobs.Length - 1
+                    | Some indexOfTheFirstFullyRelevantCaptureFile -> indexOfTheFirstFullyRelevantCaptureFile - 1
 
                 let relevantBlobs =
                     blobs
