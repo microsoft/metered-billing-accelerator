@@ -1,6 +1,7 @@
 ﻿namespace Metering.Types
 
 open System
+open System.Runtime.CompilerServices
 open Microsoft.Extensions.Configuration
 open Azure.Core
 open Azure.Storage.Blobs
@@ -8,14 +9,25 @@ open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
 open Azure.Messaging.EventHubs
 
+type CaptureStorage = 
+    { CaptureFileNameFormat: string
+      Storage: BlobContainerClient }
+
+type EventHubConfig =
+    { NamespaceName: string
+      FullyQualifiedNamespace: string
+      InstanceName: string
+      ConsumerGroupName: string
+      CheckpointStorage: BlobContainerClient
+      CaptureStorage: CaptureStorage option
+      InfraStructureCredentials: TokenCredential }
+
 type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials 
-      EventHubConsumerClient: EventHubConsumerClient
-      EventHubProducerClient: EventHubProducerClient
-      EventProcessorClient: EventProcessorClient
-      SnapshotStorage: BlobContainerClient }
+      SnapshotStorage: BlobContainerClient      
+      EventHubConfig: EventHubConfig }
 
-
+[<Extension>]
 module MeteringConnections =
     let private environmentVariablePrefix = "AZURE_METERING_"
 
@@ -29,58 +41,37 @@ module MeteringConnections =
             match ("MARKETPLACE_TENANT_ID" |> get, "MARKETPLACE_CLIENT_ID" |> get, "MARKETPLACE_CLIENT_SECRET" |> get) with
             | (Some t, Some i, Some s) -> MeteringAPICredentials.createServicePrincipal t i s
             | (None, None, None) -> ManagedIdentity
-            | _ -> failwith "The MeteringAPICredential configuration is incomplete."
+            | _ -> failwith $"The {nameof(MeteringAPICredentials)} configuration is incomplete."
             
         let infraStructureCredential = 
             match ("INFRA_TENANT_ID" |> get, "INFRA_CLIENT_ID" |> get, "INFRA_CLIENT_SECRET" |> get) with
             | (Some t, Some i, Some s) -> InfraStructureCredentials.createServicePrincipal t i s
             | (None, None, None) -> InfraStructureCredentials.createManagedIdentity()
-            | _ -> failwith "The InfraStructureCredential configuration is incomplete."
+            | _ -> failwith $"The {nameof(InfraStructureCredentials)} configuration is incomplete."
                     
         let containerClientWith (cred: TokenCredential) uri = new BlobContainerClient(blobContainerUri = new Uri(uri), credential = cred)
 
-        let checkpointStorage = "INFRA_CHECKPOINTS_CONTAINER" |> getRequired |> containerClientWith infraStructureCredential
-        let snapStorage = "INFRA_SNAPSHOTS_CONTAINER" |> getRequired |> containerClientWith infraStructureCredential
+        let captureStorage =
+            match ("INFRA_CAPTURE_CONTAINER" |> get, "INFRA_CAPTURE_FILENAME_FORMAT" |> get) with
+            | (None, None) -> None
+            | (Some c, Some f) -> 
+                { Storage = c |> containerClientWith infraStructureCredential 
+                  CaptureFileNameFormat = f }
+                |> Some
+            |  _ -> failwith $"The {nameof(CaptureStorage)} configuration is incomplete."
 
-        let instanceName = "INFRA_EVENTHUB_INSTANCENAME" |> getRequired
         let nsn = "INFRA_EVENTHUB_NAMESPACENAME" |> getRequired
-        let fullyQualifiedNamespace = $"{nsn}.servicebus.windows.net"
-
-        let processorClient = 
-            let clientOptions = new EventProcessorClientOptions()
-            clientOptions.TrackLastEnqueuedEventProperties <- true
-            clientOptions.PrefetchCount <- 100
-            new EventProcessorClient(
-                checkpointStore = checkpointStorage,
-                consumerGroup = consumerGroupName,
-                fullyQualifiedNamespace = fullyQualifiedNamespace,
-                eventHubName = instanceName,
-                credential = infraStructureCredential,
-                clientOptions = clientOptions)
-
-        let consumerClient = 
-            new EventHubConsumerClient (
-                consumerGroup = consumerGroupName,
-                fullyQualifiedNamespace = fullyQualifiedNamespace,
-                eventHubName = instanceName,
-                credential = infraStructureCredential)
-
-        let producerClient =
-            let connectionOptions = new EventHubConnectionOptions()
-            connectionOptions.TransportType <- EventHubsTransportType.AmqpTcp
-            let producerClientOptions = new EventHubProducerClientOptions()
-            producerClientOptions.ConnectionOptions <- connectionOptions
-            new EventHubProducerClient(
-                fullyQualifiedNamespace = fullyQualifiedNamespace,
-                eventHubName = instanceName,
-                credential = infraStructureCredential,
-                clientOptions = producerClientOptions)
 
         { MeteringAPICredentials = meteringApiCredential
-          EventHubConsumerClient = consumerClient
-          EventHubProducerClient = producerClient
-          EventProcessorClient = processorClient
-          SnapshotStorage = snapStorage }
+          SnapshotStorage = "INFRA_SNAPSHOTS_CONTAINER" |> getRequired |> containerClientWith infraStructureCredential
+          EventHubConfig = 
+            { CheckpointStorage = "INFRA_CHECKPOINTS_CONTAINER" |> getRequired |> containerClientWith infraStructureCredential 
+              CaptureStorage = captureStorage
+              ConsumerGroupName = consumerGroupName
+              NamespaceName = nsn
+              FullyQualifiedNamespace = $"{nsn}.servicebus.windows.net"
+              InstanceName =  "INFRA_EVENTHUB_INSTANCENAME" |> getRequired
+              InfraStructureCredentials = infraStructureCredential } }
 
     let getFromEnvironmentWithSpecificConsumerGroup (consumerGroupName: string) =
         let configuration =
@@ -98,3 +89,34 @@ module MeteringConnections =
 
     let getFromEnvironment () =
         getFromEnvironmentWithSpecificConsumerGroup EventHubConsumerClient.DefaultConsumerGroupName
+    
+    [<Extension>]
+    let createEventHubConsumerClient (connections: MeteringConnections) : EventHubConsumerClient =
+        new EventHubConsumerClient(
+            consumerGroup = connections.EventHubConfig.ConsumerGroupName,
+            fullyQualifiedNamespace = connections.EventHubConfig.FullyQualifiedNamespace,
+            eventHubName = connections.EventHubConfig.InstanceName,
+            credential = connections.EventHubConfig.InfraStructureCredentials)
+
+    [<Extension>]
+    let createEventHubProducerClient (connections: MeteringConnections) : EventHubProducerClient =
+        new EventHubProducerClient(
+            fullyQualifiedNamespace = connections.EventHubConfig.FullyQualifiedNamespace,
+            eventHubName = connections.EventHubConfig.InstanceName,
+            credential = connections.EventHubConfig.InfraStructureCredentials,
+            clientOptions = new EventHubProducerClientOptions(
+                ConnectionOptions = new EventHubConnectionOptions(
+                    TransportType = EventHubsTransportType.AmqpTcp)))
+
+    [<Extension>]
+    let createEventProcessorClient (connections: MeteringConnections) : EventProcessorClient =
+        new EventProcessorClient(
+            checkpointStore = connections.EventHubConfig.CheckpointStorage,
+            consumerGroup = connections.EventHubConfig.ConsumerGroupName,
+            fullyQualifiedNamespace = connections.EventHubConfig.FullyQualifiedNamespace,
+            eventHubName = connections.EventHubConfig.InstanceName,
+            credential = connections.EventHubConfig.InfraStructureCredentials,
+            clientOptions = new EventProcessorClientOptions(
+                TrackLastEnqueuedEventProperties = true,
+                PartitionOwnershipExpirationInterval = TimeSpan.FromMinutes(1),
+                PrefetchCount = 100))

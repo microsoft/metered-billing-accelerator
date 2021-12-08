@@ -6,4 +6,10 @@ open Metering.Types.EventHub
 type MeteringEvent =
     { MeteringUpdateEvent: MeteringUpdateEvent
       MessagePosition: MessagePosition
-      EventsToCatchup: EventsToCatchup }
+      EventsToCatchup: EventsToCatchup option }
+
+module MeteringEvent =
+    let create (meteringUpdateEvent: MeteringUpdateEvent) (messagePosition: MessagePosition) (eventsToCatchup: EventsToCatchup option) : MeteringEvent =
+        { MeteringUpdateEvent = meteringUpdateEvent
+          MessagePosition = messagePosition
+          EventsToCatchup = eventsToCatchup }

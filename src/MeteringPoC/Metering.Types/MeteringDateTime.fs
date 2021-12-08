@@ -43,3 +43,10 @@ module MeteringDateTime =
     let now () : MeteringDateTime =
         ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc)
     
+    let create year month day hour minute second = 
+        new MeteringDateTime(
+            localDateTime = new LocalDateTime(
+                year = year, month = month, day = day, 
+                hour = hour, minute = minute, second = second),
+            zone = DateTimeZone.Utc,
+            offset = Offset.Zero)

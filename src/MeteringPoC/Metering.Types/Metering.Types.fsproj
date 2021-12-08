@@ -5,6 +5,7 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
     <PackageReference Include="System.Reactive.Linq" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.0" />
@@ -12,6 +13,7 @@
     <PackageReference Include="Azure.Storage.Blobs" Version="12.10.0" />
     <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
     <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
+    <PackageReference Include="Apache.Avro" Version="1.11.0" />
     <PackageReference Include="NodaTime" Version="3.0.9" />
     <PackageReference Include="Thoth.Json.Net" Version="7.1.0" />
   </ItemGroup>
@@ -26,6 +28,7 @@
     <Compile Include="InstanceMetadataClient.fs" />
     <Compile Include="MeteringDateTime.fs" />
     <Compile Include="EventHub.fs" />
+    <Compile Include="CaptureProcessor.fs" />
     <Compile Include="Quantity.fs" />
     <Compile Include="ConsumedQuantity.fs" />
     <Compile Include="IncludedQuantitySpecification.fs" />
@@ -54,10 +57,12 @@
     <Compile Include="MeteringEvent.fs" />
     <Compile Include="MeterCollection.fs" />
     <Compile Include="Json.fs" />
+    <Compile Include="MeterCollectionLogic.fs" />
     <Compile Include="MarketplaceClient.fs" />
     <Compile Include="ClientSDK.fs" />
     <Compile Include="MeterCollectionStore.fs" />
     <Compile Include="MeteringAggregator.fs" />
+    <Compile Include="Status.fs" />
     <Compile Include="EventHubObservableClient.fs" />
   </ItemGroup>
 </Project>

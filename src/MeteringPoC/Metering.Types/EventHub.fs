@@ -1,12 +1,12 @@
 ﻿namespace Metering.Types.EventHub
 
+open System
+open System.Runtime.CompilerServices
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.Types
-open System.Runtime.CompilerServices
-open NodaTime
-open System
+open System.Collections.Generic
 
 type SequenceNumber = int64
 
@@ -27,15 +27,21 @@ type MessagePosition =
 module MessagePosition =
     let startingPosition (someMessagePosition: MessagePosition option) =
         match someMessagePosition with
-        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber, isInclusive = false)
         | None -> EventPosition.Earliest
-    
+        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber, isInclusive = false) // If isInclusive=true, the specified event is included; otherwise the next event is returned.
+
     let create (partitionId: string) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId |> PartitionID.PartitionID
           SequenceNumber = eventData.SequenceNumber
           Offset = eventData.Offset
           PartitionTimestamp = eventData.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset }
-        
+    
+    let createData (partitionId: string) (sequenceNumber: int64) (offset: int64) (partitionTimestamp: MeteringDateTime) =
+        { PartitionID = partitionId |> PartitionID.create
+          SequenceNumber = sequenceNumber
+          Offset = offset
+          PartitionTimestamp = partitionTimestamp }
+ 
 type SeekPosition =
     | FromSequenceNumber of SequenceNumber: SequenceNumber 
     | Earliest
@@ -62,28 +68,56 @@ module EventsToCatchup =
         let lastOffset = lastEnqueuedEvent.Offset.Value
         let lastEnqueuedTime = lastEnqueuedEvent.EnqueuedTime.Value |> MeteringDateTime.fromDateTimeOffset
         let lastEnqueuedEventSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
+        let numberOfUnprocessedEvents = lastEnqueuedEventSequenceNumber - data.SequenceNumber
+        let timeDiffBetweenCurrentEventAndMostRecentEvent = (lastEnqueuedTime - eventEnqueuedTime).TotalSeconds
         
         { LastOffset = lastOffset
           LastSequenceNumber = lastSequenceNumber
           LastEnqueuedTime = lastEnqueuedTime
-          NumberOfEvents = lastEnqueuedEventSequenceNumber - data.SequenceNumber
-          TimeDeltaSeconds = ((lastEnqueuedTime - eventEnqueuedTime).TotalSeconds) }
+          NumberOfEvents = numberOfUnprocessedEvents
+          TimeDeltaSeconds = timeDiffBetweenCurrentEventAndMostRecentEvent }
+
+/// Indicate whether an event was read from EventHub, or from the associated capture storage.
+type EventSource =
+    | EventHub
+    | Capture of BlobName:string
+
+module EventSource =
+    let toStr = 
+        function
+        | EventHub -> "EventHub"
+        | Capture(BlobName=b) -> b
 
 type EventHubEvent<'TEvent> =
     { MessagePosition: MessagePosition
-      EventsToCatchup: EventsToCatchup
-      EventData: 'TEvent }
+      EventsToCatchup: EventsToCatchup option
+      EventData: 'TEvent
+
+      /// Indicate whether an event was read from EventHub, or from the associated capture storage.      
+      Source: EventSource }
 
 module EventHubEvent =
-    let create (processEventArgs: ProcessEventArgs) (convert: EventData -> 'TEvent) : EventHubEvent<'TEvent> option =  
-        if processEventArgs.HasEvent
-        then 
-            let lastEnqueuedEventProperties = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
-            { MessagePosition = MessagePosition.create processEventArgs.Partition.PartitionId processEventArgs.Data
-              EventsToCatchup = EventsToCatchup.create processEventArgs.Data lastEnqueuedEventProperties
-              EventData = processEventArgs.Data |> convert }
+    let createFromEventHub (convert: EventData -> 'TEvent) (processEventArgs: ProcessEventArgs) : EventHubEvent<'TEvent> option =  
+        if not processEventArgs.HasEvent
+        then None
+        else
+            let catchUp = 
+                processEventArgs.Partition.ReadLastEnqueuedEventProperties()
+                |> EventsToCatchup.create processEventArgs.Data
+                |> Some
+
+            { MessagePosition = processEventArgs.Data |> MessagePosition.create processEventArgs.Partition.PartitionId 
+              EventsToCatchup = catchUp
+              EventData = processEventArgs.Data |> convert
+              Source = EventHub }
             |> Some
-        else None
+
+    let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: string) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
+        { MessagePosition = MessagePosition.create partitionId data
+          EventsToCatchup = None
+          EventData = data |> convert 
+          Source = Capture(BlobName = blobName)}
+        |> Some
 
 type PartitionInitializing<'TState> =
     { PartitionInitializingEventArgs: PartitionInitializingEventArgs
@@ -96,17 +130,15 @@ type EventHubProcessorEvent<'TState, 'TEvent> =
     | PartitionInitializing of PartitionInitializing<'TState>
     | PartitionClosing of PartitionClosing
     | EventHubEvent of EventHubEvent<'TEvent>
-    | EventHubError of (PartitionID * exn)
+    | EventHubError of PartitionID:PartitionID * Exception:exn
 
 module EventHubProcessorEvent =
-    
-
     let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
         match e with
         | PartitionInitializing e -> e.PartitionInitializingEventArgs.PartitionId |> PartitionID.create
         | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId |> PartitionID.create
         | EventHubEvent e -> e.MessagePosition.PartitionID
-        | EventHubError (partitionId,_) -> partitionId
+        | EventHubError (partitionID, _) -> partitionID
         
     let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
         let pi = e |> partitionId
@@ -121,3 +153,16 @@ module EventHubProcessorEvent =
         match e with
         | EventHubEvent e -> e
         | _ -> raise (new ArgumentException(message = $"Not an {nameof(EventHubEvent)}", paramName = nameof(e)))
+
+module internal Capture =
+    type RehydratedFromCaptureEventData(
+        blobName: string, eventBody: byte[], 
+        properties: IDictionary<string, obj>, systemProperties: IReadOnlyDictionary<string, obj>, 
+        sequenceNumber: int64, offset: int64, enqueuedTime: DateTimeOffset, partitionKey: string) =                 
+        inherit EventData(new BinaryData(eventBody), properties, systemProperties, sequenceNumber, offset, enqueuedTime, partitionKey)
+        member this.BlobName = blobName
+    
+    let getBlobName (e: EventData) : string option =
+        match e with
+        | :? RehydratedFromCaptureEventData -> (downcast e : RehydratedFromCaptureEventData) |> (fun x -> x.BlobName) |> Some
+        | _ -> None 

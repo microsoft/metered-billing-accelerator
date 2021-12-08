@@ -49,9 +49,8 @@ namespace Metering.Messaging
                 Task ProcessError (ProcessErrorEventArgs processErrorEventArgs)
                 {
                     o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubError(
-                       new Tuple<PartitionID, Exception>(
                            PartitionID.NewPartitionID(processErrorEventArgs.PartitionId),
-                           processErrorEventArgs.Exception)));
+                           processErrorEventArgs.Exception));
 
                     return Task.CompletedTask;
                 };

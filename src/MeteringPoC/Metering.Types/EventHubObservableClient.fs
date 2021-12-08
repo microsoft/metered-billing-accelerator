@@ -12,11 +12,12 @@ open Azure.Messaging.EventHubs.Processor
 open Azure.Messaging.EventHubs.Consumer
 open Metering.Types
 open Metering.Types.EventHub
+open System.Text
 
 [<Extension>]
 module EventHubObservableClient =
-    [<Extension>]
-    let CreateEventHubProcessorEventObservableFSharp<'TState, 'TEvent>
+    
+    let private createInternal<'TState, 'TEvent>
         (processor: EventProcessorClient)
         (determineInitialState: PartitionInitializingEventArgs -> CancellationToken -> Task<'TState>)
         (determinePosition: 'TState -> EventPosition)
@@ -24,55 +25,79 @@ module EventHubObservableClient =
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : IObservable<EventHubProcessorEvent<'TState, 'TEvent>> =
 
+        let a = Action (fun () -> eprintf "outside cancelled")
+        cancellationToken.Register(a) |> ignore
+
         let fsharpFunction (o: IObserver<EventHubProcessorEvent<'TState, 'TEvent>>) : IDisposable =
-            let cts =
-                CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+            let cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
 
             let innerCancellationToken = cts.Token
 
-            let ProcessEvent (processEventArgs: ProcessEventArgs) =
-                match (EventHubEvent.create processEventArgs converter) with
-                | Some e -> 
-                    
-                    Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
+            let x = Action (fun () -> 
+                eprintfn "innerCancellationToken is Cancelled"
+            )                        
+            innerCancellationToken.Register(callback = x) |> ignore
 
-                    o.OnNext(EventHubEvent e)
-                | None -> ()
+            let ProcessEvent (processEventArgs: ProcessEventArgs) =
+                try
+                    match (EventHubEvent.createFromEventHub converter processEventArgs ) with
+                    | Some e ->                     
+                        Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
+                        
+                        printfn $"\n\nnew event {e.MessagePosition.PartitionID |> PartitionID.value}-{e.MessagePosition.SequenceNumber} {e}" 
+                        o.OnNext(EventHubEvent e)
+                    | None -> ()
+                with
+                | e -> eprintf $"ProcessEvent Exception {e.Message} " ;()
 
                 // We're not doing checkpointing here, but let that happen downsteam... That's why EventHubProcessorEvent contains the ProcessEventArgs
                 // processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
                 Task.CompletedTask
 
             let ProcessError (processErrorEventArgs: ProcessErrorEventArgs) =
-                let partitionId =
-                    processErrorEventArgs.PartitionId |> PartitionID
+                try
+                    let partitionId =
+                        processErrorEventArgs.PartitionId |> PartitionID
 
-                let ex = processErrorEventArgs.Exception
-                //let evnt = EventHubError(partitionId, ex)
-                o.OnError(ex)
+                    let ex = processErrorEventArgs.Exception
+                    o.OnError(ex)
+                with
+                | e -> eprintf $"ProcessError Exception {e.Message}" ;()
+                
                 Task.CompletedTask
 
             let PartitionClosing (partitionClosingEventArgs: PartitionClosingEventArgs) =
-                let evnt: EventHubProcessorEvent<'TState, 'TEvent> =
-                    PartitionClosing { PartitionClosingEventArgs = partitionClosingEventArgs }
+                try
+                    let evnt: EventHubProcessorEvent<'TState, 'TEvent> =
+                        PartitionClosing { PartitionClosingEventArgs = partitionClosingEventArgs }
 
-                o.OnCompleted()
+                    o.OnCompleted()
+                with
+                | e -> eprintf $"PartitionClosing Exception {e.Message}" ;()
+
                 Task.CompletedTask
 
             let PartitionInitializing (partitionInitializingEventArgs: PartitionInitializingEventArgs) : Task =
                 task {
-                    let! (initialState: 'TState) =
-                        determineInitialState partitionInitializingEventArgs innerCancellationToken
+                    try
+                        let! (initialState: 'TState) =
+                            determineInitialState partitionInitializingEventArgs innerCancellationToken
 
-                    let startingPosition = determinePosition initialState
-                    partitionInitializingEventArgs.DefaultStartingPosition <- startingPosition
+                        printfn "Initial state %A" initialState
+                        let startingPosition = determinePosition initialState
+                        partitionInitializingEventArgs.DefaultStartingPosition <- startingPosition
 
-                    let evnt =
-                        PartitionInitializing
-                            { PartitionInitializingEventArgs = partitionInitializingEventArgs
-                              InitialState = initialState }
+                        printfn "Starting position %A" startingPosition
 
-                    o.OnNext(evnt)
+                        let evnt =
+                            PartitionInitializing
+                                { PartitionInitializingEventArgs = partitionInitializingEventArgs
+                                  InitialState = initialState }
+
+                        o.OnNext(evnt)
+                    with
+                    | e -> eprintf $"PartitionInitializing Exception {e.Message}"
+
                     return ()
                 }
 
@@ -111,7 +136,6 @@ module EventHubObservableClient =
 
                 Async.StartAsTask(a, cancellationToken = innerCancellationToken)
 
-
             let _ =
                 Task.Run(
                     ``function`` = (((fun () -> createTask ()): (unit -> Task)): Func<Task>),
@@ -122,6 +146,12 @@ module EventHubObservableClient =
 
         Observable.Create<EventHubProcessorEvent<'TState, 'TEvent>>(fsharpFunction)
 
+    [<Extension>]
+    let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
+        // eventData.Body.ToArray() |> Encoding.UTF8.GetString |> Json.fromStr<MeteringUpdateEvent>
+        eventData.EventBody.ToString() |> Json.fromStr<MeteringUpdateEvent>
+        
+    [<Extension>]
     let create (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
         
         let determineInitialState (args: PartitionInitializingEventArgs) ct =
@@ -130,11 +160,10 @@ module EventHubObservableClient =
                 (args.PartitionId |> PartitionID.create)
                 ct
 
-        CreateEventHubProcessorEventObservableFSharp
-            config.MeteringConnections.EventProcessorClient
+        createInternal
+            (config.MeteringConnections |> MeteringConnections.createEventProcessorClient)
             determineInitialState
-            MeterCollection.getEventPosition
-            (fun x -> Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()))
+            MeterCollectionLogic.getEventPosition
+            toMeteringUpdateEvent
             cancellationToken
         |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))
-

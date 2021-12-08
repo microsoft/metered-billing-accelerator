@@ -14,8 +14,10 @@ module MarketplaceClient =
             let json = usage |> Json.toStr 0
  
             let meteringApiVersion = "2018-08-31"
-            let request = new HttpRequestMessage(HttpMethod.Post, $"/api/usageEvent?api-version={meteringApiVersion}")
-            request.Content <- new StringContent(json, Encoding.UTF8, "application/json")
+            let request = new HttpRequestMessage(
+                method = HttpMethod.Post, 
+                requestUri = $"/api/usageEvent?api-version={meteringApiVersion}",
+                Content = new StringContent(json, Encoding.UTF8, "application/json"))
 
             let! response = client.SendAsync(request)
             let! json = response.Content.ReadAsStringAsync()

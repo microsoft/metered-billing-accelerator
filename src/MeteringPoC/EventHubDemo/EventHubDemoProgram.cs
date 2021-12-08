@@ -8,6 +8,12 @@ using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.Me
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
+//var start = DateTime.Now;
+//string elapsed() => DateTime.Now.Subtract(start).ToString();
+//using AzureEventSourceListener listener = new(level: EventLevel.LogAlways, log: (e, message) => {
+//    if (e.EventSource.Name.StartsWith("Azure-Messaging-EventHubs")) {
+//        Console.WriteLine($"{elapsed()} {e.EventName.W(45)} {e.Level.ToString().W(10)} {message}"); } });
+
 using CancellationTokenSource cts = new();
 
 MeteringConnections connections = MeteringConnectionsModule.getFromEnvironment();
@@ -17,16 +23,29 @@ MeteringConfigurationProvider config =
         connections: connections,
         marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
-Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
+//foreach (var state in await config.fetchStates())
+//{
+//    Console.WriteLine($"Partition {state.Key}");
+//    Console.WriteLine(MeterCollectionModule.toStr(state.Value));
+//}
 
-var groupedByPartitionId = Metering.EventHubObservableClient.create(config, cts.Token);
+//Console.ReadLine();
+//// Show how late we are
+//while (true)
+//{
+//    var status = await config.fetchEventsToCatchup();
+//    Console.WriteLine(status);
+//    await Task.Delay(TimeSpan.FromSeconds(1.2));
+//}
+
+Console.WriteLine($"Reading from {connections.EventHubConfig.FullyQualifiedNamespace}");
 
 Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator = 
     MeteringAggregator.createAggregator(config);
 
 List<IDisposable> subscriptions = new();
 
-var groupedSub = groupedByPartitionId.Subscribe(onNext: group => {
+var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Subscribe(onNext: group => {
     var partitionId = group.Key;
     Console.WriteLine($"New group: {partitionId.value()}");
     IDisposable subscription = group
@@ -34,6 +53,7 @@ var groupedSub = groupedByPartitionId.Subscribe(onNext: group => {
             seed: MeterCollectionModule.Uninitialized,
             accumulator: accumulator
         )
+        .Where(x => x.IsSome())
         .Select(x => x.Value)
         //.StartWith()
         //.PublishLast()
@@ -55,9 +75,12 @@ var groupedSub = groupedByPartitionId.Subscribe(onNext: group => {
 });
 subscriptions.Add(groupedSub);
 
-
 void handleCollection (PartitionID partitionId, MeterCollection meterCollection) {
-    Console.WriteLine($"event: {partitionId.value()}: {Json.toStr(0, meterCollection)}");
+    //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
+
+    Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
+
+    Console.WriteLine(Json.toStr(2, meterCollection));
     MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
 };
 
@@ -66,3 +89,9 @@ _ = await Console.In.ReadLineAsync();
 
 subscriptions.ForEach(subscription => subscription.Dispose());
 cts.Cancel();
+
+public static class E
+{
+    public static string UpTo(this string s, int length) =>  s.Length > length ? s[..length] : s;
+    public static string W(this string s, int width) => String.Format($"{{0,-{width}}}", s);
+}

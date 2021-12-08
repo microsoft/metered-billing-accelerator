@@ -24,7 +24,7 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
         
         Task ProcessEvent(ProcessEventArgs processEventArgs)
         {
-            var e = EventHubEvent.create(processEventArgs, converter.ToFSharpFunc());
+            var e = EventHubEvent.createFromEventHub(converter.ToFSharpFunc(), processEventArgs);
             if (e.IsSome())
             {
                 o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(e.Value));
@@ -38,9 +38,9 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
         Task ProcessError(ProcessErrorEventArgs processErrorEventArgs)
         {
             o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubError(
-                new Tuple<PartitionID, Exception>(
                     PartitionID.NewPartitionID(processErrorEventArgs.PartitionId),
-                    processErrorEventArgs.Exception)));
+                    processErrorEventArgs.Exception));
+
             return Task.CompletedTask;
         };
 
@@ -107,7 +107,7 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
-Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
+Console.Title = Assembly.GetExecutingAssembly().GetName().Name!;
 
 var connections = MeteringConnectionsModule.getFromEnvironment();
 
@@ -115,11 +115,13 @@ var meteringConfig = MeteringConfigurationProviderModule.create(
     connections: connections,
     marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
-Console.WriteLine($"Reading from {connections.EventProcessorClient.FullyQualifiedNamespace}");
+Console.WriteLine($"Reading from {connections.EventHubConfig.FullyQualifiedNamespace}");
 
 using CancellationTokenSource cts = new();
 
-CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(connections.EventProcessorClient,
+var eventProcessorClient = MeteringConnectionsModule.createEventProcessorClient(connections);
+
+CreateObservable<SomeMeterCollection, MeteringUpdateEvent>(eventProcessorClient,
         converter: x => Json.fromStr<MeteringUpdateEvent>(x.EventBody.ToString()),
         cancellationToken: cts.Token)
     .Subscribe(onNext: e => {
