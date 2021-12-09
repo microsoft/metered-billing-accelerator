@@ -17,6 +17,11 @@ open Metering.Types.EventHub
 
 module MeterCollectionStore =
     open MeterCollectionLogic
+    
+    type SnapshotName = 
+        { NamespaceName : string
+          InstanceName : string 
+          MessagePosition : MessagePosition }
 
     let private toUTF8String (bytes: byte[]) : string = Encoding.UTF8.GetString(bytes)
 
@@ -95,9 +100,7 @@ module MeterCollectionStore =
             return ()
         }
 
-    module Naming =
-        type SnapshotName = SnapshotName of NamespaceName:string * InstanceName:string * MessagePosition:MessagePosition
-        
+    module Naming =        
         let private prefix (config: MeteringConfigurationProvider) = $"{config.MeteringConnections.EventHubConfig.FullyQualifiedNamespace}/{config.MeteringConnections.EventHubConfig.InstanceName}"
 
         let private regexPattern = "(?<ns>[^\.]+?)\.servicebus\.windows\.net/(?<hub>[^\/]+?)/(?<partitionid>[^\/]+?)/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})--(?<hour>\d{2})-(?<minute>\d{2})-(?<second>\d{2})---sequencenr-(?<sequencenr>\d+)\.json\.gz" // " // (?<year>\d{4})
@@ -133,9 +136,13 @@ module MeterCollectionStore =
             
             match ("ns" |> s m), ("hub" |> s m), ("partitionid" |> s m), ("year" |> i32 m), ("month" |> i32 m), ("day" |> i32 m), ("hour" |> i32 m), ("minute" |> i32 m), ("second" |> i32 m), ("sequencenr" |> sn m) with
             | Some ns, Some hub, Some partitionId, Some y, Some m, Some d, Some H, Some M, Some S, Some sequenceNumber -> 
-                let partitionTimestamp = MeteringDateTime.create y m d H M S
-                let position = MessagePosition.createData partitionId sequenceNumber partitionTimestamp
-                Some (SnapshotName (NamespaceName = ns, InstanceName=hub, MessagePosition=position)) 
+                { NamespaceName = ns
+                  InstanceName = hub
+                  MessagePosition = 
+                    (MessagePosition.createData 
+                        partitionId 
+                        sequenceNumber 
+                        (MeteringDateTime.create y m d H M S)) } |> Some
             | _ -> None
 
     let loadStateFromFilename
