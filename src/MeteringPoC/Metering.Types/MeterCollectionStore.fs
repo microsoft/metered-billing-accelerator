@@ -4,18 +4,23 @@ open System
 open System.IO
 open System.IO.Compression
 open System.Text
+open System.Text.RegularExpressions
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.InteropServices
 open Azure
 open Azure.Storage.Blobs
+open Azure.Storage.Blobs.Models
 open Azure.Storage.Blobs.Specialized
 open Azure.Storage.Sas
 open Metering.Types.EventHub
-open Azure.Storage.Blobs.Models
 
 module MeterCollectionStore =
     open MeterCollectionLogic
+    
+    type SnapshotName = 
+        { EventHubName: EventHubName
+          MessagePosition : MessagePosition }
 
     let private toUTF8String (bytes: byte[]) : string = Encoding.UTF8.GetString(bytes)
 
@@ -94,28 +99,64 @@ module MeterCollectionStore =
             return ()
         }
 
-    let private prefix (config: MeteringConfigurationProvider) = $"{config.MeteringConnections.EventHubConfig.FullyQualifiedNamespace}/{config.MeteringConnections.EventHubConfig.InstanceName}"
+    module Naming =        
+        let private prefix (name: EventHubName) = $"{name.FullyQualifiedNamespace}/{name.InstanceName}"
+
+        let private regexPattern = "(?<ns>[^\.]+?)\.servicebus\.windows\.net/(?<hub>[^\/]+?)/(?<partitionid>[^\/]+?)/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})--(?<hour>\d{2})-(?<minute>\d{2})-(?<second>\d{2})---sequencenr-(?<sequencenr>\d+)\.json\.gz" // " // (?<year>\d{4})
     
-    let private latestName (config: MeteringConfigurationProvider) (partitionId: PartitionID) = $"{config |> prefix}/{partitionId |> PartitionID.value}/latest.json.gz"
+        let internal latestName (config: MeteringConfigurationProvider) (partitionId: PartitionID) =
+            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{partitionId |> PartitionID.value}/latest.json.gz"
     
-    let private currentName (config: MeteringConfigurationProvider) (lastUpdate: MessagePosition) = $"{config |> prefix}/{lastUpdate.PartitionID |> PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
+        let internal currentName (config: MeteringConfigurationProvider) (lastUpdate: MessagePosition) =
+            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{lastUpdate.PartitionID |> PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
     
-    let loadLastState
+        let blobnameToPosition config blobName = 
+            let i32 (m: Match) (name: string) = 
+                match m.Groups.ContainsKey name with
+                | false -> None
+                | true ->
+                    match m.Groups[name].Value |> Int32.TryParse with
+                    | false, _ -> None
+                    | _, v -> Some v
+            let sn (m: Match) (name: string) = 
+                match m.Groups.ContainsKey name with
+                | false -> None
+                | true ->
+                    match m.Groups[name].Value |> SequenceNumber.TryParse with
+                    | false, _ -> None
+                    | _, v -> Some v
+            let s (m: Match) (name: string) = 
+                match m.Groups.ContainsKey name with
+                | false -> None
+                | true -> Some m.Groups[name].Value
+
+            let regex = new Regex(pattern = regexPattern, options = RegexOptions.ExplicitCapture)
+            let m = regex.Match(input = blobName)
+            
+            match ("ns" |> s m), ("hub" |> s m), ("partitionid" |> s m), ("year" |> i32 m), ("month" |> i32 m), ("day" |> i32 m), ("hour" |> i32 m), ("minute" |> i32 m), ("second" |> i32 m), ("sequencenr" |> sn m) with
+            | Some ns, Some hub, Some partitionId, Some y, Some m, Some d, Some H, Some M, Some S, Some sequenceNumber -> 
+                { EventHubName = 
+                    EventHubName.create ns hub
+                  MessagePosition = 
+                    (MessagePosition.createData 
+                        partitionId 
+                        sequenceNumber 
+                        (MeteringDateTime.create y m d H M S)) } |> Some
+            | _ -> None
+
+    let loadStateFromFilename
         (config: MeteringConfigurationProvider)
         (partitionID: PartitionID)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
+        (name: string)
         : Task<MeterCollection option> =
-
-        printfn $"Loading state for partition {partitionID |> PartitionID.value}"
-
         task {
-            let latest = latestName config partitionID
-            let blob = config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
-            
+            let blob = config.MeteringConnections.SnapshotStorage.GetBlobClient(name)
+    
             try
                 let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
                 let! meterCollection = content.Value.Content |> gzipDecompress |> fromJSONStream<MeterCollection>
-                
+        
                 eprintfn $"Successfully downloaded state, last event was {meterCollection |> getLastUpdateAsString}"
                 return Some meterCollection
             with
@@ -128,6 +169,17 @@ module MeterCollectionStore =
                 return None
         }
 
+    let loadStateFromPosition config partitionID cancellationToken messagePosition =
+        Naming.currentName config messagePosition
+        |> loadStateFromFilename config partitionID cancellationToken
+
+    let loadLastState config partitionID cancellationToken =
+        Naming.latestName config partitionID
+        |> loadStateFromFilename config partitionID cancellationToken
+    
+    //let loadStateBySequenceNumber config partitionID cancellationToken (sequenceNumber: SequenceNumber) =
+    //    let blobNames = CaptureProcessor.getCaptureBlobs 
+
     let storeLastState
         (config: MeteringConfigurationProvider)
         (meterCollection: MeterCollection)
@@ -139,8 +191,8 @@ module MeterCollectionStore =
         | Some lastUpdate ->
             let name = meterCollection |> getLastUpdateAsString
             eprintfn $"Trying to save \"{name}\""
-            let current = currentName config lastUpdate
-            let latest = latestName config lastUpdate.PartitionID
+            let current = Naming.currentName config lastUpdate
+            let latest = Naming.latestName config lastUpdate.PartitionID
 
             task {
                 let blobDate = config.MeteringConnections.SnapshotStorage.GetBlobClient(current)

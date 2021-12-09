@@ -33,10 +33,10 @@ module CaptureProcessor =
         | true, value -> value :?> 'T
         | false, _ -> raise <| new ArgumentException($"Missing field {fieldName} in {nameof(GenericRecord)} object.");
 
-    let private createRegexPattern (captureFileNameFormat: string) ((namespaceName: string), (eventHubName: string), (partitionId: string)) : string =
+    let private createRegexPattern (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: string)) : string =
         $"{captureFileNameFormat}.avro"
-            .Replace("{Namespace}", namespaceName)
-            .Replace("{EventHub}", eventHubName)
+            .Replace("{Namespace}", eventHubName.NamespaceName)
+            .Replace("{EventHub}", eventHubName.InstanceName)
             .Replace("{PartitionId}", partitionId)
             .Replace("{Year}", "(?<year>\d{4})")
             .Replace("{Month}", "(?<month>\d{2})")
@@ -45,18 +45,18 @@ module CaptureProcessor =
             .Replace("{Minute}", "(?<minute>\d{2})")
             .Replace("{Second}", "(?<second>\d{2})")
 
-    let getPrefixForRelevantBlobs (captureFileNameFormat: string) ((namespaceName: string), (eventHubName: string), (partitionId: string)) : string =
-        let regexPattern = createRegexPattern captureFileNameFormat (namespaceName, eventHubName, partitionId)
+    let getPrefixForRelevantBlobs (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: string)) : string =
+        let regexPattern = createRegexPattern captureFileNameFormat (eventHubName, partitionId)
         let beginningOfACaptureGroup = "(?<"
 
         regexPattern
         |> (fun s -> s.Substring(startIndex = 0, length = s.IndexOf(beginningOfACaptureGroup)))
-        |> (fun s -> s.Substring(startIndex = 0, length = s.LastIndexOf("/") - 1))
+        // |> (fun s -> s.Substring(startIndex = 0, length = s.LastIndexOf("/") - 1))
     
-    let extractTime (captureFileNameFormat: string) ((namespaceName: string), (eventHubName: string), (partitionId: string)) (blobName: string) : MeteringDateTime option = 
+    let extractTime (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: string)) (blobName: string) : MeteringDateTime option = 
         let regex = 
             new Regex(
-                pattern = createRegexPattern captureFileNameFormat (namespaceName, eventHubName, partitionId), 
+                pattern = createRegexPattern captureFileNameFormat (eventHubName, partitionId), 
                 options = RegexOptions.ExplicitCapture)
 
         let matcH = regex.Match(input = blobName)        
@@ -70,8 +70,8 @@ module CaptureProcessor =
     let containsFullyRelevantEvents (startTime: MeteringDateTime) (timeStampBlob: MeteringDateTime)  : bool =
         (timeStampBlob - startTime).BclCompatibleTicks >= 0
         
-    let isRelevantBlob (captureFileNameFormat: string) ((namespaceName: string), (eventHubName: string), (partitionId: string)) (blobName: string) (startTime: MeteringDateTime): bool = 
-        let blobtime = extractTime captureFileNameFormat (namespaceName, eventHubName, partitionId) blobName
+    let isRelevantBlob (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: string)) (blobName: string) (startTime: MeteringDateTime): bool = 
+        let blobtime = extractTime captureFileNameFormat (eventHubName, partitionId) blobName
         match blobtime with
         | None -> false
         | Some timeStampBlob -> timeStampBlob |> containsFullyRelevantEvents startTime
@@ -99,10 +99,7 @@ module CaptureProcessor =
                     offset = offset, partitionKey = partitionKey)
         }
 
-    let readCaptureFromPosition
-            (cancellationToken: CancellationToken) 
-            (connections: MeteringConnections)
-            : IEnumerable<EventData> =
+    let readCaptureFromPosition (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventData> =
         match connections.EventHubConfig.CaptureStorage with
         | None -> Seq.empty
         | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } -> 
@@ -133,7 +130,7 @@ module CaptureProcessor =
                 // https://docs.microsoft.com/en-us/dotnet/azure/sdk/pagination
                 // https://github.com/Azure/azure-sdk-for-net/issues/18306
 
-                let ehInfo = (connections.EventHubConfig.NamespaceName, connections.EventHubConfig.InstanceName, partitionId)
+                let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
                 let prefix = getPrefixForRelevantBlobs captureFileNameFormat ehInfo
 
                 let pageableItems = captureContainer.GetBlobsByHierarchy(prefix = prefix, cancellationToken = cancellationToken)
@@ -148,7 +145,7 @@ module CaptureProcessor =
         | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } ->
             seq {
                 let partitionId = mp.PartitionID |> PartitionID.value
-                let ehInfo = (connections.EventHubConfig.NamespaceName, connections.EventHubConfig.InstanceName, partitionId)
+                let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
                 let getTime = extractTime captureFileNameFormat ehInfo
                 let blobNames = getCaptureBlobs cancellationToken partitionId connections
                 let (partitionId, startTime, sequenceNumber) = (mp.PartitionID |> PartitionID.value, mp.PartitionTimestamp, mp.SequenceNumber)
@@ -174,8 +171,12 @@ module CaptureProcessor =
                 // and you're looking for an event with timestamp 2021-12-06--15-17-10, 
                 // you must select the last one with a timestamp prior the lookup one.
 
-                let indexOfTheFirstFullyRelevantCaptureFile = blobs |> Array.findIndex fullyRelevant
-                let indexOfTheFirstPartlyRelevantCaptureFile = indexOfTheFirstFullyRelevantCaptureFile - 1
+                let indexOfTheFirstFullyRelevantCaptureFileOption = blobs |> Array.tryFindIndex fullyRelevant
+
+                let indexOfTheFirstPartlyRelevantCaptureFile = 
+                    match indexOfTheFirstFullyRelevantCaptureFileOption with
+                    | None -> blobs.Length - 1
+                    | Some indexOfTheFirstFullyRelevantCaptureFile -> indexOfTheFirstFullyRelevantCaptureFile - 1
 
                 let relevantBlobs =
                     blobs

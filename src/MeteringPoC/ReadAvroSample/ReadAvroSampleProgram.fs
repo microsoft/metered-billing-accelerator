@@ -23,36 +23,36 @@ let printme e =
         |> Some
     | _ -> None
 
-let config = 
+let config : MeteringConfigurationProvider = 
     { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
       SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
       GracePeriod = Duration.FromHours(6.0)
       ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
       MeteringConnections = MeteringConnections.getFromEnvironment() }
 
-let partitionId = "0"
+let partitionId = "0" |> PartitionID.create
 
-//let latestState =
-//    config.MeteringConnections
-//    // |> CaptureProcessor.readCaptureFromPosition CancellationToken.None
-//    |> CaptureProcessor.readEventsFromPosition CancellationToken.None (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
-//    |> Seq.map (EventHubEvent.createFromEventData partitionId EventHubObservableClient.toMeteringUpdateEvent)
-//    |> Seq.choose id
-//    |> Seq.map (fun e -> MeteringEvent.create e.EventData e.MessagePosition e.EventsToCatchup)
-//    // |> MySeq.inspect printme
-//    |> Seq.scan (MeterCollectionLogic.handleMeteringEvent config) MeterCollection.Empty
-//    // |> MySeq.inspect (Some >> MeterCollection.toStr >> Some)
-//    |> Seq.last
+// printfn "%A" ("meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--21-01-33---sequencenr-31.json.gz" |> MeterCollectionStore.Naming.blobnameToPosition config)
 
-//printfn "%s" (latestState |> Json.toStr 0)
-//printfn "#########################################################################################"
-//printfn "%s" (latestState |> Some |> MeterCollection.toStr)
+let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--15-17-11---sequencenr-10.json.gz" ).Result
+// let initialState = (MeterCollectionStore.loadLastState config partitionId CancellationToken.None).Result
 
-let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
+match initialState with
+| None -> 
+    eprintfn "Could not load existing state"
+    exit -1
+| Some initialState -> 
+    // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
 
-let x = 
-    config.MeteringConnections
-    |> CaptureProcessor.readEventsFromPosition EventHubObservableClient.toMeteringUpdateEvent startPosition CancellationToken.None 
-    |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
+    let aggregate = MeterCollectionLogic.handleMeteringEvent config
+    let startPosition = initialState.LastUpdate.Value
 
-let r = sprintf "Processed %d events" (x |> Seq.length)
+    let x = 
+        config.MeteringConnections
+        |> CaptureProcessor.readEventsFromPosition EventHubObservableClient.toMeteringUpdateEvent startPosition CancellationToken.None 
+        |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
+        |> Seq.map (fun e -> MeteringEvent.create e.EventData e.MessagePosition e.EventsToCatchup)
+        |> Seq.scan aggregate initialState
+        |> Seq.last
+
+    printf "%s" (x |> Some |> MeterCollection.toStr)

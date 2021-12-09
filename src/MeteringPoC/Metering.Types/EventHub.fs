@@ -21,7 +21,7 @@ module PartitionID =
 type MessagePosition = 
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber
-      Offset: int64
+      // Offset: int64
       PartitionTimestamp: MeteringDateTime }
 
 module MessagePosition =
@@ -33,13 +33,12 @@ module MessagePosition =
     let create (partitionId: string) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId |> PartitionID.PartitionID
           SequenceNumber = eventData.SequenceNumber
-          Offset = eventData.Offset
+          // Offset = eventData.Offset
           PartitionTimestamp = eventData.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset }
     
-    let createData (partitionId: string) (sequenceNumber: int64) (offset: int64) (partitionTimestamp: MeteringDateTime) =
+    let createData (partitionId: string) (sequenceNumber: int64) (partitionTimestamp: MeteringDateTime) =
         { PartitionID = partitionId |> PartitionID.create
           SequenceNumber = sequenceNumber
-          Offset = offset
           PartitionTimestamp = partitionTimestamp }
  
 type SeekPosition =
@@ -49,9 +48,6 @@ type SeekPosition =
 
 type EventsToCatchup =
     { /// The sequence number observed the last event to be enqueued in the partition.
-      LastOffset: int64
-
-      /// The sequence number observed the last event to be enqueued in the partition.
       LastSequenceNumber: int64
 
       /// The date and time, in UTC, that the last event was enqueued in the partition.
@@ -65,14 +61,12 @@ module EventsToCatchup =
         // if lastEnqueuedEvent = null or 
         let eventEnqueuedTime = data.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset
         let lastSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
-        let lastOffset = lastEnqueuedEvent.Offset.Value
         let lastEnqueuedTime = lastEnqueuedEvent.EnqueuedTime.Value |> MeteringDateTime.fromDateTimeOffset
         let lastEnqueuedEventSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
         let numberOfUnprocessedEvents = lastEnqueuedEventSequenceNumber - data.SequenceNumber
         let timeDiffBetweenCurrentEventAndMostRecentEvent = (lastEnqueuedTime - eventEnqueuedTime).TotalSeconds
         
-        { LastOffset = lastOffset
-          LastSequenceNumber = lastSequenceNumber
+        { LastSequenceNumber = lastSequenceNumber
           LastEnqueuedTime = lastEnqueuedTime
           NumberOfEvents = numberOfUnprocessedEvents
           TimeDeltaSeconds = timeDiffBetweenCurrentEventAndMostRecentEvent }

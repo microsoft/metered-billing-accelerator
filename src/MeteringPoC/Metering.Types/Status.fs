@@ -77,8 +77,7 @@ module Status =
             let! storedStates = partitionIds |> getMessagePositions config cancellationToken
 
             let diff (partitionId:PartitionID, lastEnqueuedSequenceNumber:int64, lastEnqueuedTime:MeteringDateTime, lastOffset:int64) (mp: MessagePosition) =
-                { LastOffset = lastOffset
-                  LastSequenceNumber = lastEnqueuedSequenceNumber
+                { LastSequenceNumber = lastEnqueuedSequenceNumber
                   LastEnqueuedTime = lastEnqueuedTime
                   NumberOfEvents = lastEnqueuedSequenceNumber - mp.SequenceNumber
                   TimeDeltaSeconds = (lastEnqueuedTime - mp.PartitionTimestamp).TotalSeconds }
@@ -90,14 +89,12 @@ module Status =
 
                     match (part,stateLastMessagePos) with
                     | Some (PartitionProps (pid,seqid,date,lastOffset)), Some statePosition ->  
-                        (pid, { LastOffset = lastOffset
-                                LastSequenceNumber = seqid
+                        (pid, { LastSequenceNumber = seqid
                                 LastEnqueuedTime = date
                                 NumberOfEvents = seqid - statePosition.SequenceNumber
                                 TimeDeltaSeconds = (date - statePosition.PartitionTimestamp).TotalSeconds })
                     | Some (PartitionProps (pid,seqid,date,lastOffset)), None -> 
-                        (pid, { LastOffset = lastOffset
-                                LastSequenceNumber = seqid
+                        (pid, { LastSequenceNumber = seqid
                                 LastEnqueuedTime = date
                                 NumberOfEvents = seqid 
                                 TimeDeltaSeconds = -1 })

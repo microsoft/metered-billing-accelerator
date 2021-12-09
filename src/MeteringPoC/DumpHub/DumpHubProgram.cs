@@ -115,7 +115,7 @@ var meteringConfig = MeteringConfigurationProviderModule.create(
     connections: connections,
     marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
 
-Console.WriteLine($"Reading from {connections.EventHubConfig.FullyQualifiedNamespace}");
+Console.WriteLine($"Reading from {connections.EventHubConfig.EventHubName.FullyQualifiedNamespace}");
 
 using CancellationTokenSource cts = new();
 

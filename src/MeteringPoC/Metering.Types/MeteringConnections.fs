@@ -9,14 +9,25 @@ open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
 open Azure.Messaging.EventHubs
 
+type EventHubName =
+    { NamespaceName: string
+      FullyQualifiedNamespace: string
+      InstanceName: string }
+
+module EventHubName =
+    let create nameSpaceName instanceName =
+        { NamespaceName = nameSpaceName
+          FullyQualifiedNamespace = $"{nameSpaceName}.servicebus.windows.net"
+          InstanceName = instanceName }
+
+    let toStr (e: EventHubName) = $"{e.FullyQualifiedNamespace}/{e.InstanceName}"
+
 type CaptureStorage = 
     { CaptureFileNameFormat: string
       Storage: BlobContainerClient }
 
 type EventHubConfig =
-    { NamespaceName: string
-      FullyQualifiedNamespace: string
-      InstanceName: string
+    { EventHubName: EventHubName
       ConsumerGroupName: string
       CheckpointStorage: BlobContainerClient
       CaptureStorage: CaptureStorage option
@@ -68,9 +79,7 @@ module MeteringConnections =
             { CheckpointStorage = "INFRA_CHECKPOINTS_CONTAINER" |> getRequired |> containerClientWith infraStructureCredential 
               CaptureStorage = captureStorage
               ConsumerGroupName = consumerGroupName
-              NamespaceName = nsn
-              FullyQualifiedNamespace = $"{nsn}.servicebus.windows.net"
-              InstanceName =  "INFRA_EVENTHUB_INSTANCENAME" |> getRequired
+              EventHubName = EventHubName.create nsn ("INFRA_EVENTHUB_INSTANCENAME" |> getRequired)
               InfraStructureCredentials = infraStructureCredential } }
 
     let getFromEnvironmentWithSpecificConsumerGroup (consumerGroupName: string) =
@@ -94,15 +103,15 @@ module MeteringConnections =
     let createEventHubConsumerClient (connections: MeteringConnections) : EventHubConsumerClient =
         new EventHubConsumerClient(
             consumerGroup = connections.EventHubConfig.ConsumerGroupName,
-            fullyQualifiedNamespace = connections.EventHubConfig.FullyQualifiedNamespace,
-            eventHubName = connections.EventHubConfig.InstanceName,
+            fullyQualifiedNamespace = connections.EventHubConfig.EventHubName.FullyQualifiedNamespace,
+            eventHubName = connections.EventHubConfig.EventHubName.InstanceName,
             credential = connections.EventHubConfig.InfraStructureCredentials)
 
     [<Extension>]
     let createEventHubProducerClient (connections: MeteringConnections) : EventHubProducerClient =
         new EventHubProducerClient(
-            fullyQualifiedNamespace = connections.EventHubConfig.FullyQualifiedNamespace,
-            eventHubName = connections.EventHubConfig.InstanceName,
+            fullyQualifiedNamespace = connections.EventHubConfig.EventHubName.FullyQualifiedNamespace,
+            eventHubName = connections.EventHubConfig.EventHubName.InstanceName,
             credential = connections.EventHubConfig.InfraStructureCredentials,
             clientOptions = new EventHubProducerClientOptions(
                 ConnectionOptions = new EventHubConnectionOptions(
@@ -113,8 +122,8 @@ module MeteringConnections =
         new EventProcessorClient(
             checkpointStore = connections.EventHubConfig.CheckpointStorage,
             consumerGroup = connections.EventHubConfig.ConsumerGroupName,
-            fullyQualifiedNamespace = connections.EventHubConfig.FullyQualifiedNamespace,
-            eventHubName = connections.EventHubConfig.InstanceName,
+            fullyQualifiedNamespace = connections.EventHubConfig.EventHubName.FullyQualifiedNamespace,
+            eventHubName = connections.EventHubConfig.EventHubName.InstanceName,
             credential = connections.EventHubConfig.InfraStructureCredentials,
             clientOptions = new EventProcessorClientOptions(
                 TrackLastEnqueuedEventProperties = true,
