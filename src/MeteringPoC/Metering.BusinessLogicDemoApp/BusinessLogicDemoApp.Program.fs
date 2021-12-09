@@ -50,7 +50,7 @@ let parseConsumptionEvents (str: string) =
                         MessagePosition = {
                             PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
-                            Offset = sequencenr |> Int64.Parse
+                            // Offset = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                         EventsToCatchup = dummyEventsToCatchUp datestr
                     }
@@ -65,7 +65,7 @@ let parseConsumptionEvents (str: string) =
                         MessagePosition = {
                             PartitionID = "1" |> PartitionID.create
                             SequenceNumber = sequencenr |> Int64.Parse
-                            Offset = sequencenr |> Int64.Parse
+                            // Offset = sequencenr |> Int64.Parse
                             PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                         EventsToCatchup = dummyEventsToCatchUp datestr
                     }
@@ -100,7 +100,6 @@ let demoAggregation config =
                     MessagePosition = 
                         { PartitionID = "1" |> PartitionID.create
                           SequenceNumber = 1L
-                          Offset = 1
                           PartitionTimestamp = "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr } 
                     EventsToCatchup =
                         { LastOffset = 100L

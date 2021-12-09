@@ -21,7 +21,7 @@ module PartitionID =
 type MessagePosition = 
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber
-      Offset: int64
+      // Offset: int64
       PartitionTimestamp: MeteringDateTime }
 
 module MessagePosition =
@@ -33,13 +33,12 @@ module MessagePosition =
     let create (partitionId: string) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId |> PartitionID.PartitionID
           SequenceNumber = eventData.SequenceNumber
-          Offset = eventData.Offset
+          // Offset = eventData.Offset
           PartitionTimestamp = eventData.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset }
     
-    let createData (partitionId: string) (sequenceNumber: int64) (offset: int64) (partitionTimestamp: MeteringDateTime) =
+    let createData (partitionId: string) (sequenceNumber: int64) (partitionTimestamp: MeteringDateTime) =
         { PartitionID = partitionId |> PartitionID.create
           SequenceNumber = sequenceNumber
-          Offset = offset
           PartitionTimestamp = partitionTimestamp }
  
 type SeekPosition =
