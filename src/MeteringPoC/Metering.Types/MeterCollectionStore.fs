@@ -96,7 +96,7 @@ module MeterCollectionStore =
         }
 
     module Naming =
-        type SnapshotName = SnapshotName of NamespaceName:string * InstanceName:string * PartitionID:PartitionID * Timestamp:MeteringDateTime * SequenceNumber:SequenceNumber
+        type SnapshotName = SnapshotName of NamespaceName:string * InstanceName:string * MessagePosition:MessagePosition
         
         let private prefix (config: MeteringConfigurationProvider) = $"{config.MeteringConnections.EventHubConfig.FullyQualifiedNamespace}/{config.MeteringConnections.EventHubConfig.InstanceName}"
 
@@ -132,8 +132,10 @@ module MeterCollectionStore =
             let m = regex.Match(input = blobName)
             
             match ("ns" |> s m), ("hub" |> s m), ("partitionid" |> s m), ("year" |> i32 m), ("month" |> i32 m), ("day" |> i32 m), ("hour" |> i32 m), ("minute" |> i32 m), ("second" |> i32 m), ("sequencenr" |> sn m) with
-            | Some ns, Some hub, Some partitionId, Some y, Some m, Some d, Some H, Some M, Some S, Some se -> 
-                Some (SnapshotName (NamespaceName = ns, InstanceName=hub, PartitionID=(partitionId |> PartitionID.create), Timestamp=(MeteringDateTime.create y m d H M S), SequenceNumber=se)) 
+            | Some ns, Some hub, Some partitionId, Some y, Some m, Some d, Some H, Some M, Some S, Some sequenceNumber -> 
+                let partitionTimestamp = MeteringDateTime.create y m d H M S
+                let position = MessagePosition.createData partitionId sequenceNumber partitionTimestamp
+                Some (SnapshotName (NamespaceName = ns, InstanceName=hub, MessagePosition=position)) 
             | _ -> None
 
     let loadStateFromFilename
