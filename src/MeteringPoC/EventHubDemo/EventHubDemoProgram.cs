@@ -38,7 +38,7 @@ MeteringConfigurationProvider config =
 //    await Task.Delay(TimeSpan.FromSeconds(1.2));
 //}
 
-Console.WriteLine($"Reading from {connections.EventHubConfig.FullyQualifiedNamespace}");
+Console.WriteLine($"Reading from {connections.EventHubConfig.EventHubName.FullyQualifiedNamespace}");
 
 Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator = 
     MeteringAggregator.createAggregator(config);

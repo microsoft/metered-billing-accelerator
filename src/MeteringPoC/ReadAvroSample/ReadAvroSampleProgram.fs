@@ -32,17 +32,7 @@ let config : MeteringConfigurationProvider =
 
 let partitionId = "0" |> PartitionID.create
 
-let doStuff config =
-    let convert = MeterCollectionStore.Naming.blobnameToPosition config
-    let x = 
-        "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--21-01-33---sequencenr-31.json.gz"
-        |> convert
-    
-    printfn "%A" x
-
-doStuff config
-    
-exit 0
+// printfn "%A" ("meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--21-01-33---sequencenr-31.json.gz" |> MeterCollectionStore.Naming.blobnameToPosition config)
 
 let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--15-17-11---sequencenr-10.json.gz" ).Result
 // let initialState = (MeterCollectionStore.loadLastState config partitionId CancellationToken.None).Result

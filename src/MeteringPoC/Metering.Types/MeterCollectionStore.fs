@@ -19,8 +19,7 @@ module MeterCollectionStore =
     open MeterCollectionLogic
     
     type SnapshotName = 
-        { NamespaceName : string
-          InstanceName : string 
+        { EventHubName: EventHubName
           MessagePosition : MessagePosition }
 
     let private toUTF8String (bytes: byte[]) : string = Encoding.UTF8.GetString(bytes)
@@ -101,15 +100,15 @@ module MeterCollectionStore =
         }
 
     module Naming =        
-        let private prefix (config: MeteringConfigurationProvider) = $"{config.MeteringConnections.EventHubConfig.FullyQualifiedNamespace}/{config.MeteringConnections.EventHubConfig.InstanceName}"
+        let private prefix (name: EventHubName) = $"{name.FullyQualifiedNamespace}/{name.InstanceName}"
 
         let private regexPattern = "(?<ns>[^\.]+?)\.servicebus\.windows\.net/(?<hub>[^\/]+?)/(?<partitionid>[^\/]+?)/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})--(?<hour>\d{2})-(?<minute>\d{2})-(?<second>\d{2})---sequencenr-(?<sequencenr>\d+)\.json\.gz" // " // (?<year>\d{4})
     
         let internal latestName (config: MeteringConfigurationProvider) (partitionId: PartitionID) =
-            $"{config |> prefix}/{partitionId |> PartitionID.value}/latest.json.gz"
+            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{partitionId |> PartitionID.value}/latest.json.gz"
     
         let internal currentName (config: MeteringConfigurationProvider) (lastUpdate: MessagePosition) =
-            $"{config |> prefix}/{lastUpdate.PartitionID |> PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
+            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{lastUpdate.PartitionID |> PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
     
         let blobnameToPosition config blobName = 
             let i32 (m: Match) (name: string) = 
@@ -136,8 +135,8 @@ module MeterCollectionStore =
             
             match ("ns" |> s m), ("hub" |> s m), ("partitionid" |> s m), ("year" |> i32 m), ("month" |> i32 m), ("day" |> i32 m), ("hour" |> i32 m), ("minute" |> i32 m), ("second" |> i32 m), ("sequencenr" |> sn m) with
             | Some ns, Some hub, Some partitionId, Some y, Some m, Some d, Some H, Some M, Some S, Some sequenceNumber -> 
-                { NamespaceName = ns
-                  InstanceName = hub
+                { EventHubName = 
+                    EventHubName.create ns hub
                   MessagePosition = 
                     (MessagePosition.createData 
                         partitionId 
