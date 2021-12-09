@@ -99,10 +99,7 @@ module CaptureProcessor =
                     offset = offset, partitionKey = partitionKey)
         }
 
-    let readCaptureFromPosition
-            (cancellationToken: CancellationToken) 
-            (connections: MeteringConnections)
-            : IEnumerable<EventData> =
+    let readCaptureFromPosition (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventData> =
         match connections.EventHubConfig.CaptureStorage with
         | None -> Seq.empty
         | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } -> 

@@ -23,7 +23,7 @@ let printme e =
         |> Some
     | _ -> None
 
-let config = 
+let config : MeteringConfigurationProvider = 
     { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
       SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
       GracePeriod = Duration.FromHours(6.0)
@@ -31,6 +31,18 @@ let config =
       MeteringConnections = MeteringConnections.getFromEnvironment() }
 
 let partitionId = "0" |> PartitionID.create
+
+let doStuff config =
+    let convert = MeterCollectionStore.Naming.blobnameToPosition config
+    let x = 
+        "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--21-01-33---sequencenr-31.json.gz"
+        |> convert
+    
+    printfn "%A" x
+
+doStuff config
+    
+exit 0
 
 let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--15-17-11---sequencenr-10.json.gz" ).Result
 // let initialState = (MeterCollectionStore.loadLastState config partitionId CancellationToken.None).Result
