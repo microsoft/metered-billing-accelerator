@@ -20,7 +20,7 @@ The solution needs to be able to access Azure EventHub and Azure Storage. You ca
 
 ### Endpoints
 
-Configure the appropriate  endpoints for EventHub and Storage via environment variables:
+Configure the appropriate endpoints for EventHub and Storage via environment variables:
 
 - EventHub
   - Set `AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME` and `AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME` with the *pure* names, like `meteringhack` and `hub1`.
@@ -55,6 +55,24 @@ setx.exe AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER         https://meteringhack.b
 setx.exe AZURE_METERING_INFRA_CAPTURE_CONTAINER           https://meteringhack.blob.core.windows.net/hub2capture
 setx.exe AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT     {Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}
 ```
+
+## Demo time - How to run / try it yourself
+
+The service principal `AZURE_METERING_INFRA_CLIENT_ID` must have access (read/write to both the `AZURE_METERING_INFRA_EVENTHUB` event hub, as well as the checkpoints blob storage, the snapshot blob storage, and read access to the eventhub capture blob storage).
+
+There are currently two CLI console apps to try it out:
+
+- The `Demos\EventHubDemo` is the aggregator. 
+  - It aggregates events, and displays stuff on screen. You can't interact with it. 
+  - When you stop it, and restart it, it might take up to a minute until you see output, as it's battling leadership election games with it's previous incarnation on who owns which EventHub partition.
+- The `Demos\SimpleMeteringSubmissionClient` is your demo app to submit real values.
+  - Before you can see anything usefull, you must create a subscription: Type `c 1` for example, which (c)reates a new subscription. The code takes the `1`, and generates a GUID from it. 
+    So unfortunately you can't see that `1` in the `Demos\EventHubDemo`, only the corresponding GUID. 
+  - You can create multiple subscriptions, e.g. type `c 2` and `c 3`, and create more subs to play with
+  - After you have a subscription, you can (s)ubmit metering values, by saying `s 1 20`, which sends a usage event of 20 units for the subscription GUID which corresponds to the `1`.
+  - Once you have pressed the return button, an event goes into EventHub, and you should see metering values on the `Demos\EventHubDemo` side change.
+  
+
 
 ## Missing features
 
