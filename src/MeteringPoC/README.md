@@ -54,8 +54,6 @@ setx.exe AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER         https://meteringhack.b
 
 setx.exe AZURE_METERING_INFRA_CAPTURE_CONTAINER           https://meteringhack.blob.core.windows.net/hub2capture
 setx.exe AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT     {Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}
-
-
 ```
 
 ## Missing features
@@ -67,4 +65,3 @@ setx.exe AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT     {Namespace}/{EventHub}
 - [ ] track per meter which hours have been ever submitted in a large bitfield. 
   - 365days/year * 24h/day * 1bit/(h*meter) / 8bit/byte * (4/3 extension due to base64)== 1460 byte/(year*meter). 
   - With an additional overhead of 1460 bytes per year and meter, we can track which in which hours we have submitted metering values.
-

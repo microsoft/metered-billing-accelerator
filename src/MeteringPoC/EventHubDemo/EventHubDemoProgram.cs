@@ -48,15 +48,17 @@ List<IDisposable> subscriptions = new();
 var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Subscribe(onNext: group => {
     var partitionId = group.Key;
     Console.WriteLine($"New group: {partitionId.value()}");
-    IDisposable subscription = group
+    var events = group
         .Scan(
             seed: MeterCollectionModule.Uninitialized,
             accumulator: accumulator
         )
-        .Where(x => x.IsSome())
-        .Select(x => x.Value)
+        .Choose() // '.Choose()' is cleaner than '.Where(x => x.IsSome()).Select(x => x.Value)'
         //.StartWith()
         //.PublishLast()
+        ;
+
+    IDisposable subscription = events
         .Subscribe(
             onNext: coll => handleCollection(partitionId, coll),
             onError: ex => { 
@@ -80,7 +82,7 @@ void handleCollection (PartitionID partitionId, MeterCollection meterCollection)
 
     Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
 
-    Console.WriteLine(Json.toStr(2, meterCollection));
+    // Console.WriteLine(Json.toStr(2, meterCollection));
     MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
 };
 
