@@ -16,7 +16,6 @@ let parseConsumptionEvents (str: string) =
     let dummyEventsToCatchUp dateStr =
         { NumberOfEvents = 1L
           TimeDeltaSeconds = 0.0
-          LastOffset = 1L
           LastSequenceNumber = 100L
           LastEnqueuedTime = dateStr |> MeteringDateTime.fromStr }
         |> Some
@@ -102,8 +101,7 @@ let demoAggregation config =
                           SequenceNumber = 1L
                           PartitionTimestamp = "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr } 
                     EventsToCatchup =
-                        { LastOffset = 100L
-                          LastSequenceNumber = 100L
+                        { LastSequenceNumber = 100L
                           LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr                           
                           NumberOfEvents = 1
                           TimeDeltaSeconds = 1.0 } |> Some }       
