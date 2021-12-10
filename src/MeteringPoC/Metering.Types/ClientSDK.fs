@@ -9,6 +9,16 @@ open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Producer
 open Metering.Types
 
+type Meter = 
+    { Quantity: Quantity
+      Name: ApplicationInternalMeterName }
+
+type ManagedAppConsumption = 
+    Meters of Meter list
+
+type SaaSConsumption = { 
+    SaaSSubscriptionID: SaaSSubscriptionID 
+    Meters: Meter list }
 
 [<Extension>]
 module MeteringEventHubExtensions =    
