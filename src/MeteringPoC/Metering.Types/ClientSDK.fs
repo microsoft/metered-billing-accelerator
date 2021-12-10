@@ -13,6 +13,15 @@ type Meter =
     { Quantity: Quantity
       Name: ApplicationInternalMeterName }
 
+module Meter =
+    let createInt (name: string) (quantity: uint64) : Meter =
+        { Quantity = quantity |> Quantity.createInt
+          Name = name |> ApplicationInternalMeterName.create }
+    
+    let createFloat (name: string) (quantity: decimal) : Meter =
+        { Quantity = quantity |> Quantity.createFloat
+          Name = name |> ApplicationInternalMeterName.create }        
+
 type ManagedAppConsumption = 
     Meters of Meter list
 
