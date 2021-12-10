@@ -1,4 +1,4 @@
-﻿namespace Metering
+﻿namespace Metering.ClientSDK
 
 open System
 open System.Threading
@@ -8,6 +8,7 @@ open System.Runtime.InteropServices
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Producer
 open Metering.Types
+
 
 [<Extension>]
 module MeteringEventHubExtensions =    

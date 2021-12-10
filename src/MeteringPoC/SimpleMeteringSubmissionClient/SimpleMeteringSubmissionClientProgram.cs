@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
-using Metering;
 using Metering.Types;
+using Metering.ClientSDK;
 
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
