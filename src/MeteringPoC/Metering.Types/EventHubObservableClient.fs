@@ -149,7 +149,10 @@ module EventHubObservableClient =
     [<Extension>]
     let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
         // eventData.Body.ToArray() |> Encoding.UTF8.GetString |> Json.fromStr<MeteringUpdateEvent>
-        eventData.EventBody.ToString() |> Json.fromStr<MeteringUpdateEvent>
+        let json = eventData.EventBody.ToString()
+        
+        
+        json |> Json.fromStr<MeteringUpdateEvent>
         
     [<Extension>]
     let create (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 

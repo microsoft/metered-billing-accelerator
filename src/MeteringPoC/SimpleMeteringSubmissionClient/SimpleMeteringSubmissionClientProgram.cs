@@ -1,7 +1,9 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using Azure.Messaging.EventHubs.Producer;
 using Metering.Types;
 using Metering.ClientSDK;
+using MeterValueModule = Metering.ClientSDK.MeterValueModule;
 
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
@@ -11,58 +13,72 @@ static async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.Read
 
 using CancellationTokenSource cts = new();
 
-var config = MeteringConnectionsModule.getFromEnvironment();
-var eventHubProducerClient = config.createEventHubProducerClient();
+MeteringConnections config = Metering.Types.MeteringConnectionsModule.getFromEnvironment();
+EventHubProducerClient eventHubProducerClient = config.createEventHubProducerClient();
 
-static ulong GetQuantity(string command) => command.Split(' ').Length > 2 ? ulong.Parse(command.Split(' ')[2]) : 1;
+await Interactive(eventHubProducerClient, cts.Token);
+cts.Cancel();
 
-try
+static async Task Interactive(EventHubProducerClient eventHubProducerClient, CancellationToken ct)
 {
-    var (subName,saasId) = ("", "");
-    while (true)
+    static ulong GetQuantity(string command) => command.Split(' ').Length > 2 ? ulong.Parse(command.Split(' ')[2]) : 1;
+
+    try
     {
-        await Console.Out.WriteLineAsync("c sub or s sub to submit to a particular subscription>  ");
-        var command = await Console.In.ReadLineAsync();
-      
-
-        if (command.ToLower().StartsWith("c"))
+        var (subName, saasId) = ("", "");
+        while (true)
         {
-            subName = command.Split(' ')[1];
-            saasId = guidFromStr(subName);
+            await Console.Out.WriteLineAsync("c sub or s sub to submit to a particular subscription>  ");
+            var command = await Console.In.ReadLineAsync();
 
-            SubscriptionCreationInformation sci = new(
-                internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
-                subscription: new(
-                    plan: await readJson<Plan>("plan.json"),
-                    internalResourceId: InternalResourceIdModule.fromStr(saasId),
-                    renewalInterval: RenewalInterval.Monthly,
-                    subscriptionStart: MeteringDateTimeModule.now()));
 
-            await Console.Out.WriteLineAsync($"Creating subscription {subName} ({saasId})");
-            await eventHubProducerClient.SubmitSubscriptionCreationAsync(sci, cts.Token);
-        }
-        else if (command.ToLower().StartsWith("s"))
-        {
-            subName = command.Split(' ')[1];
-            saasId = guidFromStr(subName);
-            var count = GetQuantity(command);
+            if (command.ToLower().StartsWith("c"))
+            {
+                subName = command.Split(' ')[1];
+                saasId = guidFromStr(subName);
 
-            await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
-            await eventHubProducerClient.SubmitSaaSMeterAsync(saasId: saasId, meterName: "cpu", quantity: count, cts.Token);
-        }
-        else
-        {
-            await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
-            await eventHubProducerClient.SubmitSaaSMeterAsync(saasId: saasId, meterName: "cpu", quantity: 1.0M, cts.Token);
+                SubscriptionCreationInformation sci = new(
+                    internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
+                    subscription: new(
+                        plan: await readJson<Plan>("plan.json"),
+                        internalResourceId: InternalResourceIdModule.fromStr(saasId),
+                        renewalInterval: RenewalInterval.Monthly,
+                        subscriptionStart: MeteringDateTimeModule.now()));
+
+                await Console.Out.WriteLineAsync($"Creating subscription {subName} ({saasId})");
+                await eventHubProducerClient.SubmitSubscriptionCreationAsync(sci, ct);
+            }
+            else if (command.ToLower().StartsWith("s"))
+            {
+                subName = command.Split(' ')[1];
+                saasId = guidFromStr(subName);
+                var count = GetQuantity(command);
+
+                var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+                    .Select(x => MeterValueModule.create(x, count))
+                    .ToArray();
+
+                await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
+                await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
+            }
+            else
+            {
+                await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
+                var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+                    .Select(x => MeterValueModule.create(x, 1.0M))
+                    .ToArray();
+
+                await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
+                await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
+            }
         }
     }
-}
-catch (Exception e)
-{
-    await Console.Error.WriteLineAsync(e.Message);
-}
-finally
-{
-    await eventHubProducerClient.CloseAsync();
-    cts.Cancel();
+    catch (Exception e)
+    {
+        await Console.Error.WriteLineAsync(e.Message);
+    }
+    finally
+    {
+        await eventHubProducerClient.CloseAsync();
+    }
 }

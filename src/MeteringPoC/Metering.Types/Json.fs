@@ -579,6 +579,7 @@ module Json =
     let toStr ([<Optional; DefaultParameterValue(0)>] space: int) o = Encode.Auto.toString(space, o, extra = enriched)
         
     let fromStr<'T> json = 
+        
         match Decode.Auto.fromString<'T>(json, extra = enriched) with
         | Ok r -> r
         | Result.Error e -> failwith e
