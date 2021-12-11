@@ -56,7 +56,7 @@ module EventHubObservableClient =
             let ProcessError (processErrorEventArgs: ProcessErrorEventArgs) =
                 try
                     let partitionId =
-                        processErrorEventArgs.PartitionId |> PartitionID
+                        processErrorEventArgs.PartitionId |> PartitionIdentifier.createId
 
                     let ex = processErrorEventArgs.Exception
                     o.OnError(ex)

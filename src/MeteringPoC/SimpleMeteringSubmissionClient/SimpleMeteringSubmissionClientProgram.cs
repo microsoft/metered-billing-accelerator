@@ -21,7 +21,6 @@ await Batch(eventHubProducerClient, "1", cts.Token);
 
 cts.Cancel();
 
-
 static async Task Batch(EventHubProducerClient eventHubProducerClient, string subName, CancellationToken ct)
 {
     var saasId = guidFromStr(subName);

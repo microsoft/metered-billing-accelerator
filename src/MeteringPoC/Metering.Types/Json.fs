@@ -6,6 +6,8 @@ module Json =
     open Newtonsoft.Json.Linq
     open NodaTime.Text
     open System.Runtime.InteropServices
+    open Metering.Types.EventHub
+    
     
     module MeteringDateTime =
         let private makeEncoder<'T> (pattern : IPattern<'T>) : Encoder<'T> = pattern.Format >> Encode.string
@@ -490,54 +492,90 @@ module Json =
             })
             
     module UnprocessableMessage =
+        let (t, v) = ("type", "value")
+
         let Encoder (x: UnprocessableMessage) : JsonValue =
             match x with
             | UnprocessableStringContent s ->
                 [
-                    ("type", "string" |> Encode.string)
-                    ("value", s |> Encode.string)
+                    (t, "string" |> Encode.string)
+                    (v, s |> Encode.string)
                 ] |> Encode.object 
             | UnprocessableByteContent b -> 
                 [
-                    ("type", "bytes" |> Encode.string)
-                    ("value", Convert.ToBase64String(b) |> Encode.string)
+                    (t, "bytes" |> Encode.string)
+                    (v, Convert.ToBase64String(b) |> Encode.string)
                 ] |> Encode.object 
 
         let Decoder : Decoder<UnprocessableMessage> =
             Decode.object (fun get ->                
-                match (get.Required.Field "type" Decode.string) with
-                | "string" -> (get.Required.Field "value" Decode.string) |> UnprocessableStringContent
-                | "bytes" -> (get.Required.Field "value" Decode.string) |> Convert.FromBase64String |> UnprocessableByteContent
+                match (get.Required.Field t Decode.string) with
+                | "string" -> (get.Required.Field v Decode.string) |> UnprocessableStringContent
+                | "bytes" -> (get.Required.Field v Decode.string) |> Convert.FromBase64String |> UnprocessableByteContent
                 | unsupported -> failwith $"Could not decode {nameof(UnprocessableMessage)}, unknown type {unsupported}"
             )
+
+    module RemoveUnprocessedMessages =
+        let Encoder ({PartitionID = partitionID; Selection = selection}: RemoveUnprocessedMessages) : JsonValue =
+            [
+                ("partitionId", partitionID |> PartitionID.value |> Encode.string)
+
+                match selection with
+                | BeforeIncluding x -> ("beforeIncluding", x |> Encode.int64)
+                | Exactly x -> ("exactly", x |> Encode.int64)
+            ] |> Encode.object
+
+        let Decoder : Decoder<RemoveUnprocessedMessages> =
+            //let decodeSelection : Decoder<RemoveUnprocessedMessagesSelection> =
+            //    [
+            //        Decode.field "beforeIncluding" Decode.int64 |> (Decode.map BeforeIncluding)
+            //        Decode.field "exactly" Decode.int64 |> (Decode.map Exactly)
+            //    ] |> Decode.oneOf
+            
+            [
+                Decode.object (fun get -> {
+                    PartitionID = (get.Required.Field "partitionId" Decode.string) |> PartitionID.create
+                    Selection = (get.Required.Field  "beforeIncluding" Decode.int64) |> BeforeIncluding
+                })
+                Decode.object (fun get -> {
+                    PartitionID = (get.Required.Field "partitionId" Decode.string) |> PartitionID.create
+                    Selection = (get.Required.Field  "exactly" Decode.int64) |> Exactly
+                })
+            ] |> Decode.oneOf
 
     module MeteringUpdateEvent =
         let (typeid, value) =
             ("type", "value");
 
-        let Encoder (x: MeteringUpdateEvent) : JsonValue =
-            match x with
-            | SubscriptionPurchased sub -> 
+        let Encoder (e: MeteringUpdateEvent) : JsonValue =
+            match e with
+            | SubscriptionPurchased x -> 
                 [
                      (typeid, nameof(SubscriptionPurchased) |> Encode.string)
-                     (value, sub |> SubscriptionCreationInformation.Encoder)
+                     (value, x |> SubscriptionCreationInformation.Encoder)
                 ]
-            | UsageReported usage ->
+            | UsageReported x ->
                 [
                      (typeid, nameof(UsageReported) |> Encode.string)
-                     (value, usage |> InternalUsageEvent.Encoder)
+                     (value, x |> InternalUsageEvent.Encoder)
                 ]
-            | UsageSubmittedToAPI usage -> 
+            | UsageSubmittedToAPI x -> 
                 [
                     (typeid, nameof(UsageSubmittedToAPI) |> Encode.string)
-                    (value, usage |> MarketplaceSubmissionResult.Encoder)
+                    (value, x |> MarketplaceSubmissionResult.Encoder)
                 ]
-            | UnprocessableMessage unprocessable -> 
-               [
-                   (typeid, nameof(UnprocessableMessage) |> Encode.string)
-                   (value, unprocessable |> UnprocessableMessage.Encoder)
-               ]
-            | AggregatorBooted -> raise <| new NotSupportedException "Currently this feedback loop must only be internally"
+            | UnprocessableMessage x -> 
+                [
+                    (typeid, nameof(UnprocessableMessage) |> Encode.string)
+                    (value, x |> UnprocessableMessage.Encoder)
+                ]
+            | RemoveUnprocessedMessages x -> 
+                [
+                    (typeid, nameof(RemoveUnprocessedMessages) |> Encode.string)
+                    (value, x |> RemoveUnprocessedMessages.Encoder)
+                ]
+            | AggregatorBooted -> 
+                raise <| new NotSupportedException "Currently this feedback loop must only be internally"
             |> Encode.object 
             
         let Decoder : Decoder<MeteringUpdateEvent> =
@@ -547,6 +585,7 @@ module Json =
                 | nameof(UsageReported) -> (get.Required.Field value InternalUsageEvent.Decoder) |> UsageReported
                 | nameof(UsageSubmittedToAPI) -> (get.Required.Field value MarketplaceSubmissionResult.Decoder) |> UsageSubmittedToAPI
                 | nameof(UnprocessableMessage) -> (get.Required.Field value UnprocessableMessage.Decoder) |> UnprocessableMessage
+                | nameof(RemoveUnprocessedMessages) -> (get.Required.Field value RemoveUnprocessedMessages.Decoder) |> RemoveUnprocessedMessages
                 | _ -> failwith "bad"
             )
 

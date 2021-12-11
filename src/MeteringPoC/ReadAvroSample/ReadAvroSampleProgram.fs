@@ -38,14 +38,17 @@ let partitionId = "0" |> PartitionID.create
 //let bytes = Array.create 16 0uy
 //rnd.NextBytes(bytes)
 
-let j = "[{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.0995601Z\",\"meterName\":\"nde\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.113733Z\",\"meterName\":\"cpu\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137354Z\",\"meterName\":\"dta\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137357Z\",\"meterName\":\"msg\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137359Z\",\"meterName\":\"obj\",\"quantity\":\"20\",\"properties\":{}}}]"
-let bytes = System.Text.Encoding.UTF8.GetBytes(j)
-let ed = EventDataDummy.create "1.avro" bytes 13L 100L "0"
-let ue = ed |> EventHubObservableClient.toMeteringUpdateEvent 
-let s = ue |> Json.toStr 1
-let s2 = s |> Json.fromStr<MeteringUpdateEvent>
+//let j = "[{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.0995601Z\",\"meterName\":\"nde\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.113733Z\",\"meterName\":\"cpu\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137354Z\",\"meterName\":\"dta\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137357Z\",\"meterName\":\"msg\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137359Z\",\"meterName\":\"obj\",\"quantity\":\"20\",\"properties\":{}}}]"
+//let bytes = System.Text.Encoding.UTF8.GetBytes(j)
+//let ed = EventDataDummy.create "1.avro" bytes 13L 100L "0"
+//let ue = ed |> EventHubObservableClient.toMeteringUpdateEvent 
+//let s = ue |> Json.toStr 1
+//let s2 = s |> Json.fromStr<MeteringUpdateEvent>
 
-
+// Delete event 59 from state
+//(ClientSDK.MeteringEventHubExtensions.RemoveUnprocessableMessagesUpTo 
+//    (config.MeteringConnections |> MeteringConnections.createEventHubProducerClient)
+//    (partitionId) 200000 CancellationToken.None).Wait()
 
 // printfn "%A" ("meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--21-01-33---sequencenr-31.json.gz" |> MeterCollectionStore.Naming.blobnameToPosition config)
 
@@ -78,7 +81,7 @@ match initialState with
     let x = 
         config.MeteringConnections
         |> CaptureProcessor.readEventsFromPosition EventHubObservableClient.toMeteringUpdateEvent startPosition CancellationToken.None 
-        |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
+        // |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map (fun e -> MeteringEvent.create e.EventData e.MessagePosition e.EventsToCatchup)
         |> Seq.scan aggregate initialState
         |> Seq.last

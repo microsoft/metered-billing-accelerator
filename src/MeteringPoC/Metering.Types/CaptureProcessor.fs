@@ -90,7 +90,10 @@ module CaptureProcessor =
                 let systemProperties = genericAvroRecord |> GetRequiredAvroProperty<Dictionary<string, obj>> "SystemProperties" |> ImmutableDictionary.ToImmutableDictionary
                 let properties = genericAvroRecord |> GetRequiredAvroProperty<IDictionary<string, obj>> "Properties"
                 let body = genericAvroRecord |> GetRequiredAvroProperty<byte[]> "Body"
-                let partitionKey = systemProperties["x-opt-partition-key"] :?> string // x-opt-partition-key : string = "3e7a30bd-29c3-0ae1-2cff-8fb87480823d"
+                let partitionKey = 
+                    if systemProperties.ContainsKey("x-opt-partition-key")
+                    then systemProperties["x-opt-partition-key"] :?> string // x-opt-partition-key : string = "3e7a30bd-29c3-0ae1-2cff-8fb87480823d"
+                    else ""
 
                 yield new RehydratedFromCaptureEventData(
                     blobName = blobName, eventBody = body, 

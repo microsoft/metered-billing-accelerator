@@ -1,8 +1,6 @@
 ﻿namespace Metering.Types
 
-type UnprocessableMessage =
-    | UnprocessableStringContent of string
-    | UnprocessableByteContent of byte array
+open Metering.Types.EventHub
 
 /// The events which are processed by the aggregator.
 type MeteringUpdateEvent =
@@ -18,6 +16,9 @@ type MeteringUpdateEvent =
     /// The message payload could not be parsed into a processable entity.
     | UnprocessableMessage of UnprocessableMessage
 
+    /// Clean up state
+    | RemoveUnprocessedMessages of RemoveUnprocessedMessages
+
     /// A heart beat signal to flush potential billing periods
     | AggregatorBooted
 
@@ -28,7 +29,8 @@ module MeteringUpdateEvent =
         | UsageReported x -> x.InternalResourceId |> InternalResourceId.toStr
         | UsageSubmittedToAPI x -> x.Payload.ResourceId  |> InternalResourceId.toStr
         | AggregatorBooted -> null
-        | UnprocessableMessage p -> null
+        | UnprocessableMessage _ -> null
+        | RemoveUnprocessedMessages _ -> null
 
     let toStr (mue: MeteringUpdateEvent) : string =
         match mue with
@@ -40,3 +42,7 @@ module MeteringUpdateEvent =
             match p with
             | UnprocessableStringContent s -> $"Unprocessable payload: {s}"
             | UnprocessableByteContent b -> $"Unprocessable payload: {System.Convert.ToBase64String(b)}"
+        | RemoveUnprocessedMessages { PartitionID = p; Selection = x } ->
+            match x with 
+            | BeforeIncluding x -> $"Removing messages older than sequence number {x + 1L} in partition {p}"
+            | Exactly x  -> $"Removing messages with sequence number {x} in partition {p}"

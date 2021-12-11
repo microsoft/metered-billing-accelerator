@@ -18,6 +18,22 @@ module PartitionID =
     let value (PartitionID x) = x
     let create x = (PartitionID x)
 
+type PartitionKey = PartitionKey of string
+
+[<Extension>]
+module PartitionKey =
+    [<Extension>]
+    let value (PartitionKey x) = x
+    let create x = (PartitionKey x)
+
+type PartitionIdentifier =
+    | PartitionID of PartitionID
+    | PartitionKey of PartitionKey
+
+module PartitionIdentifier =
+    let createId = PartitionID.create >> PartitionID
+    let createKey = PartitionKey.create >> PartitionKey
+
 type MessagePosition = 
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber

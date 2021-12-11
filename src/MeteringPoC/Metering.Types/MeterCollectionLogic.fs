@@ -118,6 +118,19 @@ module MeterCollectionLogic =
                   EventData = UnprocessableMessage m 
                   EventsToCatchup = None; Source = EventHub }
             |> setLastProcessed meteringEvent.MessagePosition
+        | RemoveUnprocessedMessages { PartitionID = eventPid; Selection = selection } ->
+            match state.LastUpdate with
+            | None -> state
+            | Some { PartitionID = statePid } -> 
+                if statePid <> eventPid // If the message is targeted to a different partition, don't change the state
+                then state
+                else 
+                    let filter = function
+                    | BeforeIncluding x -> List.filter (fun e -> e.MessagePosition.SequenceNumber > x) // Keep all with a sequence number greater x in state
+                    | Exactly x -> List.filter (fun e -> e.MessagePosition.SequenceNumber <> x) // Keep all except x in state
+                                    
+                    { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
+                    |> setLastProcessed meteringEvent.MessagePosition
                             
     let handleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
         let state =

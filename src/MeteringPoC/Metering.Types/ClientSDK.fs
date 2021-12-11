@@ -8,6 +8,7 @@ open System.Runtime.InteropServices
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Producer
 open Metering.Types
+open Metering.Types.EventHub
 
 type MeterValue = 
     { Quantity: Quantity
@@ -72,6 +73,27 @@ module MeteringEventHubExtensions =
                 cancellationToken = cancellationToken)
         }
 
+    let private SubmitMeteringUpdateEventToPartition (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (cancellationToken: CancellationToken) (meteringUpdateEvent: MeteringUpdateEvent) : Task =
+        task {
+            let! eventBatch = eventHubProducerClient.CreateBatchAsync(
+                options = new CreateBatchOptions (PartitionId = (partitionId |> PartitionID.value)),
+                cancellationToken = cancellationToken)
+            
+            let eventData =
+                meteringUpdateEvent
+                |> Json.toStr 0
+                |> (fun x -> new BinaryData(x))
+                |> (fun x -> new EventData(x))
+            
+            eventData.Properties.Add("SendingApplication", (System.Reflection.Assembly.GetEntryAssembly().FullName))
+            if not (eventBatch.TryAdd(eventData))
+            then failwith "The event could not be added."
+
+            return! eventHubProducerClient.SendAsync(
+                eventBatch = eventBatch,
+                // options: new SendEventOptions() {  PartitionId = "...", PartitionKey = "..." },
+                cancellationToken = cancellationToken)
+        }
 
     [<Extension>]
     [<CompiledName("SubmitManagedAppMeterAsync")>]
@@ -101,13 +123,25 @@ module MeteringEventHubExtensions =
         )
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
         
+    let private asList<'T> (t: 'T) : 'T list = [ t ] 
+
     [<Extension>]
     [<CompiledName("SubmitSubscriptionCreationAsync")>]
     let SubmitSubscriptionCreation (eventHubProducerClient: EventHubProducerClient) (sci: SubscriptionCreationInformation) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        [SubscriptionPurchased sci]
+        sci |> SubscriptionPurchased |> asList
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
     // this is not exposed as C# extension, as only F# is supposed to call it. 
     let ReportUsageSubmitted (eventHubProducerClient: EventHubProducerClient) (msr: MarketplaceSubmissionResult) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        [UsageSubmittedToAPI msr]
+        msr |> UsageSubmittedToAPI |> asList
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
+
+    [<Extension>]
+    let RemoveUnprocessableMessagesUpTo(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+        { PartitionID = partitionId; Selection = sequenceNumber |> BeforeIncluding } |> RemoveUnprocessedMessages 
+        |> SubmitMeteringUpdateEventToPartition eventHubProducerClient partitionId cancellationToken
+
+    [<Extension>]
+    let RemoveUnprocessableMessage(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+        { PartitionID = partitionId; Selection = sequenceNumber |> Exactly } |> RemoveUnprocessedMessages 
+        |> SubmitMeteringUpdateEventToPartition eventHubProducerClient partitionId cancellationToken
