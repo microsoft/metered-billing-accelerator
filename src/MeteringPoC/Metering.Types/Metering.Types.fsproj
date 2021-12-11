@@ -4,6 +4,12 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
     <PackageReference Include="System.Reactive.Linq" Version="5.0.0" />

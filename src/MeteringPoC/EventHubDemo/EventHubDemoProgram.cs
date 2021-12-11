@@ -1,5 +1,6 @@
 ﻿using System.Reactive.Linq;
 using System.Reflection;
+using Azure.Messaging.EventHubs;
 using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
@@ -77,13 +78,17 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
 });
 subscriptions.Add(groupedSub);
 
-void handleCollection (PartitionID partitionId, MeterCollection meterCollection) {
+static void handleCollection (PartitionID partitionId, MeterCollection meterCollection) {
     //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
-
-    Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
+    
+    //Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
+    Console.WriteLine(meterCollection.getLastSequenceNumber());
 
     // Console.WriteLine(Json.toStr(2, meterCollection));
-    MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
+    //if (meterCollection.getLastSequenceNumber() % 100 == 0)
+    {
+        //MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
+    }
 };
 
 await Console.Out.WriteLineAsync("Press <Return> to close...");
@@ -92,7 +97,9 @@ _ = await Console.In.ReadLineAsync();
 subscriptions.ForEach(subscription => subscription.Dispose());
 cts.Cancel();
 
+#pragma warning disable CA1050 // Declare types in namespaces
 public static class E
+#pragma warning restore CA1050 // Declare types in namespaces
 {
     public static string UpTo(this string s, int length) =>  s.Length > length ? s[..length] : s;
     public static string W(this string s, int width) => String.Format($"{{0,-{width}}}", s);

@@ -40,11 +40,10 @@ module EventHubObservableClient =
 
             let ProcessEvent (processEventArgs: ProcessEventArgs) =
                 try
-                    match (EventHubEvent.createFromEventHub converter processEventArgs ) with
+                    match (EventHubEvent.createFromEventHub converter processEventArgs) with
                     | Some e ->                     
-                        Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
-                        
-                        printfn $"\n\nnew event {e.MessagePosition.PartitionID |> PartitionID.value}-{e.MessagePosition.SequenceNumber} {e}" 
+                        // Console.ForegroundColor <- ConsoleColor.Red; printfn "\n\n%A\n\n" e; Console.ResetColor()
+                        // printfn $"\n\nnew event {e.MessagePosition.PartitionID |> PartitionID.value}-{e.MessagePosition.SequenceNumber} {e}" 
                         o.OnNext(EventHubEvent e)
                     | None -> ()
                 with
@@ -149,11 +148,18 @@ module EventHubObservableClient =
     [<Extension>]
     let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
         // eventData.Body.ToArray() |> Encoding.UTF8.GetString |> Json.fromStr<MeteringUpdateEvent>
-        let json = eventData.EventBody.ToString()
-        
-        
-        json |> Json.fromStr<MeteringUpdateEvent>
-        
+        let s = eventData.EventBody.ToString()
+
+        try 
+            match s |> Json.fromStr2<MeteringUpdateEvent> with
+            | Ok v -> v
+            | Error _ -> 
+                eventData.EventBody.ToArray()
+                |> UnprocessableByteContent
+                |> UnprocessableMessage
+        with
+        | _ -> s |> UnprocessableStringContent |> UnprocessableMessage
+
     [<Extension>]
     let create (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
         

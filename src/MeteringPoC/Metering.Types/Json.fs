@@ -378,30 +378,6 @@ module Json =
                 UsageToBeReported = get.Required.Field usageToBeReported (Decode.list MeteringAPIUsageEventDefinition.Decoder)
                 LastProcessedMessage = get.Required.Field lastProcessedMessage MessagePosition.Decoder
             })
-
-    module MeterCollection =
-        let (meters, unprocessable, lastProcessedMessage) = ("meters", "unprocessable", "lastProcessedMessage")
-
-        let Encoder (x: MeterCollection) : JsonValue =
-            [
-                (meters, x |> MeterCollection.value |> Map.toSeq |> Seq.toList |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder)) |> Encode.object)                
-                (unprocessable, x.UnprocessableUsage |> List.map InternalUsageEvent.Encoder |> Encode.list)
-            ]
-            |> (fun l -> 
-                match x.LastUpdate with
-                | None -> l
-                | Some lastUpdate -> (lastProcessedMessage, lastUpdate |> MessagePosition.Encoder) :: l)
-            |> Encode.object 
-
-        let Decoder : Decoder<MeterCollection> =
-            let turnKeyIntoSubscriptionType (k, v) =
-                (k |> InternalResourceId.fromStr, v)
-
-            Decode.object (fun get -> {
-                MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed))
-                UnprocessableUsage = get.Required.Field unprocessable (Decode.list InternalUsageEvent.Decoder)
-                LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder
-            })
     
     module MarketplaceSubmissionAcceptedResponse =
         let (usageEventId, status, messageTime, resourceId, resourceUri, quantity, dimensionId, effectiveStartTime, planId) =
@@ -457,7 +433,6 @@ module Json =
             Decode.object (fun get -> 
                 let errName = get.Required.Field error Decode.string
                 let json = get.Required.Field body Decode.string
-                
 
                 let r = 
                     match errName with
@@ -514,6 +489,28 @@ module Json =
                 Result = get.Required.Field result ResultDecoder
             })
             
+    module UnprocessableMessage =
+        let Encoder (x: UnprocessableMessage) : JsonValue =
+            match x with
+            | UnprocessableStringContent s ->
+                [
+                    ("type", "string" |> Encode.string)
+                    ("value", s |> Encode.string)
+                ] |> Encode.object 
+            | UnprocessableByteContent b -> 
+                [
+                    ("type", "bytes" |> Encode.string)
+                    ("value", Convert.ToBase64String(b) |> Encode.string)
+                ] |> Encode.object 
+
+        let Decoder : Decoder<UnprocessableMessage> =
+            Decode.object (fun get ->                
+                match (get.Required.Field "type" Decode.string) with
+                | "string" -> (get.Required.Field "value" Decode.string) |> UnprocessableStringContent
+                | "bytes" -> (get.Required.Field "value" Decode.string) |> Convert.FromBase64String |> UnprocessableByteContent
+                | unsupported -> failwith $"Could not decode {nameof(UnprocessableMessage)}, unknown type {unsupported}"
+            )
+
     module MeteringUpdateEvent =
         let (typeid, value) =
             ("type", "value");
@@ -535,6 +532,11 @@ module Json =
                     (typeid, nameof(UsageSubmittedToAPI) |> Encode.string)
                     (value, usage |> MarketplaceSubmissionResult.Encoder)
                 ]
+            | UnprocessableMessage unprocessable -> 
+               [
+                   (typeid, nameof(UnprocessableMessage) |> Encode.string)
+                   (value, unprocessable |> UnprocessableMessage.Encoder)
+               ]
             | AggregatorBooted -> raise <| new NotSupportedException "Currently this feedback loop must only be internally"
             |> Encode.object 
             
@@ -544,8 +546,49 @@ module Json =
                 | nameof(SubscriptionPurchased) -> (get.Required.Field value SubscriptionCreationInformation.Decoder) |> SubscriptionPurchased
                 | nameof(UsageReported) -> (get.Required.Field value InternalUsageEvent.Decoder) |> UsageReported
                 | nameof(UsageSubmittedToAPI) -> (get.Required.Field value MarketplaceSubmissionResult.Decoder) |> UsageSubmittedToAPI
-                | invalidType  -> failwithf "`%s` is not a valid type" invalidType
+                | nameof(UnprocessableMessage) -> (get.Required.Field value UnprocessableMessage.Decoder) |> UnprocessableMessage
+                | _ -> failwith "bad"
             )
+
+    module EventHubEvent_MeteringUpdateEvent =
+        open Metering.Types.EventHub
+
+        let Encoder (x: EventHubEvent<MeteringUpdateEvent>) : JsonValue =
+            [
+                ("position", x.MessagePosition |> MessagePosition.Encoder)
+                ("event", x.EventData |> MeteringUpdateEvent.Encoder)
+            ] |> Encode.object 
+            
+        let Decoder : Decoder<EventHubEvent<MeteringUpdateEvent>> =
+            Decode.object (fun get -> {
+                MessagePosition = get.Required.Field "position" MessagePosition.Decoder
+                EventData = get.Required.Field "event" MeteringUpdateEvent.Decoder
+                Source = EventHub; EventsToCatchup = None
+            })
+
+    module MeterCollection =
+        let (meters, unprocessable, lastProcessedMessage) = ("meters", "unprocessable", "lastProcessedMessage")
+
+        let Encoder (x: MeterCollection) : JsonValue =
+            [
+                (meters, x |> MeterCollection.value |> Map.toSeq |> Seq.toList |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder)) |> Encode.object)                
+                (unprocessable, x.UnprocessableMessages |> List.map EventHubEvent_MeteringUpdateEvent.Encoder |> Encode.list)
+            ]
+            |> (fun l -> 
+                match x.LastUpdate with
+                | None -> l
+                | Some lastUpdate -> (lastProcessedMessage, lastUpdate |> MessagePosition.Encoder) :: l)
+            |> Encode.object 
+
+        let Decoder : Decoder<MeterCollection> =
+            let turnKeyIntoSubscriptionType (k, v) =
+                (k |> InternalResourceId.fromStr, v)
+
+            Decode.object (fun get -> {
+                MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed))
+                UnprocessableMessages = get.Required.Field unprocessable (Decode.list EventHubEvent_MeteringUpdateEvent.Decoder)
+                LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder
+            })
 
     let enrich x =
         x
@@ -572,6 +615,7 @@ module Json =
         |> Extra.withCustom SubscriptionCreationInformation.Encoder SubscriptionCreationInformation.Decoder
         |> Extra.withCustom Meter.Encoder Meter.Decoder
         |> Extra.withCustom MeteringUpdateEvent.Encoder MeteringUpdateEvent.Decoder
+        |> Extra.withCustom EventHubEvent_MeteringUpdateEvent.Encoder EventHubEvent_MeteringUpdateEvent.Decoder
         |> Extra.withCustom MeterCollection.Encoder MeterCollection.Decoder
 
     let enriched = Extra.empty |> enrich
@@ -582,5 +626,8 @@ module Json =
         
         match Decode.Auto.fromString<'T>(json, extra = enriched) with
         | Ok r -> r
-        | Result.Error e -> failwith e
+        | Result.Error e -> 
+            failwith e
     
+    let fromStr2<'T> json = 
+        Decode.Auto.fromString<'T>(json, extra = enriched)

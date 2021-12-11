@@ -16,10 +16,30 @@ using CancellationTokenSource cts = new();
 MeteringConnections config = Metering.Types.MeteringConnectionsModule.getFromEnvironment();
 EventHubProducerClient eventHubProducerClient = config.createEventHubProducerClient();
 
-await Interactive(eventHubProducerClient, cts.Token);
+// await Interactive(eventHubProducerClient, cts.Token);
+await Batch(eventHubProducerClient, "1", cts.Token);
+
 cts.Cancel();
 
+
+static async Task Batch(EventHubProducerClient eventHubProducerClient, string subName, CancellationToken ct)
+{
+    var saasId = guidFromStr(subName);
+    while (true)
+    {
+        var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+                   .Select(x => MeterValueModule.create(x, 1))
+                   .ToArray();
+
+        Console.Write(".");
+        await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
+        await Task.Delay(TimeSpan.FromSeconds(0.8), ct);
+    }
+}
+
+#pragma warning disable CS8321 // Local function is declared but never used
 static async Task Interactive(EventHubProducerClient eventHubProducerClient, CancellationToken ct)
+#pragma warning restore CS8321 // Local function is declared but never used
 {
     static ulong GetQuantity(string command) => command.Split(' ').Length > 2 ? ulong.Parse(command.Split(' ')[2]) : 1;
 
@@ -79,6 +99,6 @@ static async Task Interactive(EventHubProducerClient eventHubProducerClient, Can
     }
     finally
     {
-        await eventHubProducerClient.CloseAsync();
+        await eventHubProducerClient.CloseAsync(ct);
     }
 }

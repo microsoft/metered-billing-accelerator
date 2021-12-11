@@ -25,6 +25,12 @@ module MeterCollectionLogic =
         | None -> "Earliest"
         | Some p -> $"partition {p.PartitionID |> PartitionID.value} / sequence# {p.SequenceNumber}"
 
+    [<Extension>]
+    let getLastSequenceNumber (meters: MeterCollection) : SequenceNumber =
+        match meters.LastUpdate with
+        | None -> raise (new System.NotSupportedException())
+        | Some p -> p.SequenceNumber
+
     let usagesToBeReported (meters: MeterCollection) : MeteringAPIUsageEventDefinition list =
         if meters |> value |> Seq.isEmpty 
         then []
@@ -50,8 +56,8 @@ module MeterCollectionLogic =
 
         handle key value table
 
-    let addUnprocessableMessage (usage: InternalUsageEvent) (state: MeterCollection) : MeterCollection =
-        { state with UnprocessableUsage = usage :: state.UnprocessableUsage }
+    let addUnprocessableMessage (usage: EventHubEvent<MeteringUpdateEvent>) (state: MeterCollection) : MeterCollection =
+        { state with UnprocessableMessages = usage :: state.UnprocessableMessages }
 
     let setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =    
         { state with LastUpdate = Some messagePosition }
@@ -90,7 +96,11 @@ module MeterCollectionLogic =
                 
                 if not existingSubscription
                 then 
-                    state |> addUnprocessableMessage usage
+                    state
+                    |> addUnprocessableMessage 
+                        { MessagePosition = meteringEvent.MessagePosition
+                          EventData = UsageReported usage 
+                          EventsToCatchup = None; Source = EventHub }
                 else
                     let newMeterCollection =
                         state |> value
@@ -100,6 +110,13 @@ module MeterCollectionLogic =
 
                     { state with MeterCollection = newMeterCollection }
             )
+            |> setLastProcessed meteringEvent.MessagePosition
+        | UnprocessableMessage m -> 
+            state
+            |> addUnprocessableMessage 
+                { MessagePosition = meteringEvent.MessagePosition
+                  EventData = UnprocessableMessage m 
+                  EventsToCatchup = None; Source = EventHub }
             |> setLastProcessed meteringEvent.MessagePosition
                             
     let handleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =

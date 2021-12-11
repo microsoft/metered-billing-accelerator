@@ -113,6 +113,14 @@ You can see an included annual quantity of 10000 units, and a monthly quantity o
 - Once you (s)ubmit a usage of 1000 units (by typing `s foo 1000`), the `Remaining 901/10000 (month/year)` become `Remaining 9901 (year)`
 - The last consumption of 10_000 units fully depletes the remaining 9901 annual credits, and brings you into the overage, i.e. the included quantity of `Remaining 9901 (year)` becomes `99 consumed`
 
+## TODO
+
+- [ ] store unparsable events by sequencenumber
+- [ ] one event to say that all events prios sequence number are handled
+- [ ] compensating action / compensating usage for an unsubmittable api call, it it exists. needs to make handleevent recursive
+- [ ] marketplace client to support batch
+- [ ] collect plans separately in JSON to avoid duplication
+
 ## Missing features
 
 - [ ] Instrumentation, logging, metrics

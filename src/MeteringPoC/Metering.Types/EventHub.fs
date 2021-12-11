@@ -160,3 +160,7 @@ module internal Capture =
         match e with
         | :? RehydratedFromCaptureEventData -> (downcast e : RehydratedFromCaptureEventData) |> (fun x -> x.BlobName) |> Some
         | _ -> None 
+
+module EventDataDummy = 
+    let create (blobName: string) (eventBody: byte[]) (sequenceNumber: int64) (offset: int64)  (partitionKey: string) : EventData =
+        new Capture.RehydratedFromCaptureEventData(blobName, eventBody, new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)

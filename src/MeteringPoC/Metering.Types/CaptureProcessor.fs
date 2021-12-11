@@ -139,6 +139,37 @@ module CaptureProcessor =
                         yield blobHierarchyItem.Blob.Name
             }
 
+    let readAllEvents<'TEvent> (convert: EventData -> 'TEvent) (partitionId: string) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
+           match connections.EventHubConfig.CaptureStorage with
+           | None -> Seq.empty
+           | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } ->
+               seq {
+                   let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
+                   let getTime = extractTime captureFileNameFormat ehInfo
+                   let blobNames = getCaptureBlobs cancellationToken partitionId connections
+
+                   let blobs = 
+                       blobNames
+                       |> Seq.map (fun n -> (n, n |> getTime))
+                       |> Seq.filter (fun (_, t) -> t.IsSome)
+                       |> Seq.map (fun (n, t) -> (n, t.Value))
+                       |> Seq.sortBy (fun (blob, t) -> t.ToInstant())
+                       |> Seq.toArray
+                       |> Seq.map (fun (n, _) -> n)
+
+                   for blobName in blobs do                
+                       let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
+                       let client = captureContainer.GetBlobClient(blobName = blobName)
+                       let downloadInfo = client.Download(cancellationToken)
+                       let items = 
+                           downloadInfo.Value.Content
+                           |> ReadEventDataFromAvroStream blobName
+                       for i in items do
+                           match i |> toEvent with
+                           | None -> ()
+                           | Some e -> yield e
+               }
+
     let readEventsFromPosition<'TEvent> (convert: EventData -> 'TEvent) (mp: MessagePosition) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
         match connections.EventHubConfig.CaptureStorage with
         | None -> Seq.empty
