@@ -1,57 +1,78 @@
 #!/bin/bash
 
-access_token="$(curl \
-    --silent \
-    --request POST \
-    --data-urlencode "response_type=token" \
-    --data-urlencode "grant_type=client_credentials" \
-    --data-urlencode "client_id=${AZURE_METERING_INFRA_CLIENT_ID}" \
-    --data-urlencode "client_secret=${AZURE_METERING_INFRA_CLIENT_SECRET}" \
-    --data-urlencode "scope=https://eventhubs.azure.net/.default" \
-    "https://login.microsoftonline.com/${AZURE_METERING_INFRA_TENANT_ID}/oauth2/v2.0/token" | \
-        jq -r ".access_token")"
+function createBatchUsage {
+  local saas_subscription_id="$1"
+  local meter_name="$2"
+  local consumption="$3"
 
-saas_subscription_id="32119834-65f3-48c1-b366-619df2e4c400"
+  echo "$( echo "{}"                                                                        | \
+        jq --arg x "UsageReported"                       '.Body.type=($x)'                     | \
+        jq --arg x "${saas_subscription_id}"             '.Body.value.internalResourceId=($x)' | \
+        jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.Body.value.timestamp=($x)'          | \
+        jq --arg x "${meter_name}"                       '.Body.value.meterName=($x)'          | \
+        jq --arg x "${consumption}"                      '.Body.value.quantity=($x | fromjson)' | \
+        jq --arg x "${saas_subscription_id}"             '.BrokerProperties.PartitionKey=($x)' | \
+        jq -c -M | iconv --from-code=ascii --to-code=utf-8 )"
+}
 
-meterName="cpu"
+function createUsage {
+  local saas_subscription_id="$1"
+  local meter_name="$2"
+  local consumption="$3"
 
-consumptionUnits=1
-
-json="$( echo "{}"                                                                        | \
+  echo "$( echo "{}"                                                                        | \
         jq --arg x "UsageReported"                       '.type=($x)'                     | \
         jq --arg x "${saas_subscription_id}"             '.value.internalResourceId=($x)' | \
         jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.value.timestamp=($x)'          | \
-        jq --arg x "${meterName}"                        '.value.meterName=($x)'          | \
-        jq --arg x "${consumptionUnits}"                 '.value.quantity=($x | fromjson)' | \
+        jq --arg x "${meter_name}"                       '.value.meterName=($x)'          | \
+        jq --arg x "${consumption}"                      '.value.quantity=($x | fromjson)' | \
         jq -c -M | iconv --from-code=ascii --to-code=utf-8 )"
+}
 
-echo "${json}" | jq
+function submit_single_usage {
+  local saas_subscription_id="$1"
+  local meter_name="$2"
+  local consumption="$3"
+  local access_token="$4"
 
-curl --include \
+  curl --include \
     --url "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/messages" \
     --data-urlencode "api-version=2014-01"                                       \
     --data-urlencode "timeout=60"                                                \
     --header "Authorization: Bearer ${access_token}"                             \
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8"       \
     --header "BrokerProperties: {\"PartitionKey\": \"${saas_subscription_id}\"}" \
-    --data "${json}"
+    --data "$(createUsage "${saas_subscription_id}" "${meter_name}" "${consumption}" )"
+}
+
+function get_access_token {
+  echo "$(curl \
+      --silent \
+      --request POST \
+      --data-urlencode "response_type=token" \
+      --data-urlencode "grant_type=client_credentials" \
+      --data-urlencode "client_id=${AZURE_METERING_INFRA_CLIENT_ID}" \
+      --data-urlencode "client_secret=${AZURE_METERING_INFRA_CLIENT_SECRET}" \
+      --data-urlencode "scope=https://eventhubs.azure.net/.default" \
+      "https://login.microsoftonline.com/${AZURE_METERING_INFRA_TENANT_ID}/oauth2/v2.0/token" | \
+          jq -r ".access_token")"
+}
+
+access_token="$(get_access_token)"
+saas_subscription_id="32119834-65f3-48c1-b366-619df2e4c400"
+meter_name="cpu"
+consumption=1
+submit_single_usage "${saas_subscription_id}" "${meter_name}" "${consumption}" "${access_token}"
 
 #################################################
 
-json1="$( echo "{}"                                                                        | \
-        jq --arg x "UsageReported"                       '.Body.type=($x)'                     | \
-        jq --arg x "${saas_subscription_id}"             '.Body.value.internalResourceId=($x)' | \
-        jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.Body.value.timestamp=($x)'          | \
-        jq --arg x "${meterName}"                        '.Body.value.meterName=($x)'          | \
-        jq --arg x "${consumptionUnits}"                 '.Body.value.quantity=($x | fromjson)' | \
-        jq --arg x "${saas_subscription_id}"             '.BrokerProperties.PartitionKey=($x)' | \
-        jq -c -M | iconv --from-code=ascii --to-code=utf-8 )"
-
 multiMessageBody="$( echo "{}"                  | \
-  jq --arg x "[${json1}]" '.=($x | fromjson)' | \
-  jq --arg x "[${json1}]" '.+=($x | fromjson)' | \
-  jq --arg x "[${json1}]" '.+=($x | fromjson)' | \
+  jq --arg x "[$(createBatchUsage "32119834-65f3-48c1-b366-619df2e4c400" cpu 1)]" '.=($x | fromjson)' | \
+  jq --arg x "[$(createBatchUsage "32119834-65f3-48c1-b366-619df2e4c401" cpu 1)]" '.+=($x | fromjson)' | \
+  jq --arg x "[$(createBatchUsage "32119834-65f3-48c1-b366-619df2e4c402" cpu 1)]" '.+=($x | fromjson)' | \
   jq -c -M | iconv --from-code=ascii --to-code=utf-8 )" 
+
+echo "${multiMessageBody}" | jq
 
 # https://docs.microsoft.com/en-us/rest/api/eventhub/send-batch-events
 curl --include \
@@ -62,6 +83,4 @@ curl --include \
     --header "application/vnd.microsoft.servicebus.json"       \
     --data "${multiMessageBody}"
 
-
 # "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/partitions/${partitionId}/messages""
-

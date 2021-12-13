@@ -16,7 +16,6 @@ open System.Text
 
 [<Extension>]
 module EventHubObservableClient =
-    
     let private createInternal<'TState, 'TEvent>
         (processor: EventProcessorClient)
         (determineInitialState: PartitionInitializingEventArgs -> CancellationToken -> Task<'TState>)
