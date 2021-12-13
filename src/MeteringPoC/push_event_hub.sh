@@ -25,8 +25,6 @@ json="$( echo "{}"                                                              
         jq --arg x "${consumptionUnits}"                 '.value.quantity=($x | fromjson)' | \
         jq -c -M | iconv --from-code=ascii --to-code=utf-8 )"
 
-# "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/partitions/${partitionId}/messages""
-
 echo "${json}" | jq
 
 curl --include \
@@ -37,3 +35,33 @@ curl --include \
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8"       \
     --header "BrokerProperties: {\"PartitionKey\": \"${saas_subscription_id}\"}" \
     --data "${json}"
+
+#################################################
+
+json1="$( echo "{}"                                                                        | \
+        jq --arg x "UsageReported"                       '.Body.type=($x)'                     | \
+        jq --arg x "${saas_subscription_id}"             '.Body.value.internalResourceId=($x)' | \
+        jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.Body.value.timestamp=($x)'          | \
+        jq --arg x "${meterName}"                        '.Body.value.meterName=($x)'          | \
+        jq --arg x "${consumptionUnits}"                 '.Body.value.quantity=($x | fromjson)' | \
+        jq --arg x "${saas_subscription_id}"             '.BrokerProperties.PartitionKey=($x)' | \
+        jq -c -M | iconv --from-code=ascii --to-code=utf-8 )"
+
+multiMessageBody="$( echo "{}"                  | \
+  jq --arg x "[${json1}]" '.=($x | fromjson)' | \
+  jq --arg x "[${json1}]" '.+=($x | fromjson)' | \
+  jq --arg x "[${json1}]" '.+=($x | fromjson)' | \
+  jq -c -M | iconv --from-code=ascii --to-code=utf-8 )" 
+
+# https://docs.microsoft.com/en-us/rest/api/eventhub/send-batch-events
+curl --include \
+    --url "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/messages" \
+    --data-urlencode "api-version=2014-01"                                       \
+    --data-urlencode "timeout=60"                                                \
+    --header "Authorization: Bearer ${access_token}"                             \
+    --header "application/vnd.microsoft.servicebus.json"       \
+    --data "${multiMessageBody}"
+
+
+# "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/partitions/${partitionId}/messages""
+
