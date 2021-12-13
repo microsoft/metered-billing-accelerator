@@ -7,8 +7,7 @@ module Json =
     open NodaTime.Text
     open System.Runtime.InteropServices
     open Metering.Types.EventHub
-    
-    
+        
     module MeteringDateTime =
         let private makeEncoder<'T> (pattern : IPattern<'T>) : Encoder<'T> = pattern.Format >> Encode.string
         let private makeDecoder<'T> (pattern : IPattern<'T>) : Decoder<'T> = 
@@ -191,6 +190,16 @@ module Json =
                 BillingDimensions = (get.Required.Field billingDimensions (Decode.list BillingDimension.Decoder)) |> List.toSeq
             })
 
+    //module Plans =
+    //    let Encoder (x: Plans) : JsonValue =
+    //        x
+    //        |> Map.toList
+    //        |> List.map (fun (k, v) -> (k |> PlanId.value, v |> Plan.Encoder))
+    //        |> Encode.object        
+    //    let Decoder : Decoder<Plans> =
+    //        (Decode.keyValuePairs Plan.Decoder)
+    //        |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> PlanId.create, v)) |> Map.ofList |> Decode.succeed)
+            
     module MarketplaceResourceID =
         let Encoder (x: MarketplaceResourceID) : JsonValue =
             match x with
@@ -290,7 +299,7 @@ module Json =
     module InternalMetersMapping =
         let Encoder (x: InternalMetersMapping) = 
             x
-            |> InternalMetersMapping.value |> Map.toSeq |> Seq.toList
+            |> InternalMetersMapping.value |> Map.toList
             |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.value, v |> DimensionId.value |> Encode.string))
             |> Encode.object
 
@@ -606,12 +615,13 @@ module Json =
             })
 
     module MeterCollection =
-        let (meters, unprocessable, lastProcessedMessage) = ("meters", "unprocessable", "lastProcessedMessage")
+        let (meters, unprocessable, lastProcessedMessage, plans) = ("meters", "unprocessable", "lastProcessedMessage", "plans")
 
         let Encoder (x: MeterCollection) : JsonValue =
             [
                 (meters, x |> MeterCollection.value |> Map.toSeq |> Seq.toList |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder)) |> Encode.object)                
                 (unprocessable, x.UnprocessableMessages |> List.map EventHubEvent_MeteringUpdateEvent.Encoder |> Encode.list)
+                //(plans, x.Plans |> Plans.Encoder)
             ]
             |> (fun l -> 
                 match x.LastUpdate with
@@ -627,6 +637,7 @@ module Json =
                 MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType  |> Map.ofList |> Decode.succeed))
                 UnprocessableMessages = get.Required.Field unprocessable (Decode.list EventHubEvent_MeteringUpdateEvent.Decoder)
                 LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder
+                //Plans = get.Required.Field plans Plans.Decoder
             })
 
     let enrich x =

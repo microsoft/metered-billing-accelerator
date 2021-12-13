@@ -115,8 +115,6 @@ You can see an included annual quantity of 10000 units, and a monthly quantity o
 
 ## TODO
 
-- [ ] store unparsable events by sequencenumber
-- [ ] one event to say that all events prios sequence number are handled
 - [ ] compensating action / compensating usage for an unsubmittable api call, it it exists. needs to make handleevent recursive
 - [ ] marketplace client to support batch
 - [ ] collect plans separately in JSON to avoid duplication

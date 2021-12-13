@@ -5,6 +5,7 @@ open System.Runtime.CompilerServices
 
 type MeterCollection = 
     { MeterCollection: Map<InternalResourceId, Meter>
+      //Plans: Plans
       UnprocessableMessages: EventHubEvent<MeteringUpdateEvent> list
       LastUpdate: MessagePosition option }
 
@@ -15,7 +16,12 @@ module MeterCollection =
     let value (x : MeterCollection) = x.MeterCollection
     
     let Uninitialized : (MeterCollection option) = None
-    let Empty = { MeterCollection = Map.empty; LastUpdate = None; UnprocessableMessages = [] }
+    let Empty =
+        { MeterCollection = Map.empty
+          UnprocessableMessages = List.empty
+          LastUpdate = None          
+          // Plans = Map.empty
+          }
 
     let toStrM (pid) (meters: Meter seq) : string =
         meters
