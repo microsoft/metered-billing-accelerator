@@ -19,6 +19,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		global.json = global.json
 		old_snippets.md = old_snippets.md
+		push_event_hub.sh = push_event_hub.sh
 		README.md = README.md
 		state-transistions.md = state-transistions.md
 	EndProjectSection
