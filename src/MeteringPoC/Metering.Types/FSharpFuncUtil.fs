@@ -12,7 +12,7 @@ type public FSharpFuncUtil =
     
     [<Extension>] 
     static member IsNone<'t> (value: 't option) : bool = value.IsNone
-
+    
     [<Extension>] 
     static member ToFSharp<'t> (source: IEnumerable<'t>) : 't list = source |> List.ofSeq
 

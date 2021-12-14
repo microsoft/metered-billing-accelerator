@@ -429,7 +429,7 @@ module Json =
             let encodeBody : (string -> JToken) = Encode.string 
             
             match x with
-            | Duplicate json -> (nameof(Duplicate), json)
+            | MarketplaceSubmissionError.Duplicate json -> (nameof(Duplicate), json)
             | BadResourceId json -> (nameof(BadResourceId), json)
             | InvalidEffectiveStartTime json -> (nameof(InvalidEffectiveStartTime), json)
             | CommunicationsProblem json -> (nameof(CommunicationsProblem), json)
@@ -447,10 +447,10 @@ module Json =
 
                 let r = 
                     match errName with
-                    | nameof(Duplicate) -> json |> Duplicate
-                    | nameof(BadResourceId) -> json |> BadResourceId
-                    | nameof(InvalidEffectiveStartTime) -> json |> InvalidEffectiveStartTime
-                    | nameof(CommunicationsProblem) -> json |> CommunicationsProblem
+                    | "Duplicate" -> json |> MarketplaceSubmissionError.Duplicate
+                    | "BadResourceId" -> json |> BadResourceId
+                    | "InvalidEffectiveStartTime" -> json |> InvalidEffectiveStartTime
+                    | "CommunicationsProblem" -> json |> CommunicationsProblem
                     | unknown -> failwith $"{nameof(MarketplaceSubmissionError)} '{unknown}' is unknown"
                 r
             )
@@ -478,12 +478,12 @@ module Json =
         let ResultEncoder (x: Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>) : JsonValue =
             match x with
             | Ok x -> x |> MarketplaceSubmissionAcceptedResponse.Encoder
-            | Error x -> x |> MarketplaceSubmissionError.Encoder
+            | Result.Error x -> x |> MarketplaceSubmissionError.Encoder
 
         let ResultDecoder : Decoder<Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>> =
             [ 
                 MarketplaceSubmissionAcceptedResponse.Decoder |> Decode.andThen(Ok >> Decode.succeed)
-                MarketplaceSubmissionError.Decoder |> Decode.andThen(Error >> Decode.succeed)
+                MarketplaceSubmissionError.Decoder |> Decode.andThen(Result.Error >> Decode.succeed)
             ] |> Decode.oneOf
 
         let Encoder (x: MarketplaceSubmissionResult) : JsonValue =

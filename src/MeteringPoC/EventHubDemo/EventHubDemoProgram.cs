@@ -22,7 +22,7 @@ MeteringConnections connections = MeteringConnectionsModule.getFromEnvironment()
 MeteringConfigurationProvider config =
     MeteringConfigurationProviderModule.create(
         connections: connections,
-        marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
+        marketplaceClient: MarketplaceClient.submitUsageCsharp.ToFSharpFunc());
 
 //foreach (var state in await config.fetchStates())
 //{

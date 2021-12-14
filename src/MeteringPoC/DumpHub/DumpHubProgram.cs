@@ -113,7 +113,7 @@ var connections = MeteringConnectionsModule.getFromEnvironment();
 
 var meteringConfig = MeteringConfigurationProviderModule.create(
     connections: connections,
-    marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
+    marketplaceClient: MarketplaceClient.submitUsageCsharp.ToFSharpFunc());
 
 Console.WriteLine($"Reading from {connections.EventHubConfig.EventHubName.FullyQualifiedNamespace}");
 

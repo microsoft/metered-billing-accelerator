@@ -207,7 +207,7 @@ let demoUsageSubmission config =
           DimensionId = "datasourcecharge" |> DimensionId.create
           EffectiveStartTime = "2021-11-29T17:00:00Z" |> MeteringDateTime.fromStr }
     
-    let result = (MarketplaceClient.submit config usage).Result
+    let result = (MarketplaceClient.submitUsage config usage).Result
 
     result
     |> Json.toStr 2
