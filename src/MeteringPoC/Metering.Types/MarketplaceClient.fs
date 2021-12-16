@@ -4,7 +4,10 @@ open System
 open System.Net.Http
 open System.Text
 open System.Threading.Tasks
+open System.Runtime.CompilerServices
+open System.Runtime.InteropServices
 
+[<Extension>]
 module MarketplaceClient =
 
     let private meteringApiVersion = "2018-08-31"
@@ -38,6 +41,9 @@ module MarketplaceClient =
 
     let submitUsagesCsharp : Func<MeteringConfigurationProvider, MarketplaceRequest list, Task<MarketplaceBatchResponse>> = submitBatchUsage
 
+    [<Extension>]
+    let SubmitUsage (config: MeteringConfigurationProvider) (usage: MarketplaceRequest seq) : Task<MarketplaceBatchResponse> = 
+        submitBatchUsage config (usage |> Seq.toList) 
 
     //let submitUsage (config: MeteringConfigurationProvider) (usage: MarketplaceRequest) : Task<MarketplaceSubmissionResult> = 
     //    task {

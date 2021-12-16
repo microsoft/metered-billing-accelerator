@@ -5,6 +5,7 @@ using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
 using MarketplaceSubmissionResult = Microsoft.FSharp.Core.FSharpResult<Metering.Types.MarketplaceSuccessResponse, Metering.Types.MarketplaceSubmissionError>;
+using static Metering.Types.InternalResourceId;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
@@ -22,9 +23,23 @@ MeteringConnections connections = MeteringConnectionsModule.getFromEnvironment()
 
 MeteringConfigurationProvider config =
     MeteringConfigurationProviderModule.create(
-        connections: connections);
-        //marketplaceClient: MarketplaceClient.submitUsageCsharp.ToFSharpFunc());
+        connections: connections,
+        marketplaceClient: MarketplaceClient.submitUsagesCsharp.ToFSharpFunc());
 
+var meters = Enumerable
+    .Range(5, 15)
+    .Select(hour => MeteringDateTimeModule.create(2021, 12, 16, hour, 00, 00))
+    .Select(effectiveStartTime => new MarketplaceRequest(
+        effectiveStartTime: effectiveStartTime,
+        planId: PlanIdModule.create("free_monthly_yearly"),
+        dimensionId: DimensionIdModule.create("datasourcecharge"),
+        quantity: QuantityModule.createInt(100),
+        resourceId: SaaSSubscription.NewSaaSSubscription(SaaSSubscriptionIDModule.create("8151a707-467c-4105-df0b-44c3fca5880d"))))
+    .ToList();
+
+var result = config.SubmitUsage(meters).Result.Results;
+
+Console.WriteLine(result);
 //foreach (var state in await config.fetchStates())
 //{
 //    Console.WriteLine($"Partition {state.Key}");
