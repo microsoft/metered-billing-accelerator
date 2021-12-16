@@ -112,8 +112,8 @@ Console.Title = Assembly.GetExecutingAssembly().GetName().Name!;
 var connections = MeteringConnectionsModule.getFromEnvironment();
 
 var meteringConfig = MeteringConfigurationProviderModule.create(
-    connections: connections,
-    marketplaceClient: MarketplaceClient.submitUsageCsharp.ToFSharpFunc());
+    connections: connections);
+    // marketplaceClient: MarketplaceClient.submitUsageCsharp.ToFSharpFunc());
 
 Console.WriteLine($"Reading from {connections.EventHubConfig.EventHubName.FullyQualifiedNamespace}");
 

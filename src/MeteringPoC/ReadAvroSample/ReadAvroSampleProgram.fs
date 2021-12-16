@@ -26,13 +26,12 @@ let printme e =
 
 let config : MeteringConfigurationProvider = 
     { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-      SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
+      // SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
       GracePeriod = Duration.FromHours(6.0)
-      ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
+      // ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
       MeteringConnections = MeteringConnections.getFromEnvironment() }
 
 let partitionId = "0" |> PartitionID.create
-
 
 //let rnd = Random()
 //let bytes = Array.create 16 0uy

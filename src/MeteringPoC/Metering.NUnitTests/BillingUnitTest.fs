@@ -5,6 +5,7 @@ open NUnit.Framework
 open NodaTime
 open Metering.Types
 open Metering.Types.EventHub
+open System.IO
 
 [<SetUp>]
 let Setup () = ()
@@ -27,7 +28,7 @@ let somePlan : Plan =
 
 [<Test>]
 let ``BillingPeriod.createFromIndex`` () =
-    let sub = Subscription.create somePlan ManagedApp Monthly (d "2021-05-13T12:00:03") 
+    let sub = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) Monthly (d "2021-05-13T12:00:03") 
 
     Assert.AreEqual(
         (bp "2|2021-07-13T12:00:03|2021-08-12T12:00:02"),
@@ -39,7 +40,7 @@ type Subscription_determineBillingPeriod_Vector = { Purchase: (RenewalInterval *
 let ``BillingPeriod.determineBillingPeriod`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
         let expected : Result<BillingPeriod, BusinessError> = Ok(bp testcase.Expected)
         let compute = BillingPeriod.determineBillingPeriod subscription (d testcase.Candidate)
         Assert.AreEqual(expected, compute, sprintf "Failure test case %d expected=%A but was %A" idx expected compute);
@@ -61,7 +62,7 @@ type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * str
 let ``BillingPeriod.isInBillingPeriod`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
         let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
         let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
@@ -80,7 +81,7 @@ type BillingPeriod_getBillingPeriodDelta_Vector = { Purchase: (RenewalInterval *
 let ``BillingPeriod.getBillingPeriodDelta`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
         let result = (BillingPeriod.getBillingPeriodDelta subscription (d testcase.Previous) (d testcase.Current))
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
@@ -257,54 +258,54 @@ let ``Quantity.Math`` () =
 
     Assert.AreEqual(f 11.1, (q 3) + (f 8.1))
     
-[<Test>]
-let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =
-    { MarketplaceSubmissionResult.Payload =
-        { ResourceId = InternalResourceId.ManagedApp
-          Quantity = 2.3m
-          PlanId = "plan" |> PlanId.create
-          DimensionId = "dim" |> DimensionId.create
-          EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
-      Headers = 
-        { RequestID = Guid.NewGuid().ToString()
-          CorrelationID = Guid.NewGuid().ToString() }
-      Result = "someerror" |> CommunicationsProblem |> Error
-      }
-    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
-    |> (fun x -> 
-        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
-
-        match x.Result with 
-        | Ok _ -> Assert.Fail "Should have been Error"
-        | Error e -> 
-            match e with 
-            | CommunicationsProblem str -> Assert.AreEqual("someerror", str)
-            | _ -> Assert.Fail $"Should have been {nameof(CommunicationsProblem)}"
-
-        x
-    )
-    |> (fun change -> 
-        { change with 
-            Result = 
-                { UsageEventId = "usageEventId 123"
-                  MessageTime = "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
-                  Status = "Accepted"
-                  ResourceId = change.Payload.ResourceId |> InternalResourceId.toStr
-                  ResourceURI = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
-                  Quantity = change.Payload.Quantity |> Quantity.createFloat
-                  DimensionId = change.Payload.DimensionId
-                  EffectiveStartTime = change.Payload.EffectiveStartTime
-                  PlanId = change.Payload.PlanId } |> Ok })                
-    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
-    |> (fun x -> 
-        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
-
-        match x.Result with 
-        | Error _ -> Assert.Fail "Should have been Ok"
-        | Ok v -> Assert.AreEqual("usageEventId 123", v.UsageEventId)
-        x
-    )
-    |> ignore
+//[<Test>]
+//let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =
+//    { MarketplaceSubmissionResult.Payload =
+//        { ResourceId = InternalResourceId.ManagedApp
+//          Quantity = 2.3m
+//          PlanId = "plan" |> PlanId.create
+//          DimensionId = "dim" |> DimensionId.create
+//          EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
+//      Headers = 
+//        { RequestID = Guid.NewGuid().ToString()
+//          CorrelationID = Guid.NewGuid().ToString() }
+//      Result = "someerror" |> CommunicationsProblem |> Error
+//      }
+//    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
+//    |> (fun x -> 
+//        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
+//
+//        match x.Result with 
+//        | Ok _ -> Assert.Fail "Should have been Error"
+//        | Error e -> 
+//            match e with 
+//            | CommunicationsProblem str -> Assert.AreEqual("someerror", str)
+//            | _ -> Assert.Fail $"Should have been {nameof(CommunicationsProblem)}"
+//
+//        x
+//    )
+//    |> (fun change -> 
+//        { change with 
+//            Result = 
+//                { UsageEventId = "usageEventId 123"
+//                  MessageTime = "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
+//                  Status = "Accepted"
+//                  ResourceId = change.Payload.ResourceId |> InternalResourceId.toStr
+//                  ResourceURI = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+//                  Quantity = change.Payload.Quantity |> Quantity.createFloat
+//                  DimensionId = change.Payload.DimensionId
+//                  EffectiveStartTime = change.Payload.EffectiveStartTime
+//                  PlanId = change.Payload.PlanId } |> Ok })                
+//    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
+//    |> (fun x -> 
+//        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
+//
+//        match x.Result with 
+//        | Error _ -> Assert.Fail "Should have been Ok"
+//        | Ok v -> Assert.AreEqual("usageEventId 123", v.UsageEventId)
+//        x
+//    )
+//    |> ignore
 
 [<Test>]
 let ``Quantity.Comparison``() =
@@ -359,3 +360,35 @@ let ``CaptureProcessor.getPrefixForRelevantBlobs`` () =
     Assert.AreEqual(
         "meteringhack-standard/hub2/p0--", 
         CaptureProcessor.getPrefixForRelevantBlobs "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}" ehContext)
+
+
+let private roundTrip<'T> (filename: string) =
+    let json =
+        $"data/{filename}"
+        |> File.ReadAllText
+    
+    let t1 = json |> Json.fromStr<'T>
+    
+    let t2 = 
+        t1
+        |> Json.toStr 0
+        |> Json.fromStr<'T>
+
+    Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
+
+[<Test>]
+let RoundTripMarketplaceStructures () =
+    roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
+    roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
+    roundTrip<MarketplaceSuccessResponse> "MarketplaceSuccessResponse.json"
+    roundTrip<MarketplaceErrorDuplicate> "MarketplaceErrorDuplicate.json"
+    roundTrip<MarketplaceGenericError> "MarketplaceGenericError.json"
+    roundTrip<MarketplaceSubmissionError> "MarketplaceErrorDuplicate.json"
+    roundTrip<MarketplaceSubmissionError> "MarketplaceGenericError.json"
+    roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
+    roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
+
+    [ "MarketplaceSuccessResponse.json"
+      "MarketplaceErrorDuplicate.json"
+      "MarketplaceGenericError.json" ]
+    |> List.iter roundTrip<MarketplaceSubmissionResult>

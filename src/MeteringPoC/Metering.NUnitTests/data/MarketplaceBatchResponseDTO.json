@@ -1,0 +1,64 @@
+{
+  "count": 3,
+  "result": [
+    {
+      "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+      "effectiveStartTime": "2021-12-14T01:00:00",
+      "planId": "free_monthly_yearly",
+      "dimension": "datasourcecharge",
+      "quantity": 9.0,
+      "status": "Accepted",
+      "usageEventId": "a1de677b-138c-4026-b5b7-9a788f7d6528",
+      "messageTime": "2021-12-14T20:29:42.0177668Z",
+      "resourceUri": "/subscriptions/.../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+    },
+    {
+      "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+      "effectiveStartTime": "2021-12-13T20:00:00",
+      "planId": "free_monthly_yearly",
+      "dimension": "datasourcecharge",
+      "quantity": 9,
+      "status": "Duplicate",
+      "messageTime": "2021-12-14T17:03:50.8649437Z",
+      "error": {
+        "message": "This usage event already exist.",
+        "code": "Conflict",
+        "additionalInfo": {
+          "acceptedMessage": {
+            "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+            "effectiveStartTime": "2021-12-13T20:00:00",
+            "planId": "free_monthly_yearly",
+            "dimension": "datasourcecharge",
+            "quantity": 5,
+
+            "status": "Duplicate",
+            "messageTime": "2021-12-14T16:57:43.1014985Z",
+            "usageEventId": "f4d7af93-afb2-4b01-bda8-d192d3967767",
+            "resourceUri": "/subscriptions/.../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+          }
+        }
+      }
+    },
+    {
+      "status": "ResourceNotFound",
+      "messageTime": "2021-12-14T20:59:40.7377957Z",
+      "error": {
+        "message": "One or more errors have occurred.",
+        "target": "usageEventRequest",
+        "details": [
+          {
+            "message": "The resourceId value provided cannot be found or this resource is not active.",
+            "target": "resourceId",
+            "code": "BadArgument"
+          }
+        ],
+        "code": "BadArgument"
+      },
+      "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5441",
+      "quantity": 9.1234567890123461,
+      "dimension": "datasourcecharge",
+      "effectiveStartTime": "2021-12-14T01:00:00",
+      "planId": "free_monthly_yearly"
+    }
+  ]
+}

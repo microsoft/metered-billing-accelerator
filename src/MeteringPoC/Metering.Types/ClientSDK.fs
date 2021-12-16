@@ -100,7 +100,7 @@ module MeteringEventHubExtensions =
     let SubmitManagedAppFloatAsync (eventHubProducerClient: EventHubProducerClient) ({Meters = consumption}) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         consumption
         |> List.map(fun v -> 
-            { InternalUsageEvent.InternalResourceId = InternalResourceId.ManagedApp
+            { InternalResourceId = ManagedApplication ManagedAppIdentity
               Quantity = v.Quantity
               Timestamp = MeteringDateTime.now()
               MeterName = v.Name

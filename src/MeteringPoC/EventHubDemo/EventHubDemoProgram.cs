@@ -4,6 +4,7 @@ using Azure.Messaging.EventHubs;
 using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
+using MarketplaceSubmissionResult = Microsoft.FSharp.Core.FSharpResult<Metering.Types.MarketplaceSuccessResponse, Metering.Types.MarketplaceSubmissionError>;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
@@ -21,8 +22,8 @@ MeteringConnections connections = MeteringConnectionsModule.getFromEnvironment()
 
 MeteringConfigurationProvider config =
     MeteringConfigurationProviderModule.create(
-        connections: connections,
-        marketplaceClient: MarketplaceClient.submitUsageCsharp.ToFSharpFunc());
+        connections: connections);
+        //marketplaceClient: MarketplaceClient.submitUsageCsharp.ToFSharpFunc());
 
 //foreach (var state in await config.fetchStates())
 //{

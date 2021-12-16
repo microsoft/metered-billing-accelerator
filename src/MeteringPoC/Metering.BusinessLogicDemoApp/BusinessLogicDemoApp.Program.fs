@@ -158,6 +158,7 @@ let demoAggregation config =
     // 11111111-8a88-4a47-a691-1b31c289fb33 2021-10-01T12:20:34
     // 22222222-8a88-4a47-a691-1b31c289fb33 2021-10-13T09:20:36
     // fdc778a6-1281-40e4-cade-4a5fc11f5440 2021-11-04T16:12:26
+    // 8151a707-467c-4105-df0b-44c3fca5880d
 
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
@@ -197,24 +198,24 @@ let demoAggregation config =
     eventsFromEventHub
 
 /// Demonstrates a real marketplace API invocation
-let demoUsageSubmission config =
-    let SomeValidSaaSSubscriptionID = "fdc778a6-1281-40e4-cade-4a5fc11f5440"
+//let demoUsageSubmission config =
+//    let SomeValidSaaSSubscriptionID = "fdc778a6-1281-40e4-cade-4a5fc11f5440"
 
-    let usage =
-        { ResourceId = InternalResourceId.fromStr SomeValidSaaSSubscriptionID
-          Quantity = 2.3m
-          PlanId = "free_monthly_yearly" |> PlanId.create
-          DimensionId = "datasourcecharge" |> DimensionId.create
-          EffectiveStartTime = "2021-11-29T17:00:00Z" |> MeteringDateTime.fromStr }
-    
-    let result = (MarketplaceClient.submitUsage config usage).Result
-
-    result
-    |> Json.toStr 2
-    |> inspect "MarketplaceSubmissionResult"
-    |> Json.fromStr<MarketplaceSubmissionResult>
-    |> inspecto ""
-    |> ignore
+//    let usage =
+//        { ResourceId = InternalResourceId.fromStr SomeValidSaaSSubscriptionID
+//          Quantity = Quantity.createFloat 2.3m
+//          PlanId = "free_monthly_yearly" |> PlanId.create
+//          DimensionId = "datasourcecharge" |> DimensionId.create
+//          EffectiveStartTime = "2021-11-29T17:00:00Z" |> MeteringDateTime.fromStr }
+//
+//    let result = (MarketplaceClient.submitUsage config usage).Result
+//
+//    result
+//    |> Json.toStr 2
+//    |> inspect "MarketplaceSubmissionResult"
+//    |> Json.fromStr<MarketplaceSubmissionResult>
+//    |> inspecto ""
+//    |> ignore
 
 let demoStorage config eventsFromEventHub =
     let events = 

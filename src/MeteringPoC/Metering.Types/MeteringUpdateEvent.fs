@@ -27,7 +27,7 @@ module MeteringUpdateEvent =
         match mue with
         | SubscriptionPurchased x -> x.Subscription.InternalResourceId |> InternalResourceId.toStr
         | UsageReported x -> x.InternalResourceId |> InternalResourceId.toStr
-        | UsageSubmittedToAPI x -> x.Payload.ResourceId  |> InternalResourceId.toStr
+        | UsageSubmittedToAPI x -> x |> MarketplaceSubmissionResult.resourceId |> InternalResourceId.toStr
         | AggregatorBooted -> null
         | UnprocessableMessage _ -> null
         | RemoveUnprocessedMessages _ -> null
@@ -36,7 +36,7 @@ module MeteringUpdateEvent =
         match mue with
         | SubscriptionPurchased x -> x |> SubscriptionCreationInformation.toStr
         | UsageReported x -> x |> InternalUsageEvent.toStr
-        | UsageSubmittedToAPI x -> x |> MarketplaceSubmissionResult.toStr
+        | UsageSubmittedToAPI x -> x |>  MarketplaceSubmissionResult.toStr
         | AggregatorBooted -> nameof(AggregatorBooted)
         | UnprocessableMessage p -> 
             match p with

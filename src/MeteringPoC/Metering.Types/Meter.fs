@@ -6,7 +6,7 @@ type Meter =
     { Subscription: Subscription // The purchase information of the subscription
       InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
       CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
-      UsageToBeReported: MeteringAPIUsageEventDefinition list // a list of usage elements which haven't yet been reported to the metering API
+      UsageToBeReported: MarketplaceRequest list // a list of usage elements which haven't yet been reported to the metering API
       LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter
         
 module Meter =
@@ -36,7 +36,7 @@ module Meter =
                 | IncludedQuantity _ -> failwith "cannot happen"
                 | ConsumedQuantity q -> 
                     { ResourceId = state.Subscription.InternalResourceId
-                      Quantity = q.Amount |> Quantity.valueAsFloat
+                      Quantity = q.Amount
                       PlanId = state.Subscription.Plan.PlanId 
                       DimensionId = dimensionId
                       EffectiveStartTime = state.LastProcessedMessage.PartitionTimestamp |> MeteringDateTime.beginOfTheHour } )
@@ -83,14 +83,14 @@ module Meter =
         | Close -> meter |> closePreviousMeteringPeriod config
         | KeepOpen -> meter
 
-    let handleUnsuccessfulMeterSubmission (config: MeteringConfigurationProvider) (usage: MeteringAPIUsageEventDefinition) (submissionError: MarketplaceSubmissionError) (meter: Meter) : Meter =
+    let handleUnsuccessfulMeterSubmission (config: MeteringConfigurationProvider) (error: MarketplaceSubmissionError) (meter: Meter) : Meter =
         // todo logging here, alternatively report in a later period?
         meter
         
     let handleUsageSubmissionToAPI (config: MeteringConfigurationProvider) (usageSubmissionResult: MarketplaceSubmissionResult) (meter: Meter) : Meter =
-        match usageSubmissionResult.Result with
-        | Ok response ->  removeUsageToBeReported usageSubmissionResult.Payload meter
-        | Error submissionError -> handleUnsuccessfulMeterSubmission config usageSubmissionResult.Payload submissionError meter
+        match usageSubmissionResult with
+        | Ok success ->  removeUsageToBeReported success.RequestData meter
+        | Error error -> handleUnsuccessfulMeterSubmission config error meter
         
     let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
         meter
@@ -114,7 +114,7 @@ module Meter =
 
         let uStr =
             m.UsageToBeReported
-            |> Seq.map MeteringAPIUsageEventDefinition.toStr
+            |> Seq.map MarketplaceRequest.toStr
             |> String.concat "\n"
 
         $"{mStr}\n{uStr}"

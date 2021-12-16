@@ -31,7 +31,7 @@ module MeterCollectionLogic =
         | None -> raise (new System.NotSupportedException())
         | Some p -> p.SequenceNumber
 
-    let usagesToBeReported (meters: MeterCollection) : MeteringAPIUsageEventDefinition list =
+    let usagesToBeReported (meters: MeterCollection) : MarketplaceRequest list =
         if meters |> value |> Seq.isEmpty 
         then []
         else
@@ -87,7 +87,7 @@ module MeterCollectionLogic =
         | UsageSubmittedToAPI submission ->
             state
             //|> applyMeters (Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission)))
-            |> applyMeters (Map.change submission.Payload.ResourceId (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some)))
+            |> applyMeters (Map.change (submission |> MarketplaceSubmissionResult.resourceId) (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some)))
             |> setLastProcessed meteringEvent.MessagePosition
         | UsageReported usage -> 
             state 

@@ -46,7 +46,6 @@ type Quantity =
         | MeteringInt i -> i.GetHashCode()
         | MeteringFloat f -> f.GetHashCode()
 
-
     static member (+) (a: Quantity, b: Quantity) =
         match (a, b) with
             | ((MeteringInt a), (MeteringInt b)) -> MeteringInt  (a + b)
@@ -75,6 +74,13 @@ type Quantity =
 module Quantity =
     let createInt i = (MeteringInt i)
     let createFloat f = (MeteringFloat f)
+    let fromString (s: string) =
+        if s = "Infinite"
+        then Infinite
+        else 
+            if s.Contains(".")
+            then s |> Decimal.Parse |> createFloat
+            else s |> UInt64.Parse |> createInt
 
     let someInt = createInt >> Some
     let someFloat = createFloat >> Some
