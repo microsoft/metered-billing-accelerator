@@ -4,9 +4,6 @@ open System
 open System.Threading.Tasks
 open NodaTime
 
-type MeteringClient = 
-    InternalUsageEvent -> Task
-
 type CurrentTimeProvider =
     unit -> MeteringDateTime
 
