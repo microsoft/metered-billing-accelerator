@@ -111,33 +111,31 @@ module Json =
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
         
     module IncludedQuantity =
-        let (monthly, annually, created, lastUpdate) =
-            ("monthly", "annually", "created", "lastUpdate")
+        let (monthly, annually, created, lastUpdate) = ("monthly", "annually", "created", "lastUpdate")
 
-        let Encoder (x: IncludedQuantity) =
+        let encode (x: IncludedQuantity) : (string * JsonValue) list =
             let ts = [ 
                 (created, x.Created |> MeteringDateTime.Encoder)
                 (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder)
             ]
-
             match x with
                 | { Monthly = None; Annually = None } -> ts
                 | { Monthly = Some m; Annually = None } -> ts |> List.append [ (monthly, m |> Quantity.Encoder) ]
                 | { Monthly = None; Annually = Some a} -> ts |> List.append [ (annually, a |> Quantity.Encoder) ]
                 | { Monthly = Some m; Annually = Some a } -> ts |> List.append [ (monthly, m |> Quantity.Encoder); (annually, a |> Quantity.Encoder) ]
-            |> Encode.object
 
-        let Decoder : Decoder<IncludedQuantity> =
-            Decode.object (fun get -> {
+        let decode (get: Decode.IGetters) : IncludedQuantity =
+            {
                 Monthly = get.Optional.Field monthly Quantity.Decoder
                 Annually = get.Optional.Field annually Quantity.Decoder
                 Created = get.Required.Field created MeteringDateTime.Decoder
                 LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
-            })
+            }
+        
+        let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
     module IncludedQuantitySpecification =
-        let (monthly, annually) =
-            ("monthly", "annually")
+        let (monthly, annually) = ("monthly", "annually")
 
         let encode (x: IncludedQuantitySpecification) : (string * JsonValue) list =
             match x with
@@ -155,8 +153,7 @@ module Json =
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
     module MeterValue =
-        let (consumed, included) =
-            ("consumed", "included")
+        let (consumed, included) = ("consumed", "included")
 
         let Encoder (x: MeterValue) : JsonValue =
             match x with
@@ -184,10 +181,9 @@ module Json =
                | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
 
     module BillingDimension =
-        let (dimensionId, name, unitOfMeasure, includedQuantity) =
-            ("dimension", "name", "unitOfMeasure", "includedQuantity");
+        let (dimensionId, name, unitOfMeasure, includedQuantity) = ("dimension", "name", "unitOfMeasure", "includedQuantity");
 
-        let encode (x: BillingDimension) : (string * JsonValue) list =
+        let encode (x: BillingDimension) =
             [
                 (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
                 (name, x.DimensionName |> Encode.string)
@@ -206,20 +202,21 @@ module Json =
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
         
     module Plan =
-        let (planId, billingDimensions) =
-            ("planId", "billingDimensions");
+        let (planId, billingDimensions) = ("planId", "billingDimensions")
 
-        let Encoder (x: Plan) : JsonValue =
+        let encode (x: Plan) =
             [
                 (planId, x.PlanId |> PlanId.value |> Encode.string)
                 (billingDimensions, x.BillingDimensions |> Seq.map BillingDimension.Encoder |> Encode.seq)
-            ] |> Encode.object 
+            ]
             
-        let Decoder : Decoder<Plan> =
-            Decode.object (fun get -> {
+        let decode (get: Decode.IGetters) : Plan =
+            {
                 PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
                 BillingDimensions = (get.Required.Field billingDimensions (Decode.list BillingDimension.Decoder)) |> List.toSeq
-            })
+            }
+         
+        let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
 
     module InternalResourceId =        
         let Encoder =
@@ -264,8 +261,7 @@ module Json =
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
     module Subscription =
-        let (plan, renewalInterval, subscriptionStart, internalResourceId) =
-            ("plan", "renewalInterval", "subscriptionStart", "scope");
+        let (plan, renewalInterval, subscriptionStart, internalResourceId) = ("plan", "renewalInterval", "subscriptionStart", "scope");
 
         let encode (x: Subscription) : (string * JsonValue) list =
             [
@@ -297,8 +293,7 @@ module Json =
             |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.create, v |> DimensionId.create)) |> Map.ofList |> InternalMetersMapping.create |> Decode.succeed)
         
     module CurrentMeterValues = 
-        let (dimensionId, meterValue) =
-            ("dimensionId", "meterValue")
+        let (dimensionId, meterValue) = ("dimensionId", "meterValue")
 
         let Encoder (x: CurrentMeterValues) = 
             x
@@ -370,8 +365,6 @@ module Json =
 
             let decode (get: Decode.IGetters) = (get.Required.Field request (Decode.list MarketplaceRequest.Decoder)) |> MarketplaceBatchRequest.createBatch
 
-            // let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
         module SubmissionStatus =
             let private ValEncoder (x: SubmissionStatus) : JsonValue =
                 match x with
@@ -410,8 +403,6 @@ module Json =
 
             let decode (get: Decode.IGetters) = get.Required.Field status ValDecoder
 
-            // let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
         module MessageTime =
             let (messageTime) =
                 ("messageTime")
@@ -419,8 +410,6 @@ module Json =
             let encode x = [ (messageTime, x |> MeteringDateTime.Encoder) ]
             
             let decode (get: Decode.IGetters) = get.Required.Field messageTime MeteringDateTime.Decoder
-
-            // let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
             
         module MarketplaceSubmissionStatus =
             let (usageEventId, resourceUri) =
@@ -448,8 +437,6 @@ module Json =
                     ResourceURI = get.Optional.Field resourceUri Decode.string
                 }
 
-            // let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
         module MarketplaceErrorCode =
             let (code, message) = ("code", "message")
             
@@ -464,8 +451,6 @@ module Json =
                     Code = get.Required.Field code Decode.string
                     Message = get.Required.Field message Decode.string
                 }
-
-            // let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
         module MarketplaceSuccessResponse =
             let encode (x: MarketplaceSuccessResponse) : (string * JsonValue) list =
@@ -504,8 +489,6 @@ module Json =
                     PreviouslyAcceptedMessage = get.Required.At [ "error"; "additionalInfo"; "acceptedMessage" ] MarketplaceSuccessResponse.Decoder
                 }
 
-            // let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
         module MarketplaceArgumentErrorData =
             let encode (x: MarketplaceArgumentErrorData) : (string * JsonValue) list =
                 [
@@ -542,8 +525,6 @@ module Json =
                     ErrorDetails = get.Required.At [ "error"; "details" ] (Decode.list MarketplaceArgumentErrorData.Decoder)
                 }
 
-            // let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
         module MarketplaceSubmissionError =
             let encode (x: MarketplaceSubmissionError) : (string * JsonValue) list =
                 match x with
@@ -563,13 +544,12 @@ module Json =
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
         module MarketplaceSubmissionResult = 
-
             let encode (x: MarketplaceSubmissionResult) : (string * JsonValue) list =
                 match x with
                 | Ok s -> s |> MarketplaceSuccessResponse.encode
                 | Error e -> e |> MarketplaceSubmissionError.encode
 
-            let Encoder = encode >> Encode.object
+            let Encoder = JsonUtil.toEncoder encode
 
             let Decoder : Decoder<MarketplaceSubmissionResult> =
                 [
@@ -578,37 +558,20 @@ module Json =
                 ] |> Decode.oneOf
 
         module MarketplaceBatchResponseDTO =
-            //{
-            //  "count": 3,
-            //  "result": [{},{},{}]
-            //}
-            
             let (result, count) = ("result", "count")
 
-            let Encoder (x: MarketplaceBatchResponseDTO) : JsonValue = 
+            let encode (x: MarketplaceBatchResponseDTO) : (string * JsonValue) list =
                  [ 
                     (count, x.Results.Length |> Encode.int)
                     (result, x.Results |> List.map MarketplaceSubmissionResult.Encoder |> Encode.list)
-                 ] |> Encode.object
+                 ]
 
-            let Decoder : Decoder<MarketplaceBatchResponseDTO> = 
-                 Decode.object (fun get -> 
-                    let r = get.Required.Field result (Decode.list MarketplaceSubmissionResult.Decoder)
-                    let count = get.Required.Field count Decode.int
-                    if count <> r.Length
-                    then failwith $"Failed to decode {nameof(MarketplaceBatchResponse)}: Number of elements in content was {r.Length} instead of {count}"
-                    else { Results = r }
-                )
-            
-        //module Plans =
-        //    let Encoder (x: Plans) : JsonValue =
-        //        x
-        //        |> Map.toList
-        //        |> List.map (fun (k, v) -> (k |> PlanId.value, v |> Plan.Encoder))
-        //        |> Encode.object        
-        //    let Decoder : Decoder<Plans> =
-        //        (Decode.keyValuePairs Plan.Decoder)
-        //        |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> PlanId.create, v)) |> Map.ofList |> Decode.succeed)
+            let decode (get: Decode.IGetters) : MarketplaceBatchResponseDTO =
+                let r = get.Required.Field result (Decode.list MarketplaceSubmissionResult.Decoder)
+                let count = get.Required.Field count Decode.int
+                if count <> r.Length
+                then failwith $"Failed to decode {nameof(MarketplaceBatchResponse)}: Number of elements in content was {r.Length} instead of {count}"
+                else { Results = r }
 
     module Meter = 
         open Marketplace
@@ -828,7 +791,7 @@ module Json =
         |> JsonUtil.withCustom Marketplace.MarketplaceArgumentErrorData.encode Marketplace.MarketplaceArgumentErrorData.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceGenericError.encode Marketplace.MarketplaceGenericError.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceSubmissionError.encode Marketplace.MarketplaceSubmissionError.decode
-        |> Extra.withCustom Marketplace.MarketplaceBatchResponseDTO.Encoder Marketplace.MarketplaceBatchResponseDTO.Decoder
+        |> JsonUtil.withCustom Marketplace.MarketplaceBatchResponseDTO.encode Marketplace.MarketplaceBatchResponseDTO.decode
         |> Extra.withCustom Marketplace.MarketplaceSubmissionResult.Encoder Marketplace.MarketplaceSubmissionResult.Decoder
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
