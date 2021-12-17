@@ -51,9 +51,10 @@ let partitionId = "0" |> PartitionID.create
 
 // printfn "%A" ("meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--21-01-33---sequencenr-31.json.gz" |> MeterCollectionStore.Naming.blobnameToPosition config)
 
-// let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--15-17-11---sequencenr-10.json.gz" ).Result
+let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--15-17-11---sequencenr-10.json.gz" ).Result
+// let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/latest.json.gz" ).Result
 // let initialState = (MeterCollectionStore.loadLastState config partitionId CancellationToken.None).Result
-let initialState : MeterCollection option = MeterCollection.Uninitialized
+// let initialState : MeterCollection option = MeterCollection.Uninitialized
 
 match initialState with
 | None -> 
@@ -71,6 +72,11 @@ match initialState with
 
     printfn "%s" (x |> Json.toStr 2)
 
+    x
+    |> MeterCollection.metersToBeSubmitted
+    |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
+    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId |> InternalResourceId.toStr) (a.PlanId |> PlanId.value) (a.DimensionId |> DimensionId.value) (a.Quantity |> Quantity.toStr)  )
+
 | Some initialState -> 
     // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
 
@@ -85,6 +91,11 @@ match initialState with
         |> Seq.scan aggregate initialState
         |> Seq.last
 
-    printfn "%s" (x |> Some |> MeterCollection.toStr)
+    // printfn "%s" (x |> Some |> MeterCollection.toStr)
 
     printfn "%s" (x |> Json.toStr 2)
+
+    x
+    |> MeterCollection.metersToBeSubmitted
+    |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
+    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId |> InternalResourceId.toStr) (a.PlanId |> PlanId.value) (a.DimensionId |> DimensionId.value) (a.Quantity |> Quantity.toStr)  )

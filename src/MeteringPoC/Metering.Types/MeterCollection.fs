@@ -42,3 +42,9 @@ module MeterCollection =
             mc.MeterCollection
             |> Map.values
             |> toStrM pid
+    
+    let metersToBeSubmitted  (x : MeterCollection) : MarketplaceRequest seq =
+        x.MeterCollection
+        |> Map.toSeq
+        |> Seq.collect (fun (_, meter) -> meter.UsageToBeReported)
+        |> Seq.sortBy (fun r -> r.EffectiveStartTime.ToInstant())

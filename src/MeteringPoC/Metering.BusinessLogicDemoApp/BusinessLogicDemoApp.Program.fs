@@ -239,7 +239,19 @@ let demoStorage config eventsFromEventHub =
 
 [<EntryPoint>]
 let main argv = 
+    let usage : MeteringUpdateEvent = 
+        { InternalResourceId = ManagedApplication ManagedAppIdentity 
+          Timestamp = MeteringDateTime.now()
+          MeterName = ApplicationInternalMeterName.create "cpu"
+          Quantity = Quantity.createFloat 1.3M
+          Properties = None } |> UsageReported 
 
+    usage
+    |> Json.toStr 5
+    |> (fun x -> printfn "%s" x; x)
+    |> Json.fromStr<MeteringUpdateEvent>
+    |> (fun x -> printfn "%A" x; x)
+    |> ignore
 
     //let config = 
     //    { CurrentTimeProvider = CurrentTimeProvider.LocalSystem

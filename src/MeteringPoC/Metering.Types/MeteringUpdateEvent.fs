@@ -27,8 +27,8 @@ module MeteringUpdateEvent =
         | SubscriptionPurchased x -> x.Subscription.InternalResourceId |> InternalResourceId.toStr
         | UsageReported x -> x.InternalResourceId |> InternalResourceId.toStr
         | UsageSubmittedToAPI x -> x.Result |> MarketplaceSubmissionResult.resourceId |> InternalResourceId.toStr
-        | UnprocessableMessage _ -> null
-        | RemoveUnprocessedMessages _ -> null
+        | UnprocessableMessage _ -> ""
+        | RemoveUnprocessedMessages _ -> ""
 
     let toStr (mue: MeteringUpdateEvent) : string =
         match mue with

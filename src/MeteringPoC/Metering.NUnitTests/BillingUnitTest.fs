@@ -3,6 +3,7 @@ module Metering.NUnitTests.Billing
 open System
 open NUnit.Framework
 open NodaTime
+open Metering
 open Metering.Types
 open Metering.Types.EventHub
 open System.IO
@@ -392,3 +393,28 @@ let RoundTripMarketplaceStructures () =
       "MarketplaceErrorDuplicate.json"
       "MarketplaceGenericError.json" ]
     |> List.iter roundTrip<MarketplaceSubmissionResult>
+
+module E =
+    open System.Collections.Generic
+    open Azure.Messaging.EventHubs
+    
+    type MyEventData(
+        eventBody: byte[], 
+        properties: IDictionary<string, obj>, systemProperties: IReadOnlyDictionary<string, obj>, 
+        sequenceNumber: int64, offset: int64, enqueuedTime: DateTimeOffset, partitionKey: string) =                 
+        inherit EventData(new BinaryData(eventBody), properties, systemProperties, sequenceNumber, offset, enqueuedTime, partitionKey)
+
+[<Test>]
+let ParseEventData () =
+    
+    let rnd = Random()
+    let bytes = Array.create 16 0uy
+    rnd.NextBytes(bytes)
+    
+    let binaryGarbage = EventDataDummy.create "1.avro" bytes 13L 100L "0"
+    let wrapped = EventHubObservableClient.toMeteringUpdateEvent binaryGarbage
+    
+    ()
+
+
+    

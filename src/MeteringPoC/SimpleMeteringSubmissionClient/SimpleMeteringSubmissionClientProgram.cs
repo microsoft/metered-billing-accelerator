@@ -23,16 +23,18 @@ cts.Cancel();
 
 static async Task Batch(EventHubProducerClient eventHubProducerClient, string subName, CancellationToken ct)
 {
+    int i = 0;
     var saasId = guidFromStr(subName);
     while (true)
     {
         var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                   .Select(x => MeterValueModule.create(x, 1))
+                   .Select(x => MeterValueModule.create(x, 0.1M))
                    .ToArray();
 
-        Console.Write(".");
+        if (i++ % 10 == 0) { Console.Write("."); }
+
         await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
-        await Task.Delay(TimeSpan.FromSeconds(0.8), ct);
+        await Task.Delay(TimeSpan.FromSeconds(0.3), ct);
     }
 }
 

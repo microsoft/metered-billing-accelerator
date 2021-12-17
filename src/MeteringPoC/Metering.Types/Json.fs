@@ -48,7 +48,7 @@ module Json =
             | Infinite -> "Infinite" |> Encode.string
             
         let Decoder : Decoder<Quantity> = 
-            let decodeInfinite s = 
+            let decodeStringQuantity s = 
                 if s = "Infinite"
                 then Infinite |> Decode.succeed
                 else 
@@ -65,7 +65,7 @@ module Json =
             [ 
                 Decode.uint64 |> Decode.andThen(Quantity.createInt >> Decode.succeed)
                 Decode.decimal |> Decode.andThen(Quantity.createFloat >> Decode.succeed)
-                Decode.string |> Decode.andThen(decodeInfinite)
+                Decode.string |> Decode.andThen(decodeStringQuantity)
             ] |> Decode.oneOf
 
     module MessagePosition =
@@ -762,6 +762,7 @@ module Json =
         x
         |> Extra.withUInt64
         |> Extra.withInt64
+        |> Extra.withDecimal
         |> Extra.withCustom Marketplace.MarketplaceRequest.Encoder Marketplace.MarketplaceRequest.Decoder
         |> JsonUtil.withCustom Marketplace.MarketplaceBatchRequest.encode Marketplace.MarketplaceBatchRequest.decode
         |> JsonUtil.withCustom Marketplace.SubmissionStatus.encode Marketplace.SubmissionStatus.decode

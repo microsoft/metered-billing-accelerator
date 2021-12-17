@@ -43,6 +43,24 @@ module SaaSConsumption =
 
 [<Extension>]
 module MeteringEventHubExtensions =    
+    let sendingApp =  System.Reflection.Assembly.GetEntryAssembly().FullName
+
+    let private createEventData (resourceId: string) (meteringUpdateEvent: MeteringUpdateEvent) : EventData =
+        meteringUpdateEvent
+        |> Json.toStr 0
+        |> (fun x -> new BinaryData(x))
+        |> (fun x -> 
+            let eventData = new EventData(eventBody = x, ContentType = "application/json")
+            eventData.Properties.Add("resourceId", resourceId)
+            eventData.Properties.Add("SendingApplication", sendingApp)
+            eventData
+        )
+
+    let addEvent (batch: EventDataBatch) (eventData: EventData) =
+        if not (batch.TryAdd(eventData))
+        then failwith "The event could not be added."
+        else ()
+
     // [<Extension>] // Currently not exposed to C#
     let private SubmitMeteringUpdateEvent (eventHubProducerClient: EventHubProducerClient) (cancellationToken: CancellationToken) (meteringUpdateEvents: MeteringUpdateEvent list) : Task =
         task {
@@ -51,26 +69,16 @@ module MeteringEventHubExtensions =
                 meteringUpdateEvents
                 |> List.head
                 |> MeteringUpdateEvent.partitionKey
-
+            
             let! eventBatch = eventHubProducerClient.CreateBatchAsync(
                 options = new CreateBatchOptions (PartitionKey = partitionKey),
                 cancellationToken = cancellationToken)
             
             meteringUpdateEvents
-            |> List.map (Json.toStr 0)
-            |> List.map (fun x -> new BinaryData(x))
-            |> List.map (fun x -> new EventData(x))
-            |> List.iter (fun x -> 
-                x.Properties.Add("SendingApplication", (System.Reflection.Assembly.GetEntryAssembly().FullName))
-                if not (eventBatch.TryAdd(x))
-                then failwith "The event could not be added."
-                else ()
-            )
+            |> List.map (createEventData partitionKey)
+            |> List.iter (addEvent eventBatch)
 
-            return! eventHubProducerClient.SendAsync(
-                eventBatch = eventBatch,
-                // options: new SendEventOptions() {  PartitionId = "...", PartitionKey = "..." },
-                cancellationToken = cancellationToken)
+            return! eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = cancellationToken)
         }
 
     let private SubmitMeteringUpdateEventToPartition (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (cancellationToken: CancellationToken) (meteringUpdateEvent: MeteringUpdateEvent) : Task =
@@ -79,20 +87,11 @@ module MeteringEventHubExtensions =
                 options = new CreateBatchOptions (PartitionId = (partitionId |> PartitionID.value)),
                 cancellationToken = cancellationToken)
             
-            let eventData =
-                meteringUpdateEvent
-                |> Json.toStr 0
-                |> (fun x -> new BinaryData(x))
-                |> (fun x -> new EventData(x))
-            
-            eventData.Properties.Add("SendingApplication", (System.Reflection.Assembly.GetEntryAssembly().FullName))
-            if not (eventBatch.TryAdd(eventData))
-            then failwith "The event could not be added."
+            meteringUpdateEvent
+            |> createEventData (meteringUpdateEvent |> MeteringUpdateEvent.partitionKey)
+            |> addEvent eventBatch
 
-            return! eventHubProducerClient.SendAsync(
-                eventBatch = eventBatch,
-                // options: new SendEventOptions() {  PartitionId = "...", PartitionKey = "..." },
-                cancellationToken = cancellationToken)
+            return! eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = cancellationToken)
         }
 
     [<Extension>]
