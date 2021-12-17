@@ -111,43 +111,43 @@ let ``MeterValue.subtractQuantity``() =
     [ 
         {
             // if Monthly is sufficient, don't touch annual
-            State = IncludedQuantity { Annually = Quantity.someInt 30UL; Monthly = Quantity.someInt 10UL; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 8UL
-            Expected = IncludedQuantity { Annually = Quantity.someInt 30UL; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = now }
+            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 8u
+            Expected = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = now }
         }
         {
             // if Monthly is not sufficient, also deduct from annual
-            State = IncludedQuantity { Annually = Quantity.someInt 30UL; Monthly = Quantity.someInt 10UL; Created = created; LastUpdate = lastUpdate}
-            Quantity = Quantity.createInt 13UL
-            Expected = IncludedQuantity { Annually = Quantity.someInt 27UL; Monthly = None; Created = created; LastUpdate = now}
+            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate}
+            Quantity = Quantity.createInt 13u
+            Expected = IncludedQuantity { Annually = Quantity.someInt 27u; Monthly = None; Created = created; LastUpdate = now}
         }
         {
             // if both Monthly and Annual are not sufficient, it costs money
-            State = IncludedQuantity { Annually = Quantity.someInt 30UL; Monthly = Quantity.someInt 10UL; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 43UL
-            Expected = ConsumedQuantity { Amount = Quantity.createInt  3UL; Created = created; LastUpdate = now }
+            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 43u
+            Expected = ConsumedQuantity { Amount = Quantity.createInt 3u; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
             State = IncludedQuantity { Annually = None; Monthly = None; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2UL
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 2UL; Created = created; LastUpdate = now }
+            Quantity = Quantity.createInt 2u
+            Expected = ConsumedQuantity { Amount = Quantity.createInt 2u; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity { Amount = Quantity.createInt 0UL; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2UL
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 2UL; Created = created; LastUpdate = now }
+            State = ConsumedQuantity { Amount = Quantity.createInt 0u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 2u
+            Expected = ConsumedQuantity { Amount = Quantity.createInt 2u; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity { Amount = Quantity.createInt 10UL; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2UL
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 12UL; Created = created; LastUpdate = now }
+            State = ConsumedQuantity { Amount = Quantity.createInt 10u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 2u
+            Expected = ConsumedQuantity { Amount = Quantity.createInt 12u; Created = created; LastUpdate = now }
         }
     ] |> runTestVectors test
 
-type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (uint64 * RenewalInterval) list; Expected: MeterValue}
+type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (uint * RenewalInterval) list; Expected: MeterValue}
 
 [<Test>]
 let ``MeterValue.topupMonthlyCredits``() =
@@ -161,42 +161,42 @@ let ``MeterValue.topupMonthlyCredits``() =
     
     [
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = None; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 9UL; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = None; Created = created; LastUpdate = lastUpdate } 
+            Values = [(9u, Monthly)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 9u; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 9UL; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
+            Values = [(9u, Monthly)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 9u; Created = created; LastUpdate = now } 
         }
         {
-            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000UL; Created = created; LastUpdate = lastUpdate }
-            Values = [(1000UL, Monthly)]
-            Expected = IncludedQuantity { Annually = None; Monthly = Quantity.someInt 1000UL; Created = created; LastUpdate = now } 
+            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000u; Created = created; LastUpdate = lastUpdate }
+            Values = [(1000u, Monthly)]
+            Expected = IncludedQuantity { Annually = None; Monthly = Quantity.someInt 1000u; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = None; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9UL, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 9UL; Monthly = None; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = None; Created = created; LastUpdate = lastUpdate } 
+            Values = [(9u, Annually)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 9u; Monthly = None; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9UL, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 9UL ; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
+            Values = [(9u, Annually)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 9u ; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = now } 
         }
         {
-            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000UL; Created = created; LastUpdate = lastUpdate }
-            Values = [(1000UL, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1000UL ; Monthly = None; Created = created; LastUpdate = now } 
+            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000u; Created = created; LastUpdate = lastUpdate }
+            Values = [(1000u, Annually)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 1000u ; Monthly = None; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = lastUpdate } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
             Values = [
-                (10_000UL, Annually)
-                (500UL, Monthly)
+                (10_000u, Annually)
+                (500u, Monthly)
             ]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 10_000UL; Monthly = Quantity.someInt 500UL; Created = created; LastUpdate = now } 
+            Expected = IncludedQuantity { Annually = Quantity.someInt 10_000u; Monthly = Quantity.someInt 500u; Created = created; LastUpdate = now } 
         }
     ] |> runTestVectors test
 
@@ -238,14 +238,14 @@ let ``Quantity.Serialization`` () =
 
     [
         Infinite
-        Quantity.createInt 10UL
-        Quantity.createFloat 10.1m
+        Quantity.createInt 10u
+        Quantity.createFloat 10.1
     ] |> runTestVectors test
 
 [<Test>]
 let ``Quantity.Math`` () =
-    let q : (int -> Quantity) = uint64 >> Quantity.createInt
-    let f : (float -> Quantity) = decimal >> Quantity.createFloat
+    let q : (int -> Quantity) = uint32 >> Quantity.createInt
+    let f : (float -> Quantity) = float >> Quantity.createFloat
     
     Assert.AreEqual(q 10, (q 3) + (q 7))
     Assert.AreEqual(q 7, (q 10) - (q 3))
@@ -310,10 +310,10 @@ let ``Quantity.Math`` () =
 
 [<Test>]
 let ``Quantity.Comparison``() =
-    let fiveInt = Quantity.createInt 5UL
-    let tenInt = Quantity.createInt 10UL
-    let fiveFloat = Quantity.createFloat 5M
-    let tenFloat = Quantity.createFloat 10M
+    let fiveInt = Quantity.createInt 5u
+    let tenInt = Quantity.createInt 10u
+    let fiveFloat = Quantity.createFloat 5.0
+    let tenFloat = Quantity.createFloat 10.0
     
     Assert.AreEqual(fiveFloat, fiveInt)
     Assert.AreEqual(tenFloat, tenInt)

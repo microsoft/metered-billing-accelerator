@@ -43,7 +43,7 @@ let parseConsumptionEvents (str: string) =
                         ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
                            Timestamp = datestr |> MeteringDateTime.fromStr 
                            MeterName = name |> ApplicationInternalMeterName.create
-                           Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
+                           Quantity = amountstr |> UInt32.Parse |> Quantity.createInt
                            Properties = props |> parseProps } |> UsageReported)
                         { PartitionID = "1" |> PartitionID.create
                           SequenceNumber = sequencenr |> Int64.Parse
@@ -54,7 +54,7 @@ let parseConsumptionEvents (str: string) =
                         ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
                            Timestamp = datestr |> MeteringDateTime.fromStr
                            MeterName = name |> ApplicationInternalMeterName.create
-                           Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
+                           Quantity = amountstr |> UInt32.Parse |> Quantity.createInt
                            Properties = None } |> UsageReported )
                         { PartitionID = "1" |> PartitionID.create
                           SequenceNumber = sequencenr |> Int64.Parse
@@ -243,7 +243,7 @@ let main argv =
         { InternalResourceId = ManagedApplication ManagedAppIdentity 
           Timestamp = MeteringDateTime.now()
           MeterName = ApplicationInternalMeterName.create "cpu"
-          Quantity = Quantity.createFloat 1.3M
+          Quantity = Quantity.createInt 10u
           Properties = None } |> UsageReported 
 
     usage

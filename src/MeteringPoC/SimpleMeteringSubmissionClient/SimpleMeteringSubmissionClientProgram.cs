@@ -28,7 +28,7 @@ static async Task Batch(EventHubProducerClient eventHubProducerClient, string su
     while (true)
     {
         var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                   .Select(x => MeterValueModule.create(x, 0.1M))
+                   .Select(x => MeterValueModule.create(x, 0.1))
                    .ToArray();
 
         if (i++ % 10 == 0) { Console.Write("."); }
@@ -86,7 +86,7 @@ static async Task Interactive(EventHubProducerClient eventHubProducerClient, Can
             {
                 await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
                 var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                    .Select(x => MeterValueModule.create(x, 1.0M))
+                    .Select(x => MeterValueModule.create(x, 1.0))
                     .ToArray();
 
                 await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");

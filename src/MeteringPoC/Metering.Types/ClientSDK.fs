@@ -16,12 +16,12 @@ type MeterValue =
 
 module MeterValue =
     [<CompiledName("create")>]
-    let createInt (name: string) (quantity: uint64) : MeterValue =
+    let createInt (name: string) (quantity: uint) : MeterValue =
         { Quantity = quantity |> Quantity.createInt
           Name = name |> ApplicationInternalMeterName.create }
 
     [<CompiledName("create")>]
-    let createFloat (name: string) (quantity: decimal) : MeterValue =
+    let createFloat (name: string) (quantity: float) : MeterValue =
         { Quantity = quantity |> Quantity.createFloat
           Name = name |> ApplicationInternalMeterName.create }        
 

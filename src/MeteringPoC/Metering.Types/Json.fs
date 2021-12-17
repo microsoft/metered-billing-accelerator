@@ -43,8 +43,8 @@ module Json =
     module Quantity =
         let Encoder (x: Quantity) : JsonValue = 
             match x with
-            | MeteringInt i -> i |> Encode.uint64
-            | MeteringFloat f -> f |> Encode.decimal
+            | MeteringInt i -> i |> Encode.uint32
+            | MeteringFloat f -> f |> Encode.float
             | Infinite -> "Infinite" |> Encode.string
             
         let Decoder : Decoder<Quantity> = 
@@ -54,17 +54,17 @@ module Json =
                 else 
                     if s.Contains(".") 
                     then 
-                        match s |> Decimal.TryParse with
+                        match s |> Double.TryParse with
                         | false, _ -> (sprintf "Failed to decode `%s`" s) |> Decode.fail
                         | _, v -> v |> Quantity.createFloat |> Decode.succeed
                     else
-                        match s |> UInt64.TryParse with
+                        match s |> UInt32.TryParse with
                         | false, _ -> (sprintf "Failed to decode `%s`" s) |> Decode.fail
                         | _, v -> v |> Quantity.createInt |> Decode.succeed
 
             [ 
-                Decode.uint64 |> Decode.andThen(Quantity.createInt >> Decode.succeed)
-                Decode.decimal |> Decode.andThen(Quantity.createFloat >> Decode.succeed)
+                Decode.uint32 |> Decode.andThen(Quantity.createInt >> Decode.succeed)
+                Decode.float |> Decode.andThen(Quantity.createFloat >> Decode.succeed)
                 Decode.string |> Decode.andThen(decodeStringQuantity)
             ] |> Decode.oneOf
 
@@ -343,7 +343,7 @@ module Json =
                     (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
                     (planId, x.PlanId |> PlanId.value |> Encode.string)
                     (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)                
-                    (quantity, x.Quantity |> Quantity.valueAsFloat |> Encode.decimal)                 
+                    (quantity, x.Quantity |> Quantity.valueAsFloat |> Encode.float)                 
                 ]
 
             let decode (get: Decode.IGetters) =
@@ -762,7 +762,6 @@ module Json =
         x
         |> Extra.withUInt64
         |> Extra.withInt64
-        |> Extra.withDecimal
         |> Extra.withCustom Marketplace.MarketplaceRequest.Encoder Marketplace.MarketplaceRequest.Decoder
         |> JsonUtil.withCustom Marketplace.MarketplaceBatchRequest.encode Marketplace.MarketplaceBatchRequest.decode
         |> JsonUtil.withCustom Marketplace.SubmissionStatus.encode Marketplace.SubmissionStatus.decode
