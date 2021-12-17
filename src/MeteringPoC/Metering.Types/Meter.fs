@@ -87,8 +87,8 @@ module Meter =
         // todo logging here, alternatively report in a later period?
         meter
         
-    let handleUsageSubmissionToAPI (config: MeteringConfigurationProvider) (usageSubmissionResult: MarketplaceSubmissionResult) (meter: Meter) : Meter =
-        match usageSubmissionResult with
+    let handleUsageSubmissionToAPI (config: MeteringConfigurationProvider) (item: MarketplaceResponse) (meter: Meter) : Meter =
+        match item.Result with
         | Ok success ->  removeUsageToBeReported success.RequestData meter
         | Error error -> handleUnsuccessfulMeterSubmission config error meter
         

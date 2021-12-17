@@ -557,6 +557,24 @@ module Json =
                     MarketplaceSuccessResponse.Decoder |> Decode.andThen(Ok >> Decode.succeed)
                 ] |> Decode.oneOf
 
+        module AzureHttpResponseHeaders =
+            let (msrequestid, mscorrelationid) =
+                ("xMsRequestId", "xMsCorrelationId");
+
+            let encode (x: AzureHttpResponseHeaders) : (string * JsonValue) list =
+                [
+                    (msrequestid, x.RequestID |> Encode.string)
+                    (mscorrelationid, x.CorrelationID |> Encode.string)
+                ]
+            
+            let decode (get: Decode.IGetters) : AzureHttpResponseHeaders =
+                {
+                    RequestID = get.Required.Field msrequestid Decode.string
+                    CorrelationID =  get.Required.Field mscorrelationid Decode.string
+                }
+
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
+
         module MarketplaceBatchResponseDTO =
             let (result, count) = ("result", "count")
 
@@ -572,6 +590,20 @@ module Json =
                 if count <> r.Length
                 then failwith $"Failed to decode {nameof(MarketplaceBatchResponse)}: Number of elements in content was {r.Length} instead of {count}"
                 else { Results = r }
+
+        module MarketplaceResponse =
+            let (httpHeaders, result) = ("httpHeaders", "result")
+            let encode (x: MarketplaceResponse) : (string * JsonValue) list =
+                [ 
+                    (httpHeaders, x.Headers |> AzureHttpResponseHeaders.Encoder)
+                    (result, x.Result |> MarketplaceSubmissionResult.Encoder)
+                ]
+            let decode (get: Decode.IGetters) : MarketplaceResponse =
+                {
+                    Headers = get.Required.Field httpHeaders AzureHttpResponseHeaders.Decoder
+                    Result =  get.Required.Field result MarketplaceSubmissionResult.Decoder
+                }
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
     module Meter = 
         open Marketplace
@@ -599,54 +631,6 @@ module Json =
             }
         
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
-    module AzureHttpResponseHeaders =
-        let (msrequestid, mscorrelationid) =
-            ("xMsRequestId", "xMsCorrelationId");
-
-        let encode (x: AzureHttpResponseHeaders) : (string * JsonValue) list =
-            [
-                (msrequestid, x.RequestID |> Encode.string)
-                (mscorrelationid, x.CorrelationID |> Encode.string)
-            ]
-        
-        let decode (get: Decode.IGetters) : AzureHttpResponseHeaders =
-            {
-                RequestID = get.Required.Field msrequestid Decode.string
-                CorrelationID =  get.Required.Field mscorrelationid Decode.string
-            }
-
-        let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-     
-        
-    //module MarketplaceSubmissionResult =
-    //    let (payload, result, httpHeaders) =
-    //        ("payload", "result", "httpHeaders");
-    //
-    //    let ResultEncoder (x: Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>) : JsonValue =
-    //        match x with
-    //        | Ok x -> x |> MarketplaceSubmissionAcceptedResponse.Encoder
-    //        | Result.Error x -> x |> MarketplaceSubmissionError.Encoder
-    //
-    //    let ResultDecoder : Decoder<Result<MarketplaceSubmissionAcceptedResponse, MarketplaceSubmissionError>> =
-    //        [ 
-    //            MarketplaceSubmissionAcceptedResponse.Decoder |> Decode.andThen(Ok >> Decode.succeed)
-    //            MarketplaceSubmissionError.Decoder |> Decode.andThen(Result.Error >> Decode.succeed)
-    //        ] |> Decode.oneOf
-    //
-    //    let Encoder (x: MarketplaceSubmissionResult) : JsonValue =
-    //        [
-    //            (payload, x.Payload |> MeteringAPIUsageEventDefinition.Encoder)
-    //            (httpHeaders, x.Headers |> AzureHttpResponseHeaders.Encoder)
-    //            (result, x.Result |> ResultEncoder)                
-    //        ] |> Encode.object 
-    //
-    //    let Decoder : Decoder<MarketplaceSubmissionResult> =
-    //        Decode.object (fun get -> {
-    //            Payload = get.Required.Field payload MeteringAPIUsageEventDefinition.Decoder
-    //            Headers = get.Required.Field httpHeaders AzureHttpResponseHeaders.Decoder
-    //            Result = get.Required.Field result ResultDecoder
-    //        })
             
     module UnprocessableMessage =
         let (t, v) = ("type", "value")
@@ -715,16 +699,15 @@ module Json =
             match x with
             | SubscriptionPurchased x -> x |> encodeKeyValue "SubscriptionPurchased" SubscriptionCreationInformation.Encoder
             | UsageReported x -> x |> encodeKeyValue "UsageReported" InternalUsageEvent.Encoder
-            | UsageSubmittedToAPI x -> x |> encodeKeyValue "UsageSubmittedToAPI" MarketplaceSubmissionResult.Encoder
+            | UsageSubmittedToAPI x -> x |> encodeKeyValue "UsageSubmittedToAPI" MarketplaceResponse.Encoder
             | UnprocessableMessage x -> x |> encodeKeyValue "UnprocessableMessage" UnprocessableMessage.Encoder
             | RemoveUnprocessedMessages x -> x |> encodeKeyValue "RemoveUnprocessedMessages" RemoveUnprocessedMessages.Encoder
-            | AggregatorBooted ->  raise <| new NotSupportedException "Currently this feedback loop must only be internally"
 
         let decode (get: Decode.IGetters) : MeteringUpdateEvent =
             match (get.Required.Field typeid Decode.string) with
             | "SubscriptionPurchased" -> (get.Required.Field value SubscriptionCreationInformation.Decoder) |> SubscriptionPurchased
             | "UsageReported" -> (get.Required.Field value InternalUsageEvent.Decoder) |> UsageReported
-            | "UsageSubmittedToAPI" -> (get.Required.Field value MarketplaceSubmissionResult.Decoder) |> UsageSubmittedToAPI
+            | "UsageSubmittedToAPI" -> (get.Required.Field value MarketplaceResponse.Decoder) |> UsageSubmittedToAPI
             | "UnprocessableMessage" -> (get.Required.Field value UnprocessableMessage.Decoder) |> UnprocessableMessage
             | "RemoveUnprocessedMessages" -> (get.Required.Field value RemoveUnprocessedMessages.Decoder) |> RemoveUnprocessedMessages
             | _ -> failwith "bad"
@@ -774,8 +757,6 @@ module Json =
                 LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder
                 //Plans = get.Required.Field plans Plans.Decoder
             }
-        // let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
 
     let enrich x =
         x

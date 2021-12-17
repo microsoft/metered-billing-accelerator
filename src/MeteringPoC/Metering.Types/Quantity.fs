@@ -71,9 +71,13 @@ type Quantity =
                     else MeteringFloat f
                 | Infinite -> Infinite
 
-module Quantity =
+module Quantity =    
+    [<CompiledName("create")>]
     let createInt i = (MeteringInt i)
+    
+    [<CompiledName("create")>]
     let createFloat f = (MeteringFloat f)
+    
     let fromString (s: string) =
         if s = "Infinite"
         then Infinite
@@ -82,8 +86,12 @@ module Quantity =
             then s |> Decimal.Parse |> createFloat
             else s |> UInt64.Parse |> createInt
 
+    [<CompiledName("some")>]
     let someInt = createInt >> Some
+    
+    [<CompiledName("some")>]
     let someFloat = createFloat >> Some
+    
     let none : (Quantity option) = None
 
     let valueAsInt = function
@@ -96,10 +104,9 @@ module Quantity =
         | MeteringFloat f -> f
         | Infinite -> failwith "Trying to convert Infinity to a decimal"
 
-    let toStr (q: Quantity) : string = 
-        q 
-        |> function
-            | MeteringInt i -> i.ToString()
-            | MeteringFloat f -> f.ToString()
-            | Infinite -> "Infinite"
+    let toStr : (Quantity -> string) = 
+        function
+        | MeteringInt i -> i.ToString()
+        | MeteringFloat f -> f.ToString()
+        | Infinite -> "Infinite"
         

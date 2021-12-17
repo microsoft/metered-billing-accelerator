@@ -1,10 +1,8 @@
 ﻿using System.Reactive.Linq;
 using System.Reflection;
-using Azure.Messaging.EventHubs;
 using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
-using MarketplaceSubmissionResult = Microsoft.FSharp.Core.FSharpResult<Metering.Types.MarketplaceSuccessResponse, Metering.Types.MarketplaceSubmissionError>;
 using static Metering.Types.InternalResourceId;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
@@ -33,8 +31,8 @@ var meters = Enumerable
         effectiveStartTime: effectiveStartTime,
         planId: PlanIdModule.create("free_monthly_yearly"),
         dimensionId: DimensionIdModule.create("datasourcecharge"),
-        quantity: QuantityModule.createInt(100),
-        resourceId: SaaSSubscription.NewSaaSSubscription(SaaSSubscriptionIDModule.create("8151a707-467c-4105-df0b-44c3fca5880d"))))
+        quantity: QuantityModule.create(100),
+        resourceId: NewSaaSSubscription(SaaSSubscriptionIDModule.create("8151a707-467c-4105-df0b-44c3fca5880d"))))
     .ToList();
 
 var result = config.SubmitUsage(meters).Result.Results;
@@ -77,7 +75,7 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
 
     IDisposable subscription = events
         .Subscribe(
-            onNext: coll => handleCollection(partitionId, coll),
+            onNext: coll => handleCollection(config, partitionId, coll),
             onError: ex => { 
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine($"Error {partitionId.value()}: {ex.Message}"); 
@@ -94,16 +92,16 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
 });
 subscriptions.Add(groupedSub);
 
-static void handleCollection (PartitionID partitionId, MeterCollection meterCollection) {
+static void handleCollection (MeteringConfigurationProvider config, PartitionID partitionId, MeterCollection meterCollection) {
     //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
     
     //Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
     Console.WriteLine(meterCollection.getLastSequenceNumber());
 
     // Console.WriteLine(Json.toStr(2, meterCollection));
-    //if (meterCollection.getLastSequenceNumber() % 100 == 0)
+    if (meterCollection.getLastSequenceNumber() % 100 == 0)
     {
-        //MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
+        MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
     }
 };
 

@@ -39,35 +39,27 @@ let parseConsumptionEvents (str: string) =
             |> List.map (fun s -> s.Trim())
             |> function
                 | [sequencenr; datestr; internalResourceId; name; amountstr; props] -> 
-                    Some {
-                        MeteringUpdateEvent = UsageReported {
-                            InternalResourceId = internalResourceId |> InternalResourceId.fromStr
-                            Timestamp = datestr |> MeteringDateTime.fromStr 
-                            MeterName = name |> ApplicationInternalMeterName.create
-                            Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
-                            Properties = props |> parseProps }
-                        MessagePosition = {
-                            PartitionID = "1" |> PartitionID.create
-                            SequenceNumber = sequencenr |> Int64.Parse
-                            // Offset = sequencenr |> Int64.Parse
-                            PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
-                        EventsToCatchup = dummyEventsToCatchUp datestr
-                    }
-                | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
-                    Some {
-                        MeteringUpdateEvent = UsageReported {
-                            InternalResourceId = internalResourceId |> InternalResourceId.fromStr
-                            Timestamp = datestr |> MeteringDateTime.fromStr
-                            MeterName = name |> ApplicationInternalMeterName.create
-                            Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
-                            Properties = None }
-                        MessagePosition = {
-                            PartitionID = "1" |> PartitionID.create
-                            SequenceNumber = sequencenr |> Int64.Parse
-                            // Offset = sequencenr |> Int64.Parse
-                            PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
-                        EventsToCatchup = dummyEventsToCatchUp datestr
-                    }
+                    Some <| MeteringEvent.create
+                        ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
+                           Timestamp = datestr |> MeteringDateTime.fromStr 
+                           MeterName = name |> ApplicationInternalMeterName.create
+                           Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
+                           Properties = props |> parseProps } |> UsageReported)
+                        { PartitionID = "1" |> PartitionID.create
+                          SequenceNumber = sequencenr |> Int64.Parse
+                          PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                        (dummyEventsToCatchUp datestr)
+                | [sequencenr; datestr; internalResourceId; name; amountstr] ->
+                    Some <| MeteringEvent.create
+                        ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
+                           Timestamp = datestr |> MeteringDateTime.fromStr
+                           MeterName = name |> ApplicationInternalMeterName.create
+                           Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
+                           Properties = None } |> UsageReported )
+                        { PartitionID = "1" |> PartitionID.create
+                          SequenceNumber = sequencenr |> Int64.Parse
+                          PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                        (dummyEventsToCatchUp datestr)
                 | _ -> None
         events
         |> List.map parseUsageEvent
@@ -95,16 +87,16 @@ let demoAggregation config =
         Json.fromStr<SubscriptionCreationInformation> 
         >> SubscriptionPurchased
         >> (fun mue -> 
-                  { MeteringUpdateEvent = mue
-                    MessagePosition = 
-                        { PartitionID = "1" |> PartitionID.create
-                          SequenceNumber = 1L
-                          PartitionTimestamp = "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr } 
-                    EventsToCatchup =
-                        { LastSequenceNumber = 100L
-                          LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr                           
-                          NumberOfEvents = 1
-                          TimeDeltaSeconds = 1.0 } |> Some }       
+            MeteringEvent.create
+                mue
+                { PartitionID = "1" |> PartitionID.create
+                  SequenceNumber = 1L
+                  PartitionTimestamp = "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr }
+                ({ LastSequenceNumber = 100L
+                   LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr
+                   NumberOfEvents = 1
+                   TimeDeltaSeconds = 1.0 } |> Some)
+            // |> Some
         )
 
     // 11111111-8a88-4a47-a691-1b31c289fb33 is a sample GUID of a SaaS subscription

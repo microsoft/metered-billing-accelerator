@@ -14,15 +14,15 @@ module MySeq =
             a
         Seq.map (inspect i)
 
-let printme e = 
-    match e.MeteringUpdateEvent with
-    | UsageReported e -> 
-        sprintf "%s %s %s"
-            (e.InternalResourceId |> InternalResourceId.toStr)
-            (e.MeterName |> ApplicationInternalMeterName.value)
-            (e.Quantity |> Quantity.toStr)
-        |> Some
-    | _ -> None
+//let printme e = 
+//    match e.MeteringUpdateEvent with
+//    | UsageReported e -> 
+//        sprintf "%s %s %s"
+//            (e.InternalResourceId |> InternalResourceId.toStr)
+//            (e.MeterName |> ApplicationInternalMeterName.value)
+//            (e.Quantity |> Quantity.toStr)
+//        |> Some
+//    | _ -> None
 
 let config : MeteringConfigurationProvider = 
     { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
@@ -63,7 +63,7 @@ match initialState with
         config.MeteringConnections
         |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent partitionId CancellationToken.None 
         |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
-        |> Seq.map (fun e -> MeteringEvent.create e.EventData e.MessagePosition e.EventsToCatchup)
+        |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate MeterCollection.Empty
         |> Seq.last
 
@@ -81,7 +81,7 @@ match initialState with
         config.MeteringConnections
         |> CaptureProcessor.readEventsFromPosition EventHubObservableClient.toMeteringUpdateEvent startPosition CancellationToken.None 
         // |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
-        |> Seq.map (fun e -> MeteringEvent.create e.EventData e.MessagePosition e.EventsToCatchup)
+        |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate initialState
         |> Seq.last
 

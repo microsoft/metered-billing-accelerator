@@ -32,9 +32,9 @@ module ManagedAppConsumption =
     let create ([<ParamArray>] vals: MeterValue array) =
         vals |> Array.toList |> Meters
         
-type SaaSConsumption = { 
-    SaaSSubscriptionID: SaaSSubscriptionID 
-    Meters: MeterValue list }
+type SaaSConsumption =
+    { SaaSSubscriptionID: SaaSSubscriptionID 
+      Meters: MeterValue list }
 
 module SaaSConsumption =
     let create (saasId: string) ([<ParamArray>] vals: MeterValue array) =
@@ -123,25 +123,29 @@ module MeteringEventHubExtensions =
         )
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
         
-    let private asList<'T> (t: 'T) : 'T list = [ t ] 
+    let private asListWithSingleElement<'T> (t: 'T) = [ t ] 
 
     [<Extension>]
     [<CompiledName("SubmitSubscriptionCreationAsync")>]
     let SubmitSubscriptionCreation (eventHubProducerClient: EventHubProducerClient) (sci: SubscriptionCreationInformation) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        sci |> SubscriptionPurchased |> asList
+        SubscriptionPurchased sci
+        |> asListWithSingleElement
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
     // this is not exposed as C# extension, as only F# is supposed to call it. 
-    let ReportUsageSubmitted (eventHubProducerClient: EventHubProducerClient) (msr: MarketplaceSubmissionResult) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        msr |> UsageSubmittedToAPI |> asList
+    let ReportUsagesSubmitted (eventHubProducerClient: EventHubProducerClient) ({ Results = items}: MarketplaceBatchResponse) (cancellationToken: CancellationToken) =
+        items
+        |> List.map UsageSubmittedToAPI 
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
     [<Extension>]
     let RemoveUnprocessableMessagesUpTo(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        { PartitionID = partitionId; Selection = sequenceNumber |> BeforeIncluding } |> RemoveUnprocessedMessages 
+        { PartitionID = partitionId; Selection = sequenceNumber |> BeforeIncluding }
+        |> RemoveUnprocessedMessages 
         |> SubmitMeteringUpdateEventToPartition eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
     let RemoveUnprocessableMessage(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        { PartitionID = partitionId; Selection = sequenceNumber |> Exactly } |> RemoveUnprocessedMessages 
+        { PartitionID = partitionId; Selection = sequenceNumber |> Exactly }
+        |> RemoveUnprocessedMessages 
         |> SubmitMeteringUpdateEventToPartition eventHubProducerClient partitionId cancellationToken
