@@ -17,6 +17,11 @@ module Json =
         let createEncoderDecoder<'T> (encode: 'T -> (string * JsonValue) list) (decode: Decode.IGetters -> 'T) : Encoder<'T> * Decoder<'T> =
             (encode |> toEncoder, decode |> toDecoder)
 
+        let encodeOption<'T> (name: string) (encoder: Encoder<'T>) (t: 'T option) : (string * JsonValue) list =
+            match t with
+            | None -> []
+            | Some v -> [ (name, v |> encoder) ]
+
         let withCustom<'T> (encode: ('T -> (string * JsonValue) list)) (decode : (Decode.IGetters -> 'T)) (extra: ExtraCoders) : ExtraCoders =
             extra
             |> Extra.withCustom
@@ -410,37 +415,44 @@ module Json =
             let encode x = [ (messageTime, x |> MeteringDateTime.Encoder) ]
             
             let decode (get: Decode.IGetters) = get.Required.Field messageTime MeteringDateTime.Decoder
-            
-        module MarketplaceSubmissionStatus =
-            let (usageEventId, resourceUri) =
-                ("usageEventId", "resourceUri")
+           
+        module UsageEventID =
+            let (usageEventId) = ("usageEventId")
 
-            let encodeOption<'T> (name: string) (t: 'T option) (encoder: Encoder<'T>)  (vals: (string * JsonValue) list) : (string * JsonValue) list =
-                match t with
-                | None -> vals
-                | Some v -> (name, v |> encoder) :: vals
-                
-            let encode (x: MarketplaceSubmissionStatus) : (string * JsonValue) list =
+            let encode (x: UsageEventID option) = x |> JsonUtil.encodeOption usageEventId Encode.string
+
+            let decode (get: Decode.IGetters) = get.Optional.Field usageEventId Decode.string
+        
+        module ResourceURI =
+            let (resourceUri) = ("resourceUri")
+
+            let encode (x: ResourceURI option) = x |> JsonUtil.encodeOption resourceUri Encode.string
+
+            let decode (get: Decode.IGetters) = get.Optional.Field resourceUri Decode.string
+
+        module MarketplaceSubmissionStatus =
+            // A composed type, where various types are represented in the same JSON object
+            let encode (x: MarketplaceSubmissionStatus) =
                 [                    
-                   x.MessageTime |> MessageTime.encode
-                   x.Status |> SubmissionStatus.encode
+                    x.Status |> SubmissionStatus.encode
+                    x.MessageTime |> MessageTime.encode
+                    x.UsageEventID |> UsageEventID.encode
+                    x.ResourceURI |> ResourceURI.encode
                 ]
                 |> List.concat
-                |> encodeOption usageEventId x.UsageEventID Encode.string
-                |> encodeOption resourceUri x.ResourceURI Encode.string
 
             let decode (get: Decode.IGetters) =
                 {
                     Status = get |> SubmissionStatus.decode
                     MessageTime = get |> MessageTime.decode
-                    UsageEventID = get.Optional.Field usageEventId Decode.string
-                    ResourceURI = get.Optional.Field resourceUri Decode.string
+                    UsageEventID = get |> UsageEventID.decode
+                    ResourceURI = get |> ResourceURI.decode
                 }
 
         module MarketplaceErrorCode =
             let (code, message) = ("code", "message")
             
-            let encode (x: MarketplaceErrorCode) : (string * JsonValue) list =
+            let encode (x: MarketplaceErrorCode) =
                 [
                     (code, x.Code |> Encode.string)
                     (message, x.Message |> Encode.string)
@@ -453,7 +465,7 @@ module Json =
                 }
 
         module MarketplaceSuccessResponse =
-            let encode (x: MarketplaceSuccessResponse) : (string * JsonValue) list =
+            let encode (x: MarketplaceSuccessResponse) =
                 [
                     x.RequestData |> MarketplaceRequest.encode
                     x.Status |> MarketplaceSubmissionStatus.encode
@@ -469,7 +481,7 @@ module Json =
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
         module MarketplaceErrorDuplicate =
-            let encode (x: MarketplaceErrorDuplicate) : (string * JsonValue) list =
+            let encode (x: MarketplaceErrorDuplicate) =
                 [
                     x.FailedRequest |> MarketplaceRequest.encode
                     x.FailureStatus |> MarketplaceSubmissionStatus.encode
@@ -482,7 +494,7 @@ module Json =
                     ]
                 ] |> List.concat
 
-            let decode (get: Decode.IGetters) : MarketplaceErrorDuplicate =
+            let decode (get: Decode.IGetters) =
                 {
                     FailedRequest = get |> MarketplaceRequest.decode
                     FailureStatus = get |> MarketplaceSubmissionStatus.decode

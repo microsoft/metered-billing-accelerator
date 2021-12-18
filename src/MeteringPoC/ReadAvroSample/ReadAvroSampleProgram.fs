@@ -4,6 +4,7 @@ open NodaTime
 open Metering
 open Metering.Types
 open Metering.Types.EventHub
+open System.IO
 
 module MySeq =
     let inspect<'T> i =
@@ -31,6 +32,24 @@ let config : MeteringConfigurationProvider =
       // ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
       MeteringConnections = MeteringConnections.getFromEnvironment() }
 
+File.ReadAllText("latest.json")
+|> Json.fromStr<MeterCollection>
+|> MeterCollection.metersToBeSubmitted
+|> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
+|> Seq.skip 25
+|> Seq.take 25
+|> Seq.toList
+|> MarketplaceClient.submitBatchUsage config
+|> (fun x -> x.Result)
+|> (fun x -> 
+    let r = x |> Json.toStr 1
+    File.WriteAllText("response.json", r)
+    x
+    )
+|> (fun x -> x.Results)
+|> Seq.iter (fun a -> printfn "%A" a.Result)
+exit 1
+
 let partitionId = "0" |> PartitionID.create
 
 //let rnd = Random()
@@ -51,10 +70,10 @@ let partitionId = "0" |> PartitionID.create
 
 // printfn "%A" ("meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--21-01-33---sequencenr-31.json.gz" |> MeterCollectionStore.Naming.blobnameToPosition config)
 
-let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--15-17-11---sequencenr-10.json.gz" ).Result
+// let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--15-17-11---sequencenr-10.json.gz" ).Result
 // let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/latest.json.gz" ).Result
 // let initialState = (MeterCollectionStore.loadLastState config partitionId CancellationToken.None).Result
-// let initialState : MeterCollection option = MeterCollection.Uninitialized
+let initialState : MeterCollection option = MeterCollection.Uninitialized
 
 match initialState with
 | None -> 
@@ -63,14 +82,19 @@ match initialState with
     let x = 
         config.MeteringConnections
         |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent partitionId CancellationToken.None 
-        |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
+        //|> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate MeterCollection.Empty
         |> Seq.last
 
-    printfn "%s" (x |> Some |> MeterCollection.toStr)
+    //printfn "%s" (x |> Some |> MeterCollection.toStr)
+    //printfn "%s" (x |> Json.toStr 2)
 
-    printfn "%s" (x |> Json.toStr 2)
+    File.WriteAllText("latest.json", x |> Json.toStr 1)
+
+    let x =
+        File.ReadAllText("latest.json")
+        |> Json.fromStr<MeterCollection>
 
     x
     |> MeterCollection.metersToBeSubmitted
