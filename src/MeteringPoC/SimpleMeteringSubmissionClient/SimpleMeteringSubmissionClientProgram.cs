@@ -13,10 +13,7 @@ static async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.Read
 
 using CancellationTokenSource cts = new();
 
-var eventHubProducerClient = 
-        MeteringConnectionsModule
-            .getClientConfigFromEnvironment()
-            .createEventHubProducerClientForClientSDK();
+var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
 
 // await Interactive(eventHubProducerClient, cts.Token);
 await Batch(eventHubProducerClient, "1", cts.Token);
