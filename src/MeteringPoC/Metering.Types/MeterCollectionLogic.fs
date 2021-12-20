@@ -67,12 +67,28 @@ module MeterCollectionLogic =
         // AggregatorBooted should trigger on all entries
         // UsageReported and UsageSubmittedToAPI should fire on the appropriate entry
 
+        let enforceStrictSequenceNumbers state messagePosition =
+            match state.LastUpdate with 
+            | Some lastUpdate -> 
+                let expectedSequenceNumber = lastUpdate.SequenceNumber + 1L
+                if expectedSequenceNumber <> messagePosition.SequenceNumber 
+                then 
+                    failwith 
+                        (sprintf "Seems you are missing some events. The last state update was sequence number %d, therefore we expect event %d, but got %d" 
+                            lastUpdate.SequenceNumber
+                            expectedSequenceNumber
+                            messagePosition.SequenceNumber)
+                else ()
+            | None -> ()
+
         let applyMeters (handler: Map<InternalResourceId, Meter> -> Map<InternalResourceId, Meter>) (state: MeterCollection)  : MeterCollection =
             let newMeterCollection = state |> value |> handler
             { state with MeterCollection = newMeterCollection }
 
         match meteringEvent with
         | Remote (Event = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup) ->
+            enforceStrictSequenceNumbers state messagePosition
+
             match meteringUpdateEvent with
             | SubscriptionPurchased s -> 
                 state

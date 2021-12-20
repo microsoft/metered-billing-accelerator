@@ -31,6 +31,8 @@ let config : MeteringConfigurationProvider =
       GracePeriod = Duration.FromHours(6.0)
       MeteringConnections = MeteringConnections.getFromEnvironment() }
 
+
+//// Try to submit values
 //File.ReadAllText("latest.json")
 //|> Json.fromStr<MeterCollection>
 //|> MeterCollection.metersToBeSubmitted
@@ -49,16 +51,30 @@ let config : MeteringConfigurationProvider =
 //|> Seq.iter (fun a -> printfn "%A" a.Result)
 
 
+
+
 let partitionId = "0" |> PartitionID.create
 
-ManagementUtils.showEventsFromPositionInEventHub config partitionId (MeteringDateTime.create 2021 12 20 06 00 00)
-|> Seq.iter (fun x -> 
-    match x.EventData with
-    | UsageSubmittedToAPI usage -> 
-        printfn "%d: %s\n\n" x.MessagePosition.SequenceNumber (usage.Result |> Json.toStr 0)
-    | _ -> ()
-)
-exit 0
+//// Create state prior certain timestamp
+//let x = ManagementUtils.recreateStateFromEventHubCapture config (MessagePosition.createData "0" 482128 (MeteringDateTime.fromStr "2021-12-20T09:25:18Z")) 
+//File.WriteAllText("482127.json", (x |> Json.toStr 2))
+//exit 0
+
+
+//// Echo messages from a point on
+//ManagementUtils.showEventsFromPositionInEventHub config partitionId (MeteringDateTime.create 2021 12 20 06 00 00)
+//|> Seq.iter (fun x -> 
+//    match x.EventData with
+//    | UsageSubmittedToAPI usage -> 
+//        printfn "%d %s" x.MessagePosition.SequenceNumber (x.MessagePosition.PartitionTimestamp |> MeteringDateTime.toStr)
+//        // printfn "%d: %s\n\n" x.MessagePosition.SequenceNumber (usage.Result |> Json.toStr 0)
+//    | _ -> ()
+//)
+//exit 0
+
+
+
+
 
 //let rnd = Random()
 //let bytes = Array.create 16 0uy
@@ -81,7 +97,9 @@ exit 0
 // let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/2021-12-06--15-17-11---sequencenr-10.json.gz" ).Result
 // let initialState = (MeterCollectionStore.loadStateFromFilename config partitionId CancellationToken.None "meteringhack-standard.servicebus.windows.net/hub2/0/latest.json.gz" ).Result
 // let initialState = (MeterCollectionStore.loadLastState config partitionId CancellationToken.None).Result
-let initialState : MeterCollection option = MeterCollection.Uninitialized
+// let initialState : MeterCollection option = MeterCollection.Uninitialized
+let initialState = File.ReadAllText("C:\\Users\\chgeuer\\Desktop\\482127.json") |> Json.fromStr<MeterCollection> |> Some
+
 
 match initialState with
 | None -> 

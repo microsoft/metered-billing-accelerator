@@ -9,6 +9,20 @@ open Metering.Types.EventHub
 [<Extension>]
 module ManagementUtils =
     [<Extension>]
+    let recreateStateFromEventHubCapture (config : MeteringConfigurationProvider) (messagePosition: MessagePosition) =
+        let cancellationToken = CancellationToken.None
+
+        let aggregate = MeterCollectionLogic.handleMeteringEvent config
+        let initialState : MeterCollection option = MeterCollection.Uninitialized
+
+        config.MeteringConnections
+        |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent (messagePosition.PartitionID |> PartitionID.value) cancellationToken 
+        |> Seq.filter (fun e -> e.MessagePosition.SequenceNumber < messagePosition.SequenceNumber)
+        |> Seq.map MeteringEvent.fromEventHubEvent
+        |> Seq.scan aggregate MeterCollection.Empty
+        |> Seq.last
+
+    [<Extension>]
     let recreateLatestStateFromEventHubCapture (config : MeteringConfigurationProvider) (partitionId: PartitionID)  =
         let cancellationToken = CancellationToken.None
 

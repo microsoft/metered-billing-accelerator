@@ -84,13 +84,25 @@ module Meter =
         | KeepOpen -> meter
 
     let handleUnsuccessfulMeterSubmission (config: MeteringConfigurationProvider) (error: MarketplaceSubmissionError) (meter: Meter) : Meter =
-        // todo logging here, alternatively report in a later period?
-        meter
+        match error with
+        | DuplicateSubmission duplicate -> 
+            meter |> removeUsageToBeReported duplicate.PreviouslyAcceptedMessage.RequestData
+        | ResourceNotFound notFound -> 
+            // TODO When the resource doesn't exist in marketplace, we need to raise some alarm bells here.
+            meter |> removeUsageToBeReported notFound.RequestData
+        | Expired expired -> 
+            // Seems we're trying to submit something which is too old. 
+            // Need to ring an alarm that the aggregator must be scheduled more frequently
+            // Submit compensating action for now?
+            { meter with 
+                UsageToBeReported = meter.UsageToBeReported |> List.except [ expired.RequestData ] }
+        | Generic generic -> 
+            meter
         
     let handleUsageSubmissionToAPI (config: MeteringConfigurationProvider) (item: MarketplaceResponse) (meter: Meter) : Meter =
         match item.Result with
-        | Ok success ->  removeUsageToBeReported success.RequestData meter
-        | Error error -> handleUnsuccessfulMeterSubmission config error meter
+        | Ok success ->  meter |> removeUsageToBeReported success.RequestData 
+        | Error error -> meter |> handleUnsuccessfulMeterSubmission config error 
         
     let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
         meter
