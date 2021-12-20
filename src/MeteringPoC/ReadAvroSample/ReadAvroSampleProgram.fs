@@ -32,23 +32,23 @@ let config : MeteringConfigurationProvider =
       // ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
       MeteringConnections = MeteringConnections.getFromEnvironment() }
 
-File.ReadAllText("latest.json")
-|> Json.fromStr<MeterCollection>
-|> MeterCollection.metersToBeSubmitted
-|> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
-|> Seq.skip 25
-|> Seq.take 25
-|> Seq.toList
-|> MarketplaceClient.submitBatchUsage config
-|> (fun x -> x.Result)
-|> (fun x -> 
-    let r = x |> Json.toStr 1
-    File.WriteAllText("response.json", r)
-    x
-    )
-|> (fun x -> x.Results)
-|> Seq.iter (fun a -> printfn "%A" a.Result)
-exit 1
+//File.ReadAllText("latest.json")
+//|> Json.fromStr<MeterCollection>
+//|> MeterCollection.metersToBeSubmitted
+//|> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
+//|> Seq.skip 25
+//|> Seq.take 25
+//|> Seq.toList
+//|> MarketplaceClient.submitBatchUsage config
+//|> (fun x -> x.Result)
+//|> (fun x -> 
+//    let r = x |> Json.toStr 1
+//    File.WriteAllText("response.json", r)
+//    x
+//    )
+//|> (fun x -> x.Results)
+//|> Seq.iter (fun a -> printfn "%A" a.Result)
+
 
 let partitionId = "0" |> PartitionID.create
 
@@ -91,6 +91,8 @@ match initialState with
     //printfn "%s" (x |> Json.toStr 2)
 
     File.WriteAllText("latest.json", x |> Json.toStr 1)
+
+    (MeterCollectionStore.storeLastState config x CancellationToken.None).Wait()
 
     let x =
         File.ReadAllText("latest.json")

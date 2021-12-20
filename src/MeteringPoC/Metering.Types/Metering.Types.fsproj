@@ -2,13 +2,8 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarnOn>3390;$(WarnOn)</WarnOn>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
@@ -68,5 +63,6 @@
     <Compile Include="MeteringAggregator.fs" />
     <Compile Include="Status.fs" />
     <Compile Include="EventHubObservableClient.fs" />
+    <Compile Include="ManagementUtils.fs" />
   </ItemGroup>
 </Project>

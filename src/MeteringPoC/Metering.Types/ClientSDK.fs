@@ -56,7 +56,7 @@ module MeteringEventHubExtensions =
             eventData
         )
 
-    let addEvent (batch: EventDataBatch) (eventData: EventData) =
+    let private addEvent (batch: EventDataBatch) (eventData: EventData) =
         if not (batch.TryAdd(eventData))
         then failwith "The event could not be added."
         else ()
@@ -132,6 +132,7 @@ module MeteringEventHubExtensions =
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
     // this is not exposed as C# extension, as only F# is supposed to call it. 
+    [<Extension>]
     let ReportUsagesSubmitted (eventHubProducerClient: EventHubProducerClient) ({ Results = items}: MarketplaceBatchResponse) (cancellationToken: CancellationToken) =
         items
         |> List.map UsageSubmittedToAPI 

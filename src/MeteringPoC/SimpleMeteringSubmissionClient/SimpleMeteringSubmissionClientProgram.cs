@@ -7,13 +7,14 @@ using MeterValueModule = Metering.ClientSDK.MeterValueModule;
 
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
+var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
+
+
 static string guidFromStr(string str) => new Guid(SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(str)).Take(16).ToArray()).ToString();
 
 static async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.ReadAllTextAsync(name));
 
 using CancellationTokenSource cts = new();
-
-var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
 
 // await Interactive(eventHubProducerClient, cts.Token);
 await Batch(eventHubProducerClient, "1", cts.Token);
@@ -31,7 +32,7 @@ static async Task Batch(EventHubProducerClient eventHubProducerClient, string su
                    .ToArray();
 
         if (i++ % 10 == 0) { Console.Write("."); }
-
+        
         await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
         await Task.Delay(TimeSpan.FromSeconds(0.3), ct);
     }

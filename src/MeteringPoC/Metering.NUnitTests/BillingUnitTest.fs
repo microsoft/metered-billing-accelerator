@@ -406,7 +406,6 @@ module E =
 
 [<Test>]
 let ParseEventData () =
-    
     let rnd = Random()
     let bytes = Array.create 16 0uy
     rnd.NextBytes(bytes)
@@ -415,6 +414,3 @@ let ParseEventData () =
     let wrapped = EventHubObservableClient.toMeteringUpdateEvent binaryGarbage
     
     ()
-
-
-    

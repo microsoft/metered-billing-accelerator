@@ -16,8 +16,14 @@ and MeteringConfigurationProvider =
     { CurrentTimeProvider: CurrentTimeProvider
       SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
       GracePeriod: Duration
-      //ManagedResourceGroupResolver: DetermineManagedAppResourceGroupID
       MeteringConnections: MeteringConnections }
+
+module MeteringConfigurationProvider =
+    let create (connections: MeteringConnections) (marketplaceClient: SubmitMeteringAPIUsageEvent) : MeteringConfigurationProvider =
+        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+          SubmitMeteringAPIUsageEvent = marketplaceClient
+          GracePeriod = Duration.FromHours(2.0)
+          MeteringConnections = connections }
 
 module SubmitMeteringAPIUsageEvent =
     let PretendEverythingIsAccepted : SubmitMeteringAPIUsageEvent = (fun _cfg requests -> 
@@ -36,11 +42,3 @@ module SubmitMeteringAPIUsageEvent =
         |> MarketplaceBatchResponse.create
         |> Task.FromResult
      )
-
-module MeteringConfigurationProvider =
-    let create (connections: MeteringConnections) (marketplaceClient: SubmitMeteringAPIUsageEvent) : MeteringConfigurationProvider =
-        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-          SubmitMeteringAPIUsageEvent = marketplaceClient
-          GracePeriod = Duration.FromHours(2.0)
-          // ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveManagedByFromARM
-          MeteringConnections = connections }

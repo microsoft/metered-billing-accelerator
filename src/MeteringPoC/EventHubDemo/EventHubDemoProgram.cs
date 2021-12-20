@@ -1,9 +1,10 @@
 ﻿using System.Reactive.Linq;
 using System.Reflection;
+using Metering.ClientSDK;
 using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
-using static Metering.Types.InternalResourceId;
+using System.Collections.Concurrent;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
@@ -24,40 +25,12 @@ MeteringConfigurationProvider config =
         connections: connections,
         marketplaceClient: MarketplaceClient.submitUsagesCsharp.ToFSharpFunc());
 
-var meters = Enumerable
-    .Range(5, 15)
-    .Select(hour => MeteringDateTimeModule.create(2021, 12, 16, hour, 00, 00))
-    .Select(effectiveStartTime => new MarketplaceRequest(
-        effectiveStartTime: effectiveStartTime,
-        planId: PlanIdModule.create("free_monthly_yearly"),
-        dimensionId: DimensionIdModule.create("datasourcecharge"),
-        quantity: QuantityModule.create(100),
-        resourceId: NewSaaSSubscription(SaaSSubscriptionIDModule.create("8151a707-467c-4105-df0b-44c3fca5880d"))))
-    .ToList();
-
-var result = config.SubmitUsage(meters).Result.Results;
-
-Console.WriteLine(result);
-//foreach (var state in await config.fetchStates())
-//{
-//    Console.WriteLine($"Partition {state.Key}");
-//    Console.WriteLine(MeterCollectionModule.toStr(state.Value));
-//}
-
-//Console.ReadLine();
-//// Show how late we are
-//while (true)
-//{
-//    var status = await config.fetchEventsToCatchup();
-//    Console.WriteLine(status);
-//    await Task.Delay(TimeSpan.FromSeconds(1.2));
-//}
-
 Console.WriteLine($"Reading from {connections.EventHubConfig.EventHubName.FullyQualifiedNamespace}");
 
 Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator = 
     MeteringAggregator.createAggregator(config);
 
+//var items = new ConcurrentDictionary<
 List<IDisposable> subscriptions = new();
 
 var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Subscribe(onNext: group => {
@@ -87,16 +60,56 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
                 Console.WriteLine($"Closing {partitionId.value()}");
                 Console.ResetColor();
             });
-    
     subscriptions.Add(subscription);
+
+    IDisposable subscription2 = SubscribeEmitter(events, config);
+    subscriptions.Add(subscription2);
 });
 subscriptions.Add(groupedSub);
+
+static IDisposable SubscribeEmitter(IObservable<MeterCollection> events, MeteringConfigurationProvider config)
+{
+    List<MarketplaceRequest> previousToBeSubmitted = new();
+    ConcurrentQueue<MarketplaceRequest[]> tobeSubmitted = new();
+    var producer = config.MeteringConnections.createEventHubProducerClient();
+
+    var task = Task.Factory.StartNew(async () => {
+        while (true)
+        {
+            await Task.Delay(1000);
+            if (tobeSubmitted.TryDequeue(out var usage))
+            {
+                var response = await config.SubmitUsage(usage);
+                await producer.ReportUsagesSubmitted(response, CancellationToken.None);
+
+                await Console.Out.WriteLineAsync($"XXXXXXXXXXX Got another {response.Results.Length} requests");
+            }
+        }
+    });
+
+    return events
+        .Subscribe(
+            onNext: meterCollection =>
+            {
+                var current = meterCollection.metersToBeSubmitted().ToList();
+                var newOnes = current.Except(previousToBeSubmitted).ToList();
+                if (newOnes.Any())
+                {
+                    Console.Out.WriteLineAsync($"???????????????????? Enqueueing {newOnes.Count} requests to be handled");
+                    newOnes
+                        .Chunk(25)
+                        .ForEach(tobeSubmitted.Enqueue);
+                }
+                previousToBeSubmitted = current;
+            }
+        );
+}
 
 static void handleCollection (MeteringConfigurationProvider config, PartitionID partitionId, MeterCollection meterCollection) {
     //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
     
     //Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
-    Console.WriteLine(meterCollection.getLastSequenceNumber());
+    // Console.WriteLine(meterCollection.getLastSequenceNumber());
 
     // Console.WriteLine(Json.toStr(2, meterCollection));
     if (meterCollection.getLastSequenceNumber() % 100 == 0)
@@ -104,6 +117,7 @@ static void handleCollection (MeteringConfigurationProvider config, PartitionID 
         MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
     }
 };
+
 
 await Console.Out.WriteLineAsync("Press <Return> to close...");
 _ = await Console.In.ReadLineAsync();
@@ -117,4 +131,10 @@ public static class E
 {
     public static string UpTo(this string s, int length) =>  s.Length > length ? s[..length] : s;
     public static string W(this string s, int width) => String.Format($"{{0,-{width}}}", s);
+
+    public static void ForEach<T>(this IEnumerable<T> ts, Action<T> action)
+    {
+        foreach (var t in ts)
+            action(t);
+    }
 }
