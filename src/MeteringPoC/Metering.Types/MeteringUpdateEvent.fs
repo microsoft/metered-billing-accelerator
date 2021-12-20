@@ -30,6 +30,14 @@ module MeteringUpdateEvent =
         | UnprocessableMessage _ -> ""
         | RemoveUnprocessedMessages _ -> ""
 
+    let type_name (mue: MeteringUpdateEvent) : string =
+        match mue with
+        | SubscriptionPurchased _ -> nameof(SubscriptionPurchased)
+        | UsageReported _ -> nameof(UsageReported)
+        | UsageSubmittedToAPI _ -> nameof(UsageSubmittedToAPI)
+        | UnprocessableMessage _ -> nameof(UnprocessableMessage)
+        | RemoveUnprocessedMessages _ -> nameof(RemoveUnprocessedMessages)
+
     let toStr (mue: MeteringUpdateEvent) : string =
         match mue with
         | SubscriptionPurchased x -> x |> SubscriptionCreationInformation.toStr

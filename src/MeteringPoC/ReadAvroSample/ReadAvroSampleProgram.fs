@@ -29,7 +29,6 @@ let config : MeteringConfigurationProvider =
     { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
       SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.PretendEverythingIsAccepted
       GracePeriod = Duration.FromHours(6.0)
-      // ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
       MeteringConnections = MeteringConnections.getFromEnvironment() }
 
 //File.ReadAllText("latest.json")
@@ -51,6 +50,15 @@ let config : MeteringConfigurationProvider =
 
 
 let partitionId = "0" |> PartitionID.create
+
+ManagementUtils.showEventsFromPositionInEventHub config partitionId (MeteringDateTime.create 2021 12 20 06 00 00)
+|> Seq.iter (fun x -> 
+    match x.EventData with
+    | UsageSubmittedToAPI usage -> 
+        printfn "%d: %s\n\n" x.MessagePosition.SequenceNumber (usage.Result |> Json.toStr 0)
+    | _ -> ()
+)
+exit 0
 
 //let rnd = Random()
 //let bytes = Array.create 16 0uy

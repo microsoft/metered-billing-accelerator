@@ -188,10 +188,10 @@ module CaptureProcessor =
 
                 let blobs = 
                     blobNames
-                    |> Seq.map (fun n -> (n, n |> getTime))
-                    |> Seq.filter (fun (_, t) -> t.IsSome)
-                    |> Seq.map (fun (n, t) -> (n, t.Value))
-                    |> Seq.sortBy (fun (blob, t) -> t.ToInstant())
+                    |> Seq.map (fun name -> (name, name |> getTime))
+                    |> Seq.filter (fun (_, time) -> time.IsSome)
+                    |> Seq.map (fun (name, time) -> (name, time.Value))
+                    |> Seq.sortBy (fun (blob, time) -> time.ToInstant())
                     |> Seq.toArray
 
                 // Using EventHub capture, you have cannot easily correlate the filename to a sequence number or offset. 
@@ -233,9 +233,74 @@ module CaptureProcessor =
                             then 
                                 yield e
             }
+
+    let readEventsFromTime<'TEvent> (convert: EventData -> 'TEvent) (partitionId: PartitionID) (startTime: MeteringDateTime) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
+        match connections.EventHubConfig.CaptureStorage with
+        | None -> Seq.empty
+        | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } ->
+            seq {
+                let partitionId = partitionId |> PartitionID.value
+                let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
+                let getTime = extractTime captureFileNameFormat ehInfo
+                let blobNames = getCaptureBlobs cancellationToken partitionId connections
+                let fullyRelevant (blobName: string, timeStampBlob: MeteringDateTime) = 
+                    timeStampBlob |> containsFullyRelevantEvents startTime
+
+                let blobs = 
+                    blobNames
+                    |> Seq.map (fun name -> (name, name |> getTime))
+                    |> Seq.filter (fun (_, time) -> time.IsSome)
+                    |> Seq.map (fun (name, time) -> (name, time.Value))
+                    |> Seq.sortBy (fun (blob, time) -> time.ToInstant())
+                    |> Seq.toArray
+
+                // Using EventHub capture, you have cannot easily correlate the filename to a sequence number or offset. 
+                // You need to use the date/time to search. If you're looking for a given timestamp, you must select the 
+                // very last capture file which is *before* that timestamp:
+                //
+                // For example, if you have the capture files 
+                // - 2021-12-06--15-12-12
+                // - 2021-12-06--15-16-12 <-- You need this one to get 2021-12-06--15-17-10
+                // - 2021-12-06--15-17-12, 
+                // and you're looking for an event with timestamp 2021-12-06--15-17-10, 
+                // you must select the last one with a timestamp prior the lookup one.
+
+                let indexOfTheFirstFullyRelevantCaptureFileOption = blobs |> Array.tryFindIndex fullyRelevant
+
+                let indexOfTheFirstPartlyRelevantCaptureFile = 
+                    match indexOfTheFirstFullyRelevantCaptureFileOption with
+                    | None -> blobs.Length - 1
+                    | Some indexOfTheFirstFullyRelevantCaptureFile -> indexOfTheFirstFullyRelevantCaptureFile - 1
+
+                let relevantBlobs =
+                    blobs
+                    |> Array.skip indexOfTheFirstPartlyRelevantCaptureFile
+                    |> Array.map (fun (n,t) -> n)
+                
+                let startTime = startTime.ToInstant()
+                for blobName in relevantBlobs do                
+                    let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
+                    let client = captureContainer.GetBlobClient(blobName = blobName)
+                    let downloadInfo = client.Download(cancellationToken)
+                    let items = 
+                        downloadInfo.Value.Content
+                        |> ReadEventDataFromAvroStream blobName
+                    for i in items do
+                        match i |> toEvent with
+                        | None -> ()
+                        | Some e -> 
+                            let messageTime = e.MessagePosition.PartitionTimestamp.ToInstant()
+                            let emitEvent = startTime < messageTime // only emit events after the sequence number we already have processed
+                            if emitEvent
+                            then 
+                                yield e
+            }
+
+
+
     // https://docs.microsoft.com/en-us/dotnet/azure/sdk/pagination
     // https://github.com/Azure/azure-sdk-for-net/issues/18306
-    
+    //
     //let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
     //    task {
     //        let blobs = snapshotContainerClient.GetBlobsAsync(cancellationToken = cancellationToken)

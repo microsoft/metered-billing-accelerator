@@ -1,11 +1,14 @@
 ﻿namespace Metering
 
 open System.Threading
+open System.Runtime.CompilerServices
 open Metering
 open Metering.Types
 open Metering.Types.EventHub
 
+[<Extension>]
 module ManagementUtils =
+    [<Extension>]
     let recreateLatestStateFromEventHubCapture (config : MeteringConfigurationProvider) (partitionId: PartitionID)  =
         let cancellationToken = CancellationToken.None
 
@@ -21,10 +24,11 @@ module ManagementUtils =
 
         (MeterCollectionStore.storeLastState config x cancellationToken).Wait()
 
-    //let showEventsFromPositionInEventHub  (config : MeteringConfigurationProvider) (partitionId: PartitionID) =
-    //    CaptureProcessor.readEventsFromPosition 
-    //    config.MeteringConnections
-    //    |> CaptureProcessor.readCaptureFromPosition CancellationToken.None  EventHubObservableClient.toMeteringUpdateEvent (partitionId |> PartitionID.value) cancellationToken 
+    [<Extension>]
+    let showEventsFromPositionInEventHub (config: MeteringConfigurationProvider) (partitionId: PartitionID) (start: MeteringDateTime) =
+        config.MeteringConnections
+        |> CaptureProcessor.readEventsFromTime EventHubObservableClient.toMeteringUpdateEvent partitionId start CancellationToken.None
+        
 
     let getUnsubmittedMeters (config : MeteringConfigurationProvider) (partitionId: PartitionID) (cancellationToken: CancellationToken) =
         task {
