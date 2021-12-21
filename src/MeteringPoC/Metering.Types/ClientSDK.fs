@@ -131,6 +131,13 @@ module MeteringEventHubExtensions =
         |> asListWithSingleElement
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
+    [<Extension>]
+    [<CompiledName("SubmitSubscriptionDeletionAsync")>]
+    let SubmitSubscriptionDeletion (eventHubProducerClient: EventHubProducerClient) (resourceId: InternalResourceId) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+        SubscriptionDeletion resourceId
+        |> asListWithSingleElement
+        |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
+
     // this is not exposed as C# extension, as only F# is supposed to call it. 
     [<Extension>]
     let ReportUsagesSubmitted (eventHubProducerClient: EventHubProducerClient) ({ Results = items}: MarketplaceBatchResponse) (cancellationToken: CancellationToken) =

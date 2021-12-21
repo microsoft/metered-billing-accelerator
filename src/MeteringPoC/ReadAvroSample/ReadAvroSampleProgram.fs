@@ -50,9 +50,6 @@ let config : MeteringConfigurationProvider =
 //|> (fun x -> x.Results)
 //|> Seq.iter (fun a -> printfn "%A" a.Result)
 
-
-
-
 let partitionId = "0" |> PartitionID.create
 
 //// Create state prior certain timestamp

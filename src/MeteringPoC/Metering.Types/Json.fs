@@ -710,6 +710,7 @@ module Json =
         let encode (x: MeteringUpdateEvent) : (string * JsonValue) list =
             match x with
             | SubscriptionPurchased x -> x |> encodeKeyValue "SubscriptionPurchased" SubscriptionCreationInformation.Encoder
+            | SubscriptionDeletion x -> x |> encodeKeyValue "SubscriptionDeleted" InternalResourceId.Encoder
             | UsageReported x -> x |> encodeKeyValue "UsageReported" InternalUsageEvent.Encoder
             | UsageSubmittedToAPI x -> x |> encodeKeyValue "UsageSubmittedToAPI" MarketplaceResponse.Encoder
             | UnprocessableMessage x -> x |> encodeKeyValue "UnprocessableMessage" UnprocessableMessage.Encoder
@@ -718,6 +719,7 @@ module Json =
         let decode (get: Decode.IGetters) : MeteringUpdateEvent =
             match (get.Required.Field typeid Decode.string) with
             | "SubscriptionPurchased" -> (get.Required.Field value SubscriptionCreationInformation.Decoder) |> SubscriptionPurchased
+            | "SubscriptionDeleted" -> (get.Required.Field value InternalResourceId.Decoder) |> SubscriptionDeletion
             | "UsageReported" -> (get.Required.Field value InternalUsageEvent.Decoder) |> UsageReported
             | "UsageSubmittedToAPI" -> (get.Required.Field value MarketplaceResponse.Decoder) |> UsageSubmittedToAPI
             | "UnprocessableMessage" -> (get.Required.Field value UnprocessableMessage.Decoder) |> UnprocessableMessage

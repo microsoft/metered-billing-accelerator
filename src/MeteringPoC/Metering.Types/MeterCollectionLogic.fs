@@ -94,6 +94,9 @@ module MeterCollectionLogic =
                 state
                 |> applyMeters (handleSubscriptionPurchased s.Subscription.InternalResourceId (Meter.createNewSubscription s messagePosition))
                 |> setLastProcessed messagePosition
+            | SubscriptionDeletion s ->
+                { state with MeterCollection = state.MeterCollection |> Map.remove s }
+                |> setLastProcessed messagePosition
             | UsageSubmittedToAPI submission ->
                 state
                 //|> applyMeters (Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission)))
