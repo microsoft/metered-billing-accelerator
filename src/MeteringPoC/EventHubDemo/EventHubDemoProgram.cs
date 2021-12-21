@@ -107,12 +107,17 @@ static IDisposable SubscribeEmitter(IObservable<MeterCollection> events, Meterin
 
 static void handleCollection (MeteringConfigurationProvider config, PartitionID partitionId, MeterCollection meterCollection) {
     //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
-    
+
     //Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
     // Console.WriteLine(meterCollection.getLastSequenceNumber());
 
-    // Console.WriteLine(Json.toStr(2, meterCollection));
     if (meterCollection.getLastSequenceNumber() % 100 == 0)
+    {
+        Console.WriteLine($"Processed event {meterCollection.getLastSequenceNumber()}");
+    }
+
+    // Console.WriteLine(Json.toStr(2, meterCollection));
+    if (meterCollection.getLastSequenceNumber() % 1000 == 0)
     {
         MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
     }

@@ -4,7 +4,9 @@
       "commandName": "Project",
       "environmentVariables": {
         "AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME": "meteringhack-standard",
-        "AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME": "hub2"
+        "AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME": "hub2",
+        "AZURE_METERING_INFRA_CAPTURE_CONTAINER": "https://meteringhack.blob.core.windows.net/hub2capture",
+        "AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER": "https://meteringhack.blob.core.windows.net/snapshots2"
       }
     }
   }

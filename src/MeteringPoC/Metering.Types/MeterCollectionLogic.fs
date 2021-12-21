@@ -14,9 +14,9 @@ module MeterCollectionLogic =
         | Some meters -> meters.LastUpdate 
 
     [<Extension>]
-    let getEventPosition (someMeters: MeterCollection option) : EventPosition =
+    let getEventPosition (someMeters: MeterCollection option) : StartingPosition =
         match someMeters with
-        | None -> EventPosition.Earliest
+        | None -> StartingPosition.Earliest
         | Some meters -> meters.LastUpdate |> MessagePosition.startingPosition
 
     [<Extension>]
@@ -146,11 +146,11 @@ module MeterCollectionLogic =
                         |> setLastProcessed messagePosition
         | Local (Event = meteringUpdateEvent) ->
             match meteringUpdateEvent with
-            | AggregatorBooted ->
+            | PartitionEventConsumptionCatchedUp ->
                 state
                 |> applyMeters (
                     Map.toSeq
-                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorBooted config))
+                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorCatchedUp config))
                     >> Map.ofSeq
                 )
 

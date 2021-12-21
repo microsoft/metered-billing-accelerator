@@ -5,6 +5,7 @@ open Metering
 open Metering.Types
 open Metering.Types.EventHub
 open System.IO
+open Azure.Messaging.EventHubs.Consumer
 
 module MySeq =
     let inspect<'T> i =
@@ -31,6 +32,15 @@ let config : MeteringConfigurationProvider =
       GracePeriod = Duration.FromHours(6.0)
       MeteringConnections = MeteringConnections.getFromEnvironment() }
 
+
+let c = config.MeteringConnections |> MeteringConnections.createEventHubConsumerClient 
+let props = (c.GetPartitionPropertiesAsync(partitionId = "0")).Result
+printf "%d -- %d" props.BeginningSequenceNumber props.LastEnqueuedSequenceNumber
+let d = c.ReadEventsFromPartitionAsync (partitionId = "0", startingPosition = EventPosition.Earliest)
+let e = d.GetAsyncEnumerator()
+e.MoveNextAsync().AsTask().Wait()
+printf "%A" e.Current
+exit 0
 
 //// Try to submit values
 //File.ReadAllText("latest.json")

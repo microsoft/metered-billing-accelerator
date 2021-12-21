@@ -52,7 +52,7 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
 
             var evnt = EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
                 new PartitionInitializing<TState>(
-                    partitionInitializingEventArgs: partitionInitializingEventArgs,
+                    partitionID: PartitionID.NewPartitionID(partitionInitializingEventArgs.PartitionId),
                     initialState: default));
             o.OnNext(evnt);
             return Task.CompletedTask;

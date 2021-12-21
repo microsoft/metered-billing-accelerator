@@ -78,7 +78,7 @@ module Meter =
         |> applyToCurrentMeterValue updateConsumption
         |> setLastProcessedMessage currentPosition // Todo: Decide where to update the position
 
-    let handleAggregatorBooted (config: MeteringConfigurationProvider) (meter: Meter) : Meter =
+    let handleAggregatorCatchedUp (config: MeteringConfigurationProvider) (meter: Meter) : Meter =
         match BillingPeriod.previousBillingIntervalCanBeClosedWakeup (config.CurrentTimeProvider(), config.GracePeriod) meter.LastProcessedMessage.PartitionTimestamp  with
         | Close -> meter |> closePreviousMeteringPeriod config
         | KeepOpen -> meter

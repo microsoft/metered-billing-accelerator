@@ -40,11 +40,17 @@ type MessagePosition =
       // Offset: int64
       PartitionTimestamp: MeteringDateTime }
 
+type StartingPosition =
+    | Earliest
+    | NextEventAfter of LastProcessedSequenceNumber: SequenceNumber * PartitionTimestamp: MeteringDateTime
+
 module MessagePosition =
-    let startingPosition (someMessagePosition: MessagePosition option) =
+    let startingPosition (someMessagePosition: MessagePosition option) : StartingPosition =
         match someMessagePosition with
-        | None -> EventPosition.Earliest
-        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber, isInclusive = false) // If isInclusive=true, the specified event is included; otherwise the next event is returned.
+        | None -> Earliest
+        | Some pos -> NextEventAfter(
+            LastProcessedSequenceNumber = pos.SequenceNumber, 
+            PartitionTimestamp = pos.PartitionTimestamp)
 
     let create (partitionId: string) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId |> PartitionID.PartitionID
@@ -130,7 +136,7 @@ module EventHubEvent =
         |> Some
 
 type PartitionInitializing<'TState> =
-    { PartitionInitializingEventArgs: PartitionInitializingEventArgs
+    { PartitionID: PartitionID
       InitialState: 'TState }
 
 type PartitionClosing =
@@ -145,7 +151,7 @@ type EventHubProcessorEvent<'TState, 'TEvent> =
 module EventHubProcessorEvent =
     let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
         match e with
-        | PartitionInitializing e -> e.PartitionInitializingEventArgs.PartitionId |> PartitionID.create
+        | PartitionInitializing e -> e.PartitionID
         | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId |> PartitionID.create
         | EventHubEvent e -> e.MessagePosition.PartitionID
         | EventHubError (partitionID, _) -> partitionID

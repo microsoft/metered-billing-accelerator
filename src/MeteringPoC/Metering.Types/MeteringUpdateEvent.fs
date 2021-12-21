@@ -20,8 +20,8 @@ type MeteringUpdateEvent =
     | RemoveUnprocessedMessages of RemoveUnprocessedMessages
 
 type LocalControlEvent =
-    /// A heart beat signal to flush potential billing periods
-    | AggregatorBooted
+    /// A heart beat signal to potentially flush billing periods
+    | PartitionEventConsumptionCatchedUp
 
 module MeteringUpdateEvent =
     let partitionKey (mue: MeteringUpdateEvent) : string =
