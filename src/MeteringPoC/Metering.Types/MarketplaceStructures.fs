@@ -136,7 +136,16 @@ module MarketplaceSubmissionResult =
             | Generic e -> e |> MarketplaceGenericError.resourceId
 
     let toStr (x: MarketplaceSubmissionResult) : string =
-        sprintf "%A" x
+        match x with
+        | Ok success -> $"Marketplace OK: {success.RequestData.ResourceId |> InternalResourceId.toStr}/{success.RequestData.PlanId |> PlanId.value}/{success.RequestData.DimensionId |> DimensionId.value} Period {success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr} {success.Status.MessageTime |> MeteringDateTime.toStr} {success.RequestData.Quantity |> Quantity.toStr}"
+        | Error e -> 
+            match e with
+            | DuplicateSubmission d -> $"Marketplace Duplicate: {d.PreviouslyAcceptedMessage.RequestData.ResourceId |> InternalResourceId.toStr} {d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr}"
+            | ResourceNotFound d -> $"Marketplace NotFound: ResourceId {d.RequestData.ResourceId |> InternalResourceId.toStr}"
+            | Expired d -> 
+                let tooLate = (d.Status.MessageTime - d.RequestData.EffectiveStartTime)
+                $"Marketplace Expired: {d.RequestData.ResourceId |> InternalResourceId.toStr}: Time delta between billingTime and submission: {tooLate}"
+            | Generic d ->  sprintf "Marketplace Generic Error: %A" d
 
 type AzureHttpResponseHeaders =
     { /// The `x-ms-requestid` HTTP header.

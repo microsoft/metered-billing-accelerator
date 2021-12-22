@@ -343,7 +343,7 @@ let ``CaptureProcessor.isRelevantBlob`` () =
     let isRelevant blobName =
         CaptureProcessor.isRelevantBlob 
             "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}"
-            (EventHubName.create "meteringhack-standard" "hub2", "0")
+            (EventHubName.create "meteringhack-standard" "hub2",  (PartitionID.create "0"))
             blobName
 
     Assert.IsTrue(isRelevant 
@@ -356,7 +356,7 @@ let ``CaptureProcessor.isRelevantBlob`` () =
     
 [<Test>]
 let ``CaptureProcessor.getPrefixForRelevantBlobs`` () =
-    let ehContext = (EventHubName.create "meteringhack-standard" "hub2", "0")
+    let ehContext = (EventHubName.create "meteringhack-standard" "hub2", (PartitionID.create "0"))
 
     Assert.AreEqual(
         "meteringhack-standard/hub2/p0--", 

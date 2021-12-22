@@ -31,16 +31,29 @@ let config : MeteringConfigurationProvider =
       SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.PretendEverythingIsAccepted
       GracePeriod = Duration.FromHours(6.0)
       MeteringConnections = MeteringConnections.getFromEnvironment() }
+let partitionId = "1" |> PartitionID.create
+CaptureProcessor.readAllEvents 
+    EventHubObservableClient.toMeteringUpdateEvent
+    partitionId
+    CancellationToken.None
+    config.MeteringConnections
+|> Seq.iter (fun i -> 
+    match i.EventData with
+    | UsageReported _ -> ()
+    | a -> printfn "%d %s" i.MessagePosition.SequenceNumber  (a |> MeteringUpdateEvent.toStr)
 
-
-let c = config.MeteringConnections |> MeteringConnections.createEventHubConsumerClient 
-let props = (c.GetPartitionPropertiesAsync(partitionId = "0")).Result
-printf "%d -- %d" props.BeginningSequenceNumber props.LastEnqueuedSequenceNumber
-let d = c.ReadEventsFromPartitionAsync (partitionId = "0", startingPosition = EventPosition.Earliest)
-let e = d.GetAsyncEnumerator()
-e.MoveNextAsync().AsTask().Wait()
-printf "%A" e.Current
+    
+)
 exit 0
+
+//let c = config.MeteringConnections |> MeteringConnections.createEventHubConsumerClient 
+//let props = (c.GetPartitionPropertiesAsync(partitionId = "0")).Result
+//printf "%d -- %d" props.BeginningSequenceNumber props.LastEnqueuedSequenceNumber
+//let d = c.ReadEventsFromPartitionAsync (partitionId = "0", startingPosition = EventPosition.Earliest)
+//let e = d.GetAsyncEnumerator()
+//e.MoveNextAsync().AsTask().Wait()
+//printf "%A" e.Current
+//exit 0
 
 //// Try to submit values
 //File.ReadAllText("latest.json")
@@ -60,7 +73,6 @@ exit 0
 //|> (fun x -> x.Results)
 //|> Seq.iter (fun a -> printfn "%A" a.Result)
 
-let partitionId = "0" |> PartitionID.create
 
 //// Create state prior certain timestamp
 //let x = ManagementUtils.recreateStateFromEventHubCapture config (MessagePosition.createData "0" 482128 (MeteringDateTime.fromStr "2021-12-20T09:25:18Z")) 
@@ -114,7 +126,7 @@ match initialState with
     let partitionId = "0"
     let x = 
         config.MeteringConnections
-        |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent partitionId CancellationToken.None 
+        |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent (partitionId |> PartitionID.create) CancellationToken.None 
         //|> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate MeterCollection.Empty

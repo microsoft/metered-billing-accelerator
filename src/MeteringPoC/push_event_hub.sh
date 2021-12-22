@@ -1,5 +1,18 @@
 #!/bin/bash
 
+function get_access_token {
+  echo "$(curl \
+      --silent \
+      --request POST \
+      --data-urlencode "response_type=token" \
+      --data-urlencode "grant_type=client_credentials" \
+      --data-urlencode "client_id=${AZURE_METERING_INFRA_CLIENT_ID}" \
+      --data-urlencode "client_secret=${AZURE_METERING_INFRA_CLIENT_SECRET}" \
+      --data-urlencode "scope=https://eventhubs.azure.net/.default" \
+      "https://login.microsoftonline.com/${AZURE_METERING_INFRA_TENANT_ID}/oauth2/v2.0/token" | \
+          jq -r ".access_token")"
+}
+
 function createBatchUsage {
   local saas_subscription_id="$1"
   local meter_name="$2"
@@ -35,52 +48,50 @@ function submit_single_usage {
   local consumption="$3"
   local access_token="$4"
 
+  data="$(createUsage "${saas_subscription_id}" "${meter_name}" "${consumption}" )"
+
   curl --include \
-    --url "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/messages" \
-    --data-urlencode "api-version=2014-01"                                       \
-    --data-urlencode "timeout=60"                                                \
+    --silent \
+    --url "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/messages?api-version=2014-01&timeout=60" \
     --header "Authorization: Bearer ${access_token}"                             \
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8"       \
     --header "BrokerProperties: {\"PartitionKey\": \"${saas_subscription_id}\"}" \
-    --data "$(createUsage "${saas_subscription_id}" "${meter_name}" "${consumption}" )"
+    --data "${data}"
 }
 
-function get_access_token {
-  echo "$(curl \
-      --silent \
-      --request POST \
-      --data-urlencode "response_type=token" \
-      --data-urlencode "grant_type=client_credentials" \
-      --data-urlencode "client_id=${AZURE_METERING_INFRA_CLIENT_ID}" \
-      --data-urlencode "client_secret=${AZURE_METERING_INFRA_CLIENT_SECRET}" \
-      --data-urlencode "scope=https://eventhubs.azure.net/.default" \
-      "https://login.microsoftonline.com/${AZURE_METERING_INFRA_TENANT_ID}/oauth2/v2.0/token" | \
-          jq -r ".access_token")"
-}
+
+if [ $# -ne 3 ]; then 
+   echo "Specify the SaaS subscription ID, the meter name, and the consumption value, for example: 
+
+      $0 \"fdc778a6-1281-40e4-cade-4a5fc11f5440\" cpu 1.23
+  "
+   exit 1
+fi
+
+saas_subscription_id=$1
+meter_name=$2
+consumption=$3
+
+echo "Submit ${consumption} for ${saas_subscription_id}/${meter_name}"
 
 access_token="$(get_access_token)"
-saas_subscription_id="32119834-65f3-48c1-b366-619df2e4c400"
-meter_name="cpu"
-consumption=1
 submit_single_usage "${saas_subscription_id}" "${meter_name}" "${consumption}" "${access_token}"
+
 
 #################################################
 
-multiMessageBody="$( echo "{}"                  | \
-  jq --arg x "[$(createBatchUsage "32119834-65f3-48c1-b366-619df2e4c400" cpu 1)]" '.=($x | fromjson)' | \
-  jq --arg x "[$(createBatchUsage "32119834-65f3-48c1-b366-619df2e4c401" cpu 1)]" '.+=($x | fromjson)' | \
-  jq --arg x "[$(createBatchUsage "32119834-65f3-48c1-b366-619df2e4c402" cpu 1)]" '.+=($x | fromjson)' | \
-  jq -c -M | iconv --from-code=ascii --to-code=utf-8 )" 
-
-echo "${multiMessageBody}" | jq
-
-# https://docs.microsoft.com/en-us/rest/api/eventhub/send-batch-events
-curl --include \
-    --url "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/messages" \
-    --data-urlencode "api-version=2014-01"                                       \
-    --data-urlencode "timeout=60"                                                \
-    --header "Authorization: Bearer ${access_token}"                             \
-    --header "application/vnd.microsoft.servicebus.json"       \
-    --data "${multiMessageBody}"
-
-# "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/partitions/${partitionId}/messages""
+# multiMessageBody="$( echo "{}"                  | \
+#   jq --arg x "[$(createBatchUsage "${saas_subscription_id}" cpu 1)]" '.=($x | fromjson)' | \
+#   #jq --arg x "[$(createBatchUsage "${saas_subscription_id}" cpu 1)]" '.+=($x | fromjson)' | \
+#   #jq --arg x "[$(createBatchUsage "${saas_subscription_id}" cpu 1)]" '.+=($x | fromjson)' | \
+#   jq -c -M | iconv --from-code=ascii --to-code=utf-8 )" 
+# 
+# echo "${multiMessageBody}" | jq
+# 
+# # https://docs.microsoft.com/en-us/rest/api/eventhub/send-batch-events
+# curl --include \
+#     --url "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/messages?api-version=2014-01&timeout=60" \
+#     --header "Authorization: Bearer ${access_token}"                             \
+#     --header "application/vnd.microsoft.servicebus.json"       \
+#     --data "${multiMessageBody}"
+# 

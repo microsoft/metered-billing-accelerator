@@ -116,8 +116,7 @@ static void handleCollection (MeteringConfigurationProvider config, PartitionID 
         Console.WriteLine($"Processed event {meterCollection.getLastSequenceNumber()}");
     }
 
-    // Console.WriteLine(Json.toStr(2, meterCollection));
-    if (meterCollection.getLastSequenceNumber() % 1000 == 0)
+    if (meterCollection.getLastSequenceNumber() % 200 == 0)
     {
         MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
     }

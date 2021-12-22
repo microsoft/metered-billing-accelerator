@@ -84,13 +84,15 @@ module EventHubObservableClient =
                     try
                         let partitionIdStr = partitionInitializingEventArgs.PartitionId
 
-                        eprintfn "Initializing partition %s" partitionIdStr
                         let! (initialState: 'TState) =
                             determineInitialState partitionInitializingEventArgs innerCancellationToken
 
+                        let initialPosition = determinePosition initialState
+
                         let eventHubStartPosition =
-                            match determinePosition initialState with
-                            | StartingPosition.Earliest -> ReadFromEventHubCaptureBeginningAndThenEventHub                            
+                            match initialPosition with
+                            | StartingPosition.Earliest -> 
+                                ReadFromEventHubCaptureBeginningAndThenEventHub                            
                             | StartingPosition.NextEventAfter (lastProcessedEventSequenceNumber, lastProcessedEventTimestamp) ->  
                                 // Let's briefly check if the desired event is still avail in EventHub,
                                 // otherwise we need to crawl through EventHub Capture
@@ -133,23 +135,30 @@ module EventHubObservableClient =
                             o.OnNext (PartitionInitializing
                                 { PartitionID = partitionIdStr |> PartitionID.create
                                   InitialState = initialState })
-                             
+                            
                             let lastProcessedEventReadFromCaptureSequenceNumber = 
                                 CaptureProcessor.readAllEvents
                                     converter
-                                    partitionInitializingEventArgs.PartitionId
+                                    (partitionInitializingEventArgs.PartitionId |> PartitionID.create)
                                     cancellationToken
                                     config.MeteringConnections
                                 |> Seq.map (fun e -> 
                                     o.OnNext(EventHubEvent e)
                                     e.MessagePosition.SequenceNumber
                                 )
-                                |> Seq.last
+                                |> Seq.tryLast
 
-                            partitionInitializingEventArgs.DefaultStartingPosition <- 
-                                EventPosition.FromSequenceNumber(
-                                    sequenceNumber = lastProcessedEventReadFromCaptureSequenceNumber, 
-                                    isInclusive = false)                            
+                            match lastProcessedEventReadFromCaptureSequenceNumber with
+                            | None -> 
+                                partitionInitializingEventArgs.DefaultStartingPosition <- 
+                                    EventPosition.Earliest
+                            | Some sequenceNumber ->
+                                partitionInitializingEventArgs.DefaultStartingPosition <- 
+                                    EventPosition.FromSequenceNumber(
+                                        sequenceNumber = sequenceNumber, 
+                                        isInclusive = false)                            
+
+                                
                         | ReadFromEventHubCaptureAndThenEventHub(LastProcessedSequenceNumber = sn; LastProcessedEventTimestamp = t) ->
                             o.OnNext (PartitionInitializing
                                 { PartitionID = partitionIdStr |> PartitionID.create
@@ -165,12 +174,17 @@ module EventHubObservableClient =
                                     o.OnNext(EventHubEvent e)
                                     e.MessagePosition.SequenceNumber
                                 )
-                                |> Seq.last
-
-                            partitionInitializingEventArgs.DefaultStartingPosition <- 
-                                EventPosition.FromSequenceNumber(
-                                    sequenceNumber = lastProcessedEventReadFromCaptureSequenceNumber, 
-                                    isInclusive = false)                                    
+                                |> Seq.tryLast
+                                
+                            match lastProcessedEventReadFromCaptureSequenceNumber with
+                            | None -> 
+                                partitionInitializingEventArgs.DefaultStartingPosition <- 
+                                    EventPosition.Earliest
+                            | Some sequenceNumber ->
+                                partitionInitializingEventArgs.DefaultStartingPosition <- 
+                                    EventPosition.FromSequenceNumber(
+                                        sequenceNumber = sequenceNumber, 
+                                        isInclusive = false)
                     with
                     | e -> eprintf $"PartitionInitializing Exception {e.Message}"
 

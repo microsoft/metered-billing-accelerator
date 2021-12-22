@@ -9,19 +9,70 @@ Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name
 
 var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
 
+var subs = new[] {
+    new SubSum("fdc778a6-1281-40e4-cade-4a5fc11f5440", "2021-11-04T16:12:26"),
+    new SubSum("8151a707-467c-4105-df0b-44c3fca5880d", "2021-12-14T18:20:00")
+};
+
+using CancellationTokenSource cts = new();
+// var subs = await CreateSubscriptions(eventHubProducerClient, subs, cts.Token);
+// await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
+// await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
+
+await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
+cts.Cancel();
+
+static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
+{
+    foreach (var subscription in subscriptions)
+    {
+        var sub = new SubscriptionCreationInformation(
+            internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
+            subscription: new(
+                plan: await readJson<Plan>("plan.json"),
+                internalResourceId: InternalResourceIdModule.fromStr(subscription.Id),
+                renewalInterval: RenewalInterval.Monthly,
+                subscriptionStart: MeteringDateTimeModule.fromStr(subscription.Established)));
+        await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, ct);
+    }
+}
+
+static async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
+{
+    foreach (var sub in subs)
+    {
+        var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+               .Select(x => MeterValueModule.create(x, 11_000))
+               .ToArray();
+
+        await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(sub.Id, meters), ct);
+    }
+}
+
+static async Task BatchKnownIDs(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
+{
+    int i = 0;
+    while (true)
+    {
+        foreach (var sub in subs)
+        {
+            var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+                   .Select(x => MeterValueModule.create(x, 0.1))
+                   .ToArray();
+
+            if (i++ % 10 == 0) { Console.Write("."); }
+
+            await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(sub.Id, meters), ct);
+            await Task.Delay(TimeSpan.FromSeconds(0.3), ct);
+        }        
+    }
+}
 
 static string guidFromStr(string str) => new Guid(SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(str)).Take(16).ToArray()).ToString();
 
 static async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.ReadAllTextAsync(name));
 
-using CancellationTokenSource cts = new();
-
-// await Interactive(eventHubProducerClient, cts.Token);
-await Batch(eventHubProducerClient, "1", cts.Token);
-
-cts.Cancel();
-
-static async Task Batch(EventHubProducerClient eventHubProducerClient, string subName, CancellationToken ct)
+static async Task BatchRandomId(EventHubProducerClient eventHubProducerClient, string subName, CancellationToken ct)
 {
     int i = 0;
     var saasId = guidFromStr(subName);
@@ -32,7 +83,7 @@ static async Task Batch(EventHubProducerClient eventHubProducerClient, string su
                    .ToArray();
 
         if (i++ % 10 == 0) { Console.Write("."); }
-        
+
         await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
         await Task.Delay(TimeSpan.FromSeconds(0.3), ct);
     }

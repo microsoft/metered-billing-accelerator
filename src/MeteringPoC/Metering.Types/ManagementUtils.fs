@@ -16,7 +16,7 @@ module ManagementUtils =
         let initialState : MeterCollection option = MeterCollection.Uninitialized
 
         config.MeteringConnections
-        |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent (messagePosition.PartitionID |> PartitionID.value) cancellationToken 
+        |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent messagePosition.PartitionID cancellationToken 
         |> Seq.filter (fun e -> e.MessagePosition.SequenceNumber < messagePosition.SequenceNumber)
         |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate MeterCollection.Empty
@@ -31,7 +31,7 @@ module ManagementUtils =
 
         let x = 
             config.MeteringConnections
-            |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent (partitionId |> PartitionID.value) cancellationToken 
+            |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent partitionId cancellationToken 
             |> Seq.map MeteringEvent.fromEventHubEvent
             |> Seq.scan aggregate MeterCollection.Empty
             |> Seq.last

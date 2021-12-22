@@ -52,8 +52,8 @@ module MessagePosition =
             LastProcessedSequenceNumber = pos.SequenceNumber, 
             PartitionTimestamp = pos.PartitionTimestamp)
 
-    let create (partitionId: string) (eventData: EventData) : MessagePosition =
-        { PartitionID = partitionId |> PartitionID.PartitionID
+    let create (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
+        { PartitionID = partitionId
           SequenceNumber = eventData.SequenceNumber
           // Offset = eventData.Offset
           PartitionTimestamp = eventData.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset }
@@ -122,13 +122,13 @@ module EventHubEvent =
                 |> EventsToCatchup.create processEventArgs.Data
                 |> Some
 
-            { MessagePosition = processEventArgs.Data |> MessagePosition.create processEventArgs.Partition.PartitionId 
+            { MessagePosition = processEventArgs.Data |> MessagePosition.create (processEventArgs.Partition.PartitionId |> PartitionID.create)
               EventsToCatchup = catchUp
               EventData = processEventArgs.Data |> convert
               Source = EventHub }
             |> Some
 
-    let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: string) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
+    let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: PartitionID) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
         { MessagePosition = MessagePosition.create partitionId data
           EventsToCatchup = None
           EventData = data |> convert 
