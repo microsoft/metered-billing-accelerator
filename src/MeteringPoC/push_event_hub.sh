@@ -63,7 +63,7 @@ function submit_single_usage {
 if [ $# -ne 3 ]; then 
    echo "Specify the SaaS subscription ID, the meter name, and the consumption value, for example: 
 
-      $0 \"fdc778a6-1281-40e4-cade-4a5fc11f5440\" cpu 1.23
+      $0 \"fdc778a6-1281-40e4-cade-4a5fc11f5440\" cpu 1000.0
   "
    exit 1
 fi

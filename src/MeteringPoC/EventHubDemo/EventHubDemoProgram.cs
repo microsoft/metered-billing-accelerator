@@ -35,7 +35,6 @@ List<IDisposable> subscriptions = new();
 
 var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Subscribe(onNext: group => {
     var partitionId = group.Key;
-    Console.WriteLine($"New group: {partitionId.value()}");
     var events = group
         .Scan(
             seed: MeterCollectionModule.Uninitialized,
@@ -81,8 +80,6 @@ static IDisposable SubscribeEmitter(IObservable<MeterCollection> events, Meterin
             {
                 var response = await config.SubmitUsage(usage);
                 await producer.ReportUsagesSubmitted(response, CancellationToken.None);
-
-                await Console.Out.WriteLineAsync($"XXXXXXXXXXX Got another {response.Results.Length} requests");
             }
         }
     });
@@ -95,7 +92,6 @@ static IDisposable SubscribeEmitter(IObservable<MeterCollection> events, Meterin
                 var newOnes = current.Except(previousToBeSubmitted).ToList();
                 if (newOnes.Any())
                 {
-                    Console.Out.WriteLineAsync($"???????????????????? Enqueueing {newOnes.Count} requests to be handled");
                     newOnes
                         .Chunk(25)
                         .ForEach(tobeSubmitted.Enqueue);
@@ -113,10 +109,10 @@ static void handleCollection (MeteringConfigurationProvider config, PartitionID 
 
     if (meterCollection.getLastSequenceNumber() % 100 == 0)
     {
-        Console.WriteLine($"Processed event {meterCollection.getLastSequenceNumber()}");
+        Console.WriteLine($"Processed event {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
     }
 
-    if (meterCollection.getLastSequenceNumber() % 200 == 0)
+    //if (meterCollection.getLastSequenceNumber() % 200 == 0)
     {
         MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
     }

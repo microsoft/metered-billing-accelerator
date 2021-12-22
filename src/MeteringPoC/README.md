@@ -118,8 +118,9 @@ You can see an included annual quantity of 10000 units, and a monthly quantity o
 ## TODO
 
 - [ ] compensating action / compensating usage for an unsubmittable api call, it it exists. needs to make handleevent recursive
-- [ ] marketplace client to support batch
+- [x] marketplace client to support batch
 - [ ] collect plans separately in JSON to avoid duplication
+- [ ] Floats can be negative
 
 ## Missing features
 

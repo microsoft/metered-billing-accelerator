@@ -160,8 +160,6 @@ module CaptureProcessor =
                        |> Seq.map (fun (n, _) -> n)
                        |> Seq.toArray
 
-                   eprintfn $"readAllEvents blobs.Length = {blobs.Length}"
-
                    for blobName in blobs do                
                        let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
                        let client = captureContainer.GetBlobClient(blobName = blobName)
@@ -173,7 +171,6 @@ module CaptureProcessor =
                            match i |> toEvent with
                            | None -> ()
                            | Some e -> yield e
-                   eprintfn $"readAllEvents done "
                }
 
     let readEventsFromPosition<'TEvent> (convert: EventData -> 'TEvent) (mp: MessagePosition) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
