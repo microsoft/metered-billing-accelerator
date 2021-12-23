@@ -50,15 +50,15 @@ function submit_single_usage {
 
   data="$(createUsage "${saas_subscription_id}" "${meter_name}" "${consumption}" )"
 
-  curl --include \
+  curl \
     --silent \
     --url "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/messages?api-version=2014-01&timeout=60" \
     --header "Authorization: Bearer ${access_token}"                             \
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8"       \
     --header "BrokerProperties: {\"PartitionKey\": \"${saas_subscription_id}\"}" \
-    --data "${data}"
+    --write-out 'Submission status: %{http_code}\nDuration: %{time_total} seconds\n\n' \
+    --data "${data}"    
 }
-
 
 if [ $# -ne 3 ]; then 
    echo "Specify the SaaS subscription ID, the meter name, and the consumption value, for example: 
