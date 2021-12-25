@@ -51,19 +51,20 @@ static async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerC
 
 static async Task BatchKnownIDs(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
 {
+    Random random = new (); 
+    
     int i = 0;
     while (true)
     {
         foreach (var sub in subs)
         {
             var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                   .Select(x => MeterValueModule.create(x, 0.1))
-                   .ToArray();
+                   .Select(x => MeterValueModule.create(x, random.NextDouble())).ToArray();
 
             if (i++ % 10 == 0) { Console.Write("."); }
 
             await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(sub.Id, meters), ct);
-            await Task.Delay(TimeSpan.FromSeconds(0.3), ct);
+            await Task.Delay(TimeSpan.FromSeconds(random.NextDouble() * 10), ct);
         }        
     }
 }

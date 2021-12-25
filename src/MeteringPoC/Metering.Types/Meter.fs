@@ -52,19 +52,24 @@ module Meter =
             let someDimension : DimensionId option = 
                 state.InternalMetersMapping |> InternalMetersMapping.value |> Map.tryFind event.MeterName
             
-            match someDimension with 
-            | None -> 
-                // TODO: Log that an unknown meter was reported
+            match event.Quantity |> Quantity.isAllowedIncomingQuantity with
+            | false -> 
+                // if the incoming value is not a real (non-negative) number, don't change the meter. 
                 currentMeterValues
-            | Some dimension ->
-                if currentMeterValues |> Map.containsKey dimension
-                then 
+            | true -> 
+                match someDimension with 
+                | None -> 
+                    // TODO: Log that an unknown meter was reported
                     currentMeterValues
-                    |> Map.change dimension (MeterValue.someHandleQuantity event.Quantity currentPosition)
-                else
-                    let newConsumption = ConsumedQuantity (ConsumedQuantity.create event.Timestamp event.Quantity)
-                    currentMeterValues
-                    |> Map.add dimension newConsumption
+                | Some dimension ->
+                    if currentMeterValues |> Map.containsKey dimension
+                    then 
+                        currentMeterValues
+                        |> Map.change dimension (MeterValue.someHandleQuantity event.Quantity currentPosition)
+                    else
+                        let newConsumption = ConsumedQuantity (ConsumedQuantity.create event.Timestamp event.Quantity)
+                        currentMeterValues
+                        |> Map.add dimension newConsumption
         
         let closePreviousIntervalIfNeeded : (Meter -> Meter) = 
             let last = state.LastProcessedMessage.PartitionTimestamp

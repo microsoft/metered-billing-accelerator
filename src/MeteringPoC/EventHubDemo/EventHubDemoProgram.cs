@@ -30,11 +30,17 @@ Console.WriteLine($"Reading from {connections.EventHubConfig.EventHubName.FullyQ
 Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator = 
     MeteringAggregator.createAggregator(config);
 
-//var items = new ConcurrentDictionary<
 List<IDisposable> subscriptions = new();
+
+var props = await config.MeteringConnections.createEventHubConsumerClient().GetEventHubPropertiesAsync();
+var partitions = new string[props.PartitionIds.Length];
+Array.Fill(partitions, "_");
+Func<string> currentPartitions = () => string.Join("", partitions); 
 
 var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Subscribe(onNext: group => {
     var partitionId = group.Key;
+    partitions[int.Parse(partitionId.value())] = partitionId.value();
+
     var events = group
         .Scan(
             seed: MeterCollectionModule.Uninitialized,
@@ -47,7 +53,7 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
 
     IDisposable subscription = events
         .Subscribe(
-            onNext: coll => handleCollection(config, partitionId, coll),
+            onNext: coll => handleCollection(config, partitionId, coll, currentPartitions),
             onError: ex => { 
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.Error.WriteLine($"Error {partitionId.value()}: {ex.Message}"); 
@@ -58,6 +64,7 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
                 Console.ForegroundColor = ConsoleColor.Blue; 
                 Console.WriteLine($"Closing {partitionId.value()}");
                 Console.ResetColor();
+                partitions[int.Parse(partitionId.value())] = "_";
             });
     subscriptions.Add(subscription);
 
@@ -101,20 +108,20 @@ static IDisposable SubscribeEmitter(IObservable<MeterCollection> events, Meterin
         );
 }
 
-static void handleCollection (MeteringConfigurationProvider config, PartitionID partitionId, MeterCollection meterCollection) {
+static void handleCollection (MeteringConfigurationProvider config, PartitionID partitionId, MeterCollection meterCollection, Func<string> prefix) {
     //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
     //Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
     //Console.WriteLine(meterCollection.getLastSequenceNumber());
 
-    if (meterCollection.getLastSequenceNumber() % 10 == 0)
+    if (meterCollection.getLastSequenceNumber() % 100 == 0)
     {
-        Console.WriteLine($"Processed event {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
+        Console.WriteLine($"{prefix()} Processed event {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
     }
 
-    if (meterCollection.getLastSequenceNumber() % 200 == 0)
+    if (meterCollection.getLastSequenceNumber() % 500 == 0)
     {
         MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
-        Console.WriteLine($"Saved state {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
+        Console.WriteLine($"{prefix()} Saved state {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
     }
 };
 

@@ -58,11 +58,7 @@ module EventHubObservableClient =
 
             let ProcessError (processErrorEventArgs: ProcessErrorEventArgs) =
                 try
-                    let partitionId =
-                        processErrorEventArgs.PartitionId |> PartitionIdentifier.createId
-
-                    let ex = processErrorEventArgs.Exception
-                    o.OnError(ex)
+                    o.OnError(processErrorEventArgs.Exception)
                 with
                 | e -> eprintf $"ProcessError Exception {e.Message}" ;()
                 
@@ -70,8 +66,13 @@ module EventHubObservableClient =
 
             let PartitionClosing (partitionClosingEventArgs: PartitionClosingEventArgs) =
                 try
-                    let evnt: EventHubProcessorEvent<'TState, 'TEvent> =
-                        PartitionClosing { PartitionClosingEventArgs = partitionClosingEventArgs }
+                    if partitionClosingEventArgs.CancellationToken.IsCancellationRequested
+                    then eprintfn "PartitionClosing partitionClosingEventArgs.CancellationToken.IsCancellationRequested"
+                    
+                    match partitionClosingEventArgs.Reason with
+                    | ProcessingStoppedReason.OwnershipLost -> eprintfn $"{partitionClosingEventArgs.PartitionId}: ProcessingStoppedReason.OwnershipLost"
+                    | ProcessingStoppedReason.Shutdown  -> eprintfn $"{partitionClosingEventArgs.PartitionId}: ProcessingStoppedReason.Shutdown"
+                    | a -> eprintfn $"{partitionClosingEventArgs.PartitionId}: ProcessingStoppedReason {a}"
 
                     o.OnCompleted()
                 with

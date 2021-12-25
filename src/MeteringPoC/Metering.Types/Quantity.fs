@@ -110,3 +110,8 @@ module Quantity =
         | MeteringFloat f -> f.ToString()
         | Infinite -> "Infinite"
         
+    let isAllowedIncomingQuantity : (Quantity -> bool) =
+        function
+        | MeteringInt i -> true
+        | MeteringFloat f -> f >= 0.0
+        | Infinite -> false
