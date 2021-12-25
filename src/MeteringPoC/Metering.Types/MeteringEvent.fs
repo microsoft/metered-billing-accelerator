@@ -2,14 +2,16 @@
 
 open Metering.Types.EventHub
 
-// TODO Can you refactor me away?
 type MeteringEvent =
-    { MeteringUpdateEvent: MeteringUpdateEvent
-      MessagePosition: MessagePosition
-      EventsToCatchup: EventsToCatchup option }
+    | Remote of Event:MeteringUpdateEvent * MessagePosition:MessagePosition * EventsToCatchup:EventsToCatchup option
+    | Local of Event:LocalControlEvent
 
 module MeteringEvent =
-    let create (meteringUpdateEvent: MeteringUpdateEvent) (messagePosition: MessagePosition) (eventsToCatchup: EventsToCatchup option) : MeteringEvent =
-        { MeteringUpdateEvent = meteringUpdateEvent
-          MessagePosition = messagePosition
-          EventsToCatchup = eventsToCatchup }
+    let create (e: MeteringUpdateEvent) (messagePosition: MessagePosition) (eventsToCatchup: EventsToCatchup option) : MeteringEvent =
+        Remote (Event = e, MessagePosition = messagePosition, EventsToCatchup = eventsToCatchup)
+
+    let fromEventHubEvent (e: EventHubEvent<MeteringUpdateEvent>) : MeteringEvent =
+        Remote (Event = e.EventData, MessagePosition = e.MessagePosition, EventsToCatchup = e.EventsToCatchup)
+
+    let createLocalEvent (e: LocalControlEvent) : MeteringEvent = 
+        Local (Event = e)

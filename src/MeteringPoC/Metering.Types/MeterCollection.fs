@@ -5,7 +5,8 @@ open System.Runtime.CompilerServices
 
 type MeterCollection = 
     { MeterCollection: Map<InternalResourceId, Meter>
-      UnprocessableUsage: InternalUsageEvent list
+      //Plans: Plans
+      UnprocessableMessages: EventHubEvent<MeteringUpdateEvent> list
       LastUpdate: MessagePosition option }
 
 type SomeMeterCollection = MeterCollection option
@@ -15,7 +16,12 @@ module MeterCollection =
     let value (x : MeterCollection) = x.MeterCollection
     
     let Uninitialized : (MeterCollection option) = None
-    let Empty = { MeterCollection = Map.empty; LastUpdate = None; UnprocessableUsage = [] }
+    let Empty =
+        { MeterCollection = Map.empty
+          UnprocessableMessages = List.empty
+          LastUpdate = None          
+          // Plans = Map.empty
+          }
 
     let toStrM (pid) (meters: Meter seq) : string =
         meters
@@ -36,3 +42,10 @@ module MeterCollection =
             mc.MeterCollection
             |> Map.values
             |> toStrM pid
+    
+    [<Extension>]
+    let metersToBeSubmitted  (x : MeterCollection) : MarketplaceRequest seq =
+        x.MeterCollection
+        |> Map.toSeq
+        |> Seq.collect (fun (_, meter) -> meter.UsageToBeReported)
+        // |> Seq.sortBy (fun r -> r.EffectiveStartTime.ToInstant())

@@ -6,6 +6,24 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="data\MarketplaceBatchRequest.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceBatchResponseDTO.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceErrorDuplicate.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceGenericError.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceRequest.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceSuccessResponse.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Compile Include="BillingUnitTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -24,4 +42,5 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
+  <ItemGroup />
 </Project>

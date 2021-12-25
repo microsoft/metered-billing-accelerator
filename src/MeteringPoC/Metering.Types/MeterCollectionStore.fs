@@ -157,15 +157,12 @@ module MeterCollectionStore =
                 let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
                 let! meterCollection = content.Value.Content |> gzipDecompress |> fromJSONStream<MeterCollection>
         
-                eprintfn $"Successfully downloaded state, last event was {meterCollection |> getLastUpdateAsString}"
                 return Some meterCollection
             with
             | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobNotFound" ->
-                eprintfn $"BlobNotFound for partition {partitionID |> PartitionID.value}"
                 return None
             | e -> 
                 // TODO log some weird exception
-                eprintfn $"Bad stuff happening {e.Message}"
                 return None
         }
 
@@ -190,7 +187,6 @@ module MeterCollectionStore =
         | None -> Task.FromResult "Empty collection, skipped saving"
         | Some lastUpdate ->
             let name = meterCollection |> getLastUpdateAsString
-            eprintfn $"Trying to save \"{name}\""
             let current = Naming.currentName config lastUpdate
             let latest = Naming.latestName config lastUpdate.PartitionID
 
@@ -205,20 +201,19 @@ module MeterCollectionStore =
                 use stream = meterCollection |> asJSONStream |> gzipCompress
                 try
                     let! _ = blobDate.UploadAsync(content = stream, overwrite = true, cancellationToken = cancellationToken)
-                    eprintfn $"Uploaded {name}"
+                    ()
                 with
                 | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" -> 
-                    eprintfn $"RequestFailedException(BlobAlreadyExists) {name}"
+                    ()
 
                 try
                     ignore <| stream.Seek(offset = 0L, origin = SeekOrigin.Begin)
                     let latestBlob = config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
                     let! s = latestBlob.UploadAsync(content = stream, overwrite = true, cancellationToken = cancellationToken)
-                    
-                    eprintfn $"Uploaded {name} to latest {s.Value.VersionId}" 
+                    ()
                 with
                 | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" -> 
-                    eprintfn $"RequestFailedException(BlobAlreadyExists) {latest}"
+                    ()
 
                 //try
                 //    let latestBlob =
@@ -227,8 +222,6 @@ module MeterCollectionStore =
                 //    let! _ = CopyBlobAsync blobDate latestBlob cancellationToken
                 //with
                 //| e -> eprintfn $"Delete/Copy problem {e.Message}"
-
-                eprintfn "Saved"
             }
 
     let isLoaded<'T> (state: 'T option) : bool = 

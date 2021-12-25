@@ -18,20 +18,42 @@ module PartitionID =
     let value (PartitionID x) = x
     let create x = (PartitionID x)
 
+type PartitionKey = PartitionKey of string
+
+[<Extension>]
+module PartitionKey =
+    [<Extension>]
+    let value (PartitionKey x) = x
+    let create x = (PartitionKey x)
+
+type PartitionIdentifier =
+    | PartitionID of PartitionID
+    | PartitionKey of PartitionKey
+
+module PartitionIdentifier =
+    let createId = PartitionID.create >> PartitionID
+    let createKey = PartitionKey.create >> PartitionKey
+
 type MessagePosition = 
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber
       // Offset: int64
       PartitionTimestamp: MeteringDateTime }
 
-module MessagePosition =
-    let startingPosition (someMessagePosition: MessagePosition option) =
-        match someMessagePosition with
-        | None -> EventPosition.Earliest
-        | Some p -> EventPosition.FromSequenceNumber(p.SequenceNumber, isInclusive = false) // If isInclusive=true, the specified event is included; otherwise the next event is returned.
+type StartingPosition =
+    | Earliest
+    | NextEventAfter of LastProcessedSequenceNumber: SequenceNumber * PartitionTimestamp: MeteringDateTime
 
-    let create (partitionId: string) (eventData: EventData) : MessagePosition =
-        { PartitionID = partitionId |> PartitionID.PartitionID
+module MessagePosition =
+    let startingPosition (someMessagePosition: MessagePosition option) : StartingPosition =
+        match someMessagePosition with
+        | None -> Earliest
+        | Some pos -> NextEventAfter(
+            LastProcessedSequenceNumber = pos.SequenceNumber, 
+            PartitionTimestamp = pos.PartitionTimestamp)
+
+    let create (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
+        { PartitionID = partitionId
           SequenceNumber = eventData.SequenceNumber
           // Offset = eventData.Offset
           PartitionTimestamp = eventData.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset }
@@ -100,13 +122,13 @@ module EventHubEvent =
                 |> EventsToCatchup.create processEventArgs.Data
                 |> Some
 
-            { MessagePosition = processEventArgs.Data |> MessagePosition.create processEventArgs.Partition.PartitionId 
+            { MessagePosition = processEventArgs.Data |> MessagePosition.create (processEventArgs.Partition.PartitionId |> PartitionID.create)
               EventsToCatchup = catchUp
               EventData = processEventArgs.Data |> convert
               Source = EventHub }
             |> Some
 
-    let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: string) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
+    let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: PartitionID) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
         { MessagePosition = MessagePosition.create partitionId data
           EventsToCatchup = None
           EventData = data |> convert 
@@ -114,7 +136,7 @@ module EventHubEvent =
         |> Some
 
 type PartitionInitializing<'TState> =
-    { PartitionInitializingEventArgs: PartitionInitializingEventArgs
+    { PartitionID: PartitionID
       InitialState: 'TState }
 
 type PartitionClosing =
@@ -129,7 +151,7 @@ type EventHubProcessorEvent<'TState, 'TEvent> =
 module EventHubProcessorEvent =
     let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
         match e with
-        | PartitionInitializing e -> e.PartitionInitializingEventArgs.PartitionId |> PartitionID.create
+        | PartitionInitializing e -> e.PartitionID
         | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId |> PartitionID.create
         | EventHubEvent e -> e.MessagePosition.PartitionID
         | EventHubError (partitionID, _) -> partitionID
@@ -160,3 +182,7 @@ module internal Capture =
         match e with
         | :? RehydratedFromCaptureEventData -> (downcast e : RehydratedFromCaptureEventData) |> (fun x -> x.BlobName) |> Some
         | _ -> None 
+
+module EventDataDummy = 
+    let create (blobName: string) (eventBody: byte[]) (sequenceNumber: int64) (offset: int64)  (partitionKey: string) : EventData =
+        new Capture.RehydratedFromCaptureEventData(blobName, eventBody, new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)

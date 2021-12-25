@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
@@ -35,24 +36,22 @@
     <Compile Include="IncludedQuantity.fs" />
     <Compile Include="RenewalInterval.fs" />
     <Compile Include="MeterValue.fs" />
-    <Compile Include="InternalResourceId.fs" />
+    <Compile Include="ResourceID.fs" />
     <Compile Include="PlanId.fs" />
     <Compile Include="CurrentMeterValues.fs" />
     <Compile Include="BillingDimension.fs" />
     <Compile Include="Plan.fs" />
-    <Compile Include="ManagedAppResourceGroupID.fs" />
-    <Compile Include="MarketplaceResourceID.fs" />
-    <Compile Include="MeteredBillingUsageEvent.fs" />
     <Compile Include="ApplicationInternalMeterName.fs" />
     <Compile Include="InternalUsageEvent.fs" />
     <Compile Include="BusinessError.fs" />
     <Compile Include="Subscription.fs" />
     <Compile Include="BillingPeriod.fs" />
     <Compile Include="InternalMetersMapping.fs" />
-    <Compile Include="MeteringAPIUsageEventDefinition.fs" />
+    <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="DependencyInjection.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
     <Compile Include="Meter.fs" />
+    <Compile Include="UnprocessableMessage.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />
     <Compile Include="MeteringEvent.fs" />
     <Compile Include="MeterCollection.fs" />
@@ -64,5 +63,6 @@
     <Compile Include="MeteringAggregator.fs" />
     <Compile Include="Status.fs" />
     <Compile Include="EventHubObservableClient.fs" />
+    <Compile Include="ManagementUtils.fs" />
   </ItemGroup>
 </Project>

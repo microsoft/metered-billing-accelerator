@@ -39,35 +39,27 @@ let parseConsumptionEvents (str: string) =
             |> List.map (fun s -> s.Trim())
             |> function
                 | [sequencenr; datestr; internalResourceId; name; amountstr; props] -> 
-                    Some {
-                        MeteringUpdateEvent = UsageReported {
-                            InternalResourceId = internalResourceId |> InternalResourceId.fromStr
-                            Timestamp = datestr |> MeteringDateTime.fromStr 
-                            MeterName = name |> ApplicationInternalMeterName.create
-                            Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
-                            Properties = props |> parseProps }
-                        MessagePosition = {
-                            PartitionID = "1" |> PartitionID.create
-                            SequenceNumber = sequencenr |> Int64.Parse
-                            // Offset = sequencenr |> Int64.Parse
-                            PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
-                        EventsToCatchup = dummyEventsToCatchUp datestr
-                    }
-                | [sequencenr; datestr; internalResourceId; name; amountstr] -> 
-                    Some {
-                        MeteringUpdateEvent = UsageReported {
-                            InternalResourceId = internalResourceId |> InternalResourceId.fromStr
-                            Timestamp = datestr |> MeteringDateTime.fromStr
-                            MeterName = name |> ApplicationInternalMeterName.create
-                            Quantity = amountstr |> UInt64.Parse |> Quantity.createInt
-                            Properties = None }
-                        MessagePosition = {
-                            PartitionID = "1" |> PartitionID.create
-                            SequenceNumber = sequencenr |> Int64.Parse
-                            // Offset = sequencenr |> Int64.Parse
-                            PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
-                        EventsToCatchup = dummyEventsToCatchUp datestr
-                    }
+                    Some <| MeteringEvent.create
+                        ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
+                           Timestamp = datestr |> MeteringDateTime.fromStr 
+                           MeterName = name |> ApplicationInternalMeterName.create
+                           Quantity = amountstr |> UInt32.Parse |> Quantity.createInt
+                           Properties = props |> parseProps } |> UsageReported)
+                        { PartitionID = "1" |> PartitionID.create
+                          SequenceNumber = sequencenr |> Int64.Parse
+                          PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                        (dummyEventsToCatchUp datestr)
+                | [sequencenr; datestr; internalResourceId; name; amountstr] ->
+                    Some <| MeteringEvent.create
+                        ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
+                           Timestamp = datestr |> MeteringDateTime.fromStr
+                           MeterName = name |> ApplicationInternalMeterName.create
+                           Quantity = amountstr |> UInt32.Parse |> Quantity.createInt
+                           Properties = None } |> UsageReported )
+                        { PartitionID = "1" |> PartitionID.create
+                          SequenceNumber = sequencenr |> Int64.Parse
+                          PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
+                        (dummyEventsToCatchUp datestr)
                 | _ -> None
         events
         |> List.map parseUsageEvent
@@ -95,16 +87,16 @@ let demoAggregation config =
         Json.fromStr<SubscriptionCreationInformation> 
         >> SubscriptionPurchased
         >> (fun mue -> 
-                  { MeteringUpdateEvent = mue
-                    MessagePosition = 
-                        { PartitionID = "1" |> PartitionID.create
-                          SequenceNumber = 1L
-                          PartitionTimestamp = "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr } 
-                    EventsToCatchup =
-                        { LastSequenceNumber = 100L
-                          LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr                           
-                          NumberOfEvents = 1
-                          TimeDeltaSeconds = 1.0 } |> Some }       
+            MeteringEvent.create
+                mue
+                { PartitionID = "1" |> PartitionID.create
+                  SequenceNumber = 1L
+                  PartitionTimestamp = "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr }
+                ({ LastSequenceNumber = 100L
+                   LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr
+                   NumberOfEvents = 1
+                   TimeDeltaSeconds = 1.0 } |> Some)
+            // |> Some
         )
 
     // 11111111-8a88-4a47-a691-1b31c289fb33 is a sample GUID of a SaaS subscription
@@ -158,6 +150,7 @@ let demoAggregation config =
     // 11111111-8a88-4a47-a691-1b31c289fb33 2021-10-01T12:20:34
     // 22222222-8a88-4a47-a691-1b31c289fb33 2021-10-13T09:20:36
     // fdc778a6-1281-40e4-cade-4a5fc11f5440 2021-11-04T16:12:26
+    // 8151a707-467c-4105-df0b-44c3fca5880d
 
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
@@ -197,24 +190,24 @@ let demoAggregation config =
     eventsFromEventHub
 
 /// Demonstrates a real marketplace API invocation
-let demoUsageSubmission config =
-    let SomeValidSaaSSubscriptionID = "fdc778a6-1281-40e4-cade-4a5fc11f5440"
+//let demoUsageSubmission config =
+//    let SomeValidSaaSSubscriptionID = "fdc778a6-1281-40e4-cade-4a5fc11f5440"
 
-    let usage =
-        { ResourceId = InternalResourceId.fromStr SomeValidSaaSSubscriptionID
-          Quantity = 2.3m
-          PlanId = "free_monthly_yearly" |> PlanId.create
-          DimensionId = "datasourcecharge" |> DimensionId.create
-          EffectiveStartTime = "2021-11-29T17:00:00Z" |> MeteringDateTime.fromStr }
-    
-    let result = (MarketplaceClient.submit config usage).Result
-
-    result
-    |> Json.toStr 2
-    |> inspect "MarketplaceSubmissionResult"
-    |> Json.fromStr<MarketplaceSubmissionResult>
-    |> inspecto ""
-    |> ignore
+//    let usage =
+//        { ResourceId = InternalResourceId.fromStr SomeValidSaaSSubscriptionID
+//          Quantity = Quantity.createFloat 2.3m
+//          PlanId = "free_monthly_yearly" |> PlanId.create
+//          DimensionId = "datasourcecharge" |> DimensionId.create
+//          EffectiveStartTime = "2021-11-29T17:00:00Z" |> MeteringDateTime.fromStr }
+//
+//    let result = (MarketplaceClient.submitUsage config usage).Result
+//
+//    result
+//    |> Json.toStr 2
+//    |> inspect "MarketplaceSubmissionResult"
+//    |> Json.fromStr<MarketplaceSubmissionResult>
+//    |> inspecto ""
+//    |> ignore
 
 let demoStorage config eventsFromEventHub =
     let events = 
@@ -246,7 +239,19 @@ let demoStorage config eventsFromEventHub =
 
 [<EntryPoint>]
 let main argv = 
+    let usage : MeteringUpdateEvent = 
+        { InternalResourceId = ManagedApplication ManagedAppIdentity 
+          Timestamp = MeteringDateTime.now()
+          MeterName = ApplicationInternalMeterName.create "cpu"
+          Quantity = Quantity.createInt 10u
+          Properties = None } |> UsageReported 
 
+    usage
+    |> Json.toStr 5
+    |> (fun x -> printfn "%s" x; x)
+    |> Json.fromStr<MeteringUpdateEvent>
+    |> (fun x -> printfn "%A" x; x)
+    |> ignore
 
     //let config = 
     //    { CurrentTimeProvider = CurrentTimeProvider.LocalSystem

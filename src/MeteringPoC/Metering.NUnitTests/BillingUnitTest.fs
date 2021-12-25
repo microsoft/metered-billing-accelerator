@@ -3,8 +3,10 @@ module Metering.NUnitTests.Billing
 open System
 open NUnit.Framework
 open NodaTime
+open Metering
 open Metering.Types
 open Metering.Types.EventHub
+open System.IO
 
 [<SetUp>]
 let Setup () = ()
@@ -27,7 +29,7 @@ let somePlan : Plan =
 
 [<Test>]
 let ``BillingPeriod.createFromIndex`` () =
-    let sub = Subscription.create somePlan ManagedApp Monthly (d "2021-05-13T12:00:03") 
+    let sub = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) Monthly (d "2021-05-13T12:00:03") 
 
     Assert.AreEqual(
         (bp "2|2021-07-13T12:00:03|2021-08-12T12:00:02"),
@@ -39,7 +41,7 @@ type Subscription_determineBillingPeriod_Vector = { Purchase: (RenewalInterval *
 let ``BillingPeriod.determineBillingPeriod`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
         let expected : Result<BillingPeriod, BusinessError> = Ok(bp testcase.Expected)
         let compute = BillingPeriod.determineBillingPeriod subscription (d testcase.Candidate)
         Assert.AreEqual(expected, compute, sprintf "Failure test case %d expected=%A but was %A" idx expected compute);
@@ -61,7 +63,7 @@ type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * str
 let ``BillingPeriod.isInBillingPeriod`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
         let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
         let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
@@ -80,7 +82,7 @@ type BillingPeriod_getBillingPeriodDelta_Vector = { Purchase: (RenewalInterval *
 let ``BillingPeriod.getBillingPeriodDelta`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan ManagedApp interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
         let result = (BillingPeriod.getBillingPeriodDelta subscription (d testcase.Previous) (d testcase.Current))
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
@@ -109,43 +111,43 @@ let ``MeterValue.subtractQuantity``() =
     [ 
         {
             // if Monthly is sufficient, don't touch annual
-            State = IncludedQuantity { Annually = Quantity.someInt 30UL; Monthly = Quantity.someInt 10UL; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 8UL
-            Expected = IncludedQuantity { Annually = Quantity.someInt 30UL; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = now }
+            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 8u
+            Expected = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = now }
         }
         {
             // if Monthly is not sufficient, also deduct from annual
-            State = IncludedQuantity { Annually = Quantity.someInt 30UL; Monthly = Quantity.someInt 10UL; Created = created; LastUpdate = lastUpdate}
-            Quantity = Quantity.createInt 13UL
-            Expected = IncludedQuantity { Annually = Quantity.someInt 27UL; Monthly = None; Created = created; LastUpdate = now}
+            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate}
+            Quantity = Quantity.createInt 13u
+            Expected = IncludedQuantity { Annually = Quantity.someInt 27u; Monthly = None; Created = created; LastUpdate = now}
         }
         {
             // if both Monthly and Annual are not sufficient, it costs money
-            State = IncludedQuantity { Annually = Quantity.someInt 30UL; Monthly = Quantity.someInt 10UL; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 43UL
-            Expected = ConsumedQuantity { Amount = Quantity.createInt  3UL; Created = created; LastUpdate = now }
+            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 43u
+            Expected = ConsumedQuantity { Amount = Quantity.createInt 3u; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
             State = IncludedQuantity { Annually = None; Monthly = None; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2UL
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 2UL; Created = created; LastUpdate = now }
+            Quantity = Quantity.createInt 2u
+            Expected = ConsumedQuantity { Amount = Quantity.createInt 2u; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity { Amount = Quantity.createInt 0UL; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2UL
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 2UL; Created = created; LastUpdate = now }
+            State = ConsumedQuantity { Amount = Quantity.createInt 0u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 2u
+            Expected = ConsumedQuantity { Amount = Quantity.createInt 2u; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = ConsumedQuantity { Amount = Quantity.createInt 10UL; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2UL
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 12UL; Created = created; LastUpdate = now }
+            State = ConsumedQuantity { Amount = Quantity.createInt 10u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 2u
+            Expected = ConsumedQuantity { Amount = Quantity.createInt 12u; Created = created; LastUpdate = now }
         }
     ] |> runTestVectors test
 
-type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (uint64 * RenewalInterval) list; Expected: MeterValue}
+type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (uint * RenewalInterval) list; Expected: MeterValue}
 
 [<Test>]
 let ``MeterValue.topupMonthlyCredits``() =
@@ -159,42 +161,42 @@ let ``MeterValue.topupMonthlyCredits``() =
     
     [
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = None; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 9UL; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = None; Created = created; LastUpdate = lastUpdate } 
+            Values = [(9u, Monthly)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 9u; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9UL, Monthly)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 9UL; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
+            Values = [(9u, Monthly)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 9u; Created = created; LastUpdate = now } 
         }
         {
-            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000UL; Created = created; LastUpdate = lastUpdate }
-            Values = [(1000UL, Monthly)]
-            Expected = IncludedQuantity { Annually = None; Monthly = Quantity.someInt 1000UL; Created = created; LastUpdate = now } 
+            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000u; Created = created; LastUpdate = lastUpdate }
+            Values = [(1000u, Monthly)]
+            Expected = IncludedQuantity { Annually = None; Monthly = Quantity.someInt 1000u; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = None; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9UL, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 9UL; Monthly = None; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = None; Created = created; LastUpdate = lastUpdate } 
+            Values = [(9u, Annually)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 9u; Monthly = None; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9UL, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 9UL ; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
+            Values = [(9u, Annually)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 9u ; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = now } 
         }
         {
-            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000UL; Created = created; LastUpdate = lastUpdate }
-            Values = [(1000UL, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1000UL ; Monthly = None; Created = created; LastUpdate = now } 
+            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000u; Created = created; LastUpdate = lastUpdate }
+            Values = [(1000u, Annually)]
+            Expected = IncludedQuantity { Annually = Quantity.someInt 1000u ; Monthly = None; Created = created; LastUpdate = now } 
         }
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1UL; Monthly = Quantity.someInt 2UL; Created = created; LastUpdate = lastUpdate } 
+            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
             Values = [
-                (10_000UL, Annually)
-                (500UL, Monthly)
+                (10_000u, Annually)
+                (500u, Monthly)
             ]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 10_000UL; Monthly = Quantity.someInt 500UL; Created = created; LastUpdate = now } 
+            Expected = IncludedQuantity { Annually = Quantity.someInt 10_000u; Monthly = Quantity.someInt 500u; Created = created; LastUpdate = now } 
         }
     ] |> runTestVectors test
 
@@ -236,14 +238,14 @@ let ``Quantity.Serialization`` () =
 
     [
         Infinite
-        Quantity.createInt 10UL
-        Quantity.createFloat 10.1m
+        Quantity.createInt 10u
+        Quantity.createFloat 10.1
     ] |> runTestVectors test
 
 [<Test>]
 let ``Quantity.Math`` () =
-    let q : (int -> Quantity) = uint64 >> Quantity.createInt
-    let f : (float -> Quantity) = decimal >> Quantity.createFloat
+    let q : (int -> Quantity) = uint32 >> Quantity.createInt
+    let f : (float -> Quantity) = float >> Quantity.createFloat
     
     Assert.AreEqual(q 10, (q 3) + (q 7))
     Assert.AreEqual(q 7, (q 10) - (q 3))
@@ -257,61 +259,61 @@ let ``Quantity.Math`` () =
 
     Assert.AreEqual(f 11.1, (q 3) + (f 8.1))
     
-[<Test>]
-let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =
-    { MarketplaceSubmissionResult.Payload =
-        { ResourceId = InternalResourceId.ManagedApp
-          Quantity = 2.3m
-          PlanId = "plan" |> PlanId.create
-          DimensionId = "dim" |> DimensionId.create
-          EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
-      Headers = 
-        { RequestID = Guid.NewGuid().ToString()
-          CorrelationID = Guid.NewGuid().ToString() }
-      Result = "someerror" |> CommunicationsProblem |> Error
-      }
-    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
-    |> (fun x -> 
-        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
-
-        match x.Result with 
-        | Ok _ -> Assert.Fail "Should have been Error"
-        | Error e -> 
-            match e with 
-            | CommunicationsProblem str -> Assert.AreEqual("someerror", str)
-            | _ -> Assert.Fail $"Should have been {nameof(CommunicationsProblem)}"
-
-        x
-    )
-    |> (fun change -> 
-        { change with 
-            Result = 
-                { UsageEventId = "usageEventId 123"
-                  MessageTime = "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
-                  Status = "Accepted"
-                  ResourceId = change.Payload.ResourceId |> InternalResourceId.toStr
-                  ResourceURI = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
-                  Quantity = change.Payload.Quantity |> Quantity.createFloat
-                  DimensionId = change.Payload.DimensionId
-                  EffectiveStartTime = change.Payload.EffectiveStartTime
-                  PlanId = change.Payload.PlanId } |> Ok })                
-    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
-    |> (fun x -> 
-        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
-
-        match x.Result with 
-        | Error _ -> Assert.Fail "Should have been Ok"
-        | Ok v -> Assert.AreEqual("usageEventId 123", v.UsageEventId)
-        x
-    )
-    |> ignore
+//[<Test>]
+//let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =
+//    { MarketplaceSubmissionResult.Payload =
+//        { ResourceId = InternalResourceId.ManagedApp
+//          Quantity = 2.3m
+//          PlanId = "plan" |> PlanId.create
+//          DimensionId = "dim" |> DimensionId.create
+//          EffectiveStartTime =  "2021-11-05T09:12:30" |> MeteringDateTime.fromStr }
+//      Headers = 
+//        { RequestID = Guid.NewGuid().ToString()
+//          CorrelationID = Guid.NewGuid().ToString() }
+//      Result = "someerror" |> CommunicationsProblem |> Error
+//      }
+//    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
+//    |> (fun x -> 
+//        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
+//
+//        match x.Result with 
+//        | Ok _ -> Assert.Fail "Should have been Error"
+//        | Error e -> 
+//            match e with 
+//            | CommunicationsProblem str -> Assert.AreEqual("someerror", str)
+//            | _ -> Assert.Fail $"Should have been {nameof(CommunicationsProblem)}"
+//
+//        x
+//    )
+//    |> (fun change -> 
+//        { change with 
+//            Result = 
+//                { UsageEventId = "usageEventId 123"
+//                  MessageTime = "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
+//                  Status = "Accepted"
+//                  ResourceId = change.Payload.ResourceId |> InternalResourceId.toStr
+//                  ResourceURI = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+//                  Quantity = change.Payload.Quantity |> Quantity.createFloat
+//                  DimensionId = change.Payload.DimensionId
+//                  EffectiveStartTime = change.Payload.EffectiveStartTime
+//                  PlanId = change.Payload.PlanId } |> Ok })                
+//    |> Json.toStr 1 |> Json.fromStr<MarketplaceSubmissionResult>
+//    |> (fun x -> 
+//        Assert.AreEqual("plan", x.Payload.PlanId |> PlanId.value)
+//
+//        match x.Result with 
+//        | Error _ -> Assert.Fail "Should have been Ok"
+//        | Ok v -> Assert.AreEqual("usageEventId 123", v.UsageEventId)
+//        x
+//    )
+//    |> ignore
 
 [<Test>]
 let ``Quantity.Comparison``() =
-    let fiveInt = Quantity.createInt 5UL
-    let tenInt = Quantity.createInt 10UL
-    let fiveFloat = Quantity.createFloat 5M
-    let tenFloat = Quantity.createFloat 10M
+    let fiveInt = Quantity.createInt 5u
+    let tenInt = Quantity.createInt 10u
+    let fiveFloat = Quantity.createFloat 5.0
+    let tenFloat = Quantity.createFloat 10.0
     
     Assert.AreEqual(fiveFloat, fiveInt)
     Assert.AreEqual(tenFloat, tenInt)
@@ -341,7 +343,7 @@ let ``CaptureProcessor.isRelevantBlob`` () =
     let isRelevant blobName =
         CaptureProcessor.isRelevantBlob 
             "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}"
-            (EventHubName.create "meteringhack-standard" "hub2", "0")
+            (EventHubName.create "meteringhack-standard" "hub2",  (PartitionID.create "0"))
             blobName
 
     Assert.IsTrue(isRelevant 
@@ -354,8 +356,61 @@ let ``CaptureProcessor.isRelevantBlob`` () =
     
 [<Test>]
 let ``CaptureProcessor.getPrefixForRelevantBlobs`` () =
-    let ehContext = (EventHubName.create "meteringhack-standard" "hub2", "0")
+    let ehContext = (EventHubName.create "meteringhack-standard" "hub2", (PartitionID.create "0"))
 
     Assert.AreEqual(
         "meteringhack-standard/hub2/p0--", 
         CaptureProcessor.getPrefixForRelevantBlobs "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}" ehContext)
+
+
+let private roundTrip<'T> (filename: string) =
+    let json =
+        $"data/{filename}"
+        |> File.ReadAllText
+    
+    let t1 = json |> Json.fromStr<'T>
+    
+    let t2 = 
+        t1
+        |> Json.toStr 0
+        |> Json.fromStr<'T>
+
+    Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
+
+[<Test>]
+let RoundTripMarketplaceStructures () =
+    roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
+    roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
+    roundTrip<MarketplaceSuccessResponse> "MarketplaceSuccessResponse.json"
+    roundTrip<MarketplaceErrorDuplicate> "MarketplaceErrorDuplicate.json"
+    roundTrip<MarketplaceGenericError> "MarketplaceGenericError.json"
+    roundTrip<MarketplaceSubmissionError> "MarketplaceErrorDuplicate.json"
+    roundTrip<MarketplaceSubmissionError> "MarketplaceGenericError.json"
+    roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
+    roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
+
+    [ "MarketplaceSuccessResponse.json"
+      "MarketplaceErrorDuplicate.json"
+      "MarketplaceGenericError.json" ]
+    |> List.iter roundTrip<MarketplaceSubmissionResult>
+
+module E =
+    open System.Collections.Generic
+    open Azure.Messaging.EventHubs
+    
+    type MyEventData(
+        eventBody: byte[], 
+        properties: IDictionary<string, obj>, systemProperties: IReadOnlyDictionary<string, obj>, 
+        sequenceNumber: int64, offset: int64, enqueuedTime: DateTimeOffset, partitionKey: string) =                 
+        inherit EventData(new BinaryData(eventBody), properties, systemProperties, sequenceNumber, offset, enqueuedTime, partitionKey)
+
+[<Test>]
+let ParseEventData () =
+    let rnd = Random()
+    let bytes = Array.create 16 0uy
+    rnd.NextBytes(bytes)
+    
+    let binaryGarbage = EventDataDummy.create "1.avro" bytes 13L 100L "0"
+    let wrapped = EventHubObservableClient.toMeteringUpdateEvent binaryGarbage
+    
+    ()

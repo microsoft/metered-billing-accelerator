@@ -14,9 +14,9 @@ module MeterCollectionLogic =
         | Some meters -> meters.LastUpdate 
 
     [<Extension>]
-    let getEventPosition (someMeters: MeterCollection option) : EventPosition =
+    let getEventPosition (someMeters: MeterCollection option) : StartingPosition =
         match someMeters with
-        | None -> EventPosition.Earliest
+        | None -> StartingPosition.Earliest
         | Some meters -> meters.LastUpdate |> MessagePosition.startingPosition
 
     [<Extension>]
@@ -25,7 +25,13 @@ module MeterCollectionLogic =
         | None -> "Earliest"
         | Some p -> $"partition {p.PartitionID |> PartitionID.value} / sequence# {p.SequenceNumber}"
 
-    let usagesToBeReported (meters: MeterCollection) : MeteringAPIUsageEventDefinition list =
+    [<Extension>]
+    let getLastSequenceNumber (meters: MeterCollection) : SequenceNumber =
+        match meters.LastUpdate with
+        | None -> raise (new System.NotSupportedException())
+        | Some p -> p.SequenceNumber
+
+    let usagesToBeReported (meters: MeterCollection) : MarketplaceRequest list =
         if meters |> value |> Seq.isEmpty 
         then []
         else
@@ -50,10 +56,10 @@ module MeterCollectionLogic =
 
         handle key value table
 
-    let addUnprocessableMessage (usage: InternalUsageEvent) (state: MeterCollection) : MeterCollection =
-        { state with UnprocessableUsage = usage :: state.UnprocessableUsage }
+    let addUnprocessableMessage (usage: EventHubEvent<MeteringUpdateEvent>) (state: MeterCollection) : MeterCollection =
+        { state with UnprocessableMessages = usage :: state.UnprocessableMessages }
 
-    let setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =    
+    let setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }
         
     let handleMeteringEvent (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvent: MeteringEvent) : MeterCollection =    
@@ -61,47 +67,94 @@ module MeterCollectionLogic =
         // AggregatorBooted should trigger on all entries
         // UsageReported and UsageSubmittedToAPI should fire on the appropriate entry
 
+        let enforceStrictSequenceNumbers state messagePosition =
+            match state.LastUpdate with 
+            | Some lastUpdate -> 
+                let expectedSequenceNumber = lastUpdate.SequenceNumber + 1L
+                if expectedSequenceNumber <> messagePosition.SequenceNumber 
+                then 
+                    failwith 
+                        (sprintf "Seems you are missing some events. The last state update was sequence number %d, therefore we expect event %d, but got %d" 
+                            lastUpdate.SequenceNumber
+                            expectedSequenceNumber
+                            messagePosition.SequenceNumber)
+                else ()
+            | None -> ()
+
         let applyMeters (handler: Map<InternalResourceId, Meter> -> Map<InternalResourceId, Meter>) (state: MeterCollection)  : MeterCollection =
             let newMeterCollection = state |> value |> handler
             { state with MeterCollection = newMeterCollection }
 
-        match meteringEvent.MeteringUpdateEvent with
-        | SubscriptionPurchased s -> 
-            state
-            |> applyMeters (handleSubscriptionPurchased s.Subscription.InternalResourceId (Meter.createNewSubscription s meteringEvent.MessagePosition))
-            |> setLastProcessed meteringEvent.MessagePosition
-        | AggregatorBooted ->
-            state
-            |> applyMeters (
-                Map.toSeq
-                >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorBooted config))
-                >> Map.ofSeq
-            )
-            |> setLastProcessed meteringEvent.MessagePosition
-        | UsageSubmittedToAPI submission ->
-            state
-            //|> applyMeters (Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission)))
-            |> applyMeters (Map.change submission.Payload.ResourceId (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some)))
-            |> setLastProcessed meteringEvent.MessagePosition
-        | UsageReported usage -> 
-            state 
-            |> (fun state -> 
-                let existingSubscription = state |> value |> Map.containsKey usage.InternalResourceId 
-                
-                if not existingSubscription
-                then 
-                    state |> addUnprocessableMessage usage
-                else
-                    let newMeterCollection =
-                        state |> value
-                        |> Map.change 
-                            usage.InternalResourceId 
-                            (Option.bind ((Meter.handleUsageEvent config (usage, meteringEvent.MessagePosition)) >> Some))
+        match meteringEvent with
+        | Remote (Event = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup) ->
+            enforceStrictSequenceNumbers state messagePosition
 
-                    { state with MeterCollection = newMeterCollection }
-            )
-            |> setLastProcessed meteringEvent.MessagePosition
-                            
+            match meteringUpdateEvent with
+            | SubscriptionPurchased s -> 
+                state
+                |> applyMeters (handleSubscriptionPurchased s.Subscription.InternalResourceId (Meter.createNewSubscription s messagePosition))
+                |> setLastProcessed messagePosition
+            | SubscriptionDeletion s ->
+                { state with MeterCollection = state.MeterCollection |> Map.remove s }
+                |> setLastProcessed messagePosition
+            | UsageSubmittedToAPI submission ->
+                state
+                //|> applyMeters (Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission)))
+                |> applyMeters (Map.change (submission.Result |> MarketplaceSubmissionResult.resourceId) (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some)))
+                |> setLastProcessed messagePosition
+            | UsageReported usage -> 
+                state 
+                |> (fun state -> 
+                    let existingSubscription = state |> value |> Map.containsKey usage.InternalResourceId 
+                
+                    if not existingSubscription
+                    then 
+                        state
+                        |> addUnprocessableMessage 
+                            { MessagePosition = messagePosition
+                              EventData = UsageReported usage 
+                              EventsToCatchup = None; Source = EventHub }
+                    else
+                        let newMeterCollection =
+                            state |> value
+                            |> Map.change 
+                                usage.InternalResourceId 
+                                (Option.bind ((Meter.handleUsageEvent config (usage, messagePosition)) >> Some))
+
+                        { state with MeterCollection = newMeterCollection }
+                )
+                |> setLastProcessed messagePosition
+            | UnprocessableMessage m -> 
+                state
+                |> addUnprocessableMessage 
+                    { MessagePosition = messagePosition
+                      EventData = UnprocessableMessage m 
+                      EventsToCatchup = None; Source = EventHub }
+                |> setLastProcessed messagePosition
+            | RemoveUnprocessedMessages { PartitionID = eventPid; Selection = selection } ->
+                match state.LastUpdate with
+                | None -> state
+                | Some { PartitionID = statePid } -> 
+                    if statePid <> eventPid // If the message is targeted to a different partition, don't change the state
+                    then state
+                    else 
+                        let filter = function
+                        | BeforeIncluding x -> List.filter (fun e -> e.MessagePosition.SequenceNumber > x) // Keep all with a sequence number greater x in state
+                        | Exactly x -> List.filter (fun e -> e.MessagePosition.SequenceNumber <> x) // Keep all except x in state
+                                    
+                        { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
+                        |> setLastProcessed messagePosition
+        | Local (Event = meteringUpdateEvent) ->
+            match meteringUpdateEvent with
+            | PartitionEventConsumptionCatchedUp ->
+                state
+                |> applyMeters (
+                    Map.toSeq
+                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorCatchedUp config))
+                    >> Map.ofSeq
+                )
+
+
     let handleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
         let state =
             match state with

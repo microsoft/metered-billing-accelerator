@@ -33,11 +33,11 @@ module CaptureProcessor =
         | true, value -> value :?> 'T
         | false, _ -> raise <| new ArgumentException($"Missing field {fieldName} in {nameof(GenericRecord)} object.");
 
-    let private createRegexPattern (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: string)) : string =
+    let private createRegexPattern (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: PartitionID)) : string =
         $"{captureFileNameFormat}.avro"
             .Replace("{Namespace}", eventHubName.NamespaceName)
             .Replace("{EventHub}", eventHubName.InstanceName)
-            .Replace("{PartitionId}", partitionId)
+            .Replace("{PartitionId}", partitionId |> PartitionID.value)
             .Replace("{Year}", "(?<year>\d{4})")
             .Replace("{Month}", "(?<month>\d{2})")
             .Replace("{Day}", "(?<day>\d{2})")
@@ -45,7 +45,7 @@ module CaptureProcessor =
             .Replace("{Minute}", "(?<minute>\d{2})")
             .Replace("{Second}", "(?<second>\d{2})")
 
-    let getPrefixForRelevantBlobs (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: string)) : string =
+    let getPrefixForRelevantBlobs (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: PartitionID)) : string =
         let regexPattern = createRegexPattern captureFileNameFormat (eventHubName, partitionId)
         let beginningOfACaptureGroup = "(?<"
 
@@ -53,7 +53,7 @@ module CaptureProcessor =
         |> (fun s -> s.Substring(startIndex = 0, length = s.IndexOf(beginningOfACaptureGroup)))
         // |> (fun s -> s.Substring(startIndex = 0, length = s.LastIndexOf("/") - 1))
     
-    let extractTime (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: string)) (blobName: string) : MeteringDateTime option = 
+    let extractTime (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: PartitionID)) (blobName: string) : MeteringDateTime option = 
         let regex = 
             new Regex(
                 pattern = createRegexPattern captureFileNameFormat (eventHubName, partitionId), 
@@ -70,7 +70,7 @@ module CaptureProcessor =
     let containsFullyRelevantEvents (startTime: MeteringDateTime) (timeStampBlob: MeteringDateTime)  : bool =
         (timeStampBlob - startTime).BclCompatibleTicks >= 0
         
-    let isRelevantBlob (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: string)) (blobName: string) (startTime: MeteringDateTime): bool = 
+    let isRelevantBlob (captureFileNameFormat: string) ((eventHubName: EventHubName), (partitionId: PartitionID)) (blobName: string) (startTime: MeteringDateTime): bool = 
         let blobtime = extractTime captureFileNameFormat (eventHubName, partitionId) blobName
         match blobtime with
         | None -> false
@@ -90,7 +90,10 @@ module CaptureProcessor =
                 let systemProperties = genericAvroRecord |> GetRequiredAvroProperty<Dictionary<string, obj>> "SystemProperties" |> ImmutableDictionary.ToImmutableDictionary
                 let properties = genericAvroRecord |> GetRequiredAvroProperty<IDictionary<string, obj>> "Properties"
                 let body = genericAvroRecord |> GetRequiredAvroProperty<byte[]> "Body"
-                let partitionKey = systemProperties["x-opt-partition-key"] :?> string // x-opt-partition-key : string = "3e7a30bd-29c3-0ae1-2cff-8fb87480823d"
+                let partitionKey = 
+                    if systemProperties.ContainsKey("x-opt-partition-key")
+                    then systemProperties["x-opt-partition-key"] :?> string // x-opt-partition-key : string = "3e7a30bd-29c3-0ae1-2cff-8fb87480823d"
+                    else ""
 
                 yield new RehydratedFromCaptureEventData(
                     blobName = blobName, eventBody = body, 
@@ -121,7 +124,7 @@ module CaptureProcessor =
     let ReadCaptureFromPosition connections ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) = 
         connections |> readCaptureFromPosition cancellationToken
         
-    let getCaptureBlobs (cancellationToken: CancellationToken) (partitionId: string) (connections: MeteringConnections) : string seq =
+    let getCaptureBlobs (cancellationToken: CancellationToken) (partitionId: PartitionID) (connections: MeteringConnections) : string seq =
         match connections.EventHubConfig.CaptureStorage with
         | None -> Seq.empty
         | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } -> 
@@ -139,25 +142,55 @@ module CaptureProcessor =
                         yield blobHierarchyItem.Blob.Name
             }
 
+    let readAllEvents<'TEvent> (convert: EventData -> 'TEvent) (partitionId: PartitionID) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
+           match connections.EventHubConfig.CaptureStorage with
+           | None -> Seq.empty
+           | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } ->
+               seq {
+                   let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
+                   let getTime = extractTime captureFileNameFormat ehInfo
+                   let blobNames = getCaptureBlobs cancellationToken partitionId connections
+
+                   let blobs = 
+                       blobNames
+                       |> Seq.map (fun n -> (n, n |> getTime))
+                       |> Seq.filter (fun (_, t) -> t.IsSome)
+                       |> Seq.map (fun (n, t) -> (n, t.Value.ToInstant()))
+                       |> Seq.sortBy (fun (blob, t) -> t)
+                       |> Seq.map (fun (n, _) -> n)
+                       |> Seq.toArray
+
+                   for blobName in blobs do                
+                       let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
+                       let client = captureContainer.GetBlobClient(blobName = blobName)
+                       let downloadInfo = client.Download(cancellationToken)
+                       let items = 
+                           downloadInfo.Value.Content
+                           |> ReadEventDataFromAvroStream blobName
+                       for i in items do
+                           match i |> toEvent with
+                           | None -> ()
+                           | Some e -> yield e
+               }
+
     let readEventsFromPosition<'TEvent> (convert: EventData -> 'TEvent) (mp: MessagePosition) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
         match connections.EventHubConfig.CaptureStorage with
         | None -> Seq.empty
         | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } ->
             seq {
-                let partitionId = mp.PartitionID |> PartitionID.value
-                let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
+                let ehInfo = (connections.EventHubConfig.EventHubName, mp.PartitionID)
                 let getTime = extractTime captureFileNameFormat ehInfo
-                let blobNames = getCaptureBlobs cancellationToken partitionId connections
-                let (partitionId, startTime, sequenceNumber) = (mp.PartitionID |> PartitionID.value, mp.PartitionTimestamp, mp.SequenceNumber)
+                let blobNames = getCaptureBlobs cancellationToken mp.PartitionID connections
+                let (startTime, sequenceNumber) = (mp.PartitionTimestamp, mp.SequenceNumber)
                 let fullyRelevant (blobName: string, timeStampBlob: MeteringDateTime) = 
                     timeStampBlob |> containsFullyRelevantEvents startTime
 
                 let blobs = 
                     blobNames
-                    |> Seq.map (fun n -> (n, n |> getTime))
-                    |> Seq.filter (fun (_, t) -> t.IsSome)
-                    |> Seq.map (fun (n, t) -> (n, t.Value))
-                    |> Seq.sortBy (fun (blob, t) -> t.ToInstant())
+                    |> Seq.map (fun name -> (name, name |> getTime))
+                    |> Seq.filter (fun (_, time) -> time.IsSome)
+                    |> Seq.map (fun (name, time) -> (name, time.Value))
+                    |> Seq.sortBy (fun (blob, time) -> time.ToInstant())
                     |> Seq.toArray
 
                 // Using EventHub capture, you have cannot easily correlate the filename to a sequence number or offset. 
@@ -184,7 +217,7 @@ module CaptureProcessor =
                     |> Array.map (fun (n,t) -> n)
                 
                 for blobName in relevantBlobs do                
-                    let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
+                    let toEvent = EventHubEvent.createFromEventHubCapture convert mp.PartitionID blobName
                     let client = captureContainer.GetBlobClient(blobName = blobName)
                     let downloadInfo = client.Download(cancellationToken)
                     let items = 
@@ -199,9 +232,73 @@ module CaptureProcessor =
                             then 
                                 yield e
             }
+
+    let readEventsFromTime<'TEvent> (convert: EventData -> 'TEvent) (partitionId: PartitionID) (startTime: MeteringDateTime) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
+        match connections.EventHubConfig.CaptureStorage with
+        | None -> Seq.empty
+        | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } ->
+            seq {
+                let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
+                let getTime = extractTime captureFileNameFormat ehInfo
+                let blobNames = getCaptureBlobs cancellationToken partitionId connections
+                let fullyRelevant (blobName: string, timeStampBlob: MeteringDateTime) = 
+                    timeStampBlob |> containsFullyRelevantEvents startTime
+
+                let blobs = 
+                    blobNames
+                    |> Seq.map (fun name -> (name, name |> getTime))
+                    |> Seq.filter (fun (_, time) -> time.IsSome)
+                    |> Seq.map (fun (name, time) -> (name, time.Value))
+                    |> Seq.sortBy (fun (blob, time) -> time.ToInstant())
+                    |> Seq.toArray
+
+                // Using EventHub capture, you have cannot easily correlate the filename to a sequence number or offset. 
+                // You need to use the date/time to search. If you're looking for a given timestamp, you must select the 
+                // very last capture file which is *before* that timestamp:
+                //
+                // For example, if you have the capture files 
+                // - 2021-12-06--15-12-12
+                // - 2021-12-06--15-16-12 <-- You need this one to get 2021-12-06--15-17-10
+                // - 2021-12-06--15-17-12, 
+                // and you're looking for an event with timestamp 2021-12-06--15-17-10, 
+                // you must select the last one with a timestamp prior the lookup one.
+
+                let indexOfTheFirstFullyRelevantCaptureFileOption = blobs |> Array.tryFindIndex fullyRelevant
+
+                let indexOfTheFirstPartlyRelevantCaptureFile = 
+                    match indexOfTheFirstFullyRelevantCaptureFileOption with
+                    | None -> blobs.Length - 1
+                    | Some indexOfTheFirstFullyRelevantCaptureFile -> indexOfTheFirstFullyRelevantCaptureFile - 1
+
+                let relevantBlobs =
+                    blobs
+                    |> Array.skip indexOfTheFirstPartlyRelevantCaptureFile
+                    |> Array.map (fun (n,t) -> n)
+                
+                let startTime = startTime.ToInstant()
+                for blobName in relevantBlobs do                
+                    let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
+                    let client = captureContainer.GetBlobClient(blobName = blobName)
+                    let downloadInfo = client.Download(cancellationToken)
+                    let items = 
+                        downloadInfo.Value.Content
+                        |> ReadEventDataFromAvroStream blobName
+                    for i in items do
+                        match i |> toEvent with
+                        | None -> ()
+                        | Some e -> 
+                            let messageTime = e.MessagePosition.PartitionTimestamp.ToInstant()
+                            let emitEvent = startTime < messageTime // only emit events after the sequence number we already have processed
+                            if emitEvent
+                            then 
+                                yield e
+            }
+
+
+
     // https://docs.microsoft.com/en-us/dotnet/azure/sdk/pagination
     // https://github.com/Azure/azure-sdk-for-net/issues/18306
-    
+    //
     //let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
     //    task {
     //        let blobs = snapshotContainerClient.GetBlobsAsync(cancellationToken = cancellationToken)

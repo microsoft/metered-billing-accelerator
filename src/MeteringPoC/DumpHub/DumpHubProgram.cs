@@ -52,7 +52,7 @@ static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateObservable<TSta
 
             var evnt = EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
                 new PartitionInitializing<TState>(
-                    partitionInitializingEventArgs: partitionInitializingEventArgs,
+                    partitionID: PartitionID.NewPartitionID(partitionInitializingEventArgs.PartitionId),
                     initialState: default));
             o.OnNext(evnt);
             return Task.CompletedTask;
@@ -113,7 +113,7 @@ var connections = MeteringConnectionsModule.getFromEnvironment();
 
 var meteringConfig = MeteringConfigurationProviderModule.create(
     connections: connections,
-    marketplaceClient: MarketplaceClient.submitCsharp.ToFSharpFunc());
+    marketplaceClient: MarketplaceClient.submitUsagesCsharp.ToFSharpFunc());
 
 Console.WriteLine($"Reading from {connections.EventHubConfig.EventHubName.FullyQualifiedNamespace}");
 

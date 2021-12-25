@@ -1,0 +1,21 @@
+{
+  "status": "ResourceNotFound",
+  "messageTime": "2021-12-14T20:59:40.7377957Z",
+  "error": {
+    "message": "One or more errors have occurred.",
+    "target": "usageEventRequest",
+    "details": [
+      {
+        "message": "The resourceId value provided cannot be found or this resource is not active.",
+        "target": "resourceId",
+        "code": "BadArgument"
+      }
+    ],
+    "code": "BadArgument"
+  },
+  "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5441",
+  "quantity": 9.1234567890123461,
+  "dimension": "datasourcecharge",
+  "effectiveStartTime": "2021-12-14T01:00:00",
+  "planId": "free_monthly_yearly"
+}
