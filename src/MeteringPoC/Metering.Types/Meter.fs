@@ -98,7 +98,7 @@ module Meter =
         | Expired expired -> 
             // Seems we're trying to submit something which is too old. 
             // Need to ring an alarm that the aggregator must be scheduled more frequently
-            // Submit compensating action for now?
+            // TODO: Submit compensating action for now?
             { meter with 
                 UsageToBeReported = meter.UsageToBeReported |> List.except [ expired.RequestData ] }
         | Generic generic -> 

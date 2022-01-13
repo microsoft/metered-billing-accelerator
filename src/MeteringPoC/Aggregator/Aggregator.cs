@@ -5,6 +5,7 @@ using Metering.Types;
 using Metering.Types.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
 using System.Collections.Concurrent;
+using Azure.Messaging.EventHubs;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
@@ -79,6 +80,10 @@ static IDisposable SubscribeEmitter(IObservable<MeterCollection> events, Meterin
     ConcurrentQueue<MarketplaceRequest[]> tobeSubmitted = new();
     var producer = config.MeteringConnections.createEventHubProducerClient();
 
+    // Run an endless loop,
+    // - to look at the concurrent queue,
+    // - submit REST calls to marketplace, and then
+    // - submit the marketplace responses to EventHub. 
     var task = Task.Factory.StartNew(async () => {
         while (true)
         {
@@ -95,6 +100,7 @@ static IDisposable SubscribeEmitter(IObservable<MeterCollection> events, Meterin
         .Subscribe(
             onNext: meterCollection =>
             {
+                // Only add new (unseen) events to the concurrent queue.
                 var current = meterCollection.metersToBeSubmitted().ToList();
                 var newOnes = current.Except(previousToBeSubmitted).ToList();
                 if (newOnes.Any())

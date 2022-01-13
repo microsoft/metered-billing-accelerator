@@ -46,7 +46,11 @@ module EventHubObservableClient =
                 try
                     match (EventHubEvent.createFromEventHub converter processEventArgs) with
                     | Some e -> o.OnNext(EventHubEvent e)
-                    | None -> ()
+                    | None -> 
+                        let catchUp = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
+                        eprintfn $"Didn't find events: PartitionId {processEventArgs.Partition.PartitionId} SequenceNumber {catchUp.SequenceNumber} EnqueuedTime {catchUp.EnqueuedTime} LastReceivedTime {catchUp.LastReceivedTime} ###############"
+
+                        ()
                 with
                 | e -> 
                     eprintf $"ProcessEvent Exception {e.Message} "

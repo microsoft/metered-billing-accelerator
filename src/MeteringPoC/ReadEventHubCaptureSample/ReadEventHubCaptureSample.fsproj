@@ -16,6 +16,6 @@
     <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ReadAvroSampleProgram.fs" />
+    <Compile Include="ReadEventHubCaptureSampleProgram.fs" />
   </ItemGroup>
 </Project>
