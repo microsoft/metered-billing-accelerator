@@ -31,6 +31,7 @@ let config : MeteringConfigurationProvider =
       SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.PretendEverythingIsAccepted
       GracePeriod = Duration.FromHours(6.0)
       MeteringConnections = MeteringConnections.getFromEnvironment() }
+
 let partitionId = "1" |> PartitionID.create
 CaptureProcessor.readAllEvents 
     EventHubObservableClient.toMeteringUpdateEvent
@@ -40,9 +41,21 @@ CaptureProcessor.readAllEvents
 |> Seq.iter (fun i -> 
     match i.EventData with
     | UsageReported _ -> ()
-    | a -> printfn "%d %s" i.MessagePosition.SequenceNumber  (a |> MeteringUpdateEvent.toStr)
+    | SubscriptionPurchased _ -> () 
+    | SubscriptionDeletion _ -> ()
+    | UnprocessableMessage _ -> ()
+    | RemoveUnprocessedMessages _ -> ()
+    | UsageSubmittedToAPI submitted -> 
+        match submitted.Result with 
+        | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity |> Quantity.toStr) (success.Status.ResourceURI.Value)
+        | Error e -> 
+            match e with 
+            | DuplicateSubmission d -> eprintfn "Duplicate %s" (d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
+            | ResourceNotFound r -> eprintfn "ResourceNotFound %s" (r.RequestData.ResourceId |> InternalResourceId.toStr)
+            | Expired e -> eprintfn "Expired %s" (e.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
+            | Generic g -> eprintfn "Error %A" g
 
-    
+    // | a -> printfn "%d %s" i.MessagePosition.SequenceNumber  (a |> MeteringUpdateEvent.toStr)s
 )
 exit 0
 

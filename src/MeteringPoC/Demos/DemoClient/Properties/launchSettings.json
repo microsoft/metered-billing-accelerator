@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "SimpleMeteringSubmissionClient": {
+    "DemoClient": {
       "commandName": "Project",
       "environmentVariables": {
         "AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME": "meteringhack-standard",

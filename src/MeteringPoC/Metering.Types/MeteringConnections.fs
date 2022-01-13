@@ -126,7 +126,8 @@ module MeteringConnections =
             clientOptions = new EventProcessorClientOptions(
                 TrackLastEnqueuedEventProperties = true,
                 PartitionOwnershipExpirationInterval = TimeSpan.FromMinutes(1),
-                PrefetchCount = 1000))
+                PrefetchCount = 1000,
+                CacheEventCount = 5000))
 
     [<Extension>]
     [<CompiledName("createEventHubProducerClient")>]

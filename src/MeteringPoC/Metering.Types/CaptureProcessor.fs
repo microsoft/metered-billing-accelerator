@@ -160,7 +160,8 @@ module CaptureProcessor =
                        |> Seq.map (fun (n, _) -> n)
                        |> Seq.toArray
 
-                   for blobName in blobs do                
+                   for blobName in blobs do            
+                       eprintfn "Reading %s" blobName
                        let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
                        let client = captureContainer.GetBlobClient(blobName = blobName)
                        let downloadInfo = client.Download(cancellationToken)

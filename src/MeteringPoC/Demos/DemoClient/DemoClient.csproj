@@ -9,7 +9,7 @@
     <PublishReadyToRun>true</PublishReadyToRun>-->
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
+    <ProjectReference Include="..\..\Metering.Types\Metering.Types.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="mapping.json">

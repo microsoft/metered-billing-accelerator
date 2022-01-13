@@ -13,9 +13,9 @@
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
+    <ProjectReference Include="..\..\Metering.Types\Metering.Types.fsproj" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ReadAvroSampleProgram.fs" />
+    <Compile Include="ReadEventHubCaptureSampleProgram.fs" />
   </ItemGroup>
 </Project>
