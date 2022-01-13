@@ -11,12 +11,6 @@ using Azure.Messaging.EventHubs;
 
 Console.Title = Assembly.GetExecutingAssembly().GetName().Name;
 
-//var start = DateTime.Now;
-//string elapsed() => DateTime.Now.Subtract(start).ToString();
-//using AzureEventSourceListener listener = new(level: EventLevel.LogAlways, log: (e, message) => {
-//    if (e.EventSource.Name.StartsWith("Azure-Messaging-EventHubs")) {
-//        Console.WriteLine($"{elapsed()} {e.EventName.W(45)} {e.Level.ToString().W(10)} {message}"); } });
-
 using CancellationTokenSource cts = new();
 
 MeteringConnections connections = MeteringConnectionsModule.getFromEnvironment();
@@ -33,6 +27,7 @@ Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUp
 
 List<IDisposable> subscriptions = new();
 
+// pretty-print which partitions we already 'own'
 var props = await config.MeteringConnections.createEventHubConsumerClient().GetEventHubPropertiesAsync();
 var partitions = new string[props.PartitionIds.Length];
 Array.Fill(partitions, "_");
@@ -42,35 +37,32 @@ var groupedSub = Metering.EventHubObservableClient.create(config, cts.Token).Sub
     var partitionId = group.Key;
     partitions[int.Parse(partitionId.value())] = partitionId.value();
 
-    var events = group
-        .Scan(
-            seed: MeterCollectionModule.Uninitialized,
-            accumulator: accumulator
-        )
-        .Choose() // '.Choose()' is cleaner than '.Where(x => x.IsSome()).Select(x => x.Value)'
-        //.StartWith()
-        //.PublishLast()
-        ;
+    IObservable<MeterCollection> events = group
+        .Scan(seed: MeterCollectionModule.Uninitialized, accumulator: accumulator)
+        .Choose(); // '.Choose()' is cleaner than '.Where(x => x.IsSome()).Select(x => x.Value)'
 
-    IDisposable subscription = events
+    // Subscribe the creation of snapshots
+    events
         .Subscribe(
-            onNext: coll => handleCollection(config, partitionId, coll, currentPartitions),
-            onError: ex => { 
+            onNext: coll => RegularlyCreateSnapshots(config, partitionId, coll, currentPartitions),
+            onError: ex =>
+            {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.Error.WriteLine($"Error {partitionId.value()}: {ex.Message}"); 
+                Console.Error.WriteLine($"Error {partitionId.value()}: {ex.Message}");
                 Console.ResetColor();
             },
             onCompleted: () =>
-            {   
-                Console.ForegroundColor = ConsoleColor.Blue; 
+            {
+                Console.ForegroundColor = ConsoleColor.Blue;
                 Console.WriteLine($"Closing {partitionId.value()}");
                 Console.ResetColor();
                 partitions[int.Parse(partitionId.value())] = "_";
-            });
-    subscriptions.Add(subscription);
+            })
+        .AddToSubscriptions(subscriptions);
 
-    IDisposable subscription2 = SubscribeEmitter(events, config);
-    subscriptions.Add(subscription2);
+    // Subscribe the submission to marketplace.
+    SubscribeEmitter(events, config)
+        .AddToSubscriptions(subscriptions);
 });
 subscriptions.Add(groupedSub);
 
@@ -114,7 +106,7 @@ static IDisposable SubscribeEmitter(IObservable<MeterCollection> events, Meterin
         );
 }
 
-static void handleCollection (MeteringConfigurationProvider config, PartitionID partitionId, MeterCollection meterCollection, Func<string> prefix) {
+static void RegularlyCreateSnapshots(MeteringConfigurationProvider config, PartitionID partitionId, MeterCollection meterCollection, Func<string> prefix) {
     //Console.WriteLine($"partition-{partitionId.value()}: {meterCollection.getLastUpdateAsString()} {Json.toStr(0, meterCollection).UpTo(30)}");
     //Console.WriteLine(MeterCollectionModule.toStr(meterCollection));
     //Console.WriteLine(meterCollection.getLastSequenceNumber());
@@ -131,7 +123,6 @@ static void handleCollection (MeteringConfigurationProvider config, PartitionID 
     }
 };
 
-
 await Console.Out.WriteLineAsync("Press <Return> to close...");
 _ = await Console.In.ReadLineAsync();
 
@@ -142,12 +133,8 @@ cts.Cancel();
 public static class E
 #pragma warning restore CA1050 // Declare types in namespaces
 {
+    public static void AddToSubscriptions(this IDisposable i, List<IDisposable> l) => l.Add(i);
     public static string UpTo(this string s, int length) =>  s.Length > length ? s[..length] : s;
     public static string W(this string s, int width) => String.Format($"{{0,-{width}}}", s);
-
-    public static void ForEach<T>(this IEnumerable<T> ts, Action<T> action)
-    {
-        foreach (var t in ts)
-            action(t);
-    }
+    public static void ForEach<T>(this IEnumerable<T> ts, Action<T> action) { foreach (var t in ts) { action(t); } }
 }

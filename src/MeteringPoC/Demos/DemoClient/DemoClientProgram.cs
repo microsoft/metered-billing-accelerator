@@ -37,6 +37,9 @@ static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerCli
     }
 }
 
+/// <summary>
+/// The current demo plans contain 10000 annual, and 1000 monthly units. This essentially consumes up all included quantities
+/// </summary>
 static async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
 {
     foreach (var sub in subs)

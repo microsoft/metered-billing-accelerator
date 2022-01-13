@@ -9,13 +9,13 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Types", "Metering.
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demos", "Demos", "{63515470-9590-4E66-9C64-9F0D3B86547E}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BusinessLogicDemoApp", "Metering.BusinessLogicDemoApp\Metering.BusinessLogicDemoApp.fsproj", "{F0A33057-5480-41D5-B71E-DD9483552DF6}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BusinessLogicDemoApp", "Demos\Metering.BusinessLogicDemoApp\Metering.BusinessLogicDemoApp.fsproj", "{F0A33057-5480-41D5-B71E-DD9483552DF6}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Tests", "Metering.Tests\Metering.Tests.fsproj", "{36375E7C-A2FF-4AAB-82B2-D0E064CFCAD1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DemoClient", "DemoClient\DemoClient.csproj", "{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DemoClient", "Demos\DemoClient\DemoClient.csproj", "{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ReadEventHubCaptureSample", "ReadEventHubCaptureSample\ReadEventHubCaptureSample.fsproj", "{2A7F95C9-5A33-4530-B023-814362AB307D}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ReadEventHubCaptureSample", "Demos\ReadEventHubCaptureSample\ReadEventHubCaptureSample.fsproj", "{2A7F95C9-5A33-4530-B023-814362AB307D}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BE422FBF-7D05-4571-AAFA-874471D110F2}"
 	ProjectSection(SolutionItems) = preProject
