@@ -5,6 +5,7 @@ open System.Threading
 open System.Threading.Tasks
 open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
+open Microsoft.Extensions.DependencyInjection
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Producer
 open Metering.Types
@@ -167,3 +168,8 @@ module MeteringEventHubExtensions =
         { PartitionID = partitionId; Selection = sequenceNumber |> Exactly }
         |> RemoveUnprocessedMessages 
         |> SubmitMeteringUpdateEventToPartition eventHubProducerClient partitionId cancellationToken
+
+    [<Extension>]
+    let AddMeteringClientSDK (services: IServiceCollection) = 
+        services.AddSingleton(MeteringConnections.createEventHubProducerClientForClientSDK())
+        

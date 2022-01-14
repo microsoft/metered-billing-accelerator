@@ -8,7 +8,6 @@ open System.Runtime.CompilerServices
 
 [<Extension>]
 module MarketplaceClient =
-
     let private meteringApiVersion = "2018-08-31"
 
     /// The batch usage event API allows you to emit usage events for more than one purchased resource at once. 

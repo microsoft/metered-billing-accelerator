@@ -22,7 +22,9 @@ using CancellationTokenSource cts = new();
 await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
 cts.Cancel();
 
-static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
+#pragma warning disable CS8321 // Local function is declared but never used
+async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
+#pragma warning restore CS8321 // Local function is declared but never used
 {
     foreach (var subscription in subscriptions)
     {
@@ -40,7 +42,9 @@ static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerCli
 /// <summary>
 /// The current demo plans contain 10000 annual, and 1000 monthly units. This essentially consumes up all included quantities
 /// </summary>
-static async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
+#pragma warning disable CS8321 // Local function is declared but never used
+async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
+#pragma warning restore CS8321 // Local function is declared but never used
 {
     foreach (var sub in subs)
     {
@@ -52,7 +56,7 @@ static async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerC
     }
 }
 
-static async Task BatchKnownIDs(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
+async Task BatchKnownIDs(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
 {
     Random random = new (); 
     
@@ -76,7 +80,9 @@ static string guidFromStr(string str) => new Guid(SHA1.Create().ComputeHash(Enco
 
 static async Task<T> readJson<T>(string name) => Json.fromStr<T>(await File.ReadAllTextAsync(name));
 
+#pragma warning disable CS8321 // Local function is declared but never used
 static async Task BatchRandomId(EventHubProducerClient eventHubProducerClient, string subName, CancellationToken ct)
+#pragma warning restore CS8321 // Local function is declared but never used
 {
     int i = 0;
     var saasId = guidFromStr(subName);
