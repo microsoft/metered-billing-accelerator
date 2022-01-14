@@ -4,7 +4,7 @@ services:
   aggregatorservice:
     image: ${DOCKER_REGISTRY-}aggregator
     build:
-      context: .
+      context: ..
       dockerfile: Aggregator/Dockerfile
     environment:
       # We just pass the existing environment variables into Docker
@@ -23,9 +23,10 @@ services:
   demowebapp:
     image: ${DOCKER_REGISTRY-}demowebapp
     build:
-      context: .
+      context: ..
       dockerfile: Demos/DemoWebApp/Dockerfile
     environment:
+      - ASPNETCORE_URLS=http://+:80
       # We just pass the existing environment variables into Docker
       - AZURE_METERING_MARKETPLACE_CLIENT_ID
       - AZURE_METERING_MARKETPLACE_CLIENT_SECRET
@@ -39,3 +40,5 @@ services:
       - AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER
       - AZURE_METERING_INFRA_CAPTURE_CONTAINER
       - AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT={Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}
+    ports:
+      - "80"
