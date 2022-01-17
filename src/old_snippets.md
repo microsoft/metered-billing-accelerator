@@ -1,6 +1,12 @@
 
 # Some old code snippets I want to keep around
 
+## Download the EventHub capture
+
+```bash
+az storage blob download-batch --destination . --source %AZURE_METERING_INFRA_CAPTURE_CONTAINER%
+```
+
 ## EventHubObservableClient on C#
 
 ```csharp
