@@ -124,18 +124,19 @@ module CaptureProcessor =
     let ReadCaptureFromPosition connections ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) = 
         connections |> readCaptureFromPosition cancellationToken
         
+    /// Provide a list of all EventHub Capture blobs which belong to a given partition.
     let getCaptureBlobs (cancellationToken: CancellationToken) (partitionId: PartitionID) (connections: MeteringConnections) : string seq =
         match connections.EventHubConfig.CaptureStorage with
         | None -> Seq.empty
         | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } -> 
+            let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
+            let prefix = getPrefixForRelevantBlobs captureFileNameFormat ehInfo
+
             seq {
                 // TODO This should be done using a seqAsync or something else that supports proper async pagination in F# with the Azure SDK
                 // https://docs.microsoft.com/en-us/dotnet/azure/sdk/pagination
                 // https://github.com/Azure/azure-sdk-for-net/issues/18306
-
-                let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
-                let prefix = getPrefixForRelevantBlobs captureFileNameFormat ehInfo
-
+                
                 let pageableItems = captureContainer.GetBlobsByHierarchy(prefix = prefix, cancellationToken = cancellationToken)
                 for page in pageableItems.AsPages() do
                     for blobHierarchyItem in page.Values do
@@ -160,15 +161,16 @@ module CaptureProcessor =
                        |> Seq.map (fun (n, _) -> n)
                        |> Seq.toArray
 
+                   let downloadAndDeserialize blobName ct =
+                       let client = captureContainer.GetBlobClient(blobName = blobName)
+                       let downloadInfo = client.Download(ct)
+                       downloadInfo.Value.Content
+                       |> ReadEventDataFromAvroStream blobName
+
                    for blobName in blobs do            
                        eprintfn "Reading %s" blobName
                        let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
-                       let client = captureContainer.GetBlobClient(blobName = blobName)
-                       let downloadInfo = client.Download(cancellationToken)
-                       let items = 
-                           downloadInfo.Value.Content
-                           |> ReadEventDataFromAvroStream blobName
-                       for i in items do
+                       for i in (downloadAndDeserialize blobName cancellationToken) do
                            match i |> toEvent with
                            | None -> ()
                            | Some e -> yield e
@@ -217,21 +219,28 @@ module CaptureProcessor =
                     |> Array.skip indexOfTheFirstPartlyRelevantCaptureFile
                     |> Array.map (fun (n,t) -> n)
                 
+                let downloadAndDeserialize ct blobName =
+                    let client = captureContainer.GetBlobClient(blobName = blobName)
+                    let downloadInfo = client.Download(ct)
+                    downloadInfo.Value.Content
+                    |> ReadEventDataFromAvroStream blobName
+
+                let isRelevantEvent (sn: SequenceNumber) (e: EventHubEvent<'TEvent>) =
+                    // only emit events after the sequence number we already have processed
+                    sn < e.MessagePosition.SequenceNumber
+
                 for blobName in relevantBlobs do                
                     let toEvent = EventHubEvent.createFromEventHubCapture convert mp.PartitionID blobName
-                    let client = captureContainer.GetBlobClient(blobName = blobName)
-                    let downloadInfo = client.Download(cancellationToken)
-                    let items = 
-                        downloadInfo.Value.Content
-                        |> ReadEventDataFromAvroStream blobName
-                    for i in items do
-                        match i |> toEvent with
-                        | None -> ()
-                        | Some e -> 
-                            let emitEvent = sequenceNumber < e.MessagePosition.SequenceNumber // only emit events after the sequence number we already have processed
-                            if emitEvent
-                            then 
-                                yield e
+
+                    let events =
+                        blobName
+                        |> downloadAndDeserialize cancellationToken
+                        |> Seq.map toEvent
+                        |> Seq.choose id
+                        |> Seq.filter (isRelevantEvent sequenceNumber)
+
+                    for e in events do
+                        yield e
             }
 
     let readEventsFromTime<'TEvent> (convert: EventData -> 'TEvent) (partitionId: PartitionID) (startTime: MeteringDateTime) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
@@ -276,26 +285,30 @@ module CaptureProcessor =
                     |> Array.skip indexOfTheFirstPartlyRelevantCaptureFile
                     |> Array.map (fun (n,t) -> n)
                 
-                let startTime = startTime.ToInstant()
+                let downloadAndDeserialize ct blobName  =
+                    let client = captureContainer.GetBlobClient(blobName = blobName)
+                    let downloadInfo = client.Download(ct)
+                    downloadInfo.Value.Content
+                    |> ReadEventDataFromAvroStream blobName
+                
+                let isRelevantEvent (start: MeteringDateTime) (e: EventHubEvent<'TEvent>) =
+                    let st = start.ToInstant()
+                    // only emit events after the sequence number we already have processed
+                    st < e.MessagePosition.PartitionTimestamp.ToInstant()
+
                 for blobName in relevantBlobs do                
                     let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
-                    let client = captureContainer.GetBlobClient(blobName = blobName)
-                    let downloadInfo = client.Download(cancellationToken)
-                    let items = 
-                        downloadInfo.Value.Content
-                        |> ReadEventDataFromAvroStream blobName
-                    for i in items do
-                        match i |> toEvent with
-                        | None -> ()
-                        | Some e -> 
-                            let messageTime = e.MessagePosition.PartitionTimestamp.ToInstant()
-                            let emitEvent = startTime < messageTime // only emit events after the sequence number we already have processed
-                            if emitEvent
-                            then 
-                                yield e
+
+                    let events =
+                        blobName
+                        |> downloadAndDeserialize cancellationToken
+                        |> Seq.map toEvent
+                        |> Seq.choose id
+                        |> Seq.filter (isRelevantEvent startTime)
+                    
+                    for e in events do
+                        yield e
             }
-
-
 
     // https://docs.microsoft.com/en-us/dotnet/azure/sdk/pagination
     // https://github.com/Azure/azure-sdk-for-net/issues/18306
