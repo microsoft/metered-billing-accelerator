@@ -26,9 +26,9 @@ namespace Metering.Aggregator
         private readonly ILogger<AggregatorWorker> _logger;
         private readonly MeteringConfigurationProvider config;
 
-        public AggregatorWorker(ILogger<AggregatorWorker> logger, MeteringConfigurationProvider meteringConfigurationProvider)
+        public AggregatorWorker(ILogger<AggregatorWorker> logger, MeteringConfigurationProvider mcp)
         {
-            (_logger, config) = (logger, meteringConfigurationProvider);
+            (_logger, config) = (logger, mcp);
         }
 
         private IDisposable SubscribeEmitter(IObservable<MeterCollection> events)
