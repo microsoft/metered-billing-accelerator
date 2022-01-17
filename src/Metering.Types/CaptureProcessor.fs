@@ -148,32 +148,34 @@ module CaptureProcessor =
            | None -> Seq.empty
            | Some { CaptureFileNameFormat = captureFileNameFormat; Storage = captureContainer } ->
                seq {
-                   let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
-                   let getTime = extractTime captureFileNameFormat ehInfo
-                   let blobNames = getCaptureBlobs cancellationToken partitionId connections
+                    let ehInfo = (connections.EventHubConfig.EventHubName, partitionId)
+                    let getTime = extractTime captureFileNameFormat ehInfo
+                    let blobNames = getCaptureBlobs cancellationToken partitionId connections
 
-                   let blobs = 
-                       blobNames
-                       |> Seq.map (fun n -> (n, n |> getTime))
-                       |> Seq.filter (fun (_, t) -> t.IsSome)
-                       |> Seq.map (fun (n, t) -> (n, t.Value.ToInstant()))
-                       |> Seq.sortBy (fun (blob, t) -> t)
-                       |> Seq.map (fun (n, _) -> n)
-                       |> Seq.toArray
+                    let blobs = 
+                        blobNames
+                        |> Seq.map (fun n -> (n, n |> getTime))
+                        |> Seq.filter (fun (_, t) -> t.IsSome)
+                        |> Seq.map (fun (n, t) -> (n, t.Value.ToInstant()))
+                        |> Seq.sortBy (fun (blob, t) -> t)
+                        |> Seq.map (fun (n, _) -> n)
+                        |> Seq.toArray
 
-                   let downloadAndDeserialize blobName ct =
-                       let client = captureContainer.GetBlobClient(blobName = blobName)
-                       let downloadInfo = client.Download(ct)
-                       downloadInfo.Value.Content
-                       |> ReadEventDataFromAvroStream blobName
+                    let downloadAndDeserialize ct blobName =
+                        let client = captureContainer.GetBlobClient(blobName = blobName)
+                        let downloadInfo = client.Download(ct)
+                        downloadInfo.Value.Content
+                        |> ReadEventDataFromAvroStream blobName
 
-                   for blobName in blobs do            
-                       eprintfn "Reading %s" blobName
-                       let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
-                       for i in (downloadAndDeserialize blobName cancellationToken) do
-                           match i |> toEvent with
-                           | None -> ()
-                           | Some e -> yield e
+                    for blobName in blobs do            
+                        eprintfn "Reading %s" blobName
+                        let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
+                    
+                        yield!
+                            blobName
+                            |> downloadAndDeserialize cancellationToken
+                            |> Seq.map toEvent
+                            |> Seq.choose id              
                }
 
     let readEventsFromPosition<'TEvent> (convert: EventData -> 'TEvent) (mp: MessagePosition) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
@@ -232,15 +234,12 @@ module CaptureProcessor =
                 for blobName in relevantBlobs do                
                     let toEvent = EventHubEvent.createFromEventHubCapture convert mp.PartitionID blobName
 
-                    let events =
+                    yield!
                         blobName
                         |> downloadAndDeserialize cancellationToken
                         |> Seq.map toEvent
                         |> Seq.choose id
                         |> Seq.filter (isRelevantEvent sequenceNumber)
-
-                    for e in events do
-                        yield e
             }
 
     let readEventsFromTime<'TEvent> (convert: EventData -> 'TEvent) (partitionId: PartitionID) (startTime: MeteringDateTime) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
@@ -299,15 +298,12 @@ module CaptureProcessor =
                 for blobName in relevantBlobs do                
                     let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
 
-                    let events =
+                    yield!
                         blobName
                         |> downloadAndDeserialize cancellationToken
                         |> Seq.map toEvent
                         |> Seq.choose id
                         |> Seq.filter (isRelevantEvent startTime)
-                    
-                    for e in events do
-                        yield e
             }
 
     // https://docs.microsoft.com/en-us/dotnet/azure/sdk/pagination
