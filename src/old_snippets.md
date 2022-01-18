@@ -4,6 +4,8 @@
 ## Download the EventHub capture
 
 ```bash
+az login --service-principal --username %AZURE_METERING_INFRA_CLIENT_ID% --password %AZURE_METERING_INFRA_CLIENT_SECRET% --tenant %AZURE_METERING_INFRA_TENANT_ID%
+
 az storage blob download-batch --destination . --source %AZURE_METERING_INFRA_CAPTURE_CONTAINER%
 ```
 
