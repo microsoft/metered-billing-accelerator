@@ -16,8 +16,6 @@ namespace Metering.Aggregator
             services.AddSingleton(MeteringConfigurationProviderModule.create(
                 connections: MeteringConnectionsModule.getFromEnvironment(),
                 marketplaceClient: MarketplaceClient.submitUsagesCsharp.ToFSharpFunc()));
-
-            services.AddHostedService<AggregatorWorker>();
         }
     }
 
