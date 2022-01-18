@@ -9,16 +9,6 @@ namespace Metering.Aggregator
 
     // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
-    public static class AggregatorWorkerExtensions
-    {
-        public static void RegisterMeteringAggregator(this IServiceCollection services)
-        {
-            services.AddSingleton(MeteringConfigurationProviderModule.create(
-                connections: MeteringConnectionsModule.getFromEnvironment(),
-                marketplaceClient: MarketplaceClient.submitUsagesCsharp.ToFSharpFunc()));
-        }
-    }
-
     public class AggregatorWorker : BackgroundService
     {
         private readonly ILogger<AggregatorWorker> _logger;
@@ -96,7 +86,7 @@ namespace Metering.Aggregator
             Array.Fill(partitions, "_");
             string currentPartitions() => string.Join("", partitions);
 
-            var groupedSub = Metering.EventHubObservableClient
+            var groupedSub = EventHubObservableClient
                 .create(config, stoppingToken)
                 .Subscribe(
                     onNext: group => {

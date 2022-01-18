@@ -175,4 +175,3 @@ module MeteringEventHubExtensions =
     [<Extension>]
     let AddMeteringClientSDK (services: IServiceCollection) = 
         services.AddSingleton(MeteringConnections.createEventHubProducerClientForClientSDK())
-        

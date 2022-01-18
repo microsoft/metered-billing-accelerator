@@ -1,4 +1,4 @@
-﻿namespace Metering
+﻿namespace Metering.Types
 
 open System
 open System.Text
@@ -265,7 +265,6 @@ module EventHubObservableClient =
                 | _ -> str |> UnprocessableStringContent |> UnprocessableMessage
             | Error e -> e
         
-
     [<Extension>]
     let create (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
         let determineInitialState (args: PartitionInitializingEventArgs) ct =
@@ -276,3 +275,4 @@ module EventHubObservableClient =
 
         createInternal config determineInitialState MeterCollectionLogic.getEventPosition toMeteringUpdateEvent cancellationToken
         |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))
+

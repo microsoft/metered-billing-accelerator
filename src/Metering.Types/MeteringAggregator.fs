@@ -1,8 +1,9 @@
 ﻿namespace Metering.Types
 
 open System
-open Metering.Types.EventHub
 open System.Runtime.CompilerServices
+open Microsoft.Extensions.DependencyInjection
+open Metering.Types.EventHub
 
 [<Extension>]
 module MeteringAggregator =
@@ -28,3 +29,11 @@ module MeteringAggregator =
     [<Extension>]
     let createAggregator (config: MeteringConfigurationProvider) : Func<MeterCollection option, EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>, MeterCollection option> =
         aggregate config
+
+    [<Extension>]
+    let AddMeteringAggregatorConfigFromEnvironment (services: IServiceCollection) =
+        services.AddSingleton(
+            MeteringConfigurationProvider.create 
+                (MeteringConnections.getFromEnvironment()) 
+                (MarketplaceClient.SubmitUsage)
+        )
