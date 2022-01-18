@@ -1,32 +1,37 @@
-namespace Metering.Aggregator
+namespace AggregatorFunctionHost
 {
+    using System;
+    using System.Collections.Generic;
+    using Metering.Types;
+    using Microsoft.Azure.WebJobs;
+    using Microsoft.Extensions.Logging;
     using System.Reactive.Linq;
     using System.Collections.Concurrent;
-    using Metering.Types;
     using Metering.Types.EventHub;
     using Metering.ClientSDK;
     using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
+    using Microsoft.AspNetCore.Routing;
 
-    // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
-
-    public static class AggregatorWorkerExtensions
+    public class AggregatorFunction
     {
-        public static void RegisterMeteringAggregator(this IServiceCollection services)
-        {
-            services.AddSingleton(MeteringConfigurationProviderModule.create(
-                connections: MeteringConnectionsModule.getFromEnvironment(),
-                marketplaceClient: MarketplaceClient.submitUsagesCsharp.ToFSharpFunc()));
-        }
-    }
-
-    public class AggregatorWorker : BackgroundService
-    {
-        private readonly ILogger<AggregatorWorker> _logger;
+        private ILogger _logger;
         private readonly MeteringConfigurationProvider config;
 
-        public AggregatorWorker(ILogger<AggregatorWorker> logger, MeteringConfigurationProvider mcp)
+        public AggregatorFunction(MeteringConfigurationProvider mcp)
         {
-            (_logger, config) = (logger, mcp);
+            (config) = (mcp);
+        }
+
+        [FunctionName("AggregatorFunction")]
+        public void Run([TimerTrigger("0 */10 * * * *")]TimerInfo myTimer, ILogger logger, CancellationToken outerCt)
+        {
+            this._logger = logger;
+            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(
+                token1: outerCt, 
+                token2: new CancellationTokenSource(delay: TimeSpan.FromMinutes(5)).Token);
+            
+            _logger.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}, Using event hub {config.MeteringConnections.EventHubConfig.EventHubName}");
+            ExecuteAsync(cts.Token).Wait();
         }
 
         private IDisposable SubscribeEmitter(IObservable<MeterCollection> events)
@@ -83,7 +88,7 @@ namespace Metering.Aggregator
             }
         }
 
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        private async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator =
                 MeteringAggregator.createAggregator(config);
@@ -128,7 +133,7 @@ namespace Metering.Aggregator
                     },
                     onCompleted: () => {
                         _logger.LogWarning($"Closing everything");
-                    }, 
+                    },
                     onError: ex => {
                         _logger.LogCritical($"Error: {ex.Message}");
                     }

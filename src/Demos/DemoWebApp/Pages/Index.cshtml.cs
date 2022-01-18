@@ -3,7 +3,6 @@
     using Microsoft.AspNetCore.Mvc.RazorPages;
     using Azure.Messaging.EventHubs.Producer;
     using Metering.ClientSDK;
-    using Metering.Types;
     
     public partial class IndexModel : PageModel
     {
@@ -17,17 +16,16 @@
         }
 
         public void OnGet() { }
-        public Task OnPostNodeChargeAsync() => Submit(1.0, "nde");
-        public Task OnPostCpuChargeAsync() => Submit(1.0, "cpu");
-        public Task OnPostDataSourceChargeAsync() => Submit(1.0, "dta");
-        public Task OnPostMessageChargeAsync() => Submit(1.0, "msg");
-        public Task OnPostObjectChargeAsync() => Submit(1.0, "obj");
+        public Task OnPostNodeChargeAsync(CancellationToken ct) => Submit(1.0, "nde", ct);
+        public Task OnPostCpuChargeAsync(CancellationToken ct) => Submit(1.0, "cpu", ct);
+        public Task OnPostDataSourceChargeAsync(CancellationToken ct) => Submit(1.0, "dta", ct);
+        public Task OnPostMessageChargeAsync(CancellationToken ct) => Submit(1.0, "msg", ct);
+        public Task OnPostObjectChargeAsync(CancellationToken ct) => Submit(1.0, "obj", ct);
 
-        private async Task Submit(double amount, string name)
+        private async Task Submit(double amount, string name, CancellationToken ct)
         {
-            await _eventHubProducerClient.SubmitManagedAppMeterAsync(new[] { new Metering.ClientSDK.MeterValue(
-                quantity: Quantity.NewMeteringFloat(amount),
-                name: ApplicationInternalMeterNameModule.create(name)) });
+            await _eventHubProducerClient.SubmitManagedAppMeterAsync(
+                MeterValueModule.create(name, amount), ct);
             var msg = $"Submitted consumption of {amount} {name}";
 
             Msg = msg;

@@ -4,6 +4,7 @@ IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
         services.RegisterMeteringAggregator();
+        services.AddHostedService<AggregatorWorker>();
     })
     .Build();
 

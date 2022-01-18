@@ -104,8 +104,7 @@ module MeteringEventHubExtensions =
         | Infinite -> raise (new ArgumentException(message = "Not allowed to submit infinite consumption"))
 
     [<Extension>]
-    [<CompiledName("SubmitManagedAppMeterAsync")>]
-    let SubmitManagedAppMeterAsync (eventHubProducerClient: EventHubProducerClient) (meters: MeterValue seq) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    let SubmitManagedAppMetersAsync (eventHubProducerClient: EventHubProducerClient) (meters: MeterValue seq) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         meters
         |> Seq.map (fun v -> enforceNonNegativeAndNonInfiniteQuantity v.Quantity; v)
         |> Seq.map(fun v -> 
@@ -118,6 +117,10 @@ module MeteringEventHubExtensions =
         )
         |> Seq.toList
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
+
+    [<Extension>]
+    let SubmitManagedAppMeterAsync (eventHubProducerClient: EventHubProducerClient) (meter: MeterValue ) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =        
+        SubmitManagedAppMetersAsync eventHubProducerClient [| meter |] cancellationToken
 
     [<Extension>]
     [<CompiledName("SubmitSaaSMeterAsync")>] // Naming these for C# method overloading
