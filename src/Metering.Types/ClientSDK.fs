@@ -1,4 +1,7 @@
-﻿namespace Metering.ClientSDK
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.ClientSDK
 
 open System
 open System.Threading

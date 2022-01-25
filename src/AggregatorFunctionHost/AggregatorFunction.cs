@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
 
 // https://docs.microsoft.com/en-us/azure/azure-functions/functions-dotnet-dependency-injection
 [assembly: Microsoft.Azure.Functions.Extensions.DependencyInjection.FunctionsStartup(typeof(AggregatorFunctionHost.AggregatorStartup))]
@@ -120,7 +122,7 @@ namespace AggregatorFunctionHost
             string currentPartitions() => string.Join("", partitions);
 
             var groupedSub = EventHubObservableClient
-                .create(config, stoppingToken)
+                .create(_logger, config, stoppingToken)
                 .Subscribe(
                     onNext: group => {
                         var partitionId = group.Key;

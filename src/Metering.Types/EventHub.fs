@@ -1,4 +1,7 @@
-﻿namespace Metering.Types.EventHub
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.Types.EventHub
 
 open System
 open System.Runtime.CompilerServices

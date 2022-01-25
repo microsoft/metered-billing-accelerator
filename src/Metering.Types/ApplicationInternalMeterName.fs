@@ -1,4 +1,7 @@
-﻿namespace Metering.Types
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.Types
 
 type ApplicationInternalMeterName = private ApplicationInternalMeterName of string // A meter name used between app and aggregator
 

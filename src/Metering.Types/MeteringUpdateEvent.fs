@@ -1,4 +1,7 @@
-﻿namespace Metering.Types
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.Types
 
 /// The events which are processed by the aggregator.
 type MeteringUpdateEvent =

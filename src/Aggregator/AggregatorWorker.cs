@@ -87,7 +87,7 @@ namespace Metering.Aggregator
             string currentPartitions() => string.Join("", partitions);
 
             var groupedSub = EventHubObservableClient
-                .create(config, stoppingToken)
+                .create(_logger, config, stoppingToken)
                 .Subscribe(
                     onNext: group => {
                         var partitionId = group.Key;
