@@ -1,4 +1,7 @@
-﻿namespace DemoWebApp.Pages
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace DemoWebApp.Pages
 {
     using Microsoft.AspNetCore.Mvc.RazorPages;
     using Azure.Messaging.EventHubs.Producer;

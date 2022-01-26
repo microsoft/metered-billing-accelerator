@@ -1,4 +1,7 @@
-﻿using System.Security.Cryptography;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+using System.Security.Cryptography;
 using System.Text;
 using Azure.Messaging.EventHubs.Producer;
 using Metering.Types;

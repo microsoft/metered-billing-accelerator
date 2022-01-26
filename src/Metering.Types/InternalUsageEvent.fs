@@ -1,4 +1,7 @@
-﻿namespace Metering.Types
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.Types
 
 type InternalUsageEvent = // From app to aggregator
     { InternalResourceId: InternalResourceId

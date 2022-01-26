@@ -1,4 +1,7 @@
-﻿namespace Metering.ClientSDK
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.ClientSDK
 
 open System
 open System.Threading
@@ -175,4 +178,3 @@ module MeteringEventHubExtensions =
     [<Extension>]
     let AddMeteringClientSDK (services: IServiceCollection) = 
         services.AddSingleton(MeteringConnections.createEventHubProducerClientForClientSDK())
-        

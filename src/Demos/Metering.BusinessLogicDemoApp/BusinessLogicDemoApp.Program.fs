@@ -1,4 +1,7 @@
-﻿module foo
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+module foo
 
 open System
 open System.Net.Http

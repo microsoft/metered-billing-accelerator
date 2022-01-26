@@ -1,9 +1,10 @@
-﻿namespace Metering
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.Types
 
 open System.Threading
 open System.Runtime.CompilerServices
-open Metering
-open Metering.Types
 open Metering.Types.EventHub
 
 [<Extension>]
@@ -44,7 +45,7 @@ module ManagementUtils =
         |> CaptureProcessor.readEventsFromTime EventHubObservableClient.toMeteringUpdateEvent partitionId start CancellationToken.None
         
 
-    let getUnsubmittedMeters (config : MeteringConfigurationProvider) (partitionId: PartitionID) (cancellationToken: CancellationToken) =
+    let getUnsubmittedMeters (config: MeteringConfigurationProvider) (partitionId: PartitionID) (cancellationToken: CancellationToken) =
         task {
             let! state = 
                 MeterCollectionStore.loadLastState 

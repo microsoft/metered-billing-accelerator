@@ -1,4 +1,7 @@
-﻿namespace Metering
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.Types
 
 open System
 open System.Text
@@ -8,6 +11,7 @@ open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
 open System.Reactive.Disposables
 open System.Reactive.Linq
+open Microsoft.Extensions.Logging
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Processor
 open Azure.Messaging.EventHubs.Consumer
@@ -22,6 +26,7 @@ module EventHubObservableClient =
         | ReadFromEventHubCaptureBeginningAndThenEventHub
 
     let private createInternal<'TState, 'TEvent>
+        (logger: ILogger)
         (config: MeteringConfigurationProvider) 
         (determineInitialState: PartitionInitializingEventArgs -> CancellationToken -> Task<'TState>)
         (determinePosition: 'TState -> StartingPosition)
@@ -29,18 +34,19 @@ module EventHubObservableClient =
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : IObservable<EventHubProcessorEvent<'TState, 'TEvent>> =
 
-        let a = Action (fun () -> eprintf "outside cancelled")
-        cancellationToken.Register(a) |> ignore
+        
+        let registerCancellationMessage (message: string) (ct: CancellationToken)  =            
+            Action (fun () -> logger.LogWarning(sprintf "%s" message))
+            |> ct.Register
+            |> ignore
+
+        cancellationToken |> registerCancellationMessage "outer cancellationToken pulled"
 
         let fsharpFunction (o: IObserver<EventHubProcessorEvent<'TState, 'TEvent>>) : IDisposable =
             let cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
 
-            let innerCancellationToken = cts.Token
-
-            let x = Action (fun () -> 
-                eprintfn "innerCancellationToken is Cancelled"
-            )                        
-            innerCancellationToken.Register(callback = x) |> ignore
+            let cancellationToken = cts.Token
+            cancellationToken |> registerCancellationMessage "innerCancellationToken is Cancelled"
 
             let ProcessEvent (processEventArgs: ProcessEventArgs) =
                 try
@@ -48,7 +54,7 @@ module EventHubObservableClient =
                     | Some e -> o.OnNext(EventHubEvent e)
                     | None -> 
                         let catchUp = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
-                        eprintfn $"Didn't find events: PartitionId {processEventArgs.Partition.PartitionId} SequenceNumber {catchUp.SequenceNumber} EnqueuedTime {catchUp.EnqueuedTime} LastReceivedTime {catchUp.LastReceivedTime} ###############"
+                        logger.LogDebug <| sprintf $"Didn't find events: PartitionId {processEventArgs.Partition.PartitionId} SequenceNumber {catchUp.SequenceNumber} EnqueuedTime {catchUp.EnqueuedTime} LastReceivedTime {catchUp.LastReceivedTime} ###############"
 
                         ()
                 with
@@ -64,7 +70,7 @@ module EventHubObservableClient =
                 try
                     o.OnError(processErrorEventArgs.Exception)
                 with
-                | e -> eprintf $"ProcessError Exception {e.Message}" ;()
+                | e -> logger.LogCritical <| sprintf $"ProcessError Exception {e.Message}" ;()
                 
                 Task.CompletedTask
 
@@ -76,11 +82,11 @@ module EventHubObservableClient =
                     match partitionClosingEventArgs.Reason with
                     | ProcessingStoppedReason.OwnershipLost -> eprintfn $"{partitionClosingEventArgs.PartitionId}: ProcessingStoppedReason.OwnershipLost"
                     | ProcessingStoppedReason.Shutdown  -> eprintfn $"{partitionClosingEventArgs.PartitionId}: ProcessingStoppedReason.Shutdown"
-                    | a -> eprintfn $"{partitionClosingEventArgs.PartitionId}: ProcessingStoppedReason {a}"
+                    | a -> logger.LogCritical <| $"{partitionClosingEventArgs.PartitionId}: ProcessingStoppedReason {a}"
 
                     o.OnCompleted()
                 with
-                | e -> eprintf $"PartitionClosing Exception {e.Message}" ;()
+                | e -> logger.LogCritical <| $"PartitionClosing Exception {e.Message}" ;()
 
                 Task.CompletedTask
 
@@ -90,7 +96,7 @@ module EventHubObservableClient =
                         let partitionIdStr = partitionInitializingEventArgs.PartitionId
 
                         let! (initialState: 'TState) =
-                            determineInitialState partitionInitializingEventArgs innerCancellationToken
+                            determineInitialState partitionInitializingEventArgs cancellationToken
 
                         let initialPosition = determinePosition initialState
 
@@ -107,7 +113,7 @@ module EventHubObservableClient =
                                     
                                 let partitionProps = consumerClient.GetPartitionPropertiesAsync(
                                     partitionId = partitionIdStr, 
-                                    cancellationToken = innerCancellationToken).Result
+                                    cancellationToken = cancellationToken).Result
 
                                 let desiredEventIsNotAvailableInEventHub =
                                     let desiredEvent = lastProcessedEventSequenceNumber + 1L
@@ -191,7 +197,7 @@ module EventHubObservableClient =
                                         sequenceNumber = sequenceNumber, 
                                         isInclusive = false)
                     with
-                    | e -> eprintf $"PartitionInitializing Exception {e.Message}"
+                    | e -> logger.LogCritical <| $"PartitionInitializing Exception {e.Message}"
 
                     return ()
                 }
@@ -208,12 +214,12 @@ module EventHubObservableClient =
 
                             try
                                 let! () =
-                                    processor.StartProcessingAsync(innerCancellationToken)
+                                    processor.StartProcessingAsync(cancellationToken)
                                     |> Async.AwaitTask
 
                                 // This will block until the cancellationToken gets pulled
                                 let! () =
-                                    Task.Delay(Timeout.Infinite, innerCancellationToken)
+                                    Task.Delay(Timeout.Infinite, cancellationToken)
                                     |> Async.AwaitTask
 
                                 o.OnCompleted()
@@ -230,12 +236,12 @@ module EventHubObservableClient =
                             processor.remove_PartitionClosingAsync PartitionClosing
                     }
 
-                Async.StartAsTask(a, cancellationToken = innerCancellationToken)
+                Async.StartAsTask(a, cancellationToken = cancellationToken)
 
             let _ =
                 Task.Run(
                     ``function`` = (((fun () -> createTask ()): (unit -> Task)): Func<Task>),
-                    cancellationToken = innerCancellationToken
+                    cancellationToken = cancellationToken
                 )
 
             new CancellationDisposable(cts) :> IDisposable
@@ -265,14 +271,14 @@ module EventHubObservableClient =
                 | _ -> str |> UnprocessableStringContent |> UnprocessableMessage
             | Error e -> e
         
-
     [<Extension>]
-    let create (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
+    let create (logger: ILogger) (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
         let determineInitialState (args: PartitionInitializingEventArgs) ct =
             MeterCollectionStore.loadLastState 
                 config 
                 (args.PartitionId |> PartitionID.create)
                 ct
 
-        createInternal config determineInitialState MeterCollectionLogic.getEventPosition toMeteringUpdateEvent cancellationToken
+        createInternal logger config determineInitialState MeterCollectionLogic.getEventPosition toMeteringUpdateEvent cancellationToken
         |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))
+

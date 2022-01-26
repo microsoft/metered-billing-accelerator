@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 namespace Metering.Aggregator
 {
     using System.Reactive.Linq;
@@ -8,16 +11,6 @@ namespace Metering.Aggregator
     using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
 
     // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
-
-    public static class AggregatorWorkerExtensions
-    {
-        public static void RegisterMeteringAggregator(this IServiceCollection services)
-        {
-            services.AddSingleton(MeteringConfigurationProviderModule.create(
-                connections: MeteringConnectionsModule.getFromEnvironment(),
-                marketplaceClient: MarketplaceClient.submitUsagesCsharp.ToFSharpFunc()));
-        }
-    }
 
     public class AggregatorWorker : BackgroundService
     {
@@ -96,8 +89,8 @@ namespace Metering.Aggregator
             Array.Fill(partitions, "_");
             string currentPartitions() => string.Join("", partitions);
 
-            var groupedSub = Metering.EventHubObservableClient
-                .create(config, stoppingToken)
+            var groupedSub = EventHubObservableClient
+                .create(_logger, config, stoppingToken)
                 .Subscribe(
                     onNext: group => {
                         var partitionId = group.Key;

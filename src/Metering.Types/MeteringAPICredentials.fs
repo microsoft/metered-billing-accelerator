@@ -1,7 +1,7 @@
-﻿namespace Metering.Types
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
 
-open Azure.Core
-open Azure.Identity
+namespace Metering.Types
 
 type ServicePrincipalCredential = 
     { ClientId: string 

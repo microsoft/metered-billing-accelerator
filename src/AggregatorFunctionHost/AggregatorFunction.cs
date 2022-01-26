@@ -1,16 +1,30 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+// https://docs.microsoft.com/en-us/azure/azure-functions/functions-dotnet-dependency-injection
+[assembly: Microsoft.Azure.Functions.Extensions.DependencyInjection.FunctionsStartup(typeof(AggregatorFunctionHost.AggregatorStartup))]
+
 namespace AggregatorFunctionHost
 {
     using System;
-    using System.Collections.Generic;
-    using Metering.Types;
-    using Microsoft.Azure.WebJobs;
-    using Microsoft.Extensions.Logging;
-    using System.Reactive.Linq;
     using System.Collections.Concurrent;
-    using Metering.Types.EventHub;
+    using System.Collections.Generic;
+    using System.Reactive.Linq;
+    using Microsoft.Azure.WebJobs;   
+    using Microsoft.Azure.Functions.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Logging;
     using Metering.ClientSDK;
+    using Metering.Types;
+    using Metering.Types.EventHub;
     using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
-    using Microsoft.AspNetCore.Routing;
+
+    public class AggregatorStartup : FunctionsStartup
+    {
+        public override void Configure(IFunctionsHostBuilder builder)
+        {
+            builder.Services.AddMeteringAggregatorConfigFromEnvironment();
+        }
+    }
 
     public class AggregatorFunction
     {
@@ -23,15 +37,21 @@ namespace AggregatorFunctionHost
         }
 
         [FunctionName("AggregatorFunction")]
-        public void Run([TimerTrigger("0 */10 * * * *")]TimerInfo myTimer, ILogger logger, CancellationToken outerCt)
+        public void Run([TimerTrigger("0 */5 * * * *")]TimerInfo myTimer, ILogger logger, CancellationToken cancellationToken)
         {
             this._logger = logger;
-            CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(
-                token1: outerCt, 
-                token2: new CancellationTokenSource(delay: TimeSpan.FromMinutes(5)).Token);
-            
+
+            var token = cancellationToken.CancelAfter(TimeSpan.FromMinutes(3)); 
+
             _logger.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}, Using event hub {config.MeteringConnections.EventHubConfig.EventHubName}");
-            ExecuteAsync(cts.Token).Wait();
+            try
+            {
+                ExecuteAsync(token).Wait(token);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Operation cancelled");
+            }
         }
 
         private IDisposable SubscribeEmitter(IObservable<MeterCollection> events)
@@ -101,8 +121,8 @@ namespace AggregatorFunctionHost
             Array.Fill(partitions, "_");
             string currentPartitions() => string.Join("", partitions);
 
-            var groupedSub = Metering.EventHubObservableClient
-                .create(config, stoppingToken)
+            var groupedSub = EventHubObservableClient
+                .create(_logger, config, stoppingToken)
                 .Subscribe(
                     onNext: group => {
                         var partitionId = group.Key;
@@ -152,6 +172,11 @@ namespace AggregatorFunctionHost
 
     internal static class E
     {
+        public static CancellationToken CancelAfter(this CancellationToken token, TimeSpan timeSpan) => 
+            CancellationTokenSource.CreateLinkedTokenSource(
+                token1: token,
+                token2: new CancellationTokenSource(delay: timeSpan).Token).Token;
+        
         public static void AddToSubscriptions(this IDisposable i, List<IDisposable> l) => l.Add(i);
         public static string UpTo(this string s, int length) => s.Length > length ? s[..length] : s;
         public static string W(this string s, int width) => String.Format($"{{0,-{width}}}", s);

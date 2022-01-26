@@ -1,4 +1,7 @@
-﻿open System
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+open System
 open System.Threading
 open NodaTime
 open Metering

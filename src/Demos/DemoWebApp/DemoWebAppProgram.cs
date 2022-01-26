@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 using Metering.ClientSDK;
 
 var builder = WebApplication.CreateBuilder(args);

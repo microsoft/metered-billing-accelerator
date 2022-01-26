@@ -1,4 +1,7 @@
-﻿namespace Metering.Types
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.Types
 
 open System.Runtime.CompilerServices
 open Azure.Messaging.EventHubs.Consumer

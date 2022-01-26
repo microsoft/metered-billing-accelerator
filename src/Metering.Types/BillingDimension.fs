@@ -1,4 +1,7 @@
-﻿namespace Metering.Types
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.Types
 
 // https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
 
