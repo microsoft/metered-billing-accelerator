@@ -1,9 +1,11 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 module Metering.NUnitTests.Billing
 
 open System
 open NUnit.Framework
 open NodaTime
-open Metering
 open Metering.Types
 open Metering.Types.EventHub
 open System.IO

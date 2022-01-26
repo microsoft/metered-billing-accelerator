@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 namespace Metering.Aggregator
 {
     using System.Reactive.Linq;
