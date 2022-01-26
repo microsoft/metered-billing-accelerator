@@ -1,4 +1,23 @@
-# README
+# README: The metering-accelerator
+
+## tl;dr
+
+> This component takes care of the accounting necessary for correctly reporting custom metering information to the Azure Marketplace Metering API. 
+
+## Design goals
+
+- Allow the application developer to submit all relevant usage events via a light-weight SDK, and not worry about the intricacies of Azure Marketplace Metering.
+- Support all current (January 2022) Azure Marketplace offer types which can support custom meters, i.e. both Azure Managed Applications, as well as Software-as-a-Service. 
+- Main audience are 'small' ISVs, i.e. software companies which intend to bring a new offering into Azure Marketplace, but who might not yet have existing massive investments into billing and accounting infrastructure. 
+- The hosting costs should be minimal, preferably no premium services like CosmosDB etc..
+- Robust and resilient: The solution should easily hum along in presence of failures. If a component fails, it'll catch up the next time it runs. Just make sure the compute component runs a few times a day.
+- Hosting-agnostic: The compute component should be able to be hosted on a broad variety of compute paradigms, such as slapping it onto already existing virtual machine, or into an Azure function, a Docker container in ACI or K8s, or an on-premises Raspberry Pi.
+- Just do the right thing (TM).
+- Support various authentication mechanisms, i.e. both service principals, as well managed identity.
+- Capture rich historic information, to enable future scenarios, such as analytics for customer retention, usage statistics, etc.
+- Capture the full history of the system state, i.e. allow event sourcing.
+- Have a 'comparably' lightweight client-SDK, i.e. rely on supported Azure SDKs for the actual heavy-lifting.
+- JSON for both messages, as well as for state representation.
 
 ## Configuration via environment variables
 
