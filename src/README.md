@@ -1,4 +1,4 @@
-# README: The metering-accelerator
+# README: The metering-billing-accelerator
 
 ## tl;dr
 
@@ -18,6 +18,10 @@
 - Capture the full history of the system state, i.e. allow event sourcing.
 - Have a 'comparably' lightweight client-SDK, i.e. rely on supported Azure SDKs for the actual heavy-lifting.
 - JSON for both messages, as well as for state representation.
+
+## Architecture
+
+![architecture](docs/architecture.png)
 
 ## Configuration via environment variables
 
