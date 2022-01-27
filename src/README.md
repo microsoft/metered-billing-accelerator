@@ -17,7 +17,7 @@
 - Capture rich historic information, to enable future scenarios, such as analytics for customer retention, usage statistics, etc.
 - Capture the full history of the system state, i.e. allow event sourcing.
 - Have a 'comparably' lightweight client-SDK, i.e. rely on supported Azure SDKs for the actual heavy-lifting.
-- JSON for both messages, as well as for state representation.
+- JSON for messages in EventHub, as well as for state representation.
 
 ## Which challenges does it solve for?
 
@@ -47,17 +47,88 @@ Microsoft's Azure Marketplace backend system certainly has a good understanding 
 
 Surfacing that information can help customers to make good cost-conscious decisions. 
 
+### Azure Metering API requirements
 
+#### Hourly aggregation
 
+When submitting (overage) values to the metering endpoint, the usage must be aggregated on an hourly basis, i.e. all overage usage must be collected / aggregated per subscription/plan/dimension/hour. *"Only one usage event can be emitted for each hour of a calendar day per resource."*  [[src](https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#metered-billing-single-usage-event)]
 
+#### Write-once / First write wins / No updates
 
+The practical implication is that, when submitting values to the Azure Marketplace Metering API, the first write for a given hour must be correct, as it cannot be subsequently updated upon arrival of additional information. 
 
+#### Batching
 
-
+Ideally perform batch submissions to the metering API, to enable an efficient transfer of data.
 
 ## Architecture
 
 ![architecture](docs/architecture.png)
+
+The system is an event-sourced accounting solution, which uses Azure EventHub (in conjunction with EventHub Capture) as single-source-of-truth for everything that happens in the system. In addition, it uses an Azure blob storage container for snapshots of the most recent system state.
+
+### Recording usage
+
+Metering information enters the system by having a tiny thin layer on top of the EventHub SDK. The sending application creates JSON-formatted messages, and submits these into EventHub. Once successfully submitted, the usage is reliably recorded. 
+
+For the aggregator to properly function, it is completely controlled through messages coming through EventHub. In the simplest case, the sending application is supposed to send two types of events: 
+
+- A `SubscriptionCreationInformation` ([src](./Metering.Types/SubscriptionCreationInformation.fs)) event describes an Azure Marketplace subscription, which corresponds to either a single managed application, or a SaaS subscription. This data structure contains 
+
+  - a description of the plan 
+    - (plan name, 
+    - dimensions, 
+    - included quantities), 
+  - as well as the unique ID of the subscription, 
+  - the renewal interval (monthly/annually), 
+  - and the DateTime when the subscription was created. 
+
+  For each subscription, this event is only sent once, at the beginning, to instruct the aggregator to start tracking usage for that subscription.
+
+- An `InternalUsageEvent` ([src](./Metering.Types/InternalUsageEvent.fs)) represents the consumption of 'something' that needs to be tracked, and contains 
+
+  - the resource ID of the marketplace resource (SaaS subscription ID, or managed app ID), 
+  - a timestamp, 
+  - an application-internal name of the consumed meter, 
+  - the consumed quantity, 
+  - as well as optional metadata (key/value collection), to enable the ISV to build richer reporting.
+
+### Aggregating usage
+
+The "aggregator" is a .NET-application, which reads the most recently generated snapshot from storage (if any), and then processes all EventHub messages which arrived since the last successfully processed message. The aggregator certainly does not need to run 24x7, as long as it is regularly scheduled. You can run the aggregator on an existing VM, or in a (time-triggered) Azure Function, in a container-based offering (like AKS, or ACI), or wherever else you can run code (including your Raspberry Pi on your desk, if you're adventurous). 
+
+It does not cause harm if the aggregator gets shut-down in the middle of the action, while aggregating data or submitting usage; on the next launch, it'll keep continue humming along from it's last good known state.
+
+The architectural approach inside the aggregator is like this: The snapshot blob storage container contains all relevant state, up to a certain point in time. "Point in time" refers to a specific message sequence number in an Azure EventHub partition. When the aggregator starts, and get's ownership over one (or more) partitions in EH, it reads the most recent corresponding state (JSON files), and starts to continue sequentially processing all messages in the corresponding EventHub partition. 
+
+The business logic sequentially applies each event to the state, i.e. applying / [folding](https://en.wikipedia.org/wiki/Fold_(higher-order_function)) the events onto the state. The EventHub SDKs `EventProcessorClient`, alongside with the business logic, are wrapped in a Reactive Extension's observable, which then continuously emits new versions of the state.
+
+#### Business logic
+
+The business logic is completely side-effect-free; it's a "[pure function](https://en.wikipedia.org/wiki/Pure_function)" (in functional-programming terms), and it does not perform any interactions with the outside world. Most notably, when the business logic determines that a certain value is ready to be submitted to the external metering API, it just records a job entry, to indicate that 'someone' is supposed to make that API call. 
+
+Two subsequent functionalities subscribe to the stream of state updates: 
+
+- One task regularly stores the most recent state in Azure blob storage, in the snapshot container. Having that state enables us to quickly catch-up to the most recent point in time.
+- The second task continuously checks the state for ready-to-be-submitted data to the Azure Marketplace API. It looks in the state for jobs, submits the usage data to the external API. 
+
+#### Submission to Marketplace API
+
+The aforementioned task, that submits usage to Azure marketplace, might (partly) fail for various reasons. It submits up to 25 usage values in a single API call, so it could be that some of these values are accepted by Marketplace, while others might be rejected for various reasons. For example, the resource ID might not exist, the customer might have cancelled their subscription, or the time slot might be too far back in the past, older than 24 hours, maybe because you had an outage, and didn't run the aggregator often enough.
+
+Whatever the outcomes of the marketplace API calls are, the responses are fed back into the EventHub instance; you can see the feedback link from "Emit to metering API" back into EventHub. Therefore, our business logic can observe whether a certain usage item has been successfully submitted to the marketplace metering API, or whether there was an error.
+
+**Idempotency and resilience:** In case of a successful submission to Marketplace, the business logic removes the item from the collection of API calls that need to be made. The idempotent nature of the Azure Marketplace API is very beneficial for this architectural style. Imagine our API-calling emitter calls the marketplace API (submits usage for a certain time slot), but the overall aggregator gets shut-down by some infrastructure failure (VM going down, Azure Function timeout, pod eviction). In this example, the usage has been submitted (successfully) to the marketplace API, but we haven't been able to properly record that success in EventHub. When the aggregator is scheduled to run again (minutes or hours later), the emitter will submit the usage (again), and record the response in EventHub. For the business logic, it does not matter whether the response was a '200 OK' from the initial write, or a duplicate error; in both cases, we know that marketplace successfully processed our usage data.
+
+ 
+
+
+
+
+
+
+
+ 
 
 ## Configuration via environment variables
 
