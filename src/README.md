@@ -120,7 +120,68 @@ Whatever the outcomes of the marketplace API calls are, the responses are fed ba
 
 **Idempotency and resilience:** In case of a successful submission to Marketplace, the business logic removes the item from the collection of API calls that need to be made. The idempotent nature of the Azure Marketplace API is very beneficial for this architectural style. Imagine our API-calling emitter calls the marketplace API (submits usage for a certain time slot), but the overall aggregator gets shut-down by some infrastructure failure (VM going down, Azure Function timeout, pod eviction). In this example, the usage has been submitted (successfully) to the marketplace API, but we haven't been able to properly record that success in EventHub. When the aggregator is scheduled to run again (minutes or hours later), the emitter will submit the usage (again), and record the response in EventHub. For the business logic, it does not matter whether the response was a '200 OK' from the initial write, or a duplicate error; in both cases, we know that marketplace successfully processed our usage data.
 
- 
+## Data structures
+
+### State
+
+```json
+
+{
+	"meters": {
+		"8151a707-467c-4105-df0b-44c3fca5880d":{
+			"subscription":{
+				"renewalInterval":"Monthly",
+				"subscriptionStart":"2021-12-14T18:20:00Z",
+				"scope":"8151a707-467c-4105-df0b-44c3fca5880d",
+				"plan":{
+					"planId":"free_monthly_yearly",
+					"billingDimensions":[
+						{"dimension":"nodecharge",      "name":"Per Node Connected",        "unitOfMeasure":"node/hour",   "includedQuantity":{"monthly":1000,"annually":10000}},
+						{"dimension":"cpucharge",       "name":"Per CPU Connected",         "unitOfMeasure":"cpu/hour",    "includedQuantity":{"monthly":1000,"annually":10000}},
+						{"dimension":"datasourcecharge","name":"Per Datasource Integration","unitOfMeasure":"ds/hour",     "includedQuantity":{"monthly":1000,"annually":10000}},
+						{"dimension":"messagecharge",   "name":"Per Message Transmitted",   "unitOfMeasure":"message/hour","includedQuantity":{"monthly":1000,"annually":10000}},
+						{"dimension":"objectcharge",    "name":"Per Object Detected",       "unitOfMeasure":"object/hour", "includedQuantity":{"monthly":1000,"annually":10000}}
+					]
+				}				
+			},
+			"metersMapping":{
+				"nde":"nodecharge",
+				"cpu":"cpucharge",
+				"dta":"datasourcecharge",
+				"msg":"messagecharge",
+				"obj":"objectcharge"
+			},
+			"currentMeters":[
+				{"dimensionId":"nodecharge",      "meterValue":{"consumed":{"consumedQuantity":11018.8,      "created":"2021-12-22T10:30:28Z","lastUpdate":"2021-12-22T10:32:37Z"}}},
+				{"dimensionId":"cpucharge",       "meterValue":{"included":{"monthly":1000,"annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
+				{"dimensionId":"datasourcecharge","meterValue":{"included":{"monthly":1000,"annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
+				{"dimensionId":"messagecharge",   "meterValue":{"included":{"monthly":1000,"annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
+				{"dimensionId":"objectcharge",    "meterValue":{"consumed":{"consumedQuantity":11018.8,      "created":"2021-12-22T10:30:28Z","lastUpdate":"2021-12-22T10:32:37Z"}}}
+			],
+			"usageToBeReported":[
+				{
+					"planId":"free_monthly_yearly",
+					"dimension":"nodecharge",
+					"resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440",
+					"quantity":5.0,
+					"effectiveStartTime":"2021-12-22T09:00:00Z",
+				}
+			],
+			"lastProcessedMessage":{
+				"partitionId":"3",
+				"sequenceNumber":"10500",
+				"partitionTimestamp":"2021-12-22T10:32:37.48Z"
+			}
+		}
+	},
+	"lastProcessedMessage": {
+		"partitionId":"3",
+		"sequenceNumber":"10500",
+		"partitionTimestamp":"2021-12-22T10:32:37.48Z"
+	},
+	"unprocessable":[]
+}
+```
 
 
 
