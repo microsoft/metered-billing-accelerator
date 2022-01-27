@@ -122,10 +122,19 @@ Whatever the outcomes of the marketplace API calls are, the responses are fed ba
 
 ## Data structures
 
-### State
+### State file (for partition #3)
+
+The following JSON file describes the the state of partition #3 in EventHub, up to sequence number `10500`. If the aggregator would start with this state, it will start reading from event sequence number `10501` onwards. This tiny example tracks currently only a single (SaaS subscription) `8151a707-467c-4105-df0b-44c3fca5880d`. In a production setting, the `meters` dictionary would contain many more subscriptions.
+
+This customer purchased a plan called `free_monthly_yearly` in the partner portal, which lists 5 marketplace metering service dimensions, called `nodecharge`, `cpucharge`, `datasourcecharge`, `messagecharge` and `objectcharge`. Each of these has a 'monthly quantity included in base price' of 1000 units, and an 'annual quantity included' of 10000 units. 
+
+![2022-01-27--17-29-47](docs/partnerportalmeters.png)
+
+The `subscription/plan` item describes this in detail; having information on when a subscription has been purchased (`subscriptionStart`), alongside with the information on what is included in each dimension of the plan, allows the aggregator to refill the included quantities at  the start of each new billing cycle.
+
+**Internal versus external dimension names:** So the concrete dimension names that must be used externally with the Azure API are `objectcharge`  and the other ones. To avoid that the developers of a solution have to hard-code these  into the actual software implementation, the `metersMapping` table introduces a level of indirection: When reporting usage onto the system, the ISV's software can say that the `obj` meter should be incremented by 3.1415 units. The accelerator understands that the internal `obj` meter actually corresponds to what Azure marketplace knows as `objectcharge`.
 
 ```json
-
 {
 	"meters": {
 		"8151a707-467c-4105-df0b-44c3fca5880d":{
@@ -153,10 +162,10 @@ Whatever the outcomes of the marketplace API calls are, the responses are fed ba
 			},
 			"currentMeters":[
 				{"dimensionId":"nodecharge",      "meterValue":{"consumed":{"consumedQuantity":11018.8,      "created":"2021-12-22T10:30:28Z","lastUpdate":"2021-12-22T10:32:37Z"}}},
-				{"dimensionId":"cpucharge",       "meterValue":{"included":{"monthly":1000,"annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
-				{"dimensionId":"datasourcecharge","meterValue":{"included":{"monthly":1000,"annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
+				{"dimensionId":"cpucharge",       "meterValue":{"included":{"monthly":892, "annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
+				{"dimensionId":"datasourcecharge","meterValue":{"included":{               "annually": 9213, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
 				{"dimensionId":"messagecharge",   "meterValue":{"included":{"monthly":1000,"annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
-				{"dimensionId":"objectcharge",    "meterValue":{"consumed":{"consumedQuantity":11018.8,      "created":"2021-12-22T10:30:28Z","lastUpdate":"2021-12-22T10:32:37Z"}}}
+				{"dimensionId":"objectcharge",    "meterValue":{"consumed":{"consumedQuantity":118,         "created":"2021-12-22T10:30:28Z","lastUpdate":"2021-12-22T10:32:37Z"}}}
 			],
 			"usageToBeReported":[
 				{
@@ -164,7 +173,7 @@ Whatever the outcomes of the marketplace API calls are, the responses are fed ba
 					"dimension":"nodecharge",
 					"resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440",
 					"quantity":5.0,
-					"effectiveStartTime":"2021-12-22T09:00:00Z",
+					"effectiveStartTime":"2021-12-22T09:00:00Z"
 				}
 			],
 			"lastProcessedMessage":{
@@ -183,9 +192,30 @@ Whatever the outcomes of the marketplace API calls are, the responses are fed ba
 }
 ```
 
+Counting the consumption: In the above example, you can see 5 dimensions in different states for the given sample customer:
 
+- The `messagecharge` meter has an `"included":{"monthly":1000,"annually":10000,...}` value, which indicates that there has not been any consumption in this dimension, as it's the same values as were included in the plan.
+- The `cpucharge` meter has a value of `"included":{"monthly":892, "annually":10000,...}"`, which indicates that 118 units have already been consumed (in the current month), as the `monthly` value went down from 1000 to 892. The included monthly credits are first consumed, before 'touching' annual included quantities.
+- The `datasourcecharge` meter with the `"included":{ "annually": 9213, ...}` value shows that all included quantity *for the current month* has been eaten up, and for the current billing year, 9213 units are still left over.
+- The `nodecharge` and `objectcharge` meters completely depleted the included quantity for both the current month and year, and are now in the overage (for the current hour!!!), i.e. having values of `"consumed":{"consumedQuantity":11018.8, ...}` and `"consumed":{"consumedQuantity":118,...}` respectively.
 
+For the `nodecharge` meter, you can also see that the `usageToBeReported` array contains an object `{ "planId":"free_monthly_yearly", "dimension":"nodecharge","resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440","quantity":5.0,"effectiveStartTime":"2021-12-22T09:00:00Z"}`, indicating that the usage emitter must report a `free_monthly_yearly/nodecharge = 5.0` consumption for the 09:00-10:00 time window on December 12th, 2021.
 
+### Usage message
+
+The actual usage message emitted by the ISV application into EventHub looks like this, indicating that the `obj` meter (which is known to Azure under the official name `objectcharge`) has consumed 3.1415 units on 09:57:29 UTC (which is the application's internal time).
+
+```json
+{
+    "type":"UsageReported",
+    "value":{
+        "internalResourceId":"8151a707-467c-4105-df0b-44c3fca5880d",
+        "timestamp":"2022-01-27T09:57:29Z",
+        "meterName":"obj",
+        "quantity":3.1415
+    }
+}
+```
 
 
 
