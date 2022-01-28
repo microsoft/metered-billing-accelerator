@@ -122,9 +122,71 @@ Whatever the outcomes of the marketplace API calls are, the responses are fed ba
 
 ## Data structures
 
-### State file (for partition #3)
+### Client messages
 
-The following JSON file describes the the state of partition #3 in EventHub, up to sequence number `10500`. If the aggregator would start with this state, it will start reading from event sequence number `10501` onwards. This tiny example tracks currently only a single (SaaS subscription) `8151a707-467c-4105-df0b-44c3fca5880d`. In a production setting, the `meters` dictionary would contain many more subscriptions.
+The sequence of messages sent by a client looks like this: A `SubscriptionPurchased` event must inform the aggregator about the details of a new subscription. After that initialization, the `UsageReported` messages continuously inform the aggregator of metering event which must be accounted for. Finally, a `SubscriptionDeleted` message stops aggregation of events, and instructs the aggregator to stop tracking usage for the given subscription:
+
+![client-message-sequence](docs/client-message-sequence.drawio.svg)
+
+The aggregator is designed to track multiple subscriptions.
+
+#### The `SubscriptionPurchased` event
+
+The following JSON message instruct the aggregator to start tracking usage for the subscription with the subscription ID `fdc778a6-1281-40e4-cade-4a5fc11f5440`. This monthly recurring (SaaS) subscription was purchased on the 4th of November 2021, at 16:12:26 UTC, i.e. the first billing month ends December 4th, 16:12:25 UTC. 
+
+The `value/subscription/plan` element provides the Azure Marketplace plan's financial details, i.e. name of the plan (`'planId'`), and the collections of custom metering dimensions, including their name, and how many units are included `monthly` and `annually`. 
+
+In addition, it contains a `metersMapping` table, which translates the application's internal name for a consumption event, such as `'cpu'`, into the dimension name which is officially configured in Azure marketplace, such as `'cpucharge'`. 
+
+```json
+{
+	"type":"SubscriptionPurchased",
+	"value":{
+		"subscription":{
+			"scope":"fdc778a6-1281-40e4-cade-4a5fc11f5440",
+			"subscriptionStart":"2021-11-04T16:12:26Z",
+            "renewalInterval":"Monthly",
+			"plan":{
+				"planId":"free_monthly_yearly",
+				"billingDimensions":[
+					{"dimension":"nodecharge","name":"Per Node Connected","unitOfMeasure":"node/hour","includedQuantity":{"monthly":1000,"annually":10000}},
+					{"dimension":"cpucharge","name":"Per CPU Connected","unitOfMeasure":"cpu/hour","includedQuantity":{"monthly":1000,"annually":10000}},
+					{"dimension":"datasourcecharge","name":"Per Datasource Integration","unitOfMeasure":"ds/hour","includedQuantity":{"monthly":1000,"annually":10000}},
+					{"dimension":"messagecharge","name":"Per Message Transmitted","unitOfMeasure":"message/hour","includedQuantity":{"monthly":1000,"annually":10000}},
+					{"dimension":"objectcharge","name":"Per Object Detected","unitOfMeasure":"object/hour","includedQuantity":{"monthly":1000,"annually":10000}}
+				]
+			}
+		},
+		"metersMapping":{"cpu":"cpucharge","dta":"datasourcecharge","msg":"messagecharge","nde":"nodecharge","obj":"objectcharge"}
+	}
+}
+```
+
+
+
+#### The `UsageReported` message
+
+The actual usage / consumption message emitted by the ISV application into EventHub looks like this, indicating that the `cpu` meter (which is known to Azure under the official name `cpucharge`) has consumed 3.1415 units on 09:57:29 UTC (which is the application's internal time).
+
+```json
+{
+    "type":"UsageReported",
+    "value":{
+        "internalResourceId":"8151a707-467c-4105-df0b-44c3fca5880d",
+        "timestamp":"2022-01-27T09:57:29Z",
+        "meterName":"cpu",
+        "quantity":3.1415
+    }
+}
+```
+
+
+
+ 
+
+### State file (for a single partition)
+
+The JSON file in this section describes the state of partition #3 in EventHub, up to sequence number `10500`. If the aggregator would start with this state, it will start reading from event sequence number `10501` onwards. This tiny example tracks currently only a single (SaaS subscription) `8151a707-467c-4105-df0b-44c3fca5880d`. In a production setting, the `meters` dictionary would contain many more subscriptions.
 
 This customer purchased a plan called `free_monthly_yearly` in the partner portal, which lists 5 marketplace metering service dimensions, called `nodecharge`, `cpucharge`, `datasourcecharge`, `messagecharge` and `objectcharge`. Each of these has a 'monthly quantity included in base price' of 1000 units, and an 'annual quantity included' of 10000 units. 
 
@@ -201,25 +263,7 @@ Counting the consumption: In the above example, you can see 5 dimensions in diff
 
 For the `nodecharge` meter, you can also see that the `usageToBeReported` array contains an object `{ "planId":"free_monthly_yearly", "dimension":"nodecharge","resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440","quantity":5.0,"effectiveStartTime":"2021-12-22T09:00:00Z"}`, indicating that the usage emitter must report a `free_monthly_yearly/nodecharge = 5.0` consumption for the 09:00-10:00 time window on December 12th, 2021.
 
-### Usage message
 
-The actual usage message emitted by the ISV application into EventHub looks like this, indicating that the `obj` meter (which is known to Azure under the official name `objectcharge`) has consumed 3.1415 units on 09:57:29 UTC (which is the application's internal time).
-
-```json
-{
-    "type":"UsageReported",
-    "value":{
-        "internalResourceId":"8151a707-467c-4105-df0b-44c3fca5880d",
-        "timestamp":"2022-01-27T09:57:29Z",
-        "meterName":"obj",
-        "quantity":3.1415
-    }
-}
-```
-
-
-
- 
 
 ## Configuration via environment variables
 
