@@ -1,4 +1,4 @@
-# README: The metering-billing-accelerator
+README: The metering-billing-accelerator
 
 ## tl;dr
 
@@ -148,16 +148,22 @@ In addition, it contains a `metersMapping` table, which translates the applicati
             "renewalInterval":"Monthly",
 			"plan":{
 				"planId":"free_monthly_yearly",
-				"billingDimensions":[
-					{"dimension":"nodecharge","name":"Per Node Connected","unitOfMeasure":"node/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"cpucharge","name":"Per CPU Connected","unitOfMeasure":"cpu/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"datasourcecharge","name":"Per Datasource Integration","unitOfMeasure":"ds/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"messagecharge","name":"Per Message Transmitted","unitOfMeasure":"message/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"objectcharge","name":"Per Object Detected","unitOfMeasure":"object/hour","includedQuantity":{"monthly":1000,"annually":10000}}
-				]
-			}
+				"billingDimensions": {
+                    "cpucharge": { "monthly": 1000, "annually": 10000 },
+                    "datasourcecharge": { "monthly": 1000, "annually": 10000 },
+                    "messagecharge": { "monthly": 1000, "annually": 10000 },
+                    "nodecharge": { "monthly": 1000, "annually": 10000 },
+                    "objectcharge": { "monthly": 1000, "annually": 10000 }
+                }
+            }
 		},
-		"metersMapping":{"cpu":"cpucharge","dta":"datasourcecharge","msg":"messagecharge","nde":"nodecharge","obj":"objectcharge"}
+		"metersMapping":{
+            "cpu":"cpucharge",
+            "dta":"datasourcecharge",
+            "msg":"messagecharge",
+            "nde":"nodecharge",
+            "obj":"objectcharge"
+        }
 	}
 }
 ```
@@ -203,16 +209,16 @@ The `subscription/plan` item describes this in detail; having information on whe
 			"subscription":{
 				"renewalInterval":"Monthly",
 				"subscriptionStart":"2021-12-14T18:20:00Z",
-				"scope":"8151a707-467c-4105-df0b-44c3fca5880d",
+				"scope":"8151a707-467c-4105-df0b-44c3fca5880d",              
 				"plan":{
 					"planId":"free_monthly_yearly",
-					"billingDimensions":[
-						{"dimension":"nodecharge",      "name":"Per Node Connected",        "unitOfMeasure":"node/hour",   "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"cpucharge",       "name":"Per CPU Connected",         "unitOfMeasure":"cpu/hour",    "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"datasourcecharge","name":"Per Datasource Integration","unitOfMeasure":"ds/hour",     "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"messagecharge",   "name":"Per Message Transmitted",   "unitOfMeasure":"message/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"objectcharge",    "name":"Per Object Detected",       "unitOfMeasure":"object/hour", "includedQuantity":{"monthly":1000,"annually":10000}}
-					]
+					"billingDimensions": {
+                        "cpucharge": { "monthly": 1000, "annually": 10000 },
+                        "datasourcecharge": { "monthly": 1000, "annually": 10000 },
+                        "messagecharge": { "monthly": 1000, "annually": 10000 },
+                        "nodecharge": { "monthly": 1000, "annually": 10000 },
+                        "objectcharge": { "monthly": 1000, "annually": 10000 }
+	                }
 				}				
 			},
 			"metersMapping":{
@@ -222,13 +228,13 @@ The `subscription/plan` item describes this in detail; having information on whe
 				"msg":"messagecharge",
 				"obj":"objectcharge"
 			},
-			"currentMeters":[
-				{"dimensionId":"nodecharge",      "meterValue":{"consumed":{"consumedQuantity":11018.8,      "created":"2021-12-22T10:30:28Z","lastUpdate":"2021-12-22T10:32:37Z"}}},
-				{"dimensionId":"cpucharge",       "meterValue":{"included":{"monthly":892, "annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
-				{"dimensionId":"datasourcecharge","meterValue":{"included":{               "annually": 9213, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
-				{"dimensionId":"messagecharge",   "meterValue":{"included":{"monthly":1000,"annually":10000, "created":"2021-12-22T07:55:27Z","lastUpdate":"2021-12-22T07:55:27Z"}}},
-				{"dimensionId":"objectcharge",    "meterValue":{"consumed":{"consumedQuantity":118,         "created":"2021-12-22T10:30:28Z","lastUpdate":"2021-12-22T10:32:37Z"}}}
-			],
+            "currentMeters":{
+                "nodecharge": { "consumed": { "consumedQuantity": 11018.8 } },
+                "cpucharge": { "included": { "monthly": 892, "annually": 10000 } },
+                "datasourcecharge": { "included": { "annually": 9213 } },
+                "messagecharge": { "included": { "monthly": 1000, "annually": 10000 } },
+                "objectcharge": { "consumed": { "consumedQuantity": 118 } }
+            },
 			"usageToBeReported":[
 				{
 					"planId":"free_monthly_yearly",
@@ -257,7 +263,7 @@ The `subscription/plan` item describes this in detail; having information on whe
 Counting the consumption: In the above example, you can see 5 dimensions in different states for the given sample customer:
 
 - The `messagecharge` meter has an `"included":{"monthly":1000,"annually":10000,...}` value, which indicates that there has not been any consumption in this dimension, as it's the same values as were included in the plan.
-- The `cpucharge` meter has a value of `"included":{"monthly":892, "annually":10000,...}"`, which indicates that 118 units have already been consumed (in the current month), as the `monthly` value went down from 1000 to 892. The included monthly credits are first consumed, before 'touching' annual included quantities.
+- The `cpucharge` meter has a value of `"included":{"monthly":892, "annually":10000,...}"`, which indicates that 108 units have already been consumed (in the current month), as the `monthly` value went down from 1000 to 892. The included monthly credits are first consumed, before 'touching' annual included quantities.
 - The `datasourcecharge` meter with the `"included":{ "annually": 9213, ...}` value shows that all included quantity *for the current month* has been eaten up, and for the current billing year, 9213 units are still left over.
 - The `nodecharge` and `objectcharge` meters completely depleted the included quantity for both the current month and year, and are now in the overage (for the current hour!!!), i.e. having values of `"consumed":{"consumedQuantity":11018.8, ...}` and `"consumed":{"consumedQuantity":118,...}` respectively.
 

@@ -3,8 +3,8 @@
   "billingDimensions": {
     "nodecharge":       { "monthly": "1000", "annually": "10000" },
     "cpucharge":        { "monthly": "1000", "annually": "10000" },
-    "datasourcecharge": { "monthly": "1000", "annually": "10000" },
-    "objectcharge":     { "monthly": "1000", "annually": "10000" },
-    "messagecharge":    { "monthly": "1000", "annually": "10000" }
+    "datasourcecharge": {                                        },
+    "objectcharge":     { "monthly": "1000"                      },
+    "messagecharge":    {                    "annually": "10000" }
   }
 }

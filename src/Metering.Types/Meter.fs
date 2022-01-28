@@ -114,7 +114,7 @@ module Meter =
         
     let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
         meter
-        |> setCurrentMeterValues (meter.Subscription.Plan.BillingDimensions |> BillingDimension.createIncludedQuantityForNow time)
+        |> setCurrentMeterValues (meter.Subscription.Plan.BillingDimensions |> BillingDimensions.createIncludedQuantityForNow time)
 
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : Meter =
         // When we receive the creation of a subscription

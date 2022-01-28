@@ -27,7 +27,7 @@ let runTestVectors test testcases = testcases |> List.indexed |> List.map test |
 
 let somePlan : Plan = 
     { PlanId = "PlanId" |> PlanId.create
-      BillingDimensions = Seq.empty }
+      BillingDimensions = Map.empty }
 
 [<Test>]
 let ``BillingPeriod.createFromIndex`` () =
@@ -364,7 +364,6 @@ let ``CaptureProcessor.getPrefixForRelevantBlobs`` () =
         "meteringhack-standard/hub2/p0--", 
         CaptureProcessor.getPrefixForRelevantBlobs "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}" ehContext)
 
-
 let private roundTrip<'T> (filename: string) =
     let json =
         $"data/{filename}"
@@ -390,6 +389,8 @@ let RoundTripMarketplaceStructures () =
     roundTrip<MarketplaceSubmissionError> "MarketplaceGenericError.json"
     roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
     roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
+    roundTrip<Plan> "plan.json"
+    roundTrip<MeterCollection> "state.json"
 
     [ "MarketplaceSuccessResponse.json"
       "MarketplaceErrorDuplicate.json"
