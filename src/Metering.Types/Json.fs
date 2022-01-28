@@ -283,26 +283,16 @@ module Json =
             |> Decode.andThen (fun r -> r |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.create, v |> DimensionId.create)) |> Map.ofList |> InternalMetersMapping.create |> Decode.succeed)
         
     module CurrentMeterValues = 
-        let (dimensionId, meterValue) = ("dimensionId", "meterValue")
+        let turnKeyIntoDimensionId (k, v) =  (k |> DimensionId.create, v)
 
         let Encoder (x: CurrentMeterValues) = 
             x
-            |> Map.toSeq |> Seq.toList
-            |> List.map (fun (d, m) -> 
-                [
-                    (dimensionId, d |> DimensionId.value |> Encode.string)
-                    (meterValue, m |> MeterValue.Encoder)
-                ]
-                |> Encode.object)
-            |> Encode.list
+            |> Map.toList
+            |> List.map (fun (d, m) -> (d |> DimensionId.value, m |> MeterValue.Encoder))
+            |> Encode.object
 
-        let Decoder : Decoder<CurrentMeterValues> =            
-            Decode.list (Decode.object (fun get -> 
-                let dimensionId = get.Required.Field dimensionId Decode.string  
-                let meterValue = get.Required.Field meterValue MeterValue.Decoder  
-                (dimensionId, meterValue)
-            ))
-            |> Decode.andThen  (fun r -> r |> List.map(fun (k, v) -> (k |> DimensionId.create, v)) |> Map.ofList |> Decode.succeed)
+        let Decoder : Decoder<CurrentMeterValues> =
+            (Decode.keyValuePairs MeterValue.Decoder) |> Decode.andThen  (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> Decode.succeed)
 
     module SubscriptionCreationInformation =
         let (subscription, metersMapping) =
