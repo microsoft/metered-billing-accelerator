@@ -7,6 +7,7 @@ using Azure.Messaging.EventHubs.Producer;
 using Metering.Types;
 using Metering.ClientSDK;
 using MeterValueModule = Metering.ClientSDK.MeterValueModule;
+using System.Reflection.Metadata.Ecma335;
 
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
@@ -18,7 +19,7 @@ var subs = new[] {
 };
 
 using CancellationTokenSource cts = new();
-// var subs = await CreateSubscriptions(eventHubProducerClient, subs, cts.Token);
+await CreateSubscriptions(eventHubProducerClient, subs, cts.Token);
 // await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
 // await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
 
@@ -38,6 +39,8 @@ async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, Su
                 internalResourceId: InternalResourceIdModule.fromStr(subscription.Id),
                 renewalInterval: RenewalInterval.Monthly,
                 subscriptionStart: MeteringDateTimeModule.fromStr(subscription.Established)));
+
+        await Console.Out.WriteLineAsync(Json.toStr(1, sub));
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, ct);
     }
 }
