@@ -157,7 +157,13 @@ In addition, it contains a `metersMapping` table, which translates the applicati
 				]
 			}
 		},
-		"metersMapping":{"cpu":"cpucharge","dta":"datasourcecharge","msg":"messagecharge","nde":"nodecharge","obj":"objectcharge"}
+		"metersMapping":{
+            "cpu":"cpucharge",
+            "dta":"datasourcecharge",
+            "msg":"messagecharge",
+            "nde":"nodecharge",
+            "obj":"objectcharge"
+        }
 	}
 }
 ```
