@@ -140,15 +140,15 @@ In addition, it contains a `metersMapping` table, which translates the applicati
 
 ```json
 {
-	"type":"SubscriptionPurchased",
-	"value":{
-		"subscription":{
-			"scope":"fdc778a6-1281-40e4-cade-4a5fc11f5440",
-			"subscriptionStart":"2021-11-04T16:12:26Z",
+  "type":"SubscriptionPurchased",
+  "value":{
+    "subscription":{
+      "scope":"fdc778a6-1281-40e4-cade-4a5fc11f5440",
+      "subscriptionStart":"2021-11-04T16:12:26Z",
       "renewalInterval":"Monthly",
-			"plan":{
-				"planId":"free_monthly_yearly",
-				"billingDimensions": {
+      "plan":{
+        "planId":"free_monthly_yearly",
+        "billingDimensions": {
           "cpucharge": { "monthly": 1000, "annually": 10000 },
           "datasourcecharge": { "monthly": 1000, "annually": 10000 },
           "messagecharge": { "monthly": 1000, "annually": 10000 },
@@ -156,15 +156,15 @@ In addition, it contains a `metersMapping` table, which translates the applicati
           "objectcharge": { "monthly": 1000, "annually": 10000 }
         }
       }
-		},
-		"metersMapping":{
+    },
+    "metersMapping":{
       "cpu":"cpucharge",
       "dta":"datasourcecharge",
       "msg":"messagecharge",
       "nde":"nodecharge",
       "obj":"objectcharge"
     }
-	}
+  }
 }
 ```
 
@@ -200,59 +200,60 @@ The `subscription/plan` item describes this in detail; having information on whe
 
 ```json
 {
-	"meters": {
-		"8151a707-467c-4105-df0b-44c3fca5880d":{
-			"metersMapping":{
-				"nde": "nodecharge",
-				"cpu": "cpucharge",
-				"dta": "datasourcecharge",
-				"msg": "messagecharge",
-				"obj": "objectcharge"
-			},
-			"subscription":{
-				"renewalInterval": "Monthly",
-				"subscriptionStart": "2021-12-14T18:20:00Z",
-				"scope": "8151a707-467c-4105-df0b-44c3fca5880d",              
-				"plan":{
-					"planId": "free_monthly_yearly",
-					"billingDimensions": {
+  "meters": {
+    "8151a707-467c-4105-df0b-44c3fca5880d":{
+      "metersMapping": { // maps internally used names to the configured marketplace dimension name. 
+        "nde": "nodecharge",
+        "cpu": "cpucharge",
+        "dta": "datasourcecharge",
+        "msg": "messagecharge",
+        "obj": "objectcharge"
+      },
+      "subscription":{
+        "scope": "8151a707-467c-4105-df0b-44c3fca5880d",              
+        "subscriptionStart": "2021-12-14T18:20:00Z",
+        "renewalInterval": "Monthly",
+        "plan":{
+          "planId": "free_monthly_yearly",
+          "billingDimensions": {
+            "nodecharge": { "monthly": 1000, "annually": 10000 },
             "cpucharge": { "monthly": 1000, "annually": 10000 },
             "datasourcecharge": { "monthly": 1000, "annually": 10000 },
             "messagecharge": { "monthly": 1000, "annually": 10000 },
-            "nodecharge": { "monthly": 1000, "annually": 10000 },
             "objectcharge": { "monthly": 1000, "annually": 10000 }
           }
-				}				
-			},
-      "currentMeters":{
-        "nodecharge": { "consumed": { "consumedQuantity": 11018.8 } },
-        "cpucharge": { "included": { "monthly": 892, "annually": 10000 } },
-        "datasourcecharge": { "included": { "annually": 9213 } },
-        "messagecharge": { "included": { "monthly": 1000, "annually": 10000 } },
-        "objectcharge": { "consumed": { "consumedQuantity": 118 } }
+        }        
       },
-			"usageToBeReported":[
-				{
-					"planId":"free_monthly_yearly",
-					"dimension":"nodecharge",
-					"resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440",
-					"quantity":5.0,
-					"effectiveStartTime":"2021-12-22T09:00:00Z"
-				}
-			],
-			"lastProcessedMessage":{
-				"partitionId":"3",
-				"sequenceNumber":"10500",
-				"partitionTimestamp":"2021-12-22T10:32:37.48Z"
-			}
-		}
-	},
-	"lastProcessedMessage": {
-		"partitionId":"3",
-		"sequenceNumber":"10500",
-		"partitionTimestamp":"2021-12-22T10:32:37.48Z"
-	},
-	"unprocessable":[]
+      "currentMeters":{
+        "nodecharge":       { "consumed": { "consumedQuantity": 11018.8 } },
+        "cpucharge":        { "included": { "monthly":  892, "annually": 10000 } },
+        "datasourcecharge": { "included": {                  "annually":  9213 } },
+        "messagecharge":    { "included": { "monthly": 1000, "annually": 10000 } },
+        "objectcharge":     { "consumed": { "consumedQuantity": 118 } }
+      },
+      "usageToBeReported": [ // These are API calls which must be made
+        {
+          "resourceId":"8151a707-467c-4105-df0b-44c3fca5880d",
+          "effectiveStartTime":"2021-12-22T09:00:00Z",
+          "planId":"free_monthly_yearly", "dimension": "nodecharge", "quantity": 5.0
+        }
+      ],
+      "lastProcessedMessage":{ // When was the meter fdc778a6-1281-40e4-cade-4a5fc11f5440 updated?
+        "partitionId":"3",
+        "sequenceNumber":"10500",
+        "partitionTimestamp":"2021-12-22T10:32:37.48Z"
+      }
+    }
+  },
+  "lastProcessedMessage": { // When was the overall state last updated?
+    "partitionId":"3",
+    "sequenceNumber":"10500",
+    "partitionTimestamp":"2021-12-22T10:32:37.48Z"
+  },
+  "unprocessable":[
+      // If there have been messages in EventHub which could not be processed, 
+      // they are stored here.
+  ]
 }
 ```
 
@@ -265,7 +266,7 @@ Counting the consumption: In the above example, you can see 5 dimensions in diff
 
 For the `nodecharge` meter, you can also see that the `usageToBeReported` array contains an object `{ "planId":"free_monthly_yearly", "dimension":"nodecharge","resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440","quantity":5.0,"effectiveStartTime":"2021-12-22T09:00:00Z"}`, indicating that the usage emitter must report a `free_monthly_yearly/nodecharge = 5.0` consumption for the 09:00-10:00 time window on December 12th, 2021.
 
-
+The `usageToBeReported` array contains a TODO list of API call bodies to be submitted to the Azure Marketplace Metering API.
 
 ## Configuration via environment variables
 
