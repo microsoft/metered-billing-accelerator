@@ -1,40 +1,10 @@
 ﻿{
   "planId": "free_monthly_yearly",
-  "billingDimensions": [
-    {
-      "dimension": "nodecharge",
-      "includedQuantity": {
-        "monthly": "1000",
-        "annually": "10000"
-      }
-    },
-    {
-      "dimension": "cpucharge",
-      "includedQuantity": {
-        "monthly": "1000",
-        "annually": "10000"
-      }
-    },
-    {
-      "dimension": "datasourcecharge",
-      "includedQuantity": {
-        "monthly": "1000",
-        "annually": "10000"
-      }
-    },
-    {
-      "dimension": "messagecharge",
-      "includedQuantity": {
-        "monthly": "1000",
-        "annually": "10000"
-      }
-    },
-    {
-      "dimension": "objectcharge",
-      "includedQuantity": {
-        "monthly": "1000",
-        "annually": "10000"
-      }
-    }
-  ]
+  "billingDimensions": {
+    "nodecharge":       { "monthly": "1000", "annually": "10000" },
+    "cpucharge":        { "monthly": "1000", "annually": "10000" },
+    "datasourcecharge": { "monthly": "1000", "annually": "10000" },
+    "objectcharge":     { "monthly": "1000", "annually": "10000" },
+    "messagecharge":    { "monthly": "1000", "annually": "10000" }
+  }
 }

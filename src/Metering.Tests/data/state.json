@@ -1,0 +1,112 @@
+{
+  "lastProcessedMessage": {
+    "partitionId": "3",
+    "sequenceNumber": "5",
+    "partitionTimestamp": "2022-01-28T15:36:21Z"
+  },
+  "meters": {
+    "8151a707-467c-4105-df0b-44c3fca5880d": {
+      "subscription": {
+        "plan": {
+          "planId": "free_monthly_yearly",
+          "billingDimensions": {
+            "cpucharge": {
+              "monthly": 1000,
+              "annually": 10000
+            },
+            "datasourcecharge": {
+              "monthly": 1000,
+              "annually": 10000
+            },
+            "messagecharge": {
+              "monthly": 1000,
+              "annually": 10000
+            },
+            "nodecharge": {
+              "monthly": 1000,
+              "annually": 10000
+            },
+            "objectcharge": {
+              "monthly": 1000,
+              "annually": 10000
+            }
+          }
+        },
+        "renewalInterval": "Monthly",
+        "subscriptionStart": "2021-12-14T18:20:00Z",
+        "scope": "8151a707-467c-4105-df0b-44c3fca5880d"
+      },
+      "metersMapping": {
+        "cpu": "cpucharge",
+        "dta": "datasourcecharge",
+        "msg": "messagecharge",
+        "nde": "nodecharge",
+        "obj": "objectcharge"
+      },
+      "currentMeters": [
+        {
+          "dimensionId": "cpucharge",
+          "meterValue": {
+            "included": {
+              "monthly": 999.0290544782792,
+              "annually": 10000,
+              "created": "2022-01-28T15:36:17Z",
+              "lastUpdate": "2022-01-28T15:36:21Z"
+            }
+          }
+        },
+        {
+          "dimensionId": "datasourcecharge",
+          "meterValue": {
+            "included": {
+              "monthly": 999.8413857234018,
+              "annually": 10000,
+              "created": "2022-01-28T15:36:17Z",
+              "lastUpdate": "2022-01-28T15:36:21Z"
+            }
+          }
+        },
+        {
+          "dimensionId": "messagecharge",
+          "meterValue": {
+            "included": {
+              "monthly": 999.4581042385067,
+              "annually": 10000,
+              "created": "2022-01-28T15:36:17Z",
+              "lastUpdate": "2022-01-28T15:36:21Z"
+            }
+          }
+        },
+        {
+          "dimensionId": "nodecharge",
+          "meterValue": {
+            "included": {
+              "monthly": 999.2648524500139,
+              "annually": 10000,
+              "created": "2022-01-28T15:36:17Z",
+              "lastUpdate": "2022-01-28T15:36:21Z"
+            }
+          }
+        },
+        {
+          "dimensionId": "objectcharge",
+          "meterValue": {
+            "included": {
+              "monthly": 999.7963399605178,
+              "annually": 10000,
+              "created": "2022-01-28T15:36:17Z",
+              "lastUpdate": "2022-01-28T15:36:21Z"
+            }
+          }
+        }
+      ],
+      "usageToBeReported": [],
+      "lastProcessedMessage": {
+        "partitionId": "3",
+        "sequenceNumber": "5",
+        "partitionTimestamp": "2022-01-28T15:36:21Z"
+      }
+    }
+  },
+  "unprocessable": []
+}

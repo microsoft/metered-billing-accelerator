@@ -7,14 +7,12 @@ namespace Metering.Types
 
 /// Defines a custom unit by which the ISV can emit usage events. 
 /// Billing dimensions are also used to communicate to the customer about how they will be billed for using the software. 
-type BillingDimension =
-    { /// The immutable dimension identifier referenced while emitting usage events.
-      DimensionId: DimensionId
-          
-      IncludedQuantity: IncludedQuantitySpecification }
+type BillingDimensions = Map<DimensionId, IncludedQuantitySpecification>
       
-module BillingDimension =
-    let createIncludedQuantityForNow (now: MeteringDateTime) (billingDimensions: BillingDimension seq) : CurrentMeterValues = 
+module BillingDimensions =
+    let createIncludedQuantityForNow (now: MeteringDateTime) (billingDimensions: BillingDimensions) : CurrentMeterValues = 
         billingDimensions
-        |> Seq.map(fun bd -> (bd.DimensionId, IncludedQuantity { Monthly = bd.IncludedQuantity.Monthly; Annually = bd.IncludedQuantity.Annually; Created = now; LastUpdate = now }))
+        |> Map.toSeq
+        |> Seq.map(fun (dimensionId, bd) -> (dimensionId, IncludedQuantity { Monthly = bd.Monthly; Annually = bd.Annually; Created = now; LastUpdate = now }))
         |> Map.ofSeq
+   

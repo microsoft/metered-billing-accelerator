@@ -27,7 +27,7 @@ let runTestVectors test testcases = testcases |> List.indexed |> List.map test |
 
 let somePlan : Plan = 
     { PlanId = "PlanId" |> PlanId.create
-      BillingDimensions = Seq.empty }
+      BillingDimensions = Map.empty }
 
 [<Test>]
 let ``BillingPeriod.createFromIndex`` () =
@@ -390,6 +390,7 @@ let RoundTripMarketplaceStructures () =
     roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
     roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
     roundTrip<Plan> "plan.json"
+    roundTrip<MeterCollection> "state.json"
 
     [ "MarketplaceSuccessResponse.json"
       "MarketplaceErrorDuplicate.json"

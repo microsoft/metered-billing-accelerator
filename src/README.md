@@ -148,14 +148,14 @@ In addition, it contains a `metersMapping` table, which translates the applicati
             "renewalInterval":"Monthly",
 			"plan":{
 				"planId":"free_monthly_yearly",
-				"billingDimensions":[
-					{"dimension":"nodecharge","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"cpucharge","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"datasourcecharge","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"messagecharge","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"objectcharge","includedQuantity":{"monthly":1000,"annually":10000}}
-				]
-			}
+				"billingDimensions": {
+                    "cpucharge": { "monthly": 1000, "annually": 10000 },
+                    "datasourcecharge": { "monthly": 1000, "annually": 10000 },
+                    "messagecharge": { "monthly": 1000, "annually": 10000 },
+                    "nodecharge": { "monthly": 1000, "annually": 10000 },
+                    "objectcharge": { "monthly": 1000, "annually": 10000 }
+                }
+            }
 		},
 		"metersMapping":{
             "cpu":"cpucharge",
@@ -209,16 +209,16 @@ The `subscription/plan` item describes this in detail; having information on whe
 			"subscription":{
 				"renewalInterval":"Monthly",
 				"subscriptionStart":"2021-12-14T18:20:00Z",
-				"scope":"8151a707-467c-4105-df0b-44c3fca5880d",
+				"scope":"8151a707-467c-4105-df0b-44c3fca5880d",              
 				"plan":{
 					"planId":"free_monthly_yearly",
-					"billingDimensions":[
-						{"dimension":"nodecharge",       "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"cpucharge",        "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"datasourcecharge", "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"messagecharge",    "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"objectcharge",     "includedQuantity":{"monthly":1000,"annually":10000}}
-					]
+					"billingDimensions": {
+                        "cpucharge": { "monthly": 1000, "annually": 10000 },
+                        "datasourcecharge": { "monthly": 1000, "annually": 10000 },
+                        "messagecharge": { "monthly": 1000, "annually": 10000 },
+                        "nodecharge": { "monthly": 1000, "annually": 10000 },
+                        "objectcharge": { "monthly": 1000, "annually": 10000 }
+	                }
 				}				
 			},
 			"metersMapping":{

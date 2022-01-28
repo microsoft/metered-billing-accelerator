@@ -6,6 +6,9 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="data\state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\plan.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -45,5 +48,4 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
-  <ItemGroup />
 </Project>
