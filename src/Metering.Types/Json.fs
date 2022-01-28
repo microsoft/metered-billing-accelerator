@@ -636,7 +636,6 @@ module Json =
                 Subscription = get.Required.Field subscription Subscription.Decoder
                 InternalMetersMapping = get.Required.Field metersMapping InternalMetersMapping.Decoder
                 CurrentMeterValues = get.Required.Field currentMeters CurrentMeterValues.Decoder
-
                 UsageToBeReported = get.Required.Field usageToBeReported (Decode.list MarketplaceRequest.Decoder)
                 LastProcessedMessage = get.Required.Field lastProcessedMessage MessagePosition.Decoder
             }
