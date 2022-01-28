@@ -145,25 +145,25 @@ In addition, it contains a `metersMapping` table, which translates the applicati
 		"subscription":{
 			"scope":"fdc778a6-1281-40e4-cade-4a5fc11f5440",
 			"subscriptionStart":"2021-11-04T16:12:26Z",
-            "renewalInterval":"Monthly",
+      "renewalInterval":"Monthly",
 			"plan":{
 				"planId":"free_monthly_yearly",
 				"billingDimensions": {
-                    "cpucharge": { "monthly": 1000, "annually": 10000 },
-                    "datasourcecharge": { "monthly": 1000, "annually": 10000 },
-                    "messagecharge": { "monthly": 1000, "annually": 10000 },
-                    "nodecharge": { "monthly": 1000, "annually": 10000 },
-                    "objectcharge": { "monthly": 1000, "annually": 10000 }
-                }
-            }
+          "cpucharge": { "monthly": 1000, "annually": 10000 },
+          "datasourcecharge": { "monthly": 1000, "annually": 10000 },
+          "messagecharge": { "monthly": 1000, "annually": 10000 },
+          "nodecharge": { "monthly": 1000, "annually": 10000 },
+          "objectcharge": { "monthly": 1000, "annually": 10000 }
+        }
+      }
 		},
 		"metersMapping":{
-            "cpu":"cpucharge",
-            "dta":"datasourcecharge",
-            "msg":"messagecharge",
-            "nde":"nodecharge",
-            "obj":"objectcharge"
-        }
+      "cpu":"cpucharge",
+      "dta":"datasourcecharge",
+      "msg":"messagecharge",
+      "nde":"nodecharge",
+      "obj":"objectcharge"
+    }
 	}
 }
 ```
@@ -186,10 +186,6 @@ The actual usage / consumption message emitted by the ISV application into Event
 }
 ```
 
-
-
- 
-
 ### State file (for a single partition)
 
 The JSON file in this section describes the state of partition #3 in EventHub, up to sequence number `10500`. If the aggregator would start with this state, it will start reading from event sequence number `10501` onwards. This tiny example tracks currently only a single (SaaS subscription) `8151a707-467c-4105-df0b-44c3fca5880d`. In a production setting, the `meters` dictionary would contain many more subscriptions.
@@ -206,35 +202,35 @@ The `subscription/plan` item describes this in detail; having information on whe
 {
 	"meters": {
 		"8151a707-467c-4105-df0b-44c3fca5880d":{
+			"metersMapping":{
+				"nde": "nodecharge",
+				"cpu": "cpucharge",
+				"dta": "datasourcecharge",
+				"msg": "messagecharge",
+				"obj": "objectcharge"
+			},
 			"subscription":{
-				"renewalInterval":"Monthly",
-				"subscriptionStart":"2021-12-14T18:20:00Z",
-				"scope":"8151a707-467c-4105-df0b-44c3fca5880d",              
+				"renewalInterval": "Monthly",
+				"subscriptionStart": "2021-12-14T18:20:00Z",
+				"scope": "8151a707-467c-4105-df0b-44c3fca5880d",              
 				"plan":{
-					"planId":"free_monthly_yearly",
+					"planId": "free_monthly_yearly",
 					"billingDimensions": {
-                        "cpucharge": { "monthly": 1000, "annually": 10000 },
-                        "datasourcecharge": { "monthly": 1000, "annually": 10000 },
-                        "messagecharge": { "monthly": 1000, "annually": 10000 },
-                        "nodecharge": { "monthly": 1000, "annually": 10000 },
-                        "objectcharge": { "monthly": 1000, "annually": 10000 }
-	                }
+            "cpucharge": { "monthly": 1000, "annually": 10000 },
+            "datasourcecharge": { "monthly": 1000, "annually": 10000 },
+            "messagecharge": { "monthly": 1000, "annually": 10000 },
+            "nodecharge": { "monthly": 1000, "annually": 10000 },
+            "objectcharge": { "monthly": 1000, "annually": 10000 }
+          }
 				}				
 			},
-			"metersMapping":{
-				"nde":"nodecharge",
-				"cpu":"cpucharge",
-				"dta":"datasourcecharge",
-				"msg":"messagecharge",
-				"obj":"objectcharge"
-			},
-            "currentMeters":{
-                "nodecharge": { "consumed": { "consumedQuantity": 11018.8 } },
-                "cpucharge": { "included": { "monthly": 892, "annually": 10000 } },
-                "datasourcecharge": { "included": { "annually": 9213 } },
-                "messagecharge": { "included": { "monthly": 1000, "annually": 10000 } },
-                "objectcharge": { "consumed": { "consumedQuantity": 118 } }
-            },
+      "currentMeters":{
+        "nodecharge": { "consumed": { "consumedQuantity": 11018.8 } },
+        "cpucharge": { "included": { "monthly": 892, "annually": 10000 } },
+        "datasourcecharge": { "included": { "annually": 9213 } },
+        "messagecharge": { "included": { "monthly": 1000, "annually": 10000 } },
+        "objectcharge": { "consumed": { "consumedQuantity": 118 } }
+      },
 			"usageToBeReported":[
 				{
 					"planId":"free_monthly_yearly",
