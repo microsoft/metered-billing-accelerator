@@ -6,6 +6,9 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="data\plan.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\MarketplaceBatchRequest.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

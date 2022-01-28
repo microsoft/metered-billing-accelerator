@@ -364,7 +364,6 @@ let ``CaptureProcessor.getPrefixForRelevantBlobs`` () =
         "meteringhack-standard/hub2/p0--", 
         CaptureProcessor.getPrefixForRelevantBlobs "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}" ehContext)
 
-
 let private roundTrip<'T> (filename: string) =
     let json =
         $"data/{filename}"
@@ -390,6 +389,7 @@ let RoundTripMarketplaceStructures () =
     roundTrip<MarketplaceSubmissionError> "MarketplaceGenericError.json"
     roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
     roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
+    roundTrip<Plan> "plan.json"
 
     [ "MarketplaceSuccessResponse.json"
       "MarketplaceErrorDuplicate.json"

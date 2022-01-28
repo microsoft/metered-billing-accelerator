@@ -149,11 +149,11 @@ In addition, it contains a `metersMapping` table, which translates the applicati
 			"plan":{
 				"planId":"free_monthly_yearly",
 				"billingDimensions":[
-					{"dimension":"nodecharge","name":"Per Node Connected","unitOfMeasure":"node/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"cpucharge","name":"Per CPU Connected","unitOfMeasure":"cpu/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"datasourcecharge","name":"Per Datasource Integration","unitOfMeasure":"ds/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"messagecharge","name":"Per Message Transmitted","unitOfMeasure":"message/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-					{"dimension":"objectcharge","name":"Per Object Detected","unitOfMeasure":"object/hour","includedQuantity":{"monthly":1000,"annually":10000}}
+					{"dimension":"nodecharge","includedQuantity":{"monthly":1000,"annually":10000}},
+					{"dimension":"cpucharge","includedQuantity":{"monthly":1000,"annually":10000}},
+					{"dimension":"datasourcecharge","includedQuantity":{"monthly":1000,"annually":10000}},
+					{"dimension":"messagecharge","includedQuantity":{"monthly":1000,"annually":10000}},
+					{"dimension":"objectcharge","includedQuantity":{"monthly":1000,"annually":10000}}
 				]
 			}
 		},
@@ -213,11 +213,11 @@ The `subscription/plan` item describes this in detail; having information on whe
 				"plan":{
 					"planId":"free_monthly_yearly",
 					"billingDimensions":[
-						{"dimension":"nodecharge",      "name":"Per Node Connected",        "unitOfMeasure":"node/hour",   "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"cpucharge",       "name":"Per CPU Connected",         "unitOfMeasure":"cpu/hour",    "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"datasourcecharge","name":"Per Datasource Integration","unitOfMeasure":"ds/hour",     "includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"messagecharge",   "name":"Per Message Transmitted",   "unitOfMeasure":"message/hour","includedQuantity":{"monthly":1000,"annually":10000}},
-						{"dimension":"objectcharge",    "name":"Per Object Detected",       "unitOfMeasure":"object/hour", "includedQuantity":{"monthly":1000,"annually":10000}}
+						{"dimension":"nodecharge",       "includedQuantity":{"monthly":1000,"annually":10000}},
+						{"dimension":"cpucharge",        "includedQuantity":{"monthly":1000,"annually":10000}},
+						{"dimension":"datasourcecharge", "includedQuantity":{"monthly":1000,"annually":10000}},
+						{"dimension":"messagecharge",    "includedQuantity":{"monthly":1000,"annually":10000}},
+						{"dimension":"objectcharge",     "includedQuantity":{"monthly":1000,"annually":10000}}
 					]
 				}				
 			},

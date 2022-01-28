@@ -189,21 +189,17 @@ module Json =
                | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
 
     module BillingDimension =
-        let (dimensionId, name, unitOfMeasure, includedQuantity) = ("dimension", "name", "unitOfMeasure", "includedQuantity");
+        let (dimensionId, includedQuantity) = ("dimension", "includedQuantity");
 
         let encode (x: BillingDimension) =
             [
                 (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)
-                (name, x.DimensionName |> Encode.string)
-                (unitOfMeasure, x.UnitOfMeasure |> UnitOfMeasure.value |> Encode.string)
                 (includedQuantity, x.IncludedQuantity |> IncludedQuantitySpecification.Encoder)
             ]
 
         let decode (get: Decode.IGetters) : BillingDimension =
             {
                 DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create
-                DimensionName = get.Required.Field name Decode.string
-                UnitOfMeasure = (get.Required.Field unitOfMeasure Decode.string) |> UnitOfMeasure.create
                 IncludedQuantity = get.Required.Field includedQuantity IncludedQuantitySpecification.Decoder
             }
 
@@ -337,7 +333,7 @@ module Json =
                 Subscription = get.Required.Field subscription Subscription.Decoder
                 InternalMetersMapping = get.Required.Field metersMapping InternalMetersMapping.Decoder
             }
-
+            
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
     
     module Marketplace =
