@@ -11,7 +11,7 @@ namespace DemoWebApp.Pages
     {
         private readonly EventHubProducerClient _eventHubProducerClient;
         private readonly ILogger<IndexModel> _logger;
-        public string Msg { get; set; } = String.Empty;
+        public string Msg { get; set; } = string.Empty;
 
         public IndexModel(ILogger<IndexModel> logger, EventHubProducerClient eventHubProducerClient)
         {
@@ -25,10 +25,16 @@ namespace DemoWebApp.Pages
         public Task OnPostMessageChargeAsync(CancellationToken ct) => Submit(1.0, "msg", ct);
         public Task OnPostObjectChargeAsync(CancellationToken ct) => Submit(1.0, "obj", ct);
 
+        const string saasId = "fdc778a6-1281-40e4-cade-4a5fc11f5440";
+
         private async Task Submit(double amount, string name, CancellationToken ct)
         {
-            await _eventHubProducerClient.SubmitManagedAppMeterAsync(
-                MeterValueModule.create(name, amount), ct);
+            await _eventHubProducerClient.SubmitSaaSMeterAsync(
+                SaaSConsumptionModule.create(saasId, MeterValueModule.create(name, amount)), ct);
+            
+            //await _eventHubProducerClient.SubmitManagedAppMeterAsync(
+            //    MeterValueModule.create(name, amount), ct);
+
             var msg = $"Submitted consumption of {amount} {name}";
 
             Msg = msg;

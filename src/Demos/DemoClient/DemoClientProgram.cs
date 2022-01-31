@@ -19,8 +19,8 @@ var subs = new[] {
 };
 
 using CancellationTokenSource cts = new();
-await CreateSubscriptions(eventHubProducerClient, subs, cts.Token);
-// await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
+//await CreateSubscriptions(eventHubProducerClient, subs, cts.Token);
+//await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
 // await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
 
 await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
@@ -54,7 +54,7 @@ async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, 
 {
     foreach (var sub in subs)
     {
-        var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+        var meters = new[] { "nde" }//, "cpu", "dta", "msg", "obj" }
                .Select(x => MeterValueModule.create(x, 11_000))
                .ToArray();
 

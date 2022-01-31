@@ -69,7 +69,7 @@ namespace Metering.Aggregator
                 _logger.LogInformation($"{prefix()} Processed event {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
             }
 
-            if (meterCollection.getLastSequenceNumber() % 500 == 0)
+            //if (meterCollection.getLastSequenceNumber() % 500 == 0)
             {
                 MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
                 _logger.LogInformation($"{prefix()} Saved state {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
