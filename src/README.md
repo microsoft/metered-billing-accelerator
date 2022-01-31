@@ -136,7 +136,15 @@ The following JSON message instruct the aggregator to start tracking usage for t
 
 The `value/subscription/plan` element provides the Azure Marketplace plan's financial details, i.e. name of the plan (`'planId'`), and the collections of custom metering dimensions, including their name, and how many units are included `monthly` and `annually`. 
 
-In addition, it contains a `metersMapping` table, which translates the application's internal name for a consumption event, such as `'cpu'`, into the dimension name which is officially configured in Azure marketplace, such as `'cpucharge'`. 
+This customer purchased a plan called `free_monthly_yearly` in the partner portal, which lists 5 marketplace metering service dimensions, called `nodecharge`, `cpucharge`, `datasourcecharge`, `messagecharge` and `objectcharge`. Each of these has a 'monthly quantity included in base price' of 1000 units, and an 'annual quantity included' of 10000 units. 
+
+![2022-01-27--17-29-47](docs/partnerportalmeters.png)
+
+
+
+In addition, it contains a `metersMapping` table, which translates the application's internal name for a consumption event, such as `'cpu'`, into the dimension name which is officially configured in Azure marketplace, such as `'cpucharge'`.  
+
+The concrete JSON message (in EventHub) looks like this
 
 ```json
 {
@@ -149,20 +157,20 @@ In addition, it contains a `metersMapping` table, which translates the applicati
       "plan":{
         "planId":"free_monthly_yearly",
         "billingDimensions": {
-          "cpucharge": { "monthly": 1000, "annually": 10000 },
+          "messagecharge":    { "monthly": 1000, "annually": 10000 },
+          "cpucharge":        { "monthly": 1000, "annually": 10000 },
           "datasourcecharge": { "monthly": 1000, "annually": 10000 },
-          "messagecharge": { "monthly": 1000, "annually": 10000 },
-          "nodecharge": { "monthly": 1000, "annually": 10000 },
-          "objectcharge": { "monthly": 1000, "annually": 10000 }
+          "nodecharge":       { "monthly": 1000, "annually": 10000 },
+          "objectcharge":     { "monthly": 1000, "annually": 10000 }
         }
       }
     },
     "metersMapping":{
-      "cpu":"cpucharge",
-      "dta":"datasourcecharge",
-      "msg":"messagecharge",
-      "nde":"nodecharge",
-      "obj":"objectcharge"
+      "msg": "messagecharge",
+      "cpu": "cpucharge",
+      "dta": "datasourcecharge",
+      "nde": "nodecharge",
+      "obj": "objectcharge"
     }
   }
 }
@@ -176,12 +184,12 @@ The actual usage / consumption message emitted by the ISV application into Event
 
 ```json
 {
-    "type":"UsageReported",
-    "value":{
-        "internalResourceId":"8151a707-467c-4105-df0b-44c3fca5880d",
-        "timestamp":"2022-01-27T09:57:29Z",
-        "meterName":"cpu",
-        "quantity":3.1415
+    "type": "UsageReported",
+    "value": {
+        "internalResourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
+        "timestamp":          "2022-01-27T09:57:29Z",
+        "meterName":          "cpu",
+        "quantity":           3.1415
     }
 }
 ```
@@ -189,10 +197,6 @@ The actual usage / consumption message emitted by the ISV application into Event
 ### State file (for a single partition)
 
 The JSON file in this section describes the state of partition #3 in EventHub, up to sequence number `10500`. If the aggregator would start with this state, it will start reading from event sequence number `10501` onwards. This tiny example tracks currently only a single (SaaS subscription) `8151a707-467c-4105-df0b-44c3fca5880d`. In a production setting, the `meters` dictionary would contain many more subscriptions.
-
-This customer purchased a plan called `free_monthly_yearly` in the partner portal, which lists 5 marketplace metering service dimensions, called `nodecharge`, `cpucharge`, `datasourcecharge`, `messagecharge` and `objectcharge`. Each of these has a 'monthly quantity included in base price' of 1000 units, and an 'annual quantity included' of 10000 units. 
-
-![2022-01-27--17-29-47](docs/partnerportalmeters.png)
 
 The `subscription/plan` item describes this in detail; having information on when a subscription has been purchased (`subscriptionStart`), alongside with the information on what is included in each dimension of the plan, allows the aggregator to refill the included quantities at  the start of each new billing cycle.
 
@@ -203,10 +207,10 @@ The `subscription/plan` item describes this in detail; having information on whe
   "meters": {
     "8151a707-467c-4105-df0b-44c3fca5880d":{
       "metersMapping": { // maps internally used names to the configured marketplace dimension name. 
-        "nde": "nodecharge",
+        "msg": "messagecharge",
         "cpu": "cpucharge",
         "dta": "datasourcecharge",
-        "msg": "messagecharge",
+        "nde": "nodecharge",
         "obj": "objectcharge"
       },
       "subscription":{
@@ -216,39 +220,36 @@ The `subscription/plan` item describes this in detail; having information on whe
         "plan":{
           "planId": "free_monthly_yearly",
           "billingDimensions": {
-            "nodecharge": { "monthly": 1000, "annually": 10000 },
-            "cpucharge": { "monthly": 1000, "annually": 10000 },
+            "messagecharge":    { "monthly": 1000, "annually": 10000 },
+            "cpucharge":        { "monthly": 1000, "annually": 10000 },
             "datasourcecharge": { "monthly": 1000, "annually": 10000 },
-            "messagecharge": { "monthly": 1000, "annually": 10000 },
-            "objectcharge": { "monthly": 1000, "annually": 10000 }
+            "nodecharge":       { "monthly": 1000, "annually": 10000 },
+            "objectcharge":     { "monthly": 1000, "annually": 10000 }
           }
         }        
       },
       "currentMeters":{
-        "nodecharge":       { "consumed": { "consumedQuantity": 11018.8 } },
+        "messagecharge":    { "included": { "monthly": 1000, "annually": 10000 } },
         "cpucharge":        { "included": { "monthly":  892, "annually": 10000 } },
         "datasourcecharge": { "included": {                  "annually":  9213 } },
-        "messagecharge":    { "included": { "monthly": 1000, "annually": 10000 } },
-        "objectcharge":     { "consumed": { "consumedQuantity": 118 } }
+        "nodecharge":       { "consumed": { "consumedQuantity": 11018.8        } },
+        "objectcharge":     { "consumed": { "consumedQuantity":   118          } }
       },
       "usageToBeReported": [ // These are API calls which must be made
         {
           "resourceId":"8151a707-467c-4105-df0b-44c3fca5880d",
           "effectiveStartTime":"2021-12-22T09:00:00Z",
-          "planId":"free_monthly_yearly", "dimension": "nodecharge", "quantity": 5.0
+          "planId":"free_monthly_yearly", "dimension": "nodecharge", 
+          "quantity": 5.0
         }
       ],
       "lastProcessedMessage":{ // When was the meter fdc778a6-1281-40e4-cade-4a5fc11f5440 updated?
-        "partitionId":"3",
-        "sequenceNumber":"10500",
-        "partitionTimestamp":"2021-12-22T10:32:37.48Z"
+        "partitionId":"3", "sequenceNumber":"10500", "partitionTimestamp":"2021-12-22T10:32:37.48Z"
       }
     }
   },
   "lastProcessedMessage": { // When was the overall state last updated?
-    "partitionId":"3",
-    "sequenceNumber":"10500",
-    "partitionTimestamp":"2021-12-22T10:32:37.48Z"
+    "partitionId":"3", "sequenceNumber":"10500", "partitionTimestamp":"2021-12-22T10:32:37.48Z"
   },
   "unprocessable":[
       // If there have been messages in EventHub which could not be processed, 
@@ -257,12 +258,14 @@ The `subscription/plan` item describes this in detail; having information on whe
 }
 ```
 
-Counting the consumption: In the above example, you can see 5 dimensions in different states for the given sample customer:
+**Counting the consumption**: In the above example, you can see 5 dimensions in different states for the given sample customer:
 
 - The `messagecharge` meter has an `"included":{"monthly":1000,"annually":10000,...}` value, which indicates that there has not been any consumption in this dimension, as it's the same values as were included in the plan.
-- The `cpucharge` meter has a value of `"included":{"monthly":892, "annually":10000,...}"`, which indicates that 108 units have already been consumed (in the current month), as the `monthly` value went down from 1000 to 892. The included monthly credits are first consumed, before 'touching' annual included quantities.
-- The `datasourcecharge` meter with the `"included":{ "annually": 9213, ...}` value shows that all included quantity *for the current month* has been eaten up, and for the current billing year, 9213 units are still left over.
-- The `nodecharge` and `objectcharge` meters completely depleted the included quantity for both the current month and year, and are now in the overage (for the current hour!!!), i.e. having values of `"consumed":{"consumedQuantity":11018.8, ...}` and `"consumed":{"consumedQuantity":118,...}` respectively.
+- The `cpucharge` meter has a value of `"included":{"monthly":892, "annually":10000,...}"`, which indicates that 108 units have already been consumed (in the current month), i.e. `monthly` included remaining value went down from 1000 to 892. The included monthly credits are first consumed, before 'touching' annual included quantities.
+- The `datasourcecharge` meter with the `"included":{ "annually": 9213, ...}` value shows that all included quantity *for the current month* has been eaten up, and for the remainder of the current billing year, 9213 units are still left over. 
+  - This snapshot is from 22nd of December. Given that the subscription was purchased on the 14th of December, and the renewal interval is `Monthly`, the `included/monthly` will be re-filled to `1000` on the 14th of January (leaving the remaining `annually` where it was).
+
+- The `nodecharge` and `objectcharge` meters completely depleted the included quantity for both the current month and year, and are now in the overage (for the current hour!!!), i.e. having values of `"consumed":{"consumedQuantity":11018.8, ...}` and `"consumed":{"consumedQuantity":118,...}` respectively. 
 
 For the `nodecharge` meter, you can also see that the `usageToBeReported` array contains an object `{ "planId":"free_monthly_yearly", "dimension":"nodecharge","resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440","quantity":5.0,"effectiveStartTime":"2021-12-22T09:00:00Z"}`, indicating that the usage emitter must report a `free_monthly_yearly/nodecharge = 5.0` consumption for the 09:00-10:00 time window on December 12th, 2021.
 
