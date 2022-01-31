@@ -122,7 +122,7 @@ module MeteringEventHubExtensions =
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
     [<Extension>]
-    let SubmitManagedAppMeterAsync (eventHubProducerClient: EventHubProducerClient) (meter: MeterValue ) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =        
+    let SubmitManagedAppMeterAsync (eventHubProducerClient: EventHubProducerClient) (meter: MeterValue) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =        
         SubmitManagedAppMetersAsync eventHubProducerClient [| meter |] cancellationToken
 
     [<Extension>]
