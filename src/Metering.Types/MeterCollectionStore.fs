@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.Integration
 
 open System
 open System.IO
@@ -16,7 +16,8 @@ open Azure.Storage.Blobs
 open Azure.Storage.Blobs.Models
 open Azure.Storage.Blobs.Specialized
 open Azure.Storage.Sas
-open Metering.Types.EventHub
+open Metering.BaseTypes
+open Metering.EventHub
 
 module MeterCollectionStore =
     open MeterCollectionLogic

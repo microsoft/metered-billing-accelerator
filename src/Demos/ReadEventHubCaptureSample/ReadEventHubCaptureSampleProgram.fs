@@ -1,14 +1,13 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-open System
 open System.Threading
-open NodaTime
-open Metering
-open Metering.Types
-open Metering.Types.EventHub
 open System.IO
-open Azure.Messaging.EventHubs.Consumer
+open NodaTime
+//open Azure.Messaging.EventHubs.Consumer
+open Metering.BaseTypes
+open Metering.Integration
+open Metering.EventHub
 
 module MySeq =
     let inspect<'T> i =

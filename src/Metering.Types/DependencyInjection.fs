@@ -1,11 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.Integration
 
 open System
 open System.Threading.Tasks
 open NodaTime
+open Metering.BaseTypes
 
 type SubmitMeteringAPIUsageEvent = MeteringConfigurationProvider -> (MarketplaceRequest list) -> Task<MarketplaceBatchResponse> 
 and MeteringConfigurationProvider = 

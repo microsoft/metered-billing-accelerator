@@ -14,9 +14,10 @@ namespace AggregatorFunctionHost
     using Microsoft.Azure.Functions.Extensions.DependencyInjection;
     using Microsoft.Extensions.Logging;
     using Metering.ClientSDK;
-    using Metering.Types;
-    using Metering.Types.EventHub;
-    using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
+    using Metering.BaseTypes;
+    using Metering.Integration;
+    using Metering.EventHub;
+    using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;
 
     public class AggregatorStartup : FunctionsStartup
     {
@@ -111,7 +112,7 @@ namespace AggregatorFunctionHost
         private async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator =
-                MeteringAggregator.createAggregator(config);
+                MeteringAggregator.createAggregator(config.TimeHandlingConfiguration);
 
             List<IDisposable> subscriptions = new();
 

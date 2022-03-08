@@ -1,14 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.Utils
 
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
 open Azure.Messaging.EventHubs.Consumer
-open Metering.Types.EventHub
+open Metering.BaseTypes
+open Metering.Integration
 
 [<Extension>]
 module Status =

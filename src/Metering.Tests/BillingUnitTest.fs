@@ -4,11 +4,12 @@
 module Metering.NUnitTests.Billing
 
 open System
+open System.IO
 open NUnit.Framework
 open NodaTime
-open Metering.Types
-open Metering.Types.EventHub
-open System.IO
+open Metering.BaseTypes
+open Metering.EventHub
+open Metering.Integration
 
 [<SetUp>]
 let Setup () = ()

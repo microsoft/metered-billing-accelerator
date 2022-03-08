@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
-
-open NodaTime
+namespace Metering.BaseTypes
 
 type Meter =
     { Subscription: Subscription // The purchase information of the subscription

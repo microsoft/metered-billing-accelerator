@@ -1,4 +1,4 @@
-﻿namespace Metering.Types
+﻿namespace Metering.Integration
 
 open System
 open System.Reactive.Linq

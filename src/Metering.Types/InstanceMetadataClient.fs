@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.Integration
 
 open System
 open System.Collections.Generic
@@ -11,6 +11,7 @@ open System.Net.Http.Json
 open System.Web
 open Microsoft.FSharp.Control
 open Thoth.Json.Net
+open Metering.BaseTypes
 
 module InstanceMetadataClient = 
     type TokenResponse = { access_token: string }

@@ -5,10 +5,11 @@ namespace Metering.Aggregator
 {
     using System.Reactive.Linq;
     using System.Collections.Concurrent;
-    using Metering.Types;
-    using Metering.Types.EventHub;
+    using Metering.BaseTypes;
+    using Metering.Integration;
+    using Metering.EventHub;
     using Metering.ClientSDK;
-    using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.Types.MeterCollection>;
+    using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;
 
     // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
@@ -79,7 +80,7 @@ namespace Metering.Aggregator
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator =
-                MeteringAggregator.createAggregator(config);
+                MeteringAggregator.createAggregator(config.TimeHandlingConfiguration);
 
             List<IDisposable> subscriptions = new();
 

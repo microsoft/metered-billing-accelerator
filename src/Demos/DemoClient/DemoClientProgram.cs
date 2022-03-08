@@ -4,10 +4,10 @@
 using System.Security.Cryptography;
 using System.Text;
 using Azure.Messaging.EventHubs.Producer;
-using Metering.Types;
+using Metering.BaseTypes;
 using Metering.ClientSDK;
+using Metering.Integration;
 using MeterValueModule = Metering.ClientSDK.MeterValueModule;
-using System.Reflection.Metadata.Ecma335;
 
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 

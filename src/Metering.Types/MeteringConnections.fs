@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.Integration
 
 open System
 open System.Runtime.CompilerServices
@@ -11,30 +11,7 @@ open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
 open Azure.Messaging.EventHubs
-
-type EventHubName =
-    { NamespaceName: string
-      FullyQualifiedNamespace: string
-      InstanceName: string }
-
-module EventHubName =
-    let create nameSpaceName instanceName =
-        { NamespaceName = nameSpaceName
-          FullyQualifiedNamespace = $"{nameSpaceName}.servicebus.windows.net"
-          InstanceName = instanceName }
-
-    let toStr (e: EventHubName) = $"{e.FullyQualifiedNamespace}/{e.InstanceName}"
-
-type CaptureStorage = 
-    { CaptureFileNameFormat: string
-      Storage: BlobContainerClient }
-
-type EventHubConfig =
-    { EventHubName: EventHubName
-      ConsumerGroupName: string
-      CheckpointStorage: BlobContainerClient
-      CaptureStorage: CaptureStorage option
-      InfraStructureCredentials: TokenCredential }
+open Metering.EventHub
 
 type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials 
@@ -43,7 +20,6 @@ type MeteringConnections =
 
 [<Extension>]
 module MeteringConnections =
-
     let private environmentVariablePrefix = "AZURE_METERING_"
 
     let getConfiguration() = 

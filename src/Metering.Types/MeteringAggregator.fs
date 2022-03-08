@@ -1,22 +1,23 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.Integration
 
 open System
 open System.Runtime.CompilerServices
 open Microsoft.Extensions.DependencyInjection
-open Metering.Types.EventHub
+open Metering.EventHub
+open Metering.BaseTypes
 
 [<Extension>]
 module MeteringAggregator =
     open MeterCollectionLogic
 
-    let aggregate (config: MeteringConfigurationProvider) (meters: MeterCollection option) (e: EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>) : MeterCollection option =
+    let aggregate (config: TimeHandlingConfiguration) (meters: MeterCollection option) (e: EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>) : MeterCollection option =
         let apply meterCollection eventHubEvent =
             eventHubEvent
             |> MeteringEvent.fromEventHubEvent 
-            |> handleMeteringEvent config.TimeHandlingConfiguration meterCollection
+            |> handleMeteringEvent config meterCollection
             
         match meters with 
         | None ->
@@ -30,7 +31,7 @@ module MeteringAggregator =
             | _ -> None
 
     [<Extension>]
-    let createAggregator (config: MeteringConfigurationProvider) : Func<MeterCollection option, EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>, MeterCollection option> =
+    let createAggregator (config: TimeHandlingConfiguration) : Func<MeterCollection option, EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>, MeterCollection option> =
         aggregate config
 
     [<Extension>]

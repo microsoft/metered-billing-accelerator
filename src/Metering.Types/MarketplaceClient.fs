@@ -1,13 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.Integration
 
 open System
 open System.Net.Http
 open System.Text
 open System.Threading.Tasks
 open System.Runtime.CompilerServices
+open Metering.BaseTypes
 
 [<Extension>]
 module MarketplaceClient =

@@ -1,5 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using Metering.Types;
+using Metering.BaseTypes;
+using Metering.Integration;
+using Metering.EventHub;
 
 static string DateTimeOffsetToString(DateTimeOffset d) => MeteringDateTimeModule.toStr(MeteringDateTimeModule.fromDateTimeOffset(d));
 
@@ -12,7 +14,7 @@ await foreach (var blob in captureContainer.GetBlobsAsync())
 
     try
     {
-        var events = Metering.Types.EventHub.CaptureProcessor.ReadEventDataFromAvroStream(blob.Name, content.Value.Content).ToArray();
+        var events = CaptureProcessor.ReadEventDataFromAvroStream(blob.Name, content.Value.Content).ToArray();
 
         var first = events.First();
         var last = events.Last();

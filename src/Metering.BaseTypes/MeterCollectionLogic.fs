@@ -1,10 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.BaseTypes
 
 open System.Runtime.CompilerServices
-open NodaTime
 
 [<Extension>]
 module MeterCollectionLogic =

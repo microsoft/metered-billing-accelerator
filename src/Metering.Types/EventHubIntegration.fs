@@ -1,14 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types.EventHub
+namespace Metering.EventHub
 
 open System
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
-open Metering.Types
+open Metering.BaseTypes
 open System.Collections.Generic
+open Azure.Storage.Blobs
+open Azure.Core
 
 module EventHubIntegration =
     let createMessagePositionFromEventData (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
@@ -104,3 +106,27 @@ module Capture =
 module EventDataDummy = 
     let create (blobName: string) (eventBody: byte[]) (sequenceNumber: int64) (offset: int64)  (partitionKey: string) : EventData =
         new Capture.RehydratedFromCaptureEventData(blobName, eventBody, new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)
+
+type EventHubName =
+    { NamespaceName: string
+      FullyQualifiedNamespace: string
+      InstanceName: string }
+
+module EventHubName =
+    let create nameSpaceName instanceName =
+        { NamespaceName = nameSpaceName
+          FullyQualifiedNamespace = $"{nameSpaceName}.servicebus.windows.net"
+          InstanceName = instanceName }
+
+    let toStr (e: EventHubName) = $"{e.FullyQualifiedNamespace}/{e.InstanceName}"
+
+type CaptureStorage = 
+    { CaptureFileNameFormat: string
+      Storage: BlobContainerClient }
+
+type EventHubConfig =
+    { EventHubName: EventHubName
+      ConsumerGroupName: string
+      CheckpointStorage: BlobContainerClient
+      CaptureStorage: CaptureStorage option
+      InfraStructureCredentials: TokenCredential }

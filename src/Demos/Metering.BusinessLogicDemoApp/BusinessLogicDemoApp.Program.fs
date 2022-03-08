@@ -5,9 +5,9 @@ module foo
 
 open System
 open System.Net.Http
+open Metering.BaseTypes
+open Metering.Integration
 open System.Threading
-open Metering.Types
-open Metering.Types.EventHub
 
 let parseConsumptionEvents (str: string) = 
     let multilineParse parser (str : string) =  

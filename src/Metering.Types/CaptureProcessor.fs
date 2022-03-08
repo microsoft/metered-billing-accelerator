@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types.EventHub
+namespace Metering.EventHub
 
 open System
 open System.Collections.Generic
@@ -16,11 +16,12 @@ open Azure.Messaging.EventHubs
 open FSharp.Control
 open Avro.File
 open Avro.Generic
-open Metering.Types
+open Metering.BaseTypes
+open Metering.Integration
 
 [<Extension>]
 module CaptureProcessor = 
-    open Metering.Types.EventHub.Capture
+    open Capture
 
     let private ParseTime s =         
         // "12/2/2021 2:58:24 PM"

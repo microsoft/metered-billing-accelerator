@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.BaseTypes
 
 /// Event representing the creation of a subscription. 
 type SubscriptionCreationInformation =

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.Integration
 
 open System
 open System.Text
@@ -15,8 +15,8 @@ open Microsoft.Extensions.Logging
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Processor
 open Azure.Messaging.EventHubs.Consumer
-open Metering.Types
-open Metering.Types.EventHub
+open Metering.BaseTypes
+open Metering.EventHub
 
 [<Extension>]
 module EventHubObservableClient =

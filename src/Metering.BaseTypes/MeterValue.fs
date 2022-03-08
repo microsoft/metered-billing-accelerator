@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Types
+namespace Metering.BaseTypes
 
 type MeterValue =
     | ConsumedQuantity of ConsumedQuantity

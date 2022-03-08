@@ -11,8 +11,8 @@ open System.Runtime.InteropServices
 open Microsoft.Extensions.DependencyInjection
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Producer
-open Metering.Types
-open Metering.Types.EventHub
+open Metering.BaseTypes
+open Metering.Integration
 
 type MeterValue = 
     { Quantity: Quantity
