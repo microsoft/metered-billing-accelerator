@@ -64,7 +64,7 @@ module MeterCollectionLogic =
     let setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }
         
-    let handleMeteringEvent (timeProvider: CurrentTimeProvider) (gracePeriod: Duration) (state: MeterCollection) (meteringEvent: MeteringEvent) : MeterCollection =    
+    let handleMeteringEvent (timeHandlingConfiguration: TimeHandlingConfiguration) (state: MeterCollection) (meteringEvent: MeteringEvent) : MeterCollection =    
         // SubscriptionPurchased should add / overwrite existing entry
         // AggregatorBooted should trigger on all entries
         // UsageReported and UsageSubmittedToAPI should fire on the appropriate entry
@@ -152,14 +152,14 @@ module MeterCollectionLogic =
                 state
                 |> applyMeters (
                     Map.toSeq
-                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorCatchedUp timeProvider gracePeriod))
+                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorCatchedUp timeHandlingConfiguration))
                     >> Map.ofSeq
                 )
 
-    let handleMeteringEvents (timeProvider: CurrentTimeProvider) (gracePeriod: Duration) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
+    let handleMeteringEvents (timeHandlingConfiguration: TimeHandlingConfiguration) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
         let state =
             match state with
             | None -> MeterCollection.Empty
             | Some meterCollection -> meterCollection
 
-        meteringEvents |> List.fold (handleMeteringEvent timeProvider gracePeriod) state
+        meteringEvents |> List.fold (handleMeteringEvent timeHandlingConfiguration) state

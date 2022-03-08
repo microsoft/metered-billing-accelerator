@@ -9,17 +9,17 @@ open NodaTime
 
 type SubmitMeteringAPIUsageEvent = MeteringConfigurationProvider -> (MarketplaceRequest list) -> Task<MarketplaceBatchResponse> 
 and MeteringConfigurationProvider = 
-    { CurrentTimeProvider: CurrentTimeProvider
-      SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
-      GracePeriod: Duration
-      MeteringConnections: MeteringConnections }
+    { SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
+      MeteringConnections: MeteringConnections 
+      TimeHandlingConfiguration: TimeHandlingConfiguration }
 
 module MeteringConfigurationProvider =
     let create (connections: MeteringConnections) (marketplaceClient: SubmitMeteringAPIUsageEvent) : MeteringConfigurationProvider =
-        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-          SubmitMeteringAPIUsageEvent = marketplaceClient
-          GracePeriod = Duration.FromHours(2.0)
-          MeteringConnections = connections }
+        { SubmitMeteringAPIUsageEvent = marketplaceClient          
+          MeteringConnections = connections
+          TimeHandlingConfiguration = 
+            { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+              GracePeriod = Duration.FromHours(2.0) }}
 
 module SubmitMeteringAPIUsageEvent =
     let PretendEverythingIsAccepted : SubmitMeteringAPIUsageEvent = (fun _cfg requests -> 

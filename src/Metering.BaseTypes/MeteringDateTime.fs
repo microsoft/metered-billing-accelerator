@@ -61,3 +61,7 @@ type CurrentTimeProvider =
 module CurrentTimeProvider =
     let LocalSystem : CurrentTimeProvider = (fun () -> MeteringDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
     let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
+
+type TimeHandlingConfiguration =
+    { CurrentTimeProvider: CurrentTimeProvider
+      GracePeriod: Duration }

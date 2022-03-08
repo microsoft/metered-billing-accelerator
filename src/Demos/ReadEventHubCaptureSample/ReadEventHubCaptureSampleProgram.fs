@@ -31,10 +31,11 @@ module MySeq =
 //    | _ -> None
 
 let config : MeteringConfigurationProvider = 
-    { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-      SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.PretendEverythingIsAccepted
-      GracePeriod = Duration.FromHours(6.0)
-      MeteringConnections = MeteringConnections.getFromEnvironment() }
+    { SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.PretendEverythingIsAccepted     
+      MeteringConnections = MeteringConnections.getFromEnvironment()
+      TimeHandlingConfiguration = 
+        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+          GracePeriod = Duration.FromHours(6.0) } }
 
 let partitionId = "1" |> PartitionID.create
 CaptureProcessor.readAllEvents 
@@ -139,7 +140,7 @@ let initialState = File.ReadAllText("C:\\Users\\chgeuer\\Desktop\\482127.json") 
 
 match initialState with
 | None -> 
-    let aggregate = MeterCollectionLogic.handleMeteringEvent config.CurrentTimeProvider config.GracePeriod
+    let aggregate = MeterCollectionLogic.handleMeteringEvent config.TimeHandlingConfiguration
     let partitionId = "0"
     let x = 
         config.MeteringConnections
@@ -168,7 +169,7 @@ match initialState with
 | Some initialState -> 
     // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
 
-    let aggregate = MeterCollectionLogic.handleMeteringEvent config.CurrentTimeProvider config.GracePeriod
+    let aggregate = MeterCollectionLogic.handleMeteringEvent config.TimeHandlingConfiguration
     let startPosition = initialState.LastUpdate.Value
 
     let x = 
