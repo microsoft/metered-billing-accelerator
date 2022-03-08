@@ -173,7 +173,7 @@ module EventHubProcessorEvent =
         | EventHubEvent e -> e
         | _ -> raise (new ArgumentException(message = $"Not an {nameof(EventHubEvent)}", paramName = nameof(e)))
 
-module internal Capture =
+module Capture =
     type RehydratedFromCaptureEventData(
         blobName: string, eventBody: byte[], 
         properties: IDictionary<string, obj>, systemProperties: IReadOnlyDictionary<string, obj>, 

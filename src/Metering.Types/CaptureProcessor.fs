@@ -80,7 +80,7 @@ module CaptureProcessor =
         | Some timeStampBlob -> timeStampBlob |> containsFullyRelevantEvents startTime
                
     [<Extension>]
-    let internal ReadEventDataFromAvroStream (blobName: string) (stream: Stream) : IEnumerable<RehydratedFromCaptureEventData> =
+    let ReadEventDataFromAvroStream (blobName: string) (stream: Stream) : IEnumerable<RehydratedFromCaptureEventData> =
         // https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-capture-overview        
         seq {
             use reader = DataFileReader<GenericRecord>.OpenReader(stream)

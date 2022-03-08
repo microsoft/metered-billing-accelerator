@@ -230,10 +230,26 @@ module EventHubObservableClient =
                             | :? TaskCanceledException -> ()
                             | e -> o.OnError(e)
                         finally
-                            processor.remove_ProcessEventAsync ProcessEvent
-                            processor.remove_ProcessErrorAsync ProcessError
-                            processor.remove_PartitionInitializingAsync PartitionInitializing
-                            processor.remove_PartitionClosingAsync PartitionClosing
+                            try
+                                processor.remove_ProcessEventAsync ProcessEvent
+                            with 
+                                e -> ()
+
+                            try
+                                processor.remove_ProcessErrorAsync ProcessError
+                            with 
+                                e -> ()
+
+                            try
+                                processor.remove_PartitionInitializingAsync PartitionInitializing
+                            with
+                                e -> ()
+
+                            try
+                                processor.remove_PartitionClosingAsync PartitionClosing
+                            with
+                                e -> ()
+                            
                     }
 
                 Async.StartAsTask(a, cancellationToken = cancellationToken)

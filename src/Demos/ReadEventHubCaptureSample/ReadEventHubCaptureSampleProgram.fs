@@ -19,6 +19,7 @@ module MySeq =
             a
         Seq.map (inspect i)
 
+
 //let printme e = 
 //    match e.MeteringUpdateEvent with
 //    | UsageReported e -> 
