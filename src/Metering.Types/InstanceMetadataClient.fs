@@ -10,6 +10,7 @@ open System.Net.Http
 open System.Net.Http.Json
 open System.Web
 open Microsoft.FSharp.Control
+open Thoth.Json.Net
 
 module InstanceMetadataClient = 
     type TokenResponse = { access_token: string }
@@ -108,3 +109,44 @@ module InstanceMetadataClient =
             cred
             "20e940b3-4c77-4b0b-9a53-9e16a1b010a7" // resource according to https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/pc-saas-registration#get-the-token-with-an-http-post
             "https://saasapi.azure.com" // "https://marketplaceapi.microsoft.com"
+
+    /// Retrieves the resource group's ResourceGroup.ManagedBy property from Azure Resource Manager.
+    let retrieveManagedByFromARM (currentId: InternalResourceId) : Task<InternalResourceId> =
+        match currentId with
+        | SaaSSubscription _ -> currentId |> Task.FromResult
+        | ManagedApplication m ->
+            match m with
+            | ManagedAppResourceGroupID _ -> currentId |> Task.FromResult
+            | ManagedAppIdentity ->
+                let RecourceGroupIdDecoder : Decoder<string>  =
+                    Decode.object (fun get -> 
+                        // tap into JSON path './compute/{x}'
+                        let get x = get.Required.At [ "compute"; x ] Decode.string
+
+                        $"""/subscriptions/{get "subscriptionId"}/resourceGroups/{get "resourceGroupName"}"""
+                    )
+
+                let ManagedByDecoder : Decoder<string> =
+                    Decode.object (fun get -> get.Required.At [ "managedBy" ] Decode.string )
+
+                task {
+                    // Determine the resource ID we're running in, using the instance metadata endpoint
+                    let c = clientWithMetadataTrue "http://169.254.169.254/"
+                    let! imdsJson = c.GetStringAsync "metadata/instance?api-version=2021-02-01" // TODO do we need &format=json as well ?
+                    let resourceGroupId = 
+                        match Decode.fromString RecourceGroupIdDecoder imdsJson with
+                        | Ok x -> x
+                        | Error e -> failwith e
+
+                    let! armClient = createArmClient()
+                    let! armResponse = armClient.GetStringAsync $"{resourceGroupId}?api-version=2019-11-01"  // or 2019-07-01?
+                    let managedBy = 
+                        match Decode.fromString ManagedByDecoder armResponse with
+                        | Ok x -> x
+                        | Error e -> failwith e
+
+                    return managedBy |> ManagedAppResourceGroupID |> ManagedApplication
+                }
+
+    let retrieveDummyID (dummyValue: string) : Task<InternalResourceId> =
+        dummyValue |> ManagedAppResourceGroupID |> ManagedApplication |> Task.FromResult

@@ -24,18 +24,14 @@
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ObservableExtension.fs" />
     <Compile Include="MeteringAPICredentials.fs" />
     <Compile Include="InfraStructureCredentials.fs" />
     <Compile Include="MeteringConnections.fs" />
     <Compile Include="InstanceMetadataClient.fs" />
     <Compile Include="EventHub.fs" />
     <Compile Include="CaptureProcessor.fs" />
-    <Compile Include="ConsumedQuantity.fs" />
-    <Compile Include="IncludedQuantitySpecification.fs" />
-    <Compile Include="IncludedQuantity.fs" />
-    <Compile Include="RenewalInterval.fs" />
     <Compile Include="MeterValue.fs" />
-    <Compile Include="ResourceID.fs" />
     <Compile Include="PlanId.fs" />
     <Compile Include="CurrentMeterValues.fs" />
     <Compile Include="BillingDimension.fs" />
