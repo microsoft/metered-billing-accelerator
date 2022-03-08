@@ -10,15 +10,14 @@ open Azure.Messaging.EventHubs.Processor
 open Metering.Types
 open System.Collections.Generic
 
-module MessagePosition =
-    let createFromEventData (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
+module EventHubIntegration =
+    let createMessagePositionFromEventData (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId
           SequenceNumber = eventData.SequenceNumber
           // Offset = eventData.Offset
           PartitionTimestamp = eventData.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset }
  
-module EventsToCatchup =
-    let create (data: EventData) (lastEnqueuedEvent: LastEnqueuedEventProperties) : EventsToCatchup =
+    let createEventsToCatchup (data: EventData) (lastEnqueuedEvent: LastEnqueuedEventProperties) : EventsToCatchup =
         // if lastEnqueuedEvent = null or 
         let eventEnqueuedTime = data.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset
         let lastSequenceNumber = lastEnqueuedEvent.SequenceNumber.Value
@@ -32,24 +31,23 @@ module EventsToCatchup =
           NumberOfEvents = numberOfUnprocessedEvents
           TimeDeltaSeconds = timeDiffBetweenCurrentEventAndMostRecentEvent }
 
-module EventHubEvent =
-    let createFromEventHub (convert: EventData -> 'TEvent) (processEventArgs: ProcessEventArgs) : EventHubEvent<'TEvent> option =  
+    let createEventHubEventFromEventData (convert: EventData -> 'TEvent) (processEventArgs: ProcessEventArgs) : EventHubEvent<'TEvent> option =  
         if not processEventArgs.HasEvent
         then None
         else
             let catchUp = 
                 processEventArgs.Partition.ReadLastEnqueuedEventProperties()
-                |> EventsToCatchup.create processEventArgs.Data
+                |> createEventsToCatchup processEventArgs.Data
                 |> Some
 
-            { MessagePosition = processEventArgs.Data |> MessagePosition.createFromEventData (processEventArgs.Partition.PartitionId |> PartitionID.create)
+            { MessagePosition = processEventArgs.Data |> createMessagePositionFromEventData (processEventArgs.Partition.PartitionId |> PartitionID.create)
               EventsToCatchup = catchUp
               EventData = processEventArgs.Data |> convert
               Source = EventHub }
             |> Some
 
     let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: PartitionID) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
-        { MessagePosition = MessagePosition.createFromEventData partitionId data
+        { MessagePosition = createMessagePositionFromEventData partitionId data
           EventsToCatchup = None
           EventData = data |> convert 
           Source = Capture(BlobName = blobName)}

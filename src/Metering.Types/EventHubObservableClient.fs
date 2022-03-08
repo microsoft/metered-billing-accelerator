@@ -50,7 +50,7 @@ module EventHubObservableClient =
 
             let ProcessEvent (processEventArgs: ProcessEventArgs) =
                 try
-                    match (EventHubEvent.createFromEventHub converter processEventArgs) with
+                    match (EventHubIntegration.createEventHubEventFromEventData converter processEventArgs) with
                     | Some e -> o.OnNext(EventHubEvent e)
                     | None -> 
                         let catchUp = processEventArgs.Partition.ReadLastEnqueuedEventProperties()

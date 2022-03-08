@@ -172,7 +172,7 @@ module CaptureProcessor =
 
                     for blobName in blobs do            
                         eprintfn "Reading %s" blobName
-                        let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
+                        let toEvent = EventHubIntegration.createFromEventHubCapture convert partitionId blobName
                     
                         yield!
                             blobName
@@ -235,7 +235,7 @@ module CaptureProcessor =
                     sn < e.MessagePosition.SequenceNumber
 
                 for blobName in relevantBlobs do                
-                    let toEvent = EventHubEvent.createFromEventHubCapture convert mp.PartitionID blobName
+                    let toEvent = EventHubIntegration.createFromEventHubCapture convert mp.PartitionID blobName
 
                     yield!
                         blobName
@@ -299,7 +299,7 @@ module CaptureProcessor =
                     st < e.MessagePosition.PartitionTimestamp.ToInstant()
 
                 for blobName in relevantBlobs do                
-                    let toEvent = EventHubEvent.createFromEventHubCapture convert partitionId blobName
+                    let toEvent = EventHubIntegration.createFromEventHubCapture convert partitionId blobName
 
                     yield!
                         blobName

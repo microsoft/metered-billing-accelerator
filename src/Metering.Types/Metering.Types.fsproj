@@ -29,7 +29,7 @@
     <Compile Include="InfraStructureCredentials.fs" />
     <Compile Include="MeteringConnections.fs" />
     <Compile Include="InstanceMetadataClient.fs" />
-    <Compile Include="EventHub.fs" />
+    <Compile Include="EventHubIntegration.fs" />
     <Compile Include="CaptureProcessor.fs" />
     <Compile Include="DependencyInjection.fs" />
     <Compile Include="MeteringEvent.fs" />
