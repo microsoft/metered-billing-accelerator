@@ -21,6 +21,11 @@
     <Compile Include="Plan.fs" />
     <Compile Include="ApplicationInternalMeterName.fs" />
     <Compile Include="InternalUsageEvent.fs" />
+    <Compile Include="Subscription.fs" />
+    <Compile Include="BusinessError.fs" />
+    <Compile Include="BillingPeriod.fs" />
+    <Compile Include="InternalMetersMapping.fs" />
+    <Compile Include="SubscriptionCreationInformation.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NodaTime" Version="3.0.9" />
