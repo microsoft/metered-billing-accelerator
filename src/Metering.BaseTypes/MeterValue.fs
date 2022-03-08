@@ -3,8 +3,6 @@
 
 namespace Metering.Types
 
-open Metering.Types.EventHub
-
 type MeterValue =
     | ConsumedQuantity of ConsumedQuantity
     | IncludedQuantity of IncludedQuantity
@@ -112,9 +110,9 @@ module MeterValue =
                             |> ConsumedQuantity.create now
                             |> ConsumedQuantity
 
-    let someHandleQuantity (quantity: Quantity) (currentPosition: MessagePosition) (current: MeterValue option) : MeterValue option =
+    let someHandleQuantity (quantity: Quantity) (currentPosition: MeteringDateTime) (current: MeterValue option) : MeterValue option =
         let subtract quantity meterValue = 
-            meterValue |> subtractQuantity currentPosition.PartitionTimestamp quantity
+            meterValue |> subtractQuantity currentPosition quantity
         
         current
         |> Option.bind ((subtract quantity) >> Some) 

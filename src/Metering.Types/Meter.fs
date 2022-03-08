@@ -68,7 +68,7 @@ module Meter =
                     if currentMeterValues |> Map.containsKey dimension
                     then 
                         currentMeterValues
-                        |> Map.change dimension (MeterValue.someHandleQuantity event.Quantity currentPosition)
+                        |> Map.change dimension (MeterValue.someHandleQuantity event.Quantity currentPosition.PartitionTimestamp)
                     else
                         let newConsumption = ConsumedQuantity (ConsumedQuantity.create event.Timestamp event.Quantity)
                         currentMeterValues

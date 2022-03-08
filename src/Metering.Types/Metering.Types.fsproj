@@ -31,7 +31,6 @@
     <Compile Include="InstanceMetadataClient.fs" />
     <Compile Include="EventHub.fs" />
     <Compile Include="CaptureProcessor.fs" />
-    <Compile Include="MeterValue.fs" />
     <Compile Include="PlanId.fs" />
     <Compile Include="CurrentMeterValues.fs" />
     <Compile Include="BillingDimension.fs" />

@@ -14,6 +14,7 @@
     <Compile Include="IncludedQuantity.fs" />
     <Compile Include="RenewalInterval.fs" />
     <Compile Include="ResourceID.fs" />
+    <Compile Include="MeterValue.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NodaTime" Version="3.0.9" />
