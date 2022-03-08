@@ -24,7 +24,7 @@ type SeekPosition =
 
 type EventsToCatchup =
     { /// The sequence number observed the last event to be enqueued in the partition.
-      LastSequenceNumber: int64
+      LastSequenceNumber: SequenceNumber
 
       /// The date and time, in UTC, that the last event was enqueued in the partition.
       LastEnqueuedTime: MeteringDateTime
