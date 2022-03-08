@@ -3,8 +3,6 @@
 
 namespace Metering.Types
 
-open Metering.Types.EventHub
-
 type UnprocessableMessage =
     | UnprocessableStringContent of string
     | UnprocessableByteContent of byte array

@@ -10,7 +10,6 @@ open Azure.Messaging.EventHubs.Processor
 open Metering.Types
 open System.Collections.Generic
 
-
 module MessagePosition =
     let create (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId

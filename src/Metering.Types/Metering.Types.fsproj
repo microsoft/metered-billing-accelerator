@@ -33,8 +33,6 @@
     <Compile Include="CaptureProcessor.fs" />
     <Compile Include="DependencyInjection.fs" />
     <Compile Include="Meter.fs" />
-    <Compile Include="UnprocessableMessage.fs" />
-    <Compile Include="MeteringUpdateEvent.fs" />
     <Compile Include="MeteringEvent.fs" />
     <Compile Include="MeterCollection.fs" />
     <Compile Include="Json.fs" />

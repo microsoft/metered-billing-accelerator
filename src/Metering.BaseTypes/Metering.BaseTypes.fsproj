@@ -28,6 +28,8 @@
     <Compile Include="SubscriptionCreationInformation.fs" />
     <Compile Include="EventHubAbstractions.fs" />
     <Compile Include="MarketplaceStructures.fs" />
+    <Compile Include="UnprocessableMessage.fs" />
+    <Compile Include="MeteringUpdateEvent.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NodaTime" Version="3.0.9" />
