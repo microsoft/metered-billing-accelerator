@@ -68,7 +68,7 @@ module MeterCollectionLogic =
         // AggregatorBooted should trigger on all entries
         // UsageReported and UsageSubmittedToAPI should fire on the appropriate entry
 
-        let enforceStrictSequenceNumbers state messagePosition =
+        let enforceStrictSequenceNumbers (state: MeterCollection) messagePosition =
             match state.LastUpdate with 
             | Some lastUpdate -> 
                 let expectedSequenceNumber = lastUpdate.SequenceNumber + 1L
