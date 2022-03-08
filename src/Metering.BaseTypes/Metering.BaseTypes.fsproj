@@ -30,6 +30,7 @@
     <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="UnprocessableMessage.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />
+    <Compile Include="Meter.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NodaTime" Version="3.0.9" />

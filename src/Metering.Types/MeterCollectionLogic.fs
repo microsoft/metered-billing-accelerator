@@ -4,7 +4,6 @@
 namespace Metering.Types
 
 open System.Runtime.CompilerServices
-open Azure.Messaging.EventHubs.Consumer
 open Metering.Types.EventHub
 
 [<Extension>]
@@ -103,7 +102,7 @@ module MeterCollectionLogic =
             | UsageSubmittedToAPI submission ->
                 state
                 //|> applyMeters (Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission)))
-                |> applyMeters (Map.change (submission.Result |> MarketplaceSubmissionResult.resourceId) (Option.bind ((Meter.handleUsageSubmissionToAPI config submission) >> Some)))
+                |> applyMeters (Map.change (submission.Result |> MarketplaceSubmissionResult.resourceId) (Option.bind ((Meter.handleUsageSubmissionToAPI submission) >> Some)))
                 |> setLastProcessed messagePosition
             | UsageReported usage -> 
                 state 
@@ -122,7 +121,7 @@ module MeterCollectionLogic =
                             state |> value
                             |> Map.change 
                                 usage.InternalResourceId 
-                                (Option.bind ((Meter.handleUsageEvent config (usage, messagePosition)) >> Some))
+                                (Option.bind ((Meter.handleUsageEvent (usage, messagePosition)) >> Some))
 
                         { state with MeterCollection = newMeterCollection }
                 )
@@ -153,10 +152,9 @@ module MeterCollectionLogic =
                 state
                 |> applyMeters (
                     Map.toSeq
-                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorCatchedUp config))
+                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorCatchedUp config.CurrentTimeProvider config.GracePeriod))
                     >> Map.ofSeq
                 )
-
 
     let handleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
         let state =

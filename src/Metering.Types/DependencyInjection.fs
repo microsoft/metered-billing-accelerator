@@ -7,13 +7,6 @@ open System
 open System.Threading.Tasks
 open NodaTime
 
-type CurrentTimeProvider =
-    unit -> MeteringDateTime
-
-module CurrentTimeProvider =
-    let LocalSystem : CurrentTimeProvider = (fun () -> ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
-    let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
-
 type SubmitMeteringAPIUsageEvent = MeteringConfigurationProvider -> (MarketplaceRequest list) -> Task<MarketplaceBatchResponse> 
 and MeteringConfigurationProvider = 
     { CurrentTimeProvider: CurrentTimeProvider

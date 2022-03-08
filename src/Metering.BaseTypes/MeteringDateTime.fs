@@ -3,11 +3,12 @@
 
 namespace Metering.Types
 
+open System
+open NodaTime
+
 type MeteringDateTime = NodaTime.ZonedDateTime
 
 module MeteringDateTime =
-    open System
-    open NodaTime
     open NodaTime.Text
 
     let private toPattern p = 
@@ -53,3 +54,10 @@ module MeteringDateTime =
                 hour = hour, minute = minute, second = second),
             zone = DateTimeZone.Utc,
             offset = Offset.Zero)
+
+type CurrentTimeProvider =
+    unit -> MeteringDateTime
+
+module CurrentTimeProvider =
+    let LocalSystem : CurrentTimeProvider = (fun () -> MeteringDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
+    let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)

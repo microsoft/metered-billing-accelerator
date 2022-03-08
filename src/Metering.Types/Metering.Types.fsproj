@@ -32,7 +32,6 @@
     <Compile Include="EventHub.fs" />
     <Compile Include="CaptureProcessor.fs" />
     <Compile Include="DependencyInjection.fs" />
-    <Compile Include="Meter.fs" />
     <Compile Include="MeteringEvent.fs" />
     <Compile Include="MeterCollection.fs" />
     <Compile Include="Json.fs" />

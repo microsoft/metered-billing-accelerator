@@ -3,6 +3,8 @@
 
 namespace Metering.Types
 
+open NodaTime
+
 type Meter =
     { Subscription: Subscription // The purchase information of the subscription
       InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
@@ -20,7 +22,7 @@ module Meter =
     /// Removes the item from the UsageToBeReported collection
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
 
-    let closePreviousMeteringPeriod (config: MeteringConfigurationProvider) (state: Meter) : Meter =
+    let closePreviousMeteringPeriod (state: Meter) : Meter =
         let isConsumedQuantity = function
             | ConsumedQuantity _ -> true
             | _ -> false
@@ -48,7 +50,7 @@ module Meter =
         |> setCurrentMeterValues includedValuesWhichDontNeedToBeReported
         |> addUsagesToBeReported usagesToBeReported
     
-    let handleUsageEvent (config: MeteringConfigurationProvider) ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : Meter) : Meter =
+    let handleUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : Meter) : Meter =
         let updateConsumption (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
             let someDimension : DimensionId option = 
                 state.InternalMetersMapping |> InternalMetersMapping.value |> Map.tryFind event.MeterName
@@ -76,7 +78,7 @@ module Meter =
             let last = state.LastProcessedMessage.PartitionTimestamp
             let curr = currentPosition.PartitionTimestamp
             match BillingPeriod.previousBillingIntervalCanBeClosedNewEvent last curr with
-            | Close -> closePreviousMeteringPeriod config
+            | Close -> closePreviousMeteringPeriod
             | KeepOpen -> id
 
         state
@@ -84,12 +86,12 @@ module Meter =
         |> applyToCurrentMeterValue updateConsumption
         |> setLastProcessedMessage currentPosition // Todo: Decide where to update the position
 
-    let handleAggregatorCatchedUp (config: MeteringConfigurationProvider) (meter: Meter) : Meter =
-        match BillingPeriod.previousBillingIntervalCanBeClosedWakeup (config.CurrentTimeProvider(), config.GracePeriod) meter.LastProcessedMessage.PartitionTimestamp  with
-        | Close -> meter |> closePreviousMeteringPeriod config
+    let handleAggregatorCatchedUp (timeProvider: CurrentTimeProvider) (gracePeriod: Duration) (meter: Meter) : Meter =
+        match BillingPeriod.previousBillingIntervalCanBeClosedWakeup (timeProvider(), gracePeriod) meter.LastProcessedMessage.PartitionTimestamp  with
+        | Close -> meter |> closePreviousMeteringPeriod
         | KeepOpen -> meter
 
-    let handleUnsuccessfulMeterSubmission (config: MeteringConfigurationProvider) (error: MarketplaceSubmissionError) (meter: Meter) : Meter =
+    let handleUnsuccessfulMeterSubmission (error: MarketplaceSubmissionError) (meter: Meter) : Meter =
         match error with
         | DuplicateSubmission duplicate -> 
             meter |> removeUsageToBeReported duplicate.PreviouslyAcceptedMessage.RequestData
@@ -105,10 +107,10 @@ module Meter =
         | Generic generic -> 
             meter
         
-    let handleUsageSubmissionToAPI (config: MeteringConfigurationProvider) (item: MarketplaceResponse) (meter: Meter) : Meter =
+    let handleUsageSubmissionToAPI (item: MarketplaceResponse) (meter: Meter) : Meter =
         match item.Result with
         | Ok success ->  meter |> removeUsageToBeReported success.RequestData 
-        | Error error -> meter |> handleUnsuccessfulMeterSubmission config error 
+        | Error error -> meter |> handleUnsuccessfulMeterSubmission error 
         
     let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
         meter
