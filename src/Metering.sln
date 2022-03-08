@@ -37,7 +37,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AggregatorFunctionHost", "AggregatorFunctionHost\AggregatorFunctionHost.csproj", "{F6ADCE13-6314-40E7-9E0A-A81EDF12FB59}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AddMetadataToEventHubCapture", "AddMetadataToEventHubCapture\AddMetadataToEventHubCapture.csproj", "{4AC8628A-A27B-4D8A-8FE5-BC88C3DB2C80}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AddMetadataToEventHubCapture", "AddMetadataToEventHubCapture\AddMetadataToEventHubCapture.csproj", "{4AC8628A-A27B-4D8A-8FE5-BC88C3DB2C80}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Metering.EventHub", "Metering.EventHub\Metering.EventHub.fsproj", "{D62C452D-496D-4342-B5AC-177E9C09A5EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -85,6 +87,10 @@ Global
 		{4AC8628A-A27B-4D8A-8FE5-BC88C3DB2C80}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4AC8628A-A27B-4D8A-8FE5-BC88C3DB2C80}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4AC8628A-A27B-4D8A-8FE5-BC88C3DB2C80}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
