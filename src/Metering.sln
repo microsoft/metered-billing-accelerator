@@ -39,7 +39,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AggregatorFunctionHost", "A
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AddMetadataToEventHubCapture", "AddMetadataToEventHubCapture\AddMetadataToEventHubCapture.csproj", "{4AC8628A-A27B-4D8A-8FE5-BC88C3DB2C80}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Metering.EventHub", "Metering.EventHub\Metering.EventHub.fsproj", "{D62C452D-496D-4342-B5AC-177E9C09A5EA}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Metering.BaseTypes", "Metering.BaseTypes\Metering.BaseTypes.fsproj", "{D62C452D-496D-4342-B5AC-177E9C09A5EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

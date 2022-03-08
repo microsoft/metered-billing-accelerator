@@ -61,6 +61,6 @@
     <Compile Include="ManagementUtils.fs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Metering.EventHub\Metering.EventHub.fsproj" />
+    <ProjectReference Include="..\Metering.BaseTypes\Metering.BaseTypes.fsproj" />
   </ItemGroup>
 </Project>
