@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NodaTime" Version="3.0.9" />
+    <PackageReference Include="Thoth.Json.Net" Version="7.1.0" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
@@ -40,5 +41,6 @@
     <Compile Include="Meter.fs" />
     <Compile Include="MeterCollection.fs" />
     <Compile Include="MeterCollectionLogic.fs" />
+    <Compile Include="Json.fs" />
   </ItemGroup>
 </Project>

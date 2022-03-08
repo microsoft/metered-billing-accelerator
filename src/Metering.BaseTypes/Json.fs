@@ -8,7 +8,6 @@ module Json =
     open System.Runtime.InteropServices
     open NodaTime.Text
     open Thoth.Json.Net
-    open Metering.Types.EventHub
 
     module internal JsonUtil =
         let toEncoder (encode: 'T -> (string * JsonValue) list) : Encoder<'T> =
@@ -77,7 +76,6 @@ module Json =
             ] |> Decode.oneOf
 
     module MessagePosition =
-        open Metering.Types.EventHub
 
         let (partitionId, sequenceNumber, partitionTimestamp) = 
             ("partitionId", "sequenceNumber", "partitionTimestamp")
