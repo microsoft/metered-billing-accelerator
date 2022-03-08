@@ -3,7 +3,6 @@
 
 namespace Metering.Types
 
-open Metering.Types.EventHub
 open System.Runtime.CompilerServices
 
 type MeterCollection = 
