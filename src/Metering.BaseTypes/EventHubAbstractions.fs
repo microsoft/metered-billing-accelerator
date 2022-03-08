@@ -53,3 +53,37 @@ module MessagePosition =
         { PartitionID = partitionId |> PartitionID.create
           SequenceNumber = sequenceNumber
           PartitionTimestamp = partitionTimestamp }
+
+type SeekPosition =
+    | FromSequenceNumber of SequenceNumber: SequenceNumber 
+    | Earliest
+    | FromTail
+
+type EventsToCatchup =
+    { /// The sequence number observed the last event to be enqueued in the partition.
+      LastSequenceNumber: SequenceNumber
+
+      /// The date and time, in UTC, that the last event was enqueued in the partition.
+      LastEnqueuedTime: MeteringDateTime
+
+      NumberOfEvents: int64
+      TimeDeltaSeconds: float }
+
+/// Indicate whether an event was read from EventHub, or from the associated capture storage.
+type EventSource =
+    | EventHub
+    | Capture of BlobName:string
+
+module EventSource =
+    let toStr = 
+        function
+        | EventHub -> "EventHub"
+        | Capture(BlobName=b) -> b 
+
+type EventHubEvent<'TEvent> =
+    { MessagePosition: MessagePosition
+      EventsToCatchup: EventsToCatchup option
+      EventData: 'TEvent
+
+      /// Indicate whether an event was read from EventHub, or from the associated capture storage.      
+      Source: EventSource }
