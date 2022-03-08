@@ -13,7 +13,7 @@ module ManagementUtils =
     let recreateStateFromEventHubCapture (config : MeteringConfigurationProvider) (messagePosition: MessagePosition) =
         let cancellationToken = CancellationToken.None
 
-        let aggregate = MeterCollectionLogic.handleMeteringEvent config
+        let aggregate = MeterCollectionLogic.handleMeteringEvent config.CurrentTimeProvider config.GracePeriod
         let initialState : MeterCollection option = MeterCollection.Uninitialized
 
         config.MeteringConnections
@@ -27,7 +27,7 @@ module ManagementUtils =
     let recreateLatestStateFromEventHubCapture (config : MeteringConfigurationProvider) (partitionId: PartitionID)  =
         let cancellationToken = CancellationToken.None
 
-        let aggregate = MeterCollectionLogic.handleMeteringEvent config
+        let aggregate = MeterCollectionLogic.handleMeteringEvent config.CurrentTimeProvider config.GracePeriod
         let initialState : MeterCollection option = MeterCollection.Uninitialized
 
         let x = 

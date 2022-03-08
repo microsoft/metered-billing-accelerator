@@ -85,7 +85,7 @@ let inspecto (header: string) (a: 'a) : 'a =
     
     a
 
-let demoAggregation config =
+let demoAggregation (config: MeteringConfigurationProvider) =
     let parseSub = 
         Json.fromStr<SubscriptionCreationInformation> 
         >> SubscriptionPurchased
@@ -180,7 +180,7 @@ let demoAggregation config =
     let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
 
     eventsFromEventHub
-    |> MeterCollectionLogic.handleMeteringEvents config MeterCollection.Uninitialized
+    |> MeterCollectionLogic.handleMeteringEvents config.CurrentTimeProvider config.GracePeriod MeterCollection.Uninitialized
     |> Json.toStr 2
     |> inspect ""
     |> Json.fromStr<MeterCollection>
@@ -212,10 +212,10 @@ let demoAggregation config =
 //    |> inspecto ""
 //    |> ignore
 
-let demoStorage config eventsFromEventHub =
+let demoStorage (config: MeteringConfigurationProvider) eventsFromEventHub =
     let events = 
         eventsFromEventHub
-        |> MeterCollectionLogic.handleMeteringEvents config MeterCollection.Uninitialized // We start completely uninitialized
+        |> MeterCollectionLogic.handleMeteringEvents config.CurrentTimeProvider config.GracePeriod MeterCollection.Uninitialized // We start completely uninitialized
         |> Json.toStr 1                             |> inspect "meters"
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         

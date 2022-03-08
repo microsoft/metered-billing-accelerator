@@ -16,7 +16,7 @@ module MeteringAggregator =
         let apply meterCollection eventHubEvent =
             eventHubEvent
             |> MeteringEvent.fromEventHubEvent 
-            |> handleMeteringEvent config meterCollection
+            |> handleMeteringEvent config.CurrentTimeProvider config.GracePeriod meterCollection
             
         match meters with 
         | None ->

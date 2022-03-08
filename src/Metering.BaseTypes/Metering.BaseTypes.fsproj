@@ -6,6 +6,12 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="NodaTime" Version="3.0.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.1" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="FSharpFuncUtil.fs" />
     <Compile Include="MeteringDateTime.fs" />
     <Compile Include="Quantity.fs" />
@@ -33,11 +39,6 @@
     <Compile Include="MeteringEvent.fs" />
     <Compile Include="Meter.fs" />
     <Compile Include="MeterCollection.fs" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="NodaTime" Version="3.0.9" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.1" />
+    <Compile Include="MeterCollectionLogic.fs" />
   </ItemGroup>
 </Project>

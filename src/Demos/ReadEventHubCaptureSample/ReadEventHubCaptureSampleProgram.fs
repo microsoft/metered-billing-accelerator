@@ -139,7 +139,7 @@ let initialState = File.ReadAllText("C:\\Users\\chgeuer\\Desktop\\482127.json") 
 
 match initialState with
 | None -> 
-    let aggregate = MeterCollectionLogic.handleMeteringEvent config
+    let aggregate = MeterCollectionLogic.handleMeteringEvent config.CurrentTimeProvider config.GracePeriod
     let partitionId = "0"
     let x = 
         config.MeteringConnections
@@ -168,7 +168,7 @@ match initialState with
 | Some initialState -> 
     // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
 
-    let aggregate = MeterCollectionLogic.handleMeteringEvent config
+    let aggregate = MeterCollectionLogic.handleMeteringEvent config.CurrentTimeProvider config.GracePeriod
     let startPosition = initialState.LastUpdate.Value
 
     let x = 

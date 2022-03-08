@@ -4,6 +4,7 @@
 namespace Metering.Types
 
 open System.Runtime.CompilerServices
+open NodaTime
 
 [<Extension>]
 module MeterCollectionLogic =
@@ -63,7 +64,7 @@ module MeterCollectionLogic =
     let setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }
         
-    let handleMeteringEvent (config: MeteringConfigurationProvider) (state: MeterCollection) (meteringEvent: MeteringEvent) : MeterCollection =    
+    let handleMeteringEvent (timeProvider: CurrentTimeProvider) (gracePeriod: Duration) (state: MeterCollection) (meteringEvent: MeteringEvent) : MeterCollection =    
         // SubscriptionPurchased should add / overwrite existing entry
         // AggregatorBooted should trigger on all entries
         // UsageReported and UsageSubmittedToAPI should fire on the appropriate entry
@@ -151,14 +152,14 @@ module MeterCollectionLogic =
                 state
                 |> applyMeters (
                     Map.toSeq
-                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorCatchedUp config.CurrentTimeProvider config.GracePeriod))
+                    >> Seq.map(fun (k, v) -> (k, v |> Meter.handleAggregatorCatchedUp timeProvider gracePeriod))
                     >> Map.ofSeq
                 )
 
-    let handleMeteringEvents (config: MeteringConfigurationProvider) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
+    let handleMeteringEvents (timeProvider: CurrentTimeProvider) (gracePeriod: Duration) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
         let state =
             match state with
             | None -> MeterCollection.Empty
             | Some meterCollection -> meterCollection
 
-        meteringEvents |> List.fold (handleMeteringEvent config) state
+        meteringEvents |> List.fold (handleMeteringEvent timeProvider gracePeriod) state
