@@ -15,12 +15,6 @@ open Metering.Integration
 module Status =
     type PartitionProps = PartitionProps of PartitionId:PartitionID * LastEnqueuedSequenceNumber:int64 * LastEnqueuedTime:MeteringDateTime * LastOffset:int64
 
-    //let private oo (someSomeT : 'T option option) : 'T option = 
-    //    match someSomeT with
-    //    | None -> None
-    //    | Some None -> None 
-    //    | Some (Some t) -> Some t
-    
     let private getPartitionIDs (client: EventHubConsumerClient) (cancellationToken: CancellationToken) = 
         task {
             let! props = client.GetEventHubPropertiesAsync(cancellationToken = cancellationToken)

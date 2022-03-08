@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Metering.BaseTypes\Metering.BaseTypes.fsproj" />
+    <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="SubmitMeteringAPIUsageEvent.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
+  </ItemGroup>
+</Project>

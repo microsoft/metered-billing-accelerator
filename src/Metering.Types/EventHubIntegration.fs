@@ -4,13 +4,48 @@
 namespace Metering.EventHub
 
 open System
+open System.Collections.Generic
+open Azure.Storage.Blobs
+open Azure.Core
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.BaseTypes
-open System.Collections.Generic
-open Azure.Storage.Blobs
-open Azure.Core
+
+type PartitionInitializing<'TState> =
+    { PartitionID: PartitionID
+      InitialState: 'TState }
+
+type PartitionClosing =
+    { PartitionClosingEventArgs: PartitionClosingEventArgs }
+
+type EventHubProcessorEvent<'TState, 'TEvent> =    
+    | PartitionInitializing of PartitionInitializing<'TState>
+    | PartitionClosing of PartitionClosing
+    | EventHubEvent of EventHubEvent<'TEvent>
+    | EventHubError of PartitionID:PartitionID * Exception:exn
+
+module EventHubProcessorEvent =
+    let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
+        match e with
+        | PartitionInitializing e -> e.PartitionID
+        | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId |> PartitionID.create
+        | EventHubEvent e -> e.MessagePosition.PartitionID
+        | EventHubError (partitionID, _) -> partitionID
+        
+    let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
+        let pi = e |> partitionId
+
+        match e with
+        | PartitionInitializing e -> $"{pi} Initializing"
+        | PartitionClosing e -> $"{pi} Closing"
+        | EventHubEvent e -> $"{pi} Event: {e.EventData |> converter}"
+        | EventHubError (partitionId,ex) -> $"{pi} Error: {ex.Message}"
+    
+    let getEvent<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : EventHubEvent<'TEvent> =
+        match e with
+        | EventHubEvent e -> e
+        | _ -> raise (new ArgumentException(message = $"Not an {nameof(EventHubEvent)}", paramName = nameof(e)))
 
 module EventHubIntegration =
     let createMessagePositionFromEventData (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
@@ -55,41 +90,6 @@ module EventHubIntegration =
           Source = Capture(BlobName = blobName)}
         |> Some
 
-type PartitionInitializing<'TState> =
-    { PartitionID: PartitionID
-      InitialState: 'TState }
-
-type PartitionClosing =
-    { PartitionClosingEventArgs: PartitionClosingEventArgs }
-
-type EventHubProcessorEvent<'TState, 'TEvent> =    
-    | PartitionInitializing of PartitionInitializing<'TState>
-    | PartitionClosing of PartitionClosing
-    | EventHubEvent of EventHubEvent<'TEvent>
-    | EventHubError of PartitionID:PartitionID * Exception:exn
-
-module EventHubProcessorEvent =
-    let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
-        match e with
-        | PartitionInitializing e -> e.PartitionID
-        | PartitionClosing e -> e.PartitionClosingEventArgs.PartitionId |> PartitionID.create
-        | EventHubEvent e -> e.MessagePosition.PartitionID
-        | EventHubError (partitionID, _) -> partitionID
-        
-    let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
-        let pi = e |> partitionId
-
-        match e with
-        | PartitionInitializing e -> $"{pi} Initializing"
-        | PartitionClosing e -> $"{pi} Closing"
-        | EventHubEvent e -> $"{pi} Event: {e.EventData |> converter}"
-        | EventHubError (partitionId,ex) -> $"{pi} Error: {ex.Message}"
-    
-    let getEvent<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : EventHubEvent<'TEvent> =
-        match e with
-        | EventHubEvent e -> e
-        | _ -> raise (new ArgumentException(message = $"Not an {nameof(EventHubEvent)}", paramName = nameof(e)))
-
 module Capture =
     type RehydratedFromCaptureEventData(
         blobName: string, eventBody: byte[], 
@@ -103,9 +103,8 @@ module Capture =
         | :? RehydratedFromCaptureEventData -> (downcast e : RehydratedFromCaptureEventData) |> (fun x -> x.BlobName) |> Some
         | _ -> None 
 
-module EventDataDummy = 
-    let create (blobName: string) (eventBody: byte[]) (sequenceNumber: int64) (offset: int64)  (partitionKey: string) : EventData =
-        new Capture.RehydratedFromCaptureEventData(blobName, eventBody, new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)
+    let createEventDataFromBytes (blobName: string) (eventBody: byte[]) (sequenceNumber: int64) (offset: int64)  (partitionKey: string) : EventData =
+        new RehydratedFromCaptureEventData(blobName, eventBody, new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)
 
 type EventHubName =
     { NamespaceName: string

@@ -3,7 +3,6 @@
 
 namespace Metering.Integration
 
-open System
 open System.Threading.Tasks
 open NodaTime
 open Metering.BaseTypes
@@ -21,21 +20,3 @@ module MeteringConfigurationProvider =
           TimeHandlingConfiguration = 
             { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
               GracePeriod = Duration.FromHours(2.0) }}
-
-module SubmitMeteringAPIUsageEvent =
-    let PretendEverythingIsAccepted : SubmitMeteringAPIUsageEvent = (fun _cfg requests -> 
-        let headers = 
-            { RequestID = Guid.NewGuid().ToString()
-              CorrelationID = Guid.NewGuid().ToString() } 
-
-        let messageTime = MeteringDateTime.now()
-        let resourceUri = Some "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
-        let newUsageEvent () = Some (Guid.Empty.ToString())
-        requests
-        |> List.map (fun request -> 
-            { Headers = headers
-              Result = Ok { RequestData = request; Status = { Status = Accepted; MessageTime = messageTime; UsageEventID = newUsageEvent(); ResourceURI = resourceUri } } } 
-        )
-        |> MarketplaceBatchResponse.create
-        |> Task.FromResult
-     )

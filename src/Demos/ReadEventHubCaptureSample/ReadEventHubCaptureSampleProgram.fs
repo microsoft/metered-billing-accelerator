@@ -8,6 +8,7 @@ open NodaTime
 open Metering.BaseTypes
 open Metering.Integration
 open Metering.EventHub
+open Metering.Mockup
 
 module MySeq =
     let inspect<'T> i =
@@ -30,7 +31,7 @@ module MySeq =
 //    | _ -> None
 
 let config : MeteringConfigurationProvider = 
-    { SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.PretendEverythingIsAccepted     
+    { SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEventMock.PretendEverythingIsAccepted     
       MeteringConnections = MeteringConnections.getFromEnvironment()
       TimeHandlingConfiguration = 
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem

@@ -10,7 +10,7 @@
     <PackageReference Include="Thoth.Json.Net" Version="7.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.1" />
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FSharpFuncUtil.fs" />
