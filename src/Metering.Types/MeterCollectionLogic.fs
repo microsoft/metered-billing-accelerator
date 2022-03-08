@@ -4,7 +4,6 @@
 namespace Metering.Types
 
 open System.Runtime.CompilerServices
-open Metering.Types.EventHub
 
 [<Extension>]
 module MeterCollectionLogic =
