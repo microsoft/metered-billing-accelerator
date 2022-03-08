@@ -26,6 +26,8 @@
     <Compile Include="BillingPeriod.fs" />
     <Compile Include="InternalMetersMapping.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
+    <Compile Include="EventHubAbstractions.fs" />
+    <Compile Include="MarketplaceStructures.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="NodaTime" Version="3.0.9" />

@@ -31,7 +31,6 @@
     <Compile Include="InstanceMetadataClient.fs" />
     <Compile Include="EventHub.fs" />
     <Compile Include="CaptureProcessor.fs" />
-    <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="DependencyInjection.fs" />
     <Compile Include="Meter.fs" />
     <Compile Include="UnprocessableMessage.fs" />

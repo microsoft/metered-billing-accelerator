@@ -4,67 +4,19 @@
 namespace Metering.Types.EventHub
 
 open System
-open System.Runtime.CompilerServices
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.Types
 open System.Collections.Generic
 
-type SequenceNumber = int64
-
-type PartitionID = PartitionID of string
-
-[<Extension>]
-module PartitionID =
-    [<Extension>]
-    let value (PartitionID x) = x
-    let create x = (PartitionID x)
-
-type PartitionKey = PartitionKey of string
-
-[<Extension>]
-module PartitionKey =
-    [<Extension>]
-    let value (PartitionKey x) = x
-    let create x = (PartitionKey x)
-
-type PartitionIdentifier =
-    | PartitionID of PartitionID
-    | PartitionKey of PartitionKey
-
-module PartitionIdentifier =
-    let createId = PartitionID.create >> PartitionID
-    let createKey = PartitionKey.create >> PartitionKey
-
-type MessagePosition = 
-    { PartitionID: PartitionID
-      SequenceNumber: SequenceNumber
-      // Offset: int64
-      PartitionTimestamp: MeteringDateTime }
-
-type StartingPosition =
-    | Earliest
-    | NextEventAfter of LastProcessedSequenceNumber: SequenceNumber * PartitionTimestamp: MeteringDateTime
 
 module MessagePosition =
-    let startingPosition (someMessagePosition: MessagePosition option) : StartingPosition =
-        match someMessagePosition with
-        | None -> Earliest
-        | Some pos -> NextEventAfter(
-            LastProcessedSequenceNumber = pos.SequenceNumber, 
-            PartitionTimestamp = pos.PartitionTimestamp)
-
     let create (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId
           SequenceNumber = eventData.SequenceNumber
           // Offset = eventData.Offset
           PartitionTimestamp = eventData.EnqueuedTime |> MeteringDateTime.fromDateTimeOffset }
-    
-    let createData (partitionId: string) (sequenceNumber: int64) (partitionTimestamp: MeteringDateTime) =
-        { PartitionID = partitionId |> PartitionID.create
-          SequenceNumber = sequenceNumber
-          PartitionTimestamp = partitionTimestamp }
  
 type SeekPosition =
     | FromSequenceNumber of SequenceNumber: SequenceNumber 
