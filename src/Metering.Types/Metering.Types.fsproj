@@ -31,8 +31,6 @@
     <Compile Include="InstanceMetadataClient.fs" />
     <Compile Include="EventHub.fs" />
     <Compile Include="CaptureProcessor.fs" />
-    <Compile Include="ApplicationInternalMeterName.fs" />
-    <Compile Include="InternalUsageEvent.fs" />
     <Compile Include="BusinessError.fs" />
     <Compile Include="Subscription.fs" />
     <Compile Include="BillingPeriod.fs" />
