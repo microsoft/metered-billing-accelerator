@@ -386,6 +386,37 @@ You can see an included annual quantity of 10000 units, and a monthly quantity o
 - Once you (s)ubmit a usage of 1000 units (by typing `s foo 1000`), the `Remaining 901/10000 (month/year)` become `Remaining 9901 (year)`
 - The last consumption of 10_000 units fully depletes the remaining 9901 annual credits, and brings you into the overage, i.e. the included quantity of `Remaining 9901 (year)` becomes `99 consumed`
 
+## Assembly overview
+
+This gives an overview about the DLL depentencies
+
+```mermaid
+graph TD
+    EventHubTypes(Metering.EventHubTypes.dll) --> BaseTypes
+    BaseTypes(Metering.BaseTypes.dll) --> Mockups
+    BaseTypes--> RunTime
+    RunTime(Metering.Runtime.dll) --> EventHubCSharp
+    RunTime --> EventHubFSharp
+    RunTime --> Mockups
+    EventHubCSharp(Metering.EventHub.dll)
+    EventHubFSharp(Metering.EventHub.FSharp.dll)
+    Mockups(Metering.Mockup.dll)
+```
+
+Not sure how show dependencies
+
+```mermaid
+graph TD
+     BaseTypes(Metering.BaseTypes.dll) --> EventHubTypes
+     EventHubTypes(Metering.EventHubTypes.dll)
+     RunTime(Metering.Runtime.dll) --> BaseTypes
+     EventHubCSharp(Metering.EventHub.dll) --> RunTime
+     EventHubFSharp(Metering.EventHub.FSharp.dll) --> RunTime
+     Mockups(Metering.Mockup.dll) --> RunTime
+     Mockups(Metering.Mockup.dll) --> BaseTypes
+```
+
+
 ## TODO
 
 - [ ] compensating action / compensating usage for an unsubmittable api call, it it exists. needs to make handleevent recursive
