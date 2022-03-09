@@ -11,6 +11,7 @@ open Azure.Messaging.EventHubs.Consumer
 open Metering.BaseTypes
 open Metering.Integration
 
+/// Functions to interact with the system's state files in storage
 [<Extension>]
 module Status =
     type PartitionProps = PartitionProps of PartitionId:PartitionID * LastEnqueuedSequenceNumber:int64 * LastEnqueuedTime:MeteringDateTime * LastOffset:int64
@@ -53,6 +54,7 @@ module Status =
             return storedStates |> Map.ofSeq
         }
 
+    /// Download all snapshots for the given partition IDs.
     let private getStates (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) : Task<Map<PartitionID, MeterCollection option>> =
         let getState partitionId =
             task {
