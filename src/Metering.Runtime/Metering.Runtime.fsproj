@@ -41,6 +41,5 @@
     <Compile Include="MeteringAggregator.fs" />
     <Compile Include="Status.fs" />
     <Compile Include="ManagementUtils.fs" />
-    <Compile Include="EventHubObservableClient.fs" />
   </ItemGroup>
 </Project>

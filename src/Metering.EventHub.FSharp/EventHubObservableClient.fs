@@ -18,7 +18,6 @@ open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.EventHub
 
-
 [<Extension>]
 module EventHubObservableClient =
     type internal EventHubCaptureConf =
