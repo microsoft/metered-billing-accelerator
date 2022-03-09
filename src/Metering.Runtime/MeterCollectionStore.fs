@@ -17,6 +17,7 @@ open Azure.Storage.Blobs.Models
 open Azure.Storage.Blobs.Specialized
 open Azure.Storage.Sas
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.EventHub
 
 module MeterCollectionStore =

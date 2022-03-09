@@ -6,6 +6,7 @@ namespace Metering.Aggregator
     using System.Reactive.Linq;
     using System.Collections.Concurrent;
     using Metering.BaseTypes;
+    using Metering.BaseTypes.EventHub;
     using Metering.Integration;
     using Metering.EventHub;
     using Metering.ClientSDK;

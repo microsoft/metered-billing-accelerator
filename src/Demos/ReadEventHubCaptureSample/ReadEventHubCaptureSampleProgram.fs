@@ -6,6 +6,7 @@ open System.IO
 open NodaTime
 //open Azure.Messaging.EventHubs.Consumer
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.Integration
 open Metering.EventHub
 open Metering.Mockup

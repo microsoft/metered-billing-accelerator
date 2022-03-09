@@ -8,8 +8,8 @@ open System.IO
 open NUnit.Framework
 open NodaTime
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.EventHub
-open Metering.Integration
 
 [<SetUp>]
 let Setup () = ()

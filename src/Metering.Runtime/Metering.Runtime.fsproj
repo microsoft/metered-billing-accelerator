@@ -24,6 +24,9 @@
     <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Metering.BaseTypes\Metering.BaseTypes.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="ObservableExtension.fs" />
     <Compile Include="MeteringAPICredentials.fs" />
     <Compile Include="InfraStructureCredentials.fs" />
@@ -39,8 +42,5 @@
     <Compile Include="Status.fs" />
     <Compile Include="ManagementUtils.fs" />
     <Compile Include="EventHubObservableClient.fs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Metering.BaseTypes\Metering.BaseTypes.fsproj" />
   </ItemGroup>
 </Project>

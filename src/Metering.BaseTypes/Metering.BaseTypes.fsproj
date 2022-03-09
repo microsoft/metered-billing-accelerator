@@ -13,8 +13,9 @@
     <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FSharpFuncUtil.fs" />
-    <Compile Include="MeteringDateTime.fs" />
+    <ProjectReference Include="..\Metering.EventHubTypes\Metering.EventHubTypes.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Include="Quantity.fs" />
     <Compile Include="ConsumedQuantity.fs" />
     <Compile Include="IncludedQuantitySpecification.fs" />
@@ -33,7 +34,6 @@
     <Compile Include="BillingPeriod.fs" />
     <Compile Include="InternalMetersMapping.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
-    <Compile Include="EventHubAbstractions.fs" />
     <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="UnprocessableMessage.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />

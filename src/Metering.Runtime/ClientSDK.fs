@@ -12,6 +12,7 @@ open Microsoft.Extensions.DependencyInjection
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Producer
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.Integration
 
 type MeterValue = 

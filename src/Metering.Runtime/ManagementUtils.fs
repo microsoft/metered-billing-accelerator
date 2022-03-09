@@ -8,6 +8,7 @@ open System.Threading.Tasks
 open System.Runtime.CompilerServices
 open Metering.EventHub
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.Integration
 
 [<Extension>]

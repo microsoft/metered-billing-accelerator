@@ -18,6 +18,7 @@ open FSharp.Control
 open Avro.File
 open Avro.Generic
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.Integration
 
 

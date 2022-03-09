@@ -1,11 +1,14 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.BaseTypes
+namespace Metering.BaseTypes.EventHub
 
 open System.Runtime.CompilerServices
+open Metering.BaseTypes
 
 type SequenceNumber = int64
+
+type DifferenceBetweenTwoSequenceNumbers = SequenceNumber
 
 type PartitionID = PartitionID of string
 
@@ -66,7 +69,7 @@ type EventsToCatchup =
       /// The date and time, in UTC, that the last event was enqueued in the partition.
       LastEnqueuedTime: MeteringDateTime
 
-      NumberOfEvents: int64
+      NumberOfEvents: DifferenceBetweenTwoSequenceNumbers
       TimeDeltaSeconds: float }
 
 /// Indicate whether an event was read from EventHub, or from the associated capture storage.

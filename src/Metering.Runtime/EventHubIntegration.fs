@@ -11,6 +11,7 @@ open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 
 type PartitionInitializing<'TState> =
     { PartitionID: PartitionID

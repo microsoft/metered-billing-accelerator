@@ -9,6 +9,7 @@ open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
 open Azure.Messaging.EventHubs.Consumer
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.Integration
 
 /// Functions to interact with the system's state files in storage

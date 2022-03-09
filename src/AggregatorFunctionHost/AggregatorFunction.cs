@@ -15,6 +15,7 @@ namespace AggregatorFunctionHost
     using Microsoft.Extensions.Logging;
     using Metering.ClientSDK;
     using Metering.BaseTypes;
+    using Metering.BaseTypes.EventHub;
     using Metering.Integration;
     using Metering.EventHub;
     using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;

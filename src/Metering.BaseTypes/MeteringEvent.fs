@@ -3,6 +3,8 @@
 
 namespace Metering.BaseTypes
 
+open Metering.BaseTypes.EventHub
+
 type MeteringEvent =
     | Remote of Event:MeteringUpdateEvent * MessagePosition:MessagePosition * EventsToCatchup:EventsToCatchup option
     | Local of Event:LocalControlEvent

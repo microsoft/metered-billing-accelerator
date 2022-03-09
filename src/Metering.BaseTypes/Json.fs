@@ -8,6 +8,7 @@ module Json =
     open System.Runtime.InteropServices
     open NodaTime.Text
     open Thoth.Json.Net
+    open Metering.BaseTypes.EventHub
 
     module internal JsonUtil =
         let toEncoder (encode: 'T -> (string * JsonValue) list) : Encoder<'T> =

@@ -3,6 +3,8 @@
 
 namespace Metering.BaseTypes
 
+open Metering.BaseTypes.EventHub
+
 type UnprocessableMessage =
     | UnprocessableStringContent of string
     | UnprocessableByteContent of byte array

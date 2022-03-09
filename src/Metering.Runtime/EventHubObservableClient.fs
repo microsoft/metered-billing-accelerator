@@ -15,7 +15,9 @@ open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Processor
 open Azure.Messaging.EventHubs.Consumer
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.EventHub
+
 
 [<Extension>]
 module EventHubObservableClient =
@@ -47,7 +49,7 @@ module EventHubObservableClient =
             let cancellationToken = cts.Token
             cancellationToken |> registerCancellationMessage "innerCancellationToken is Cancelled"
 
-            let ProcessEvent (processEventArgs: ProcessEventArgs) =
+            let ProcessEvent (processEventArgs: ProcessEventArgs) : Task =
                 try
                     match (EventHubIntegration.createEventHubEventFromEventData converter processEventArgs) with
                     | Some e -> o.OnNext(EventHubEvent e)
@@ -65,7 +67,7 @@ module EventHubObservableClient =
                 // processEventArgs.UpdateCheckpointAsync(processEventArgs.CancellationToken);
                 Task.CompletedTask
 
-            let ProcessError (processErrorEventArgs: ProcessErrorEventArgs) =
+            let ProcessError (processErrorEventArgs: ProcessErrorEventArgs) : Task =
                 try
                     o.OnError(processErrorEventArgs.Exception)
                 with
@@ -73,7 +75,7 @@ module EventHubObservableClient =
                 
                 Task.CompletedTask
 
-            let PartitionClosing (partitionClosingEventArgs: PartitionClosingEventArgs) =
+            let PartitionClosing (partitionClosingEventArgs: PartitionClosingEventArgs) : Task =
                 try
                     if partitionClosingEventArgs.CancellationToken.IsCancellationRequested
                     then eprintfn "PartitionClosing partitionClosingEventArgs.CancellationToken.IsCancellationRequested"

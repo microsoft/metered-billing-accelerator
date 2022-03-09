@@ -4,6 +4,7 @@
 namespace Metering.BaseTypes
 
 open System.Runtime.CompilerServices
+open Metering.BaseTypes.EventHub
 
 [<Extension>]
 module MeterCollectionLogic =
