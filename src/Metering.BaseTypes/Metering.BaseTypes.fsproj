@@ -1,0 +1,46 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarnOn>3390;$(WarnOn)</WarnOn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="NodaTime" Version="3.0.9" />
+    <PackageReference Include="Thoth.Json.Net" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Metering.EventHubTypes\Metering.EventHubTypes.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Quantity.fs" />
+    <Compile Include="ConsumedQuantity.fs" />
+    <Compile Include="IncludedQuantitySpecification.fs" />
+    <Compile Include="IncludedQuantity.fs" />
+    <Compile Include="RenewalInterval.fs" />
+    <Compile Include="ResourceID.fs" />
+    <Compile Include="MeterValue.fs" />
+    <Compile Include="PlanId.fs" />
+    <Compile Include="CurrentMeterValues.fs" />
+    <Compile Include="BillingDimension.fs" />
+    <Compile Include="Plan.fs" />
+    <Compile Include="ApplicationInternalMeterName.fs" />
+    <Compile Include="InternalUsageEvent.fs" />
+    <Compile Include="Subscription.fs" />
+    <Compile Include="BusinessError.fs" />
+    <Compile Include="BillingPeriod.fs" />
+    <Compile Include="InternalMetersMapping.fs" />
+    <Compile Include="SubscriptionCreationInformation.fs" />
+    <Compile Include="MarketplaceStructures.fs" />
+    <Compile Include="UnprocessableMessage.fs" />
+    <Compile Include="MeteringUpdateEvent.fs" />
+    <Compile Include="MeteringEvent.fs" />
+    <Compile Include="Meter.fs" />
+    <Compile Include="MeterCollection.fs" />
+    <Compile Include="MeterCollectionLogic.fs" />
+    <Compile Include="Json.fs" />
+  </ItemGroup>
+</Project>

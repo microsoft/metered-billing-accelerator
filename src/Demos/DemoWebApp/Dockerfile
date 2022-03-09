@@ -8,7 +8,8 @@ EXPOSE 443
 FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
 WORKDIR /src
 COPY ["Demos/DemoWebApp/DemoWebApp.csproj", "Demos/DemoWebApp/"]
-COPY ["Metering.Types/Metering.Types.fsproj", "Metering.Types/"]
+COPY ["Metering.BaseTypes/Metering.BaseTypes.fsproj", "Metering.BaseTypes/"]
+COPY ["Metering.Runtime/Metering.Runtime.fsproj", "Metering.Runtime/"]
 RUN dotnet restore "Demos/DemoWebApp/DemoWebApp.csproj"
 COPY . .
 WORKDIR "/src/Demos/DemoWebApp"

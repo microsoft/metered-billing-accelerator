@@ -1,14 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-open System
 open System.Threading
-open NodaTime
-open Metering
-open Metering.Types
-open Metering.Types.EventHub
 open System.IO
-open Azure.Messaging.EventHubs.Consumer
+open NodaTime
+//open Azure.Messaging.EventHubs.Consumer
+open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
+open Metering.Integration
+open Metering.EventHub
+open Metering.Mockup
 
 module MySeq =
     let inspect<'T> i =
@@ -18,6 +19,7 @@ module MySeq =
             | None -> ()
             a
         Seq.map (inspect i)
+
 
 //let printme e = 
 //    match e.MeteringUpdateEvent with
@@ -30,14 +32,15 @@ module MySeq =
 //    | _ -> None
 
 let config : MeteringConfigurationProvider = 
-    { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-      SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.PretendEverythingIsAccepted
-      GracePeriod = Duration.FromHours(6.0)
-      MeteringConnections = MeteringConnections.getFromEnvironment() }
+    { SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEventMock.PretendEverythingIsAccepted     
+      MeteringConnections = MeteringConnections.getFromEnvironment()
+      TimeHandlingConfiguration = 
+        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+          GracePeriod = Duration.FromHours(6.0) } }
 
 let partitionId = "1" |> PartitionID.create
 CaptureProcessor.readAllEvents 
-    EventHubObservableClient.toMeteringUpdateEvent
+    CaptureProcessor.toMeteringUpdateEvent
     partitionId
     CancellationToken.None
     config.MeteringConnections
@@ -138,11 +141,11 @@ let initialState = File.ReadAllText("C:\\Users\\chgeuer\\Desktop\\482127.json") 
 
 match initialState with
 | None -> 
-    let aggregate = MeterCollectionLogic.handleMeteringEvent config
+    let aggregate = MeterCollectionLogic.handleMeteringEvent config.TimeHandlingConfiguration
     let partitionId = "0"
     let x = 
         config.MeteringConnections
-        |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent (partitionId |> PartitionID.create) CancellationToken.None 
+        |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent (partitionId |> PartitionID.create) CancellationToken.None 
         //|> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate MeterCollection.Empty
@@ -167,12 +170,12 @@ match initialState with
 | Some initialState -> 
     // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
 
-    let aggregate = MeterCollectionLogic.handleMeteringEvent config
+    let aggregate = MeterCollectionLogic.handleMeteringEvent config.TimeHandlingConfiguration
     let startPosition = initialState.LastUpdate.Value
 
     let x = 
         config.MeteringConnections
-        |> CaptureProcessor.readEventsFromPosition EventHubObservableClient.toMeteringUpdateEvent startPosition CancellationToken.None 
+        |> CaptureProcessor.readEventsFromPosition CaptureProcessor.toMeteringUpdateEvent startPosition CancellationToken.None 
         // |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate initialState

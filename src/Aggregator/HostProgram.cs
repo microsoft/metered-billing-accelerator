@@ -2,7 +2,7 @@
 // Licensed under the MIT license.
 
 using Metering.Aggregator;
-using Metering.Types;
+using Metering.Integration;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>

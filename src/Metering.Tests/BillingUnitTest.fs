@@ -4,11 +4,12 @@
 module Metering.NUnitTests.Billing
 
 open System
+open System.IO
 open NUnit.Framework
 open NodaTime
-open Metering.Types
-open Metering.Types.EventHub
-open System.IO
+open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
+open Metering.EventHub
 
 [<SetUp>]
 let Setup () = ()
@@ -413,7 +414,7 @@ let ParseEventData () =
     let bytes = Array.create 16 0uy
     rnd.NextBytes(bytes)
     
-    let binaryGarbage = EventDataDummy.create "1.avro" bytes 13L 100L "0"
-    let wrapped = EventHubObservableClient.toMeteringUpdateEvent binaryGarbage
+    let binaryGarbage = Capture.createEventDataFromBytes "1.avro" bytes 13L 100L "0"
+    let wrapped = CaptureProcessor.toMeteringUpdateEvent binaryGarbage
     
     ()
