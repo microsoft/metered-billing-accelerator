@@ -415,6 +415,6 @@ let ParseEventData () =
     rnd.NextBytes(bytes)
     
     let binaryGarbage = Capture.createEventDataFromBytes "1.avro" bytes 13L 100L "0"
-    let wrapped = EventHubObservableClient.toMeteringUpdateEvent binaryGarbage
+    let wrapped = CaptureProcessor.toMeteringUpdateEvent binaryGarbage
     
     ()

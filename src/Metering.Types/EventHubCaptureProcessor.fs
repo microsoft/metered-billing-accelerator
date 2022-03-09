@@ -8,6 +8,7 @@ open System.Collections.Generic
 open System.Collections.Immutable
 open System.Globalization
 open System.IO
+open System.Text
 open System.Text.RegularExpressions
 open System.Threading
 open System.Runtime.CompilerServices
@@ -18,6 +19,7 @@ open Avro.File
 open Avro.Generic
 open Metering.BaseTypes
 open Metering.Integration
+
 
 [<Extension>]
 module CaptureProcessor = 
@@ -81,7 +83,7 @@ module CaptureProcessor =
         | Some timeStampBlob -> timeStampBlob |> containsFullyRelevantEvents startTime
                
     [<Extension>]
-    let ReadEventDataFromAvroStream (blobName: string) (stream: Stream) : IEnumerable<RehydratedFromCaptureEventData> =
+    let ReadEventDataFromAvroStream (blobName: string) (stream: Stream) : IEnumerable<EventData> =
         // https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-capture-overview        
         seq {
             use reader = DataFileReader<GenericRecord>.OpenReader(stream)
@@ -309,6 +311,29 @@ module CaptureProcessor =
                         |> Seq.choose id
                         |> Seq.filter (isRelevantEvent startTime)
             }
+
+    [<Extension>]
+    let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
+        let bytes = eventData.EventBody.ToArray()
+        
+        try
+            Encoding.UTF8.GetString(bytes)
+            |> Ok
+        with
+        | _ ->
+            bytes
+            |> UnprocessableByteContent
+            |> UnprocessableMessage
+            |> Error
+        |> function
+            | Ok str ->
+                try 
+                    match str |> Json.fromStr2<MeteringUpdateEvent> with
+                    | Ok v -> v
+                    | Error _ -> str |> UnprocessableStringContent |> UnprocessableMessage
+                with
+                | _ -> str |> UnprocessableStringContent |> UnprocessableMessage
+            | Error e -> e
 
     // https://docs.microsoft.com/en-us/dotnet/azure/sdk/pagination
     // https://github.com/Azure/azure-sdk-for-net/issues/18306

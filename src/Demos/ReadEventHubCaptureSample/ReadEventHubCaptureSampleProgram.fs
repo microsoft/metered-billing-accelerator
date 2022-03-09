@@ -39,7 +39,7 @@ let config : MeteringConfigurationProvider =
 
 let partitionId = "1" |> PartitionID.create
 CaptureProcessor.readAllEvents 
-    EventHubObservableClient.toMeteringUpdateEvent
+    CaptureProcessor.toMeteringUpdateEvent
     partitionId
     CancellationToken.None
     config.MeteringConnections
@@ -144,7 +144,7 @@ match initialState with
     let partitionId = "0"
     let x = 
         config.MeteringConnections
-        |> CaptureProcessor.readAllEvents EventHubObservableClient.toMeteringUpdateEvent (partitionId |> PartitionID.create) CancellationToken.None 
+        |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent (partitionId |> PartitionID.create) CancellationToken.None 
         //|> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate MeterCollection.Empty
@@ -174,7 +174,7 @@ match initialState with
 
     let x = 
         config.MeteringConnections
-        |> CaptureProcessor.readEventsFromPosition EventHubObservableClient.toMeteringUpdateEvent startPosition CancellationToken.None 
+        |> CaptureProcessor.readEventsFromPosition CaptureProcessor.toMeteringUpdateEvent startPosition CancellationToken.None 
         // |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate initialState

@@ -8,9 +8,9 @@ open System.Runtime.CompilerServices
 open Microsoft.Extensions.Configuration
 open Azure.Core
 open Azure.Storage.Blobs
+open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
-open Azure.Messaging.EventHubs
 open Metering.EventHub
 
 type MeteringConnections =
@@ -22,7 +22,7 @@ type MeteringConnections =
 module MeteringConnections =
     let private environmentVariablePrefix = "AZURE_METERING_"
 
-    let getConfiguration() = 
+    let getConfiguration () : (string -> string option) = 
         // Doing this convoluted syntax as c# extension methods seem unavailable.
         let configuration = EnvironmentVariablesExtensions.AddEnvironmentVariables(
             new ConfigurationBuilder(),

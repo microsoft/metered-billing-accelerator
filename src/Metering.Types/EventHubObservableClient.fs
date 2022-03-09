@@ -4,7 +4,6 @@
 namespace Metering.Integration
 
 open System
-open System.Text
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.CompilerServices
@@ -263,38 +262,13 @@ module EventHubObservableClient =
             new CancellationDisposable(cts) :> IDisposable
 
         Observable.Create<EventHubProcessorEvent<'TState, 'TEvent>>(fsharpFunction)
-
-    [<Extension>]
-    let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
-        let bytes = eventData.EventBody.ToArray()
-        
-        try
-            Encoding.UTF8.GetString(bytes)
-            |> Ok
-        with
-        | _ ->
-            bytes
-            |> UnprocessableByteContent
-            |> UnprocessableMessage
-            |> Error
-        |> function
-            | Ok str ->
-                try 
-                    match str |> Json.fromStr2<MeteringUpdateEvent> with
-                    | Ok v -> v
-                    | Error _ -> str |> UnprocessableStringContent |> UnprocessableMessage
-                with
-                | _ -> str |> UnprocessableStringContent |> UnprocessableMessage
-            | Error e -> e
         
     [<Extension>]
     let create (logger: ILogger) (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
         let determineInitialState (args: PartitionInitializingEventArgs) ct =
-            MeterCollectionStore.loadLastState 
-                config 
-                (args.PartitionId |> PartitionID.create)
-                ct
+            let pid = args.PartitionId |> PartitionID.create
+            MeterCollectionStore.loadLastState config pid ct
 
-        createInternal logger config determineInitialState MeterCollectionLogic.getEventPosition toMeteringUpdateEvent cancellationToken
+        createInternal logger config determineInitialState MeterCollectionLogic.getEventPosition CaptureProcessor.toMeteringUpdateEvent cancellationToken
         |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))
 
