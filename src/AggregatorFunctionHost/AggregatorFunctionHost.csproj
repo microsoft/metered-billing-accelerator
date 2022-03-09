@@ -10,7 +10,7 @@
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Metering.Types\Metering.Types.fsproj" />
+    <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">

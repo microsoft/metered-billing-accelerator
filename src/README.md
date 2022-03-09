@@ -73,7 +73,7 @@ Metering information enters the system by having a tiny thin layer on top of the
 
 For the aggregator to properly function, it is completely controlled through messages coming through EventHub. In the simplest case, the sending application is supposed to send two types of events: 
 
-- A `SubscriptionCreationInformation` ([src](./Metering.Types/SubscriptionCreationInformation.fs)) event describes an Azure Marketplace subscription, which corresponds to either a single managed application, or a SaaS subscription. This data structure contains 
+- A `SubscriptionCreationInformation` ([src](./Metering.BaseTypes/SubscriptionCreationInformation.fs)) event describes an Azure Marketplace subscription, which corresponds to either a single managed application, or a SaaS subscription. This data structure contains 
 
   - a description of the plan 
     - (plan name, 
@@ -85,7 +85,7 @@ For the aggregator to properly function, it is completely controlled through mes
 
   For each subscription, this event is only sent once, at the beginning, to instruct the aggregator to start tracking usage for that subscription.
 
-- An `InternalUsageEvent` ([src](./Metering.Types/InternalUsageEvent.fs)) represents the consumption of 'something' that needs to be tracked, and contains 
+- An `InternalUsageEvent` ([src](./Metering.BaseTypes/InternalUsageEvent.fs)) represents the consumption of 'something' that needs to be tracked, and contains 
 
   - the resource ID of the marketplace resource (SaaS subscription ID, or managed app ID), 
   - a timestamp, 

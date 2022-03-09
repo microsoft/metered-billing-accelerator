@@ -14,7 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Metering.Mockup\Metering.Mockup.fsproj" />
-    <ProjectReference Include="..\..\Metering.Types\Metering.Types.fsproj" />
+    <ProjectReference Include="..\..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ReadEventHubCaptureSampleProgram.fs" />
