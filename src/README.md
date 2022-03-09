@@ -392,23 +392,8 @@ This gives an overview about the DLL depentencies
 
 ```mermaid
 graph TD
-    EventHubTypes(Metering.EventHubTypes.dll) --> BaseTypes
-    BaseTypes(Metering.BaseTypes.dll) --> Mockups
-    BaseTypes--> RunTime
-    RunTime(Metering.Runtime.dll) --> EventHubCSharp
-    RunTime --> EventHubFSharp
-    RunTime --> Mockups
-    EventHubCSharp(Metering.EventHub.dll)
-    EventHubFSharp(Metering.EventHub.FSharp.dll)
-    Mockups(Metering.Mockup.dll)
-```
-
-Not sure how show dependencies
-
-```mermaid
-graph TD
-     BaseTypes(Metering.BaseTypes.dll) --> EventHubTypes
      EventHubTypes(Metering.EventHubTypes.dll)
+     BaseTypes(Metering.BaseTypes.dll) --> EventHubTypes
      RunTime(Metering.Runtime.dll) --> BaseTypes
      EventHubCSharp(Metering.EventHub.dll) --> RunTime
      EventHubFSharp(Metering.EventHub.FSharp.dll) --> RunTime
@@ -416,6 +401,10 @@ graph TD
      Mockups(Metering.Mockup.dll) --> BaseTypes
 ```
 
+- `Metering.EventHubTypes.dll` contains a few base abstractions related to Azure EventHub (SequenceNumbers, PartitionIDs, etc.)
+- `Metering.BaseTypes.dll` contains the core data types and their JSON serializations
+- `Metering.Runtime.dll` contains the integration with the outer world, such as Azure Identity, Blob Storage, EventHub
+- `Metering.EventHub.FSharp.dll` and `Metering.EventHub.dll` contain the Reactive Extensions wrapper around the EventHub SDK. The F# version will be retired soon.
 
 ## TODO
 

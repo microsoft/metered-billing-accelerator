@@ -21,7 +21,6 @@ open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.Integration
 
-
 [<Extension>]
 module CaptureProcessor = 
     open Capture
