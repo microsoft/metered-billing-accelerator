@@ -7,7 +7,6 @@ open System
 open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
-open System.Runtime.CompilerServices
 open System.Runtime.InteropServices
 open System.Reactive.Disposables
 open System.Reactive.Linq
@@ -18,7 +17,6 @@ open Azure.Messaging.EventHubs.Consumer
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 
-[<Extension>]
 module EventHubObservableClient =
     type internal EventHubCaptureConf =
         | CanReadEverythingFromEventHub of EventPosition
