@@ -257,7 +257,6 @@ module EventHubObservableClient =
 
         Observable.Create<EventHubProcessorEvent<'TState, 'TEvent>>(fsharpFunction)
         
-    [<Extension>]
     let create<'TState, 'TEvent>
         (logger: ILogger)
         (getPartitionId: EventHubProcessorEvent<'TState, 'TEvent> -> PartitionID)                                                        // EventHubIntegration.partitionId
