@@ -90,3 +90,22 @@ type EventHubEvent<'TEvent> =
 
       /// Indicate whether an event was read from EventHub, or from the associated capture storage.      
       Source: EventSource }
+
+type EventHubProcessorEvent<'TState, 'TEvent> =    
+    | PartitionInitializing of PartitionID:PartitionID * InitialState:'TState
+    | PartitionClosing of PartitionID
+    | EventHubEvent of EventHubEvent<'TEvent>
+    | EventHubError of PartitionID:PartitionID * Exception:exn
+
+type EventHubName =
+    { NamespaceName: string
+      FullyQualifiedNamespace: string
+      InstanceName: string }
+
+module EventHubName =
+    let create nameSpaceName instanceName =
+        { NamespaceName = nameSpaceName
+          FullyQualifiedNamespace = $"{nameSpaceName}.servicebus.windows.net"
+          InstanceName = instanceName }
+
+    let toStr (e: EventHubName) = $"{e.FullyQualifiedNamespace}/{e.InstanceName}"

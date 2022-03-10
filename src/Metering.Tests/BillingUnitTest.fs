@@ -414,7 +414,7 @@ let ParseEventData () =
     let bytes = Array.create 16 0uy
     rnd.NextBytes(bytes)
     
-    let binaryGarbage = Capture.createEventDataFromBytes "1.avro" bytes 13L 100L "0"
+    let binaryGarbage = CaptureProcessor.createEventDataFromBytes "1.avro" bytes 13L 100L "0"
     let wrapped = CaptureProcessor.toMeteringUpdateEvent binaryGarbage
     
     ()

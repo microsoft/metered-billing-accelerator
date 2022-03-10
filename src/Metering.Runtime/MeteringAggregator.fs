@@ -6,7 +6,7 @@ namespace Metering.Integration
 open System
 open System.Runtime.CompilerServices
 open Microsoft.Extensions.DependencyInjection
-open Metering.EventHub
+open Metering.BaseTypes.EventHub
 open Metering.BaseTypes
 
 [<Extension>]
@@ -22,7 +22,7 @@ module MeteringAggregator =
         match meters with 
         | None ->
             match e with
-            | PartitionInitializing x -> x.InitialState
+            | PartitionInitializing (_, initialState)-> initialState
             | EventHubEvent x -> x |> apply MeterCollection.Empty |> Some
             | _ -> None
         | Some meterCollection ->

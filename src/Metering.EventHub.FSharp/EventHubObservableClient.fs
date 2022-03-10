@@ -4,6 +4,7 @@
 namespace Metering.Integration
 
 open System
+open System.Collections.Generic
 open System.Threading
 open System.Threading.Tasks
 open System.Runtime.CompilerServices
@@ -16,7 +17,7 @@ open Azure.Messaging.EventHubs.Processor
 open Azure.Messaging.EventHubs.Consumer
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
-open Metering.EventHub
+//open Metering.EventHub
 
 [<Extension>]
 module EventHubObservableClient =
@@ -27,14 +28,17 @@ module EventHubObservableClient =
 
     let private createInternal<'TState, 'TEvent>
         (logger: ILogger)
-        (config: MeteringConfigurationProvider) 
         (determineInitialState: PartitionInitializingEventArgs -> CancellationToken -> Task<'TState>)
-        (determinePosition: 'TState -> StartingPosition)
-        (converter: EventData -> 'TEvent)
+        (determinePositionFromState: 'TState -> StartingPosition)
+        (eventDataToEvent: EventData -> 'TEvent)
+        (newEventProcessorClient: unit -> EventProcessorClient)
+        (newEventHubConsumerClient: unit -> EventHubConsumerClient)
+        (createEventHubEventFromEventData: (EventData -> 'TEvent) -> ProcessEventArgs -> EventHubEvent<'TEvent> option)
+        (readAllEvents: (EventData -> 'TEvent) -> PartitionID -> CancellationToken -> IEnumerable<EventHubEvent<'TEvent>>)
+        (readEventsFromPosition: (EventData -> 'TEvent) ->  MessagePosition -> CancellationToken -> IEnumerable<EventHubEvent<'TEvent>>)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : IObservable<EventHubProcessorEvent<'TState, 'TEvent>> =
 
-        
         let registerCancellationMessage (message: string) (ct: CancellationToken)  =            
             Action (fun () -> logger.LogWarning(sprintf "%s" message))
             |> ct.Register
@@ -50,7 +54,7 @@ module EventHubObservableClient =
 
             let ProcessEvent (processEventArgs: ProcessEventArgs) : Task =
                 try
-                    match (EventHubIntegration.createEventHubEventFromEventData converter processEventArgs) with
+                    match (createEventHubEventFromEventData eventDataToEvent processEventArgs) with
                     | Some e -> o.OnNext(EventHubEvent e)
                     | None -> 
                         let catchUp = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
@@ -98,7 +102,7 @@ module EventHubObservableClient =
                         let! (initialState: 'TState) =
                             determineInitialState partitionInitializingEventArgs cancellationToken
 
-                        let initialPosition = determinePosition initialState
+                        let initialPosition = determinePositionFromState initialState
 
                         let eventHubStartPosition =
                             match initialPosition with
@@ -107,9 +111,7 @@ module EventHubObservableClient =
                             | StartingPosition.NextEventAfter (lastProcessedEventSequenceNumber, lastProcessedEventTimestamp) ->  
                                 // Let's briefly check if the desired event is still avail in EventHub,
                                 // otherwise we need to crawl through EventHub Capture
-                                let consumerClient = 
-                                    config.MeteringConnections
-                                    |> MeteringConnections.createEventHubConsumerClient
+                                let consumerClient = newEventHubConsumerClient()
                                     
                                 let partitionProps = consumerClient.GetPartitionPropertiesAsync(
                                     partitionId = partitionIdStr, 
@@ -137,22 +139,17 @@ module EventHubObservableClient =
 
                         match eventHubStartPosition with
                         | CanReadEverythingFromEventHub eventHubStartPosition -> 
-                            o.OnNext (PartitionInitializing
-                            { PartitionID = partitionIdStr |> PartitionID.create
-                              InitialState = initialState })
+                            o.OnNext (PartitionInitializing (partitionIdStr |> PartitionID.create, initialState))
 
                             partitionInitializingEventArgs.DefaultStartingPosition <- eventHubStartPosition
                         | ReadFromEventHubCaptureBeginningAndThenEventHub -> 
-                            o.OnNext (PartitionInitializing
-                                { PartitionID = partitionIdStr |> PartitionID.create
-                                  InitialState = initialState })
+                            o.OnNext (PartitionInitializing (partitionIdStr |> PartitionID.create, initialState))
                             
                             let lastProcessedEventReadFromCaptureSequenceNumber = 
-                                CaptureProcessor.readAllEvents
-                                    converter
+                                readAllEvents
+                                    eventDataToEvent
                                     (partitionInitializingEventArgs.PartitionId |> PartitionID.create)
                                     cancellationToken
-                                    config.MeteringConnections
                                 |> Seq.map (fun e -> 
                                     o.OnNext(EventHubEvent e)
                                     e.MessagePosition.SequenceNumber
@@ -171,16 +168,13 @@ module EventHubObservableClient =
 
                                 
                         | ReadFromEventHubCaptureAndThenEventHub(LastProcessedSequenceNumber = sn; LastProcessedEventTimestamp = t) ->
-                            o.OnNext (PartitionInitializing
-                                { PartitionID = partitionIdStr |> PartitionID.create
-                                  InitialState = initialState })
+                            o.OnNext (PartitionInitializing (partitionIdStr |> PartitionID.create, initialState))
                              
                             let lastProcessedEventReadFromCaptureSequenceNumber = 
-                                CaptureProcessor.readEventsFromPosition
-                                    converter
+                                readEventsFromPosition
+                                    eventDataToEvent
                                     (MessagePosition.createData partitionIdStr sn t)
                                     cancellationToken
-                                    config.MeteringConnections
                                 |> Seq.map (fun e -> 
                                     o.OnNext(EventHubEvent e)
                                     e.MessagePosition.SequenceNumber
@@ -205,7 +199,7 @@ module EventHubObservableClient =
             let createTask () : Task =
                 let a =
                     async {
-                        let processor = config.MeteringConnections |> MeteringConnections.createEventProcessorClient
+                        let processor = newEventProcessorClient()
                         try                            
                             processor.add_ProcessEventAsync ProcessEvent
                             processor.add_ProcessErrorAsync ProcessError
@@ -265,11 +259,34 @@ module EventHubObservableClient =
         Observable.Create<EventHubProcessorEvent<'TState, 'TEvent>>(fsharpFunction)
         
     [<Extension>]
-    let create (logger: ILogger) (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) = 
+    let create<'TState, 'TEvent>
+        (logger: ILogger)
+        (getPartitionId: EventHubProcessorEvent<'TState, 'TEvent> -> PartitionID)
+        (newEventProcessorClient: unit -> EventProcessorClient)
+        (newEventHubConsumerClient: unit -> EventHubConsumerClient)
+        (eventDataToEvent: EventData -> 'TEvent)
+        (createEventHubEventFromEventData: (EventData -> 'TEvent) -> ProcessEventArgs -> EventHubEvent<'TEvent> option)
+        (readAllEvents: (EventData -> 'TEvent) -> PartitionID -> CancellationToken -> IEnumerable<EventHubEvent<'TEvent>>)
+        (readEventsFromPosition: (EventData -> 'TEvent) ->  MessagePosition -> CancellationToken -> IEnumerable<EventHubEvent<'TEvent>>)
+        (loadLastState: PartitionID -> CancellationToken ->Task<'TState>)
+        (determinePosition: 'TState -> StartingPosition) 
+        (cancellationToken: CancellationToken)
+        : IObservable<IGroupedObservable<PartitionID,EventHubProcessorEvent<'TState, 'TEvent>>>
+        = 
+
         let determineInitialState (args: PartitionInitializingEventArgs) ct =
             let pid = args.PartitionId |> PartitionID.create
-            MeterCollectionStore.loadLastState config pid ct
+            loadLastState pid ct
 
-        createInternal logger config determineInitialState MeterCollectionLogic.getEventPosition CaptureProcessor.toMeteringUpdateEvent cancellationToken
-        |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))
-
+        createInternal 
+            logger
+            determineInitialState 
+            determinePosition 
+            eventDataToEvent 
+            newEventProcessorClient 
+            newEventHubConsumerClient 
+            createEventHubEventFromEventData 
+            readAllEvents
+            readEventsFromPosition
+            cancellationToken
+        |> (fun x -> Observable.GroupBy(x, getPartitionId))

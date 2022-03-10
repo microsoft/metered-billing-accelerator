@@ -9,13 +9,12 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
     <PackageReference Include="System.Reactive.Linq" Version="5.0.0" />
-    <PackageReference Include="Azure.Identity" Version="1.5.0" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.10.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
     <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
     <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
+    <ProjectReference Include="..\Metering.EventHubTypes\Metering.EventHubTypes.fsproj" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EventHubObservableClient.fs" />

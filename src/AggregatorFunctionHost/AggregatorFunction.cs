@@ -19,6 +19,9 @@ namespace AggregatorFunctionHost
     using Metering.Integration;
     using Metering.EventHub;
     using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;
+    using Microsoft.FSharp.Core;
+    using Azure.Messaging.EventHubs;
+    using Azure.Messaging.EventHubs.Processor;
 
     public class AggregatorStartup : FunctionsStartup
     {
@@ -124,7 +127,18 @@ namespace AggregatorFunctionHost
             string currentPartitions() => string.Join("", partitions);
 
             var groupedSub = EventHubObservableClient
-                .create(_logger, config, stoppingToken)
+                .create<SomeMeterCollection, MeteringUpdateEvent>(
+                    logger: _logger,
+                    getPartitionId: FuncConvert.FromFunc<EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, PartitionID>(EventHubIntegration.partitionId),
+                    newEventProcessorClient: FuncConvert.FromFunc(config.MeteringConnections.createEventProcessorClient),
+                    newEventHubConsumerClient: FuncConvert.FromFunc(config.MeteringConnections.createEventHubConsumerClient),
+                    eventDataToEvent: FuncConvert.FromFunc<EventData, MeteringUpdateEvent>(CaptureProcessor.toMeteringUpdateEvent),
+                    createEventHubEventFromEventData: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, ProcessEventArgs, FSharpOption<EventHubEvent<MeteringUpdateEvent>>>(EventHubIntegration.createEventHubEventFromEventData),
+                    readAllEvents: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, PartitionID, CancellationToken, IEnumerable<EventHubEvent<MeteringUpdateEvent>>>((a, b, c) => CaptureProcessor.readAllEvents(a, b, c, config.MeteringConnections)),
+                    readEventsFromPosition: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, MessagePosition, CancellationToken, IEnumerable<EventHubEvent<MeteringUpdateEvent>>>((a, b, c) => CaptureProcessor.readEventsFromPosition(a, b, c, config.MeteringConnections)),
+                    loadLastState: FuncConvert.FromFunc<PartitionID, CancellationToken, Task<SomeMeterCollection>>((a, b) => MeterCollectionStore.loadLastState(config, a, b)),
+                    determinePosition: FuncConvert.FromFunc<SomeMeterCollection, StartingPosition>(MeterCollectionLogic.getEventPosition),
+                    cancellationToken: stoppingToken)
                 .Subscribe(
                     onNext: group => {
                         var partitionId = group.Key;
