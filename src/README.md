@@ -395,10 +395,9 @@ graph TD
      EventHubTypes(Metering.EventHubTypes.dll)
      BaseTypes(Metering.BaseTypes.dll) --> EventHubTypes
      RunTime(Metering.Runtime.dll) --> BaseTypes
-     EventHubCSharp(Metering.EventHub.dll) --> RunTime
-     EventHubFSharp(Metering.EventHub.FSharp.dll) --> RunTime
-     Mockups(Metering.Mockup.dll) --> RunTime
-     Mockups(Metering.Mockup.dll) --> BaseTypes
+     EventHubFSharp(Metering.EventHub.FSharp.dll) --> EventHubTypes
+     Aggregator(Aggregator.exe) --> RunTime
+     Aggregator(Aggregator.exe) --> EventHubFSharp
 ```
 
 - `Metering.EventHubTypes.dll` contains a few base abstractions related to Azure EventHub (SequenceNumbers, PartitionIDs, etc.)

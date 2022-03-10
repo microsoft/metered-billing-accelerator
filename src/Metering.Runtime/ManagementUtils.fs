@@ -58,4 +58,5 @@ module ManagementUtils =
                 match state with
                 | Some m -> m |> MeterCollection.metersToBeSubmitted
                 | None -> Seq.empty            
+
         }
