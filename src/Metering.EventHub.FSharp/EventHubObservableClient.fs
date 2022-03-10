@@ -265,5 +265,5 @@ module EventHubObservableClient =
             MeterCollectionStore.loadLastState config pid ct
 
         createInternal logger config determineInitialState MeterCollectionLogic.getEventPosition CaptureProcessor.toMeteringUpdateEvent cancellationToken
-        |> (fun x -> Observable.GroupBy(x, EventHubProcessorEvent.partitionId))
+        |> (fun x -> Observable.GroupBy(x, EventHubIntegration.partitionId))
 

@@ -23,7 +23,22 @@ open Metering.Integration
 
 [<Extension>]
 module CaptureProcessor = 
-    open Capture
+    open EventHubIntegration
+
+    let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: PartitionID) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
+        { MessagePosition = createMessagePositionFromEventData partitionId data
+          EventsToCatchup = None
+          EventData = data |> convert 
+          Source = Capture(BlobName = blobName)}
+        |> Some
+
+    let getBlobName (e: EventData) : string option =
+        match e with
+        | :? RehydratedFromCaptureEventData -> (downcast e : RehydratedFromCaptureEventData) |> (fun x -> x.BlobName) |> Some
+        | _ -> None 
+
+    let createEventDataFromBytes (blobName: string) (eventBody: byte[]) (sequenceNumber: int64) (offset: int64)  (partitionKey: string) : EventData =
+        new RehydratedFromCaptureEventData(blobName, eventBody, new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)
 
     let private ParseTime s =         
         // "12/2/2021 2:58:24 PM"
@@ -175,7 +190,7 @@ module CaptureProcessor =
 
                     for blobName in blobs do            
                         eprintfn "Reading %s" blobName
-                        let toEvent = EventHubIntegration.createFromEventHubCapture convert partitionId blobName
+                        let toEvent = createFromEventHubCapture convert partitionId blobName
                     
                         yield!
                             blobName
@@ -238,7 +253,7 @@ module CaptureProcessor =
                     sn < e.MessagePosition.SequenceNumber
 
                 for blobName in relevantBlobs do                
-                    let toEvent = EventHubIntegration.createFromEventHubCapture convert mp.PartitionID blobName
+                    let toEvent = createFromEventHubCapture convert mp.PartitionID blobName
 
                     yield!
                         blobName
@@ -302,7 +317,7 @@ module CaptureProcessor =
                     st < e.MessagePosition.PartitionTimestamp.ToInstant()
 
                 for blobName in relevantBlobs do                
-                    let toEvent = EventHubIntegration.createFromEventHubCapture convert partitionId blobName
+                    let toEvent = createFromEventHubCapture convert partitionId blobName
 
                     yield!
                         blobName

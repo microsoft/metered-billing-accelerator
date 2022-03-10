@@ -4,36 +4,32 @@
 namespace Metering.EventHub
 
 open System
-open System.Collections.Generic
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 
-module EventHubProcessorEvent =
+module EventHubIntegration =
     let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
         match e with
-        | PartitionInitializing (partitionID, _) -> partitionID
-        | PartitionClosing partitionId -> partitionId
+        | PartitionInitializing (pi, _) -> pi
+        | PartitionClosing pi -> pi
         | EventHubEvent e -> e.MessagePosition.PartitionID
-        | EventHubError (partitionID, _) -> partitionID
+        | EventHubError (pi, _) -> pi
         
     let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
-        let pi = e |> partitionId
-
         match e with
-        | PartitionInitializing (pi, _) -> $"{pi} Initializing"
-        | PartitionClosing e -> $"{pi} Closing"
-        | EventHubEvent e -> $"{pi} Event: {e.EventData |> converter}"
-        | EventHubError (partitionId,ex) -> $"{pi} Error: {ex.Message}"
+        | PartitionInitializing (pi, _)-> $"{pi |> PartitionID.value} Initializing"
+        | PartitionClosing pi -> $"{pi |> PartitionID.value} Closing"
+        | EventHubEvent e -> $"{e.MessagePosition.PartitionID |> PartitionID.value} Event: {e.EventData |> converter}"
+        | EventHubError (pi, ex) -> $"{pi |> PartitionID.value} Error: {ex.Message}"
     
     let getEvent<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : EventHubEvent<'TEvent> =
         match e with
         | EventHubEvent e -> e
         | _ -> raise (new ArgumentException(message = $"Not an {nameof(EventHubEvent)}", paramName = nameof(e)))
 
-module EventHubIntegration =
     let createMessagePositionFromEventData (partitionId: PartitionID) (eventData: EventData) : MessagePosition =
         { PartitionID = partitionId
           SequenceNumber = eventData.SequenceNumber
@@ -69,25 +65,3 @@ module EventHubIntegration =
               Source = EventHub }
             |> Some
 
-    let createFromEventHubCapture (convert: EventData -> 'TEvent)  (partitionId: PartitionID) (blobName: string) (data: EventData) : EventHubEvent<'TEvent> option =  
-        { MessagePosition = createMessagePositionFromEventData partitionId data
-          EventsToCatchup = None
-          EventData = data |> convert 
-          Source = Capture(BlobName = blobName)}
-        |> Some
-
-module Capture =
-    type RehydratedFromCaptureEventData(
-        blobName: string, eventBody: byte[], 
-        properties: IDictionary<string, obj>, systemProperties: IReadOnlyDictionary<string, obj>, 
-        sequenceNumber: int64, offset: int64, enqueuedTime: DateTimeOffset, partitionKey: string) =                 
-        inherit EventData(new BinaryData(eventBody), properties, systemProperties, sequenceNumber, offset, enqueuedTime, partitionKey)
-        member this.BlobName = blobName
-    
-    let getBlobName (e: EventData) : string option =
-        match e with
-        | :? RehydratedFromCaptureEventData -> (downcast e : RehydratedFromCaptureEventData) |> (fun x -> x.BlobName) |> Some
-        | _ -> None 
-
-    let createEventDataFromBytes (blobName: string) (eventBody: byte[]) (sequenceNumber: int64) (offset: int64)  (partitionKey: string) : EventData =
-        new RehydratedFromCaptureEventData(blobName, eventBody, new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)
