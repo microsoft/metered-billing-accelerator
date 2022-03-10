@@ -4,12 +4,14 @@
 namespace Metering.EventHub
 
 open System
+open System.Runtime.CompilerServices
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Processor
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 
+[<Extension>]
 module EventHubIntegration =
     let partitionId<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : PartitionID =
         match e with
@@ -65,3 +67,5 @@ module EventHubIntegration =
               Source = EventHub }
             |> Some
 
+    let CreateEventHubEventFromEventData (convert: Func<EventData,'TEvent>) (processEventArgs: ProcessEventArgs) : EventHubEvent<'TEvent> option =  
+        createEventHubEventFromEventData (FuncConvert.FromFunc(convert)) processEventArgs 

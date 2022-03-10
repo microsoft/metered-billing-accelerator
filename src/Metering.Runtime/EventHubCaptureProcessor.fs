@@ -142,7 +142,7 @@ module CaptureProcessor =
             }
 
     [<Extension>]
-    let ReadCaptureFromPosition connections ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) = 
+    let ReadCaptureFromPosition (connections: MeteringConnections) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) = 
         connections |> readCaptureFromPosition cancellationToken
         
     /// Provide a list of all EventHub Capture blobs which belong to a given partition.
@@ -163,7 +163,7 @@ module CaptureProcessor =
                     for blobHierarchyItem in page.Values do
                         yield blobHierarchyItem.Blob.Name
             }
-
+    
     let readAllEvents<'TEvent> (convert: EventData -> 'TEvent) (partitionId: PartitionID) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
            match connections.EventHubConfig.CaptureStorage with
            | None -> Seq.empty
@@ -198,6 +198,10 @@ module CaptureProcessor =
                             |> Seq.map toEvent
                             |> Seq.choose id              
                }
+
+    [<Extension>]
+    let ReadAllEvents<'TEvent> (connections: MeteringConnections) (convert: Func<EventData,'TEvent>) (partitionId: PartitionID) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+        connections |> readAllEvents (FuncConvert.FromFunc(convert)) partitionId cancellationToken
 
     let readEventsFromPosition<'TEvent> (convert: EventData -> 'TEvent) (mp: MessagePosition) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
         match connections.EventHubConfig.CaptureStorage with
@@ -262,6 +266,10 @@ module CaptureProcessor =
                         |> Seq.choose id
                         |> Seq.filter (isRelevantEvent sequenceNumber)
             }
+
+    [<Extension>]
+    let ReadEventsFromPosition<'TEvent> (connections: MeteringConnections) (convert: Func<EventData,'TEvent>) (mp: MessagePosition) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+        connections |> readEventsFromPosition (FuncConvert.FromFunc(convert)) mp cancellationToken
 
     let readEventsFromTime<'TEvent> (convert: EventData -> 'TEvent) (partitionId: PartitionID) (startTime: MeteringDateTime) (cancellationToken: CancellationToken) (connections: MeteringConnections) : IEnumerable<EventHubEvent<'TEvent>> =
         match connections.EventHubConfig.CaptureStorage with

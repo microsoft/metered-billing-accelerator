@@ -270,7 +270,7 @@ module EventHubObservableClient =
         : IObservable<IGroupedObservable<PartitionID,EventHubProcessorEvent<'TState, 'TEvent>>>
         = 
 
-        let determineInitialState (args: PartitionInitializingEventArgs) ct =
+        let determineInitialState (args: PartitionInitializingEventArgs) (ct: CancellationToken) : Task<'TState> =
             let pid = args.PartitionId |> PartitionID.create
             loadLastState pid ct
 

@@ -94,6 +94,19 @@ namespace Metering.Aggregator
             Array.Fill(partitions, "_");
             string currentPartitions() => string.Join("", partitions);
 
+            var dummy = EventHubObservableClientCSharp.Create(
+                logger: _logger,
+                getPartitionId: EventHubIntegration.partitionId,
+                newEventProcessorClient: config.MeteringConnections.createEventProcessorClient,
+                newEventHubConsumerClient: config.MeteringConnections.createEventHubConsumerClient,
+                eventDataToEvent: CaptureProcessor.toMeteringUpdateEvent,
+                createEventHubEventFromEventData: EventHubIntegration.CreateEventHubEventFromEventData,
+                readAllEvents: config.MeteringConnections.ReadAllEvents,
+                readEventsFromPosition: config.MeteringConnections.ReadEventsFromPosition,
+                loadLastState: config.loadLastState,
+                determinePosition: MeterCollectionLogic.getEventPosition,
+                cancellationToken: stoppingToken);
+
             var groupedSub = EventHubObservableClient
                 .create<SomeMeterCollection, MeteringUpdateEvent>(
                     logger: _logger,
@@ -101,10 +114,10 @@ namespace Metering.Aggregator
                     newEventProcessorClient: FuncConvert.FromFunc(config.MeteringConnections.createEventProcessorClient),
                     newEventHubConsumerClient: FuncConvert.FromFunc(config.MeteringConnections.createEventHubConsumerClient),
                     eventDataToEvent: FuncConvert.FromFunc<EventData, MeteringUpdateEvent>(CaptureProcessor.toMeteringUpdateEvent),
-                    createEventHubEventFromEventData: FuncConvert.FromFunc < FSharpFunc<EventData, MeteringUpdateEvent>, ProcessEventArgs, FSharpOption<EventHubEvent<MeteringUpdateEvent>>>(EventHubIntegration.createEventHubEventFromEventData),
+                    createEventHubEventFromEventData: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, ProcessEventArgs, FSharpOption<EventHubEvent<MeteringUpdateEvent>>>(EventHubIntegration.createEventHubEventFromEventData),
                     readAllEvents: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, PartitionID, CancellationToken, IEnumerable<EventHubEvent<MeteringUpdateEvent>>>((a, b, c) => CaptureProcessor.readAllEvents(a, b, c, config.MeteringConnections)),
                     readEventsFromPosition: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, MessagePosition, CancellationToken, IEnumerable<EventHubEvent<MeteringUpdateEvent>>>((a, b, c) => CaptureProcessor.readEventsFromPosition(a, b, c, config.MeteringConnections)),
-                    loadLastState: FuncConvert.FromFunc<PartitionID, CancellationToken, Task<SomeMeterCollection>>((a, b) => MeterCollectionStore.loadLastState(config, a, b)),
+                    loadLastState: FuncConvert.FromFunc<PartitionID, CancellationToken, Task<SomeMeterCollection>>(config.loadLastState),
                     determinePosition: FuncConvert.FromFunc<SomeMeterCollection, StartingPosition>(MeterCollectionLogic.getEventPosition),
                     cancellationToken: stoppingToken)
                 .Subscribe(
