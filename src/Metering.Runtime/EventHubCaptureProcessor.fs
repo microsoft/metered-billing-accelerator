@@ -334,21 +334,3 @@ module CaptureProcessor =
                 with
                 | _ -> str |> UnprocessableStringContent |> UnprocessableMessage
             | Error e -> e
-
-    // https://docs.microsoft.com/en-us/dotnet/azure/sdk/pagination
-    // https://github.com/Azure/azure-sdk-for-net/issues/18306
-    //
-    //let GetBlobNames (snapshotContainerClient: BlobContainerClient) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-    //    task {
-    //        let blobs = snapshotContainerClient.GetBlobsAsync(cancellationToken = cancellationToken)
-    //        let n = blobs.GetAsyncEnumerator(cancellationToken = cancellationToken)
-    //        let resultList = new List<string>()
-    //        let! h = n.MoveNextAsync()
-    //        let mutable hasNext = h
-    //        while hasNext do
-    //            let item = n.Current
-    //            resultList.Add(item.Properties.CreatedOn.ToString())
-    //            let! h = n.MoveNextAsync()
-    //            hasNext <- h
-    //        return resultList
-    //    }    

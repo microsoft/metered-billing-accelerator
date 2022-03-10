@@ -8,7 +8,6 @@ namespace Metering.Aggregator
     using Metering.BaseTypes;
     using Metering.BaseTypes.EventHub;
     using Metering.Integration;
-    using Metering.EventHub;
     using Metering.ClientSDK;
     using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;
 

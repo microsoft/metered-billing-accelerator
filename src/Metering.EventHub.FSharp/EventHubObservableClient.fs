@@ -137,15 +137,11 @@ module EventHubObservableClient =
 
                         match eventHubStartPosition with
                         | CanReadEverythingFromEventHub eventHubStartPosition -> 
-                            o.OnNext (PartitionInitializing
-                            { PartitionID = partitionIdStr |> PartitionID.create
-                              InitialState = initialState })
+                            o.OnNext (PartitionInitializing (partitionIdStr |> PartitionID.create, initialState))
 
                             partitionInitializingEventArgs.DefaultStartingPosition <- eventHubStartPosition
                         | ReadFromEventHubCaptureBeginningAndThenEventHub -> 
-                            o.OnNext (PartitionInitializing
-                                { PartitionID = partitionIdStr |> PartitionID.create
-                                  InitialState = initialState })
+                            o.OnNext (PartitionInitializing (partitionIdStr |> PartitionID.create, initialState))
                             
                             let lastProcessedEventReadFromCaptureSequenceNumber = 
                                 CaptureProcessor.readAllEvents
@@ -171,9 +167,7 @@ module EventHubObservableClient =
 
                                 
                         | ReadFromEventHubCaptureAndThenEventHub(LastProcessedSequenceNumber = sn; LastProcessedEventTimestamp = t) ->
-                            o.OnNext (PartitionInitializing
-                                { PartitionID = partitionIdStr |> PartitionID.create
-                                  InitialState = initialState })
+                            o.OnNext (PartitionInitializing (partitionIdStr |> PartitionID.create, initialState))
                              
                             let lastProcessedEventReadFromCaptureSequenceNumber = 
                                 CaptureProcessor.readEventsFromPosition

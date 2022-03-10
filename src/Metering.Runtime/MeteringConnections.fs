@@ -11,7 +11,18 @@ open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
 open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
-open Metering.EventHub
+open Metering.BaseTypes.EventHub
+
+type CaptureStorage = 
+    { CaptureFileNameFormat: string
+      Storage: BlobContainerClient }
+
+type EventHubConfig =
+    { EventHubName: EventHubName
+      ConsumerGroupName: string
+      CheckpointStorage: BlobContainerClient
+      CaptureStorage: CaptureStorage option
+      InfraStructureCredentials: TokenCredential }
 
 type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials 
@@ -120,7 +131,7 @@ module MeteringConnections =
                 ConnectionOptions = new EventHubConnectionOptions(
                     TransportType = EventHubsTransportType.AmqpTcp)))
 
-    let createEventHubProducerClientForClientSDK (): EventHubProducerClient =
+    let createEventHubProducerClientForClientSDK () : EventHubProducerClient =
         let get = getConfiguration() 
         let eh = getEventHubName get
         let infraCred = getInfraStructureCredential get
