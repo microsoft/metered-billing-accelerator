@@ -1,16 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Integration
+namespace Metering.Integration 
 
 open System
 open System.IO
 open System.IO.Compression
+open System.Runtime.CompilerServices
+open System.Runtime.InteropServices
 open System.Text
 open System.Text.RegularExpressions
 open System.Threading
 open System.Threading.Tasks
-open System.Runtime.InteropServices
 open Azure
 open Azure.Storage.Blobs
 open Azure.Storage.Blobs.Models
@@ -18,8 +19,8 @@ open Azure.Storage.Blobs.Specialized
 open Azure.Storage.Sas
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
-open Metering.EventHub
 
+[<Extension>]
 module MeterCollectionStore =
     open MeterCollectionLogic
     
@@ -149,6 +150,7 @@ module MeterCollectionStore =
                         (MeteringDateTime.create y m d H M S)) } |> Some
             | _ -> None
 
+    [<Extension>]
     let loadStateFromFilename
         (config: MeteringConfigurationProvider)
         (partitionID: PartitionID)
@@ -171,10 +173,12 @@ module MeterCollectionStore =
                 return None
         }
 
+    [<Extension>]
     let loadStateFromPosition config partitionID cancellationToken messagePosition =
         Naming.currentName config messagePosition
         |> loadStateFromFilename config partitionID cancellationToken
 
+    [<Extension>]
     let loadLastState config partitionID cancellationToken =
         Naming.latestName config partitionID
         |> loadStateFromFilename config partitionID cancellationToken
