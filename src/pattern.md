@@ -52,8 +52,6 @@ The following illustration provides an architectural overview:
 
 ![architecture2.drawio](architecture2.drawio.svg)
 
-
-
 ### Components in the system
 
 - **Event Hubs:** The central component in the architecture is Azure Event Hubs, an 'append-only / log-based data structure', which serves as basis for a pure event-sourced application. Event Hubs serve as the full 'transaction log' for everything that happens in the system. 
@@ -65,25 +63,26 @@ The following illustration provides an architectural overview:
 
 ### Messages in EventHub
 
-EventHub records various event types:
+The solution should support various event types:
 
-- The subscription life cycle is initiated by a and closed by the `SubscriptionDeleted` event. 
-  - The `SubscriptionPurchased` event informs the 
+- The subscription life cycle is initiated by a `SubscriptionPurchased`  event, and closed by the `SubscriptionDeleted` event. 
+  - The `SubscriptionPurchased` event informs the aggregator that usage for a certain resourceId must be tracked. That resourceId would be the SasS subscription ID, or the managed app's resource ID.
+  - The `SubscriptionDeleted` event would indicate that a customer cancelled the subscription, so that it no longer is possible to track consumption.
+- The `UsageReported` events contain the concrete usage information, i.e. which resource ID has consumed which quantities of which dimension at what point in time.
 
-
-
-
-
-
-
-
+So a `SubscriptionPurchased`  event starts the process, `UsageReported`  events report on ongoing usage, and the `SubscriptionDeleted` event closes the cycle:
 
 ![client-message-sequence](client-message-sequence.drawio.svg)
 
 
+```mermaid
+graph LR
+	Purchase(Subscription Purchased) --> U1(Usage Reported)--> U2(Usage Reported)--> U5(Usage Reported) --> U3(Usage Reported)
+	U3 --> U3
+	U3 --> Deleted(Subscription Deleted)
+```
 
-
-
+In addition to these events, the aggregator must keep track of what usage has been reported to the Marketplace Metering Service API, or more specifically, how the Marketplace Metering Service API responded to a certain usage event. In the architectural diagram, you can see a feedback loop from the aggregator, writing back into Event Hubs: via this feedback loop, the aggregator ensures that Event Hubs not only contains the usage from within the ISV solution, but also contains the history of all interactions with the Marketplace Metering Service API.
 
 
 
