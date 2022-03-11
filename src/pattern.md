@@ -1,4 +1,4 @@
-# 2022-02-11 09:10:07 Marketplace Metering Guidance.
+# Marketplace Metering Guidance
 
 This article describes an architectural pattern for properly and reliably aggregating consumption of Azure Marketplace offers and submitting it to the Azure Marketplace Metering API. 
 
