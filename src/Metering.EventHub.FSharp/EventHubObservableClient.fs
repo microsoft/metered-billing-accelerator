@@ -27,9 +27,9 @@ module EventHubObservableClient =
         (logger: ILogger)
         (determineInitialState: PartitionInitializingEventArgs -> CancellationToken -> Task<'TState>)
         (determinePositionFromState: 'TState -> StartingPosition)
-        (eventDataToEvent: EventData -> 'TEvent)
         (newEventProcessorClient: unit -> EventProcessorClient)
         (newEventHubConsumerClient: unit -> EventHubConsumerClient)
+        (eventDataToEvent: EventData -> 'TEvent)
         (createEventHubEventFromEventData: (EventData -> 'TEvent) -> ProcessEventArgs -> EventHubEvent<'TEvent> option)
         (readAllEvents: (EventData -> 'TEvent) -> PartitionID -> CancellationToken -> IEnumerable<EventHubEvent<'TEvent>>)
         (readEventsFromPosition: (EventData -> 'TEvent) ->  MessagePosition -> CancellationToken -> IEnumerable<EventHubEvent<'TEvent>>)
@@ -278,9 +278,9 @@ module EventHubObservableClient =
             logger
             determineInitialState 
             determinePosition 
-            eventDataToEvent 
             newEventProcessorClient 
             newEventHubConsumerClient 
+            eventDataToEvent 
             createEventHubEventFromEventData 
             readAllEvents
             readEventsFromPosition
