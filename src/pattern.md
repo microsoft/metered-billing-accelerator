@@ -54,41 +54,145 @@ The following illustration provides an architectural overview:
 
 ### Components in the system
 
-- **Event Hubs:** The central component in the architecture is Azure Event Hubs, an 'append-only / log-based data structure', which serves as basis for a pure event-sourced application. Event Hubs serve as the full 'transaction log' for everything that happens in the system. 
-- **Event Hubs Partitions:** Event Hubs store messages in **[partitions](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-scalability#partitions)**: a partition can be thought of like a 'transaction log': All messages belonging to a certain subscription should always end up in the same partition, to ensure strict ordering. EventHub assigns a time stamp and a sequence number to each message, i.e. each message / event can be uniquely identified by partition ID and sequence number.
+- **Event Hubs:** The central component in the architecture is Azure Event Hubs, an 'append-only / log-based' data structure, which serves as source-of-truth for a pure, event-sourced application. Event Hubs contains the full 'transaction log' for everything that happens in the system. 
+- **Event Hubs Partitions:** Event Hubs store messages in **[partitions](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-scalability#partitions)**: a partition can be thought of like a 'transaction log': In our scenario, all messages relating to a certain (Azure Marketplace) subscription should always end up in the same Event Hubs partition, to ensure strict ordering, and therefore correct event sourcing. Event Hubs partitions assign a time stamp and a sequence number to each incoming message, i.e. each message / event can be uniquely identified by the partition's ID and a sequence number.
 - **Event Hubs capture:** It is recommended to enable [Event Hubs Capture](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-capture-overview). To avoid that EventHub gets 'too full', EventHub retains messages only for a specified retention period (days / weeks); older messages are removed from the hubs instance. Enabling Event Hubs Capture ensurec that a copy of the event messages is written (as Avro-serialized files) into Azure Blob Storage. That allows you to subsequently analyze and discover usage patterns in your solution, have an auditable log of customer consumption, or trouble-shoot problems. In addition, it allows a replay of a full series of past events in event sourcing.
-- **Aggregator:** The aggregator is the (custom) component which contains the aggregation business logic, and which submits the usage to the Azure Marketplace Metering API. The aggregator should ideally be written in a hosting-agnostic way: You might want to run it on a virtual machine on Azure, you might want it to run in Kubernetes on AKS, in an Azure Container Instance, an Azure Function, or on a Raspberry PI under your desk. Ideally the aggregator should provide you with the flexibility to host it in a way that works well for your solution.
-- **State Snapshots:** The system should not exclusively rely on Event Hubs (and capture) as the entire data store. Event Sourcing should not force the solution to re-process the entire history, to calculate the state to a given point in time. Therefore, the aggregator should regularly create snapshots of the current system state. The aggregator serializes and stores these snapshots in blob storage.
-- **Sending applications:** Multiple parts of the ISV solution might send data into the system. For example, the main ISV workload would send usage events into EventHub, such as 'we performed a machine learning job for subscription 123', or 'we have processed 5.2 GB of data for subscription 435'. In addition to the actual usage, a management system might submit events like creation (or deletion) of a subscription, including the plan's details.
+- **Aggregator:** The aggregator is a (custom) component which contains the business logic. It is responsible to aggregate the consumption, and to submit the (overage) usage to the Azure Marketplace Metering API. Such an aggregator should ideally be written in a hosting-agnostic way: You might want to run it on a virtual machine on Azure, you might want it to run in Kubernetes on AKS, in an Azure Container Instance, an Azure Function, or on a Raspberry PI under your desk. The aggregator should provide you with the flexibility to host it in a way that works well for your solution.
+- **State Snapshots:** A system like this should not exclusively rely on the log (Event Hubs + capture) as the entire data store. Event Sourcing should not force the solution to re-process the entire history, to calculate the state to a given point in time. Therefore, the aggregator should regularly create snapshots of the current system state. The aggregator serializes and stores these snapshots in blob storage.
+- **Sending applications:** Multiple parts of the ISV solution might send data into the system:
+  - For example, the actual ISV application sends the concrete usage events into EventHub, such as 'we performed a machine learning job for subscription 123', or 'we have processed 5.2 GB of data for subscription 435'. 
+  - In addition to the actual usage, a management system might submit events like creation (or deletion) of a subscription, including the plan's details. 
 
-### Messages in EventHub
+## Responsibilities of the business logic
 
-The solution should support various event types:
+The business logic needs to properly aggregate usage, keep track of subscriptions, re-set counters when new billing cycles start, and ensure that usage is properly recorded with the Azure Marketplace Metering API. 
 
-- The subscription life cycle is initiated by a `SubscriptionPurchased`  event, and closed by the `SubscriptionDeleted` event. 
-  - The `SubscriptionPurchased` event informs the aggregator that usage for a certain resourceId must be tracked. That resourceId would be the SasS subscription ID, or the managed app's resource ID.
-  - The `SubscriptionDeleted` event would indicate that a customer cancelled the subscription, so that it no longer is possible to track consumption.
-- The `UsageReported` events contain the concrete usage information, i.e. which resource ID has consumed which quantities of which dimension at what point in time.
+The business logic is designed to be free of side-effects. In this event sourcing design, the business logic only applies a single event to the system state, transforming it to the next version of system state. For example, So event # 1000 transforms the state version 999 to version 1000. 
 
-So a `SubscriptionPurchased`  event starts the process, `UsageReported`  events report on ongoing usage, and the `SubscriptionDeleted` event closes the cycle:
+### Aggregation
+
+As mentioned earlier, the business logic should only have to consume the stream of events (coming out of Event Hubs) to determine the state of the system. The 'state of the system' reflects how the current usage of the solution is, for example whether a certain customer still has some remaining included quantities left for the current billing cycle, or whether a concrete meter is already in the overage consumption, so that the aggregated value must be reported when the new hour starts.
+
+You could think about these meters like this:
+
+| Resource ID           | Dimension              | Current Meter Value                                          |
+| --------------------- | ---------------------- | ------------------------------------------------------------ |
+| SaaS subscription 123 | Machine Learning Jobs  | **Included:** 8 jobs remaining for the current billing cycle |
+| SaaS subscription 123 | Data processed (in GB) | **Overage:** 1.2 GB in the current hour (09:00 -- 09:59 UTC) (last update: 09:34) |
+| SaaS subscription 435 | Machine Learning Jobs  | **Overage:** 0 jobs remaining for the current billing cycle. No usage in this hour. (09:00 -- 09:59 UTC) |
+| SaaS subscription 435 | Data processed (in GB) | **Overage:** 5.2 GB in the current hour (09:00 -- 09:59 UTC) (last update: 09:20) |
+
+A new 'usage' of 0.9 GB in data processing for 'SaaS subscription 435' at 09:45 UTC would increase the corresponding overage counter to 
+
+| Resource ID           | Dimension              | Current Meter Value                                          |
+| --------------------- | ---------------------- | ------------------------------------------------------------ |
+| SaaS subscription 435 | Data processed (in GB) | **Overage:** 6.1 GB in the current hour (09:00 -- 09:59 UTC)  (last update: 09:45) |
+
+Given these meters, once the clock reaches the new hour (10:00 UTC), the three meters with overage (from the previous hour) have to be submitted to the API, and then re-set to zero.
+
+| Resource ID           | Dimension              | Current Meter Value                                          |
+| --------------------- | ---------------------- | ------------------------------------------------------------ |
+| SaaS subscription 123 | Machine Learning Jobs  | **Included:** 8 jobs remaining for the current billing cycle |
+| SaaS subscription 123 | Data processed (in GB) | **Overage:** 0 GB in the current hour (10:00 -- 10:59 UTC)   |
+| SaaS subscription 435 | Machine Learning Jobs  | **Overage:** 0 jobs remaining for the current billing cycle. No usage in this hour. (10:00 -- 10:59 UTC) |
+| SaaS subscription 435 | Data processed (in GB) | **Overage:** 0 GB in the current hour. (10:00 -- 10:59 UTC)  |
+
+### Billing cycles and subscription information
+
+The business logic needs to be aware of the detailed subscription information, such as which offer has been purchased, date of the purchase, billing dimensions and the how many quantities are included monthly and/or annually:
+
+- Resource ID: `"SaaS subscription 123"`
+- Purchase Date: `"2021-11-04T16:12:26Z"`
+- Azure offering Plan ID: `"contoso_machinelearning_and_processing"`
+- Billing Dimensions and included quantities:
+
+| DimensionName          | Monthly included | Annually included |
+| ---------------------- | :--------------: | :---------------: |
+| Machine Learning Jobs  |        10        |         0         |
+| Data processed (in GB) |        0         |         0         |
+
+This information allows the business logic to properly reset the counters regarding included quantities. For example, the customer with  `"SaaS subscription 123"` subscribed to the plan on 2021-NOV-04 at 16:12:26 UTC. As a result, exactly a month later (2021-DEC-04 at 16:12:26 UTC), the 'Machine Learning Jobs' counter needs to be re-set to 10 included jobs remaining for the new billing cycle.
+
+### Facilitate Marketplace interactions and record results
+
+We mentioned that the business logic is free of side effects, i.e., the business logic itself does not interact directly with the billing API. Instead, the system state contains a collection of overage items which are ready to be reported to the billing API. Let's illustrate that with a simple example:
+
+- State #999 contains the following overage information:
+  - `"SaaS subscription 123"` / "`Data processed (in GB) overage: 1.2 GB in the current hour (09:00 -- 09:59 UTC), last update: 09:34)`"
+- Event #1000 from 10:02 UTC indicates a `Data processed: 0.1 GB`. Therefore, we know that the previous billing hour (09:00--09:59) is ready to be submitted. So event #1000 transitions state #999 to #1000.
+- State #1000 contains the following information after applying event #10000:
+  - `"SaaS subscription 123"` / "`Data processed (in GB) overage: 0.1 GB in the current hour (10:00 -- 10:59 UTC), last update: 10:02)`"
+  - Overage **"ready to be submitted"** to the billing API:
+    - `"SaaS subscription 123"` / `09:00 -- 09:59 UTC`: "`Data processed (in GB): 1.2 GB`
+
+The list of "ready to be submitted" entries can be seen as a TODO-list of API-calls to-be-made. The actual submission the metering API happens independent from the business logic: A process ("Emit to metering API") in the diagram below extracts all "ready to be submitted" entries from the current system state, and submits the entries (in batches of up to 25) to the Azure Marketplace Metering API. Instead of changing the state, the responses coming back from the API are injected into the Event Hub, and therefore flow with all the other events into the business logic. 
+
+Based on the response message (coming in via Event Hubs), the business logic can validate whether a "ready-to-be-submitted" entry successfully made it to the Azure Billing backend, or not; successfully submitted entries can be removed from the "ready to be submitted" collection. 
+
+![Feedback](docs/feedback.png)
+
+Storing API-calls-to-be-made in the system state means that the aggregator is very resilient to failures and outages. We have to assume that the aggregator might crash at any point in time (in the middle of an operation).
+
+- **Good case:** If a value is successfully submitted to the metering API, the success response flows (via the Event Hubs feedback loop) into the business logic, and gets removed from the list of API-calls-to-be-made.
+- **Crash prior submission, but captured in state:** The state snapshot might contain an API-call-to-be-made, but the process stopped / crashed prior successful submission. When the aggregator runs the next time, it'll read the state snapshot (including the API-call-to-be-made), and the emitter process will submit the value.
+- **Crash prior submission:** In case the information about an API-call-to-be-made is lost, because the API call was not done successfully, and the state has not been snapshotted prior the aggregator crashing / stopping, then the re-application of the business logic to the unprocessed events will re-create the API-call-to-be-made, and regular behavior will kick in.
+- **Crash after successful API submission, prior commit to Event Hubs:** In case the emitter successfully reports a value into the Marketplace Metering API, but the overall aggregator crashes before the emitter records the response in Event Hubs, then the given API-call-to-be-made will be made again, the next time the aggregator restarts. Given the idempotent nature of the Azure Marketplace Metering API, the API will respond with a error, indicating this is a duplicate submission of a previously reported value. The error message about the duplicate gets enqueued in Event Hubs, and eventually arrives in the business logic. For the business logic, it is not relevant whether a meter submission resulted in a "200 OK", i.e., it got accepted in the first place, or whether it is an error about a duplicate submission, in both cases, the business logic knows that the value has been successfully been acknowledged by Azure.
+
+
+
+
+
+
+## System Messages / Types of Events
+
+For event sourcing to work, you certainly need a few different event types:
 
 ![client-message-sequence](client-message-sequence.drawio.svg)
 
 
 ```mermaid
 graph LR
-	Purchase(Subscription Purchased) --> U1(Usage Reported)--> U2(Usage Reported)--> U5(Usage Reported) --> U3(Usage Reported)
-	U3 --> U3
-	U3 --> Deleted(Subscription Deleted)
+	Purchase(Subscription Purchased) 
+	   --> U1([Usage Reported])
+	   --> U2([Usage Reported])
+	   --> U3([Usage Reported])
+	   --> U4([Usage Reported])
+       --> U4
+	   --> Deleted(Subscription Deleted)
+	
+	style Purchase fill:#090,color:#fff,stroke-width:0px
+	style Deleted fill:#c00,color:#fff,stroke-width:0px
+	style U1 fill:#ff0,color:#000,stroke-width:0px
+	style U2 fill:#ff0,color:#000,stroke-width:0px
+	style U3 fill:#ff0,color:#000,stroke-width:0px
+    style U4 fill:#ff0,color:#000,stroke-width:0px
 ```
 
-In addition to these events, the aggregator must keep track of what usage has been reported to the Marketplace Metering Service API, or more specifically, how the Marketplace Metering Service API responded to a certain usage event. In the architectural diagram, you can see a feedback loop from the aggregator, writing back into Event Hubs: via this feedback loop, the aggregator ensures that Event Hubs not only contains the usage from within the ISV solution, but also contains the history of all interactions with the Marketplace Metering Service API.
+###  The actual `UsageReported` 
+
+Your application needs to emit information about usage, including
+
+- the resource ID of the marketplace resource (SaaS subscription ID, or managed app ID), 
+- a timestamp, 
+- information to determine which meter the usage corresponds to, and  
+- the consumed quantity.
 
 
 
+- as well as optional metadata (key/value collection), to enable the ISV to build richer reporting.
+
+ The solution should support various event types:
+
+- The subscription life cycle is initiated by a `SubscriptionPurchased`  event, and closed by the `SubscriptionDeleted` event. 
+  - The `SubscriptionPurchased` event informs the aggregator that usage for a certain resourceId must be tracked. That resourceId would be the SaaS subscription ID, or the managed app's resource ID.
+  - The `SubscriptionDeleted` event would indicate that a customer cancelled the subscription, so that it no longer is possible to track consumption.
+- The `UsageReported` events contain the concrete usage information, i.e. which resource ID has consumed which quantities of which dimension at what point in time.
+
+So a `SubscriptionPurchased`  event starts the process, `UsageReported`  events report on ongoing usage, and the `SubscriptionDeleted` event closes the cycle:
 
 
 
+  In the architectural diagram, you can see a feedback loop from the aggregator, writing back into Event Hubs: via this feedback loop, the aggregator ensures that Event Hubs not only contains the usage from within the ISV solution, but also contains the history of all interactions with the Marketplace Metering Service API.
 
 
 

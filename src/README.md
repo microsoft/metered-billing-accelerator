@@ -392,12 +392,18 @@ This gives an overview about the DLL depentencies
 
 ```mermaid
 graph TD
-     EventHubTypes(Metering.EventHubTypes.dll)
-     BaseTypes(Metering.BaseTypes.dll) --> EventHubTypes
-     RunTime(Metering.Runtime.dll) --> BaseTypes
-     EventHubFSharp(Metering.EventHub.FSharp.dll) --> EventHubTypes
+     EventHubTypes([Metering.EventHubTypes.dll])
+     BaseTypes([Metering.BaseTypes.dll]) --> EventHubTypes
+     RunTime([Metering.Runtime.dll]) --> BaseTypes
+     EventHubFSharp([Metering.EventHub.FSharp.dll]) --> EventHubTypes
      Aggregator(Aggregator.exe) --> RunTime
-     Aggregator(Aggregator.exe) --> EventHubFSharp
+     Aggregator --> EventHubFSharp
+     
+    style EventHubTypes  fill:#222,color:#fff,stroke-width:0px
+    style BaseTypes      fill:#222,color:#fff,stroke-width:0px
+    style RunTime        fill:#222,color:#fff,stroke-width:0px
+    style EventHubFSharp fill:#222,color:#fff,stroke-width:0px
+    style Aggregator     fill:#777,color:#fff,stroke-width:0px
 ```
 
 - `Metering.EventHubTypes.dll` contains a few base abstractions related to Azure EventHub (SequenceNumbers, PartitionIDs, etc.)
