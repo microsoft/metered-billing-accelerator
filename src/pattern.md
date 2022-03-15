@@ -50,7 +50,7 @@ The pattern described in this document converts the Marketplace's Metered Billin
 
 The following illustration provides an architectural overview:
 
-![2022-03-15--13-00-00](2022-03-15--13-00-00.svg)
+![2022-03-15--13-00-00](docs/2022-03-15--13-00-00.svg)
 
 ### Components in the system
 
@@ -129,7 +129,7 @@ The list of "ready to be submitted" entries can also be seen as a TODO-list of A
 
 Based on the response message, the business logic can validate whether a "ready-to-be-submitted" entry successfully made it to the Azure Billing backend, or not; successfully submitted entries can be removed from the "ready to be submitted" collection. 
 
-![2022-03-15--13-00-01](2022-03-15--13-00-01.svg)
+![2022-03-15--13-00-01](docs/2022-03-15--13-00-01.svg)
 
 We have to assume that the aggregator might crash at any point in time (in the middle of an operation).  Storing ready-to-be-submitted records (API-calls-to-be-made) in the system state greatly improves robustness of the aggregator and resiliency to failures and outages:
 
@@ -145,7 +145,7 @@ We have to assume that the aggregator might crash at any point in time (in the m
 
 For event sourcing to work, you certainly need a few different event types:
 
-![client-message-sequence](client-message-sequence.drawio.svg)
+![client-message-sequence](docs/client-message-sequence.drawio.svg)
 
 
 ```mermaid
