@@ -50,7 +50,7 @@ The pattern described in this document converts the Marketplace's Metered Billin
 
 The following illustration provides an architectural overview:
 
-![architecture2.drawio](architecture2.drawio.svg)
+![2022-03-15--13-00-00](2022-03-15--13-00-00.svg)
 
 ### Components in the system
 
@@ -125,20 +125,18 @@ We mentioned that the business logic is free of side effects, i.e., the business
   - Overage **"ready to be submitted"** to the billing API:
     - `"SaaS subscription 123"` / `09:00 -- 09:59 UTC`: "`Data processed (in GB): 1.2 GB`
 
-The list of "ready to be submitted" entries can be seen as a TODO-list of API-calls to-be-made. The actual submission the metering API happens independent from the business logic: A process ("Emit to metering API") in the diagram below extracts all "ready to be submitted" entries from the current system state, and submits the entries (in batches of up to 25) to the Azure Marketplace Metering API. Instead of changing the state, the responses coming back from the API are injected into the Event Hub, and therefore flow with all the other events into the business logic. 
+The list of "ready to be submitted" entries can also be seen as a TODO-list of API-calls to-be-made, so in the following, we use 'ready to be submitted' and 'API-call-to-be-made' synonymously. The actual submission the metering API happens independent from the business logic: The emitter process in the diagram below extracts all "ready to be submitted" entries from the current system state, and submits the entries (in batches of up to 25) to the Azure Marketplace Metering API. Instead of changing the state itself, the response messages coming back from the API are injected back into Event Hubs, and flow together with all other events into the business logic. 
 
-Based on the response message (coming in via Event Hubs), the business logic can validate whether a "ready-to-be-submitted" entry successfully made it to the Azure Billing backend, or not; successfully submitted entries can be removed from the "ready to be submitted" collection. 
+Based on the response message, the business logic can validate whether a "ready-to-be-submitted" entry successfully made it to the Azure Billing backend, or not; successfully submitted entries can be removed from the "ready to be submitted" collection. 
 
-![Feedback](docs/feedback.png)
+![2022-03-15--13-00-01](2022-03-15--13-00-01.svg)
 
-Storing API-calls-to-be-made in the system state means that the aggregator is very resilient to failures and outages. We have to assume that the aggregator might crash at any point in time (in the middle of an operation).
+We have to assume that the aggregator might crash at any point in time (in the middle of an operation).  Storing ready-to-be-submitted records (API-calls-to-be-made) in the system state greatly improves robustness of the aggregator and resiliency to failures and outages:
 
-- **Good case:** If a value is successfully submitted to the metering API, the success response flows (via the Event Hubs feedback loop) into the business logic, and gets removed from the list of API-calls-to-be-made.
-- **Crash prior submission, but captured in state:** The state snapshot might contain an API-call-to-be-made, but the process stopped / crashed prior successful submission. When the aggregator runs the next time, it'll read the state snapshot (including the API-call-to-be-made), and the emitter process will submit the value.
-- **Crash prior submission:** In case the information about an API-call-to-be-made is lost, because the API call was not done successfully, and the state has not been snapshotted prior the aggregator crashing / stopping, then the re-application of the business logic to the unprocessed events will re-create the API-call-to-be-made, and regular behavior will kick in.
-- **Crash after successful API submission, prior commit to Event Hubs:** In case the emitter successfully reports a value into the Marketplace Metering API, but the overall aggregator crashes before the emitter records the response in Event Hubs, then the given API-call-to-be-made will be made again, the next time the aggregator restarts. Given the idempotent nature of the Azure Marketplace Metering API, the API will respond with a error, indicating this is a duplicate submission of a previously reported value. The error message about the duplicate gets enqueued in Event Hubs, and eventually arrives in the business logic. For the business logic, it is not relevant whether a meter submission resulted in a "200 OK", i.e., it got accepted in the first place, or whether it is an error about a duplicate submission, in both cases, the business logic knows that the value has been successfully been acknowledged by Azure.
-
-
+- **Happy path / Normal operations:** In the best case, after the emitter successfully submits a value to the metering API, the response with the success message flows (via the Event Hubs feedback loop) into the business logic, which then removes it from the state's API-calls-to-be-made list.
+- **Crash prior submission, but captured in state:** The state snapshot contains an API-call-to-be-made, but the might process stop / crash prior successful submission. When the aggregator executes the next time, it'll read the state snapshot (including the API-call-to-be-made), and the emitter process will submit the value.
+- **Crash prior submission, not captured in state:** In case the information about an API-call-to-be-made is lost, because the API call was not done successfully, and the state has not been snapshotted prior the aggregator crashing / stopping, then the re-application of the business logic to the unprocessed events will re-create the API-call-to-be-made, and regular behavior will kick in.
+- **Crash after successful API submission, prior commit to Event Hubs:** The last case to consider is a successful submission of a record to the Marketplace Metering API, but the response doesn't get recorded in Event Hubs via the feedback look. In this case, upon re-start of the aggregator, it will to emit an already submitted API-call-to-be-made a second time. Given the idempotent nature of the Azure Marketplace Metering API, it will respond with a error, indicating a duplicate submission of a previously reported value. That error message (about the duplicate) gets enqueued in Event Hubs, and eventually arrives in the business logic. For the business logic, it is not relevant whether a meter submission resulted in a "200 OK", i.e., it got accepted in the first place, or whether it is an error about a duplicate submission; in both cases, the business logic knows that the value has been successfully been acknowledged by Azure.
 
 
 
@@ -168,7 +166,7 @@ graph LR
     style U4 fill:#ff0,color:#000,stroke-width:0px
 ```
 
-###  The actual `UsageReported` 
+###  The `UsageReported`  event
 
 Your application needs to emit information about usage, including
 
@@ -177,37 +175,44 @@ Your application needs to emit information about usage, including
 - information to determine which meter the usage corresponds to, and  
 - the consumed quantity.
 
+### Handling the subscription lifecycle: `SubscriptionPurchased` and `SubscriptionDeleted` 
 
-
-- as well as optional metadata (key/value collection), to enable the ISV to build richer reporting.
-
- The solution should support various event types:
-
-- The subscription life cycle is initiated by a `SubscriptionPurchased`  event, and closed by the `SubscriptionDeleted` event. 
-  - The `SubscriptionPurchased` event informs the aggregator that usage for a certain resourceId must be tracked. That resourceId would be the SaaS subscription ID, or the managed app's resource ID.
-  - The `SubscriptionDeleted` event would indicate that a customer cancelled the subscription, so that it no longer is possible to track consumption.
-- The `UsageReported` events contain the concrete usage information, i.e. which resource ID has consumed which quantities of which dimension at what point in time.
+The subscription life cycle is initiated by a `SubscriptionPurchased`  event, and closed by the `SubscriptionDeleted` event. 
+- The `SubscriptionPurchased` event informs the aggregator that usage for a certain resourceId must be tracked. That resourceId would be the SaaS subscription ID, or the managed app's resource ID.
+- The `SubscriptionDeleted` event would indicate that a customer cancelled the subscription, so that it no longer is possible to track consumption.
 
 So a `SubscriptionPurchased`  event starts the process, `UsageReported`  events report on ongoing usage, and the `SubscriptionDeleted` event closes the cycle:
 
+### Tracking submitted API calls with `UsageSubmittedToAPI`
 
+After API requests to the Azure Marketplace Metering API, the emitter sends the marketplace API responses into Event Hubs, wrapped in `UsageSubmittedToAPI` event messages. The Marketplace API might return one of a few responses (check the docs on [details](https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis#responses)):
 
-  In the architectural diagram, you can see a feedback loop from the aggregator, writing back into Event Hubs: via this feedback loop, the aggregator ensures that Event Hubs not only contains the usage from within the ISV solution, but also contains the history of all interactions with the Marketplace Metering Service API.
+- a **Success** confirmation, indicating acceptance of the submission
+- a **Duplicate** message, indicating that the submitted record has already been submitted previously
+- a **ResourceNotFound** message, indicating that the given resource ID doesn't exit
+- an **Expired** error indicates that the `effectiveStartTime` of the submitted event is either more than 24 hours in the past (and therefore cannot be submitted as-is), or that the time is in the future.
 
+## Potential problems
 
+### Poisonous messages in Event Hubs
 
+You need to build a mechanism to track potential failures in the aggregator. One class of errors could be mis-behaving clients which submit invalid (poisoned) messages into Event Hubs. If the system is a complete black box, it can be hard to identify such problems. You should create a notification mechanism by which the aggregator can report messages it cannot properly process.
 
+### Rejected usage submissions 
 
+The **Azure Marketplace Metering API** rejects submissions for usage which is more than 24 hours in the past. This can happen in two situations: The aggregator is not run 'often enough', or the event volume is so high that the aggregator doesn't 'catch up' with the latest events. 
 
+When reading messages from Event Hubs (for a certain offset or sequence number), the Event Hubs SDK allows to track the last enqueued event's properties, so that the aggregator knows how many unprocessed events are still waiting in the current partition. 
 
+You also might consider storing the timestamp of the last processed event in the system state, and setup a monitoring system to regularly check the latest system state; if the system state didn't get updated for a few hours, that indicates the aggregator didn't run or encountered a problem.
 
+To work around this 24h constraint, your business logic might adopt compensating transactions: For example, if (due to a systemic problem), the aggregator didn't run for more than 24h, and the system state contains API-calls-to-be-made which are, and will be, rejected (because the events are too old), the business logic could introduce the concept of a compensating transaction, where usage from e.g. two days ago is charged today. 
 
+## Gaps in the usage history
 
-![architecture2.drawio](docs/architecture.png)
+**Azure Event Hubs** can be configured with a comparably low message retention time. For example, you might configure it to only keep messages around for 1 day. As a result, older messages would be automatically removed from the system - unless you enable Event Hubs Capture. In cases where the aggregator didn't run for an extended period of time, you would loose all information of usage events in the blackout timeframe. 
 
-
-
-
+You should enable Event Hubs Capture, and implement a mechanism to read older events from capture storage, in order to fully consume the event stream, without any interruption.
 
 ## Links
 
