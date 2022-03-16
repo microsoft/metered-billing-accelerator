@@ -63,7 +63,7 @@ Ideally perform batch submissions to the metering API, to enable an efficient tr
 
 ## Architecture
 
-![architecture](docs/architecture.png)
+![2022-03-15--13-00-00](docs/2022-03-15--13-00-00.svg)
 
 The system is an event-sourced accounting solution, which uses Azure EventHub (in conjunction with EventHub Capture) as single-source-of-truth for everything that happens in the system. In addition, it uses an Azure blob storage container for snapshots of the most recent system state.
 
