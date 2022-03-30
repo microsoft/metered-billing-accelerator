@@ -11,7 +11,7 @@
           "planId": "free_monthly_yearly",
           "billingDimensions": {
             "cpucharge": {
-              "monthly": 1000,
+              "monthly": "Infinite",
               "annually": 10000
             },
             "datasourcecharge": {
@@ -46,40 +46,35 @@
       "currentMeters": {
         "cpucharge": {
           "included": {
-            "monthly": 999.0290544782792,
-            "annually": 10000,
+            "quantity": "Infinite",
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }
         },
         "datasourcecharge": {
           "included": {
-            "monthly": 999.8413857234018,
-            "annually": 10000,
+            "quantity": 999,
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }
         },
         "messagecharge": {
           "included": {
-            "monthly": 999.4581042385067,
-            "annually": 10000,
+            "quantity": 999.123,
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }
         },
         "nodecharge": {
           "included": {
-            "monthly": 999.2648524500139,
-            "annually": 10000,
+            "quantity": 999,
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }
         },
         "objectcharge": {
           "included": {
-            "monthly": 999.7963399605178,
-            "annually": 10000,
+            "quantity": 999,
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }

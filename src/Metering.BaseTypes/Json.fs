@@ -49,15 +49,17 @@ module Json =
         let Decoder : Decoder<MeteringDateTime> = MeteringDateTime.meteringDateTimePatterns |> List.map makeDecoder |> Decode.oneOf
 
     module Quantity =
+        let InfiniteStr = "Infinite"
+
         let Encoder (x: Quantity) : JsonValue = 
             match x with
             | MeteringInt i -> i |> Encode.uint32
             | MeteringFloat f -> f |> Encode.float
-            | Infinite -> "Infinite" |> Encode.string
+            | Infinite -> InfiniteStr |> Encode.string
             
         let Decoder : Decoder<Quantity> = 
             let decodeStringQuantity s = 
-                if s = "Infinite"
+                if s = InfiniteStr
                 then Infinite |> Decode.succeed
                 else 
                     if s.Contains(".") 
@@ -118,23 +120,18 @@ module Json =
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
         
     module IncludedQuantity =
-        let (monthly, annually, created, lastUpdate) = ("monthly", "annually", "created", "lastUpdate")
+        let (quantity, created, lastUpdate) = ("quantity", "created", "lastUpdate")
 
         let encode (x: IncludedQuantity) : (string * JsonValue) list =
-            let ts = [ 
+            [ 
+                (quantity, x.Quantity |> Quantity.Encoder)
                 (created, x.Created |> MeteringDateTime.Encoder)
                 (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder)
             ]
-            match x with
-                | { Monthly = None; Annually = None } -> ts
-                | { Monthly = Some m; Annually = None } -> ts |> List.append [ (monthly, m |> Quantity.Encoder) ]
-                | { Monthly = None; Annually = Some a} -> ts |> List.append [ (annually, a |> Quantity.Encoder) ]
-                | { Monthly = Some m; Annually = Some a } -> ts |> List.append [ (monthly, m |> Quantity.Encoder); (annually, a |> Quantity.Encoder) ]
 
         let decode (get: Decode.IGetters) : IncludedQuantity =
             {
-                Monthly = get.Optional.Field monthly Quantity.Decoder
-                Annually = get.Optional.Field annually Quantity.Decoder
+                Quantity = get.Required.Field quantity Quantity.Decoder
                 Created = get.Required.Field created MeteringDateTime.Decoder
                 LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
             }

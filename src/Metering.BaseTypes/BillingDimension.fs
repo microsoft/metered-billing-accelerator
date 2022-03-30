@@ -10,9 +10,17 @@ namespace Metering.BaseTypes
 type BillingDimensions = Map<DimensionId, IncludedQuantitySpecification>
       
 module BillingDimensions =
-    let createIncludedQuantityForNow (now: MeteringDateTime) (billingDimensions: BillingDimensions) : CurrentMeterValues = 
+    let create (now: MeteringDateTime) (renewalInterval: RenewalInterval) (billingDimensions: BillingDimensions) : CurrentMeterValues = 
+        let initialMeterValueFromDimension (bd: IncludedQuantitySpecification) : MeterValue = 
+            renewalInterval
+            |> function
+               | Monthly -> bd.Monthly
+               | Annually -> bd.Annually
+            |> function
+               | Some amount -> IncludedQuantity { Quantity = amount; Created = now; LastUpdate = now }
+               | None -> ConsumedQuantity { Amount = Quantity.zero; Created = now; LastUpdate = now }
+            
         billingDimensions
         |> Map.toSeq
-        |> Seq.map(fun (dimensionId, bd) -> (dimensionId, IncludedQuantity { Monthly = bd.Monthly; Annually = bd.Annually; Created = now; LastUpdate = now }))
+        |> Seq.map(fun (dimensionId, bd) -> (dimensionId, bd |> initialMeterValueFromDimension))
         |> Map.ofSeq
-   

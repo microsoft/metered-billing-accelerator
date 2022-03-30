@@ -111,95 +111,61 @@ let ``MeterValue.subtractQuantity``() =
         let result = testcase.State |> MeterValue.subtractQuantity now testcase.Quantity 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
-    [ 
+    [
         {
-            // if Monthly is sufficient, don't touch annual
-            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 8u
-            Expected = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = now }
-        }
-        {
-            // if Monthly is not sufficient, also deduct from annual
-            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate}
+            // deduct without overage
+            State = IncludedQuantity { Quantity = Quantity.createInt 30u; Created = created; LastUpdate = lastUpdate}
             Quantity = Quantity.createInt 13u
-            Expected = IncludedQuantity { Annually = Quantity.someInt 27u; Monthly = None; Created = created; LastUpdate = now}
+            Expected = IncludedQuantity { Quantity = Quantity.createInt 17u; Created = created; LastUpdate = now}
         }
         {
-            // if both Monthly and Annual are not sufficient, it costs money
-            State = IncludedQuantity { Annually = Quantity.someInt 30u; Monthly = Quantity.someInt 10u; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 43u
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 3u; Created = created; LastUpdate = now }
+            // deplete completely
+            State = IncludedQuantity { Quantity = Quantity.createInt 30u; Created = created; LastUpdate = lastUpdate}
+            Quantity = Quantity.createInt 30u
+            Expected = IncludedQuantity { Quantity = Quantity.zero; Created = created; LastUpdate = now}
         }
         {
             // If there's nothing, it costs money
-            State = IncludedQuantity { Annually = None; Monthly = None; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { Quantity = Quantity.zero; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.createInt 2u
             Expected = ConsumedQuantity { Amount = Quantity.createInt 2u; Created = created; LastUpdate = now }
         }
         {
-            // If there's nothing, it costs money
-            State = ConsumedQuantity { Amount = Quantity.createInt 0u; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2u
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 2u; Created = created; LastUpdate = now }
-        }
-        {
-            // If there's nothing, it costs money
+            // Going further into the overage
             State = ConsumedQuantity { Amount = Quantity.createInt 10u; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.createInt 2u
             Expected = ConsumedQuantity { Amount = Quantity.createInt 12u; Created = created; LastUpdate = now }
         }
+        {
+            // If there's infinite, it never gets depleted
+            State = IncludedQuantity { Quantity = Quantity.Infinite; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.createInt 200000u
+            Expected = IncludedQuantity { Quantity = Quantity.Infinite; Created = created; LastUpdate = now }
+        }
     ] |> runTestVectors test
 
-type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Values: (uint * RenewalInterval) list; Expected: MeterValue}
+type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Value: uint; Expected: MeterValue}
 
 [<Test>]
-let ``MeterValue.topupMonthlyCredits``() =
+let ``MeterValue.createIncluded``() =
     let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
 
     let test (idx, testcase) =
-        let result = testcase.Values |> List.fold (MeterValue.topupMonthlyCredits |> (fun f a (b, c) -> a |> f now (Quantity.createInt b) c)) testcase.Input
+        let result = MeterValue.createIncluded now (Quantity.createInt testcase.Value)
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [
         {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = None; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9u, Monthly)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 9u; Created = created; LastUpdate = now } 
-        }
-        {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9u, Monthly)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 9u; Created = created; LastUpdate = now } 
+            Input = IncludedQuantity { Quantity = Quantity.createInt 1u; Created = created; LastUpdate = lastUpdate } 
+            Value = 9u
+            Expected = IncludedQuantity { Quantity = Quantity.createInt 9u; Created = created; LastUpdate = now } 
         }
         {
             Input = ConsumedQuantity { Amount = Quantity.createInt 100_000u; Created = created; LastUpdate = lastUpdate }
-            Values = [(1000u, Monthly)]
-            Expected = IncludedQuantity { Annually = None; Monthly = Quantity.someInt 1000u; Created = created; LastUpdate = now } 
-        }
-        {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = None; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9u, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 9u; Monthly = None; Created = created; LastUpdate = now } 
-        }
-        {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
-            Values = [(9u, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 9u ; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = now } 
-        }
-        {
-            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000u; Created = created; LastUpdate = lastUpdate }
-            Values = [(1000u, Annually)]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 1000u ; Monthly = None; Created = created; LastUpdate = now } 
-        }
-        {
-            Input = IncludedQuantity { Annually = Quantity.someInt 1u; Monthly = Quantity.someInt 2u; Created = created; LastUpdate = lastUpdate } 
-            Values = [
-                (10_000u, Annually)
-                (500u, Monthly)
-            ]
-            Expected = IncludedQuantity { Annually = Quantity.someInt 10_000u; Monthly = Quantity.someInt 500u; Created = created; LastUpdate = now } 
+            Value = 9u
+            Expected = IncludedQuantity { Quantity = Quantity.createInt 9u; Created = created; LastUpdate = now } 
         }
     ] |> runTestVectors test
 
@@ -381,7 +347,6 @@ let private roundTrip<'T> (filename: string) =
 
 [<Test>]
 let RoundTripMarketplaceStructures () =
-    roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
     roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
     roundTrip<MarketplaceSuccessResponse> "MarketplaceSuccessResponse.json"
     roundTrip<MarketplaceErrorDuplicate> "MarketplaceErrorDuplicate.json"
