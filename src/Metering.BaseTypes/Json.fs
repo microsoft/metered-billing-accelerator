@@ -138,23 +138,23 @@ module Json =
         
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
-    module IncludedQuantitySpecification =
-        let (monthly, annually) = ("monthly", "annually")
-
-        let encode (x: IncludedQuantitySpecification) : (string * JsonValue) list =
-            match x with
-            | { Monthly = None; Annually = None } -> [ ]
-            | { Monthly = Some m; Annually = None } -> [ (monthly, m |> Quantity.Encoder) ]
-            | { Monthly = None; Annually = Some a} -> [ (annually, a |> Quantity.Encoder) ]
-            | { Monthly = Some m; Annually = Some a } -> [ (monthly, m |> Quantity.Encoder); (annually, a |> Quantity.Encoder) ]
-        
-        let decode (get: Decode.IGetters) : IncludedQuantitySpecification =
-            {
-                Monthly = get.Optional.Field monthly Quantity.Decoder
-                Annually = get.Optional.Field annually Quantity.Decoder
-            }
-        
-        let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
+    //module IncludedQuantitySpecification =
+    //    let (monthly, annually) = ("monthly", "annually")
+    //
+    //    let encode (x: IncludedQuantitySpecification) : (string * JsonValue) list =
+    //        match x with
+    //        | { Monthly = None; Annually = None } -> [ ]
+    //        | { Monthly = Some m; Annually = None } -> [ (monthly, m |> Quantity.Encoder) ]
+    //        | { Monthly = None; Annually = Some a} -> [ (annually, a |> Quantity.Encoder) ]
+    //        | { Monthly = Some m; Annually = Some a } -> [ (monthly, m |> Quantity.Encoder); (annually, a |> Quantity.Encoder) ]
+    //  
+    //    let decode (get: Decode.IGetters) : IncludedQuantitySpecification =
+    //        {
+    //            Monthly = get.Optional.Field monthly Quantity.Decoder
+    //            Annually = get.Optional.Field annually Quantity.Decoder
+    //        }
+    //
+    //    let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
     module MeterValue =
         let (consumed, included) = ("consumed", "included")
@@ -188,10 +188,10 @@ module Json =
         let (planId, billingDimensions) = ("planId", "billingDimensions")
 
         let encode (x: Plan) : (string * JsonValue) list =
-            let a = x.BillingDimensions |> Map.toSeq |> Seq.map (fun (k, v) -> (k |> DimensionId.value |> Encode.string, v |>IncludedQuantitySpecification.Encoder))
+            let a = x.BillingDimensions |> Map.toSeq |> Seq.map (fun (k, v) -> (k |> DimensionId.value |> Encode.string, v |> Quantity.Encoder))
             [
                 (planId, x.PlanId |> PlanId.value |> Encode.string)
-                (billingDimensions, x.BillingDimensions |> Map.toList |> List.map (fun (k, v) -> (k |> DimensionId.value, v |>IncludedQuantitySpecification.Encoder)) |> Encode.object)
+                (billingDimensions, x.BillingDimensions |> Map.toList |> List.map (fun (k, v) -> (k |> DimensionId.value, v |> Quantity.Encoder)) |> Encode.object)
             ]
             
         let decode (get: Decode.IGetters) : Plan =
@@ -199,7 +199,7 @@ module Json =
 
             {
                 PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
-                BillingDimensions = get.Required.Field billingDimensions ((Decode.keyValuePairs IncludedQuantitySpecification.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> Decode.succeed))
+                BillingDimensions = get.Required.Field billingDimensions ((Decode.keyValuePairs Quantity.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> Decode.succeed))
             }
          
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
@@ -761,7 +761,7 @@ module Json =
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
         |> Extra.withCustom MessagePosition.Encoder MessagePosition.Decoder
-        |> Extra.withCustom IncludedQuantitySpecification.Encoder IncludedQuantitySpecification.Decoder
+        //|> Extra.withCustom IncludedQuantitySpecification.Encoder IncludedQuantitySpecification.Decoder
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
         |> Extra.withCustom MeterValue.Encoder MeterValue.Decoder

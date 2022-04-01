@@ -10,26 +10,11 @@
         "plan": {
           "planId": "free_monthly_yearly",
           "billingDimensions": {
-            "cpucharge": {
-              "monthly": "Infinite",
-              "annually": 10000
-            },
-            "datasourcecharge": {
-              "monthly": 1000,
-              "annually": 10000
-            },
-            "messagecharge": {
-              "monthly": 1000,
-              "annually": 10000
-            },
-            "nodecharge": {
-              "monthly": 1000,
-              "annually": 10000
-            },
-            "objectcharge": {
-              "monthly": 1000,
-              "annually": 10000
-            }
+            "cpucharge": "Infinite",
+            "datasourcecharge": 1000,
+            "messagecharge": 1000,
+            "nodecharge": 1000,
+            "objectcharge": 1000
           }
         },
         "renewalInterval": "Monthly",

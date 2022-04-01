@@ -30,6 +30,7 @@ cts.Cancel();
 async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
 #pragma warning restore CS8321 // Local function is declared but never used
 {
+    
     foreach (var subscription in subscriptions)
     {
         var sub = new SubscriptionCreationInformation(

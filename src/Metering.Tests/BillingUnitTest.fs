@@ -363,6 +363,30 @@ let RoundTripMarketplaceStructures () =
       "MarketplaceGenericError.json" ]
     |> List.iter roundTrip<MarketplaceSubmissionResult>
 
+
+[<Test>]
+let ParsePlan() =
+    let p =
+        """
+        {
+          "planId": "the_plan",
+          "billingDimensions": {
+            "literal": 2,
+            "quoted": "1000000",
+            "infinite": "Infinite"
+          }
+        }
+        """
+        |> Json.fromStr<Plan>
+    Assert.AreEqual("the_plan", p.PlanId |> PlanId.value)
+
+    let check d v =
+        Assert.AreEqual(v, p.BillingDimensions |> Map.find (DimensionId.create d))
+    check "infinite" Quantity.Infinite
+    check "literal" (Quantity.createInt 2u)
+    check "quoted" (Quantity.createInt 1000000u)
+
+
 module E =
     open System.Collections.Generic
     open Azure.Messaging.EventHubs

@@ -113,9 +113,8 @@ module Meter =
         | Error error -> meter |> handleUnsuccessfulMeterSubmission error 
         
     let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
-        let renewalInterval = meter.Subscription.RenewalInterval
         let dimensions = meter.Subscription.Plan.BillingDimensions
-        let currentMeters = BillingDimensions.create time renewalInterval dimensions        
+        let currentMeters = BillingDimensions.create time dimensions        
         setCurrentMeterValues currentMeters meter
 
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : Meter =
