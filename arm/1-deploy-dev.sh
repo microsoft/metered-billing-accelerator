@@ -13,7 +13,7 @@ az deployment group create \
 	--template-file "dev.bicep" \
 	--parameters \
        "eventHubNameNamespaceName=$(       ./get-value.sh "eventHubNameNamespaceName" )" \
-       "infraServicePrincipalObjectID=$(   ./get-value.sh "infraServicePrincipalObjectID" )" \
-       "infraServicePrincipalObjectType=$( ./get-value.sh "infraServicePrincipalObjectType" )" \
+       "infraServicePrincipalObjectID=$(   ./get-value.sh "infrastructure.iam.object_id" )" \
+       "infraServicePrincipalObjectType=$( ./get-value.sh "infrastructure.iam.object_type" )" \
        "prefix=$(                          ./get-value.sh "prefix" )" \
-	--verbose
+	--output json > deployment.json

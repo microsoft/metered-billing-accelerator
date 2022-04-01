@@ -13,9 +13,17 @@ cd "${basedir}"
 ./put-value.sh "resourceGroupName"                        "meteringhack"
 ./put-value.sh "eventHubNameNamespaceName"                "meteringhack-standard"
 ./put-value.sh "storageAccountName"                       "meteringhack"
-./put-value.sh "infraServicePrincipalObjectID"            "0ee98a8b-384b-4ac5-a198-bdfb6147c083"
-./put-value.sh "infraServicePrincipalObjectType"          "Group"
 ./put-value.sh "prefix"                                   "$(date +%Y%m%d)-chgeuer"
+
+./put-value.sh "infrastructure.aadTenant"                 "chgeuerfte.onmicrosoft.com"
+./put-value.sh "infrastructure.client_id"                 "deadbeef-1234-45f7-ae17-741d339bb986"
+./put-value.sh "infrastructure.client_secret"             "sitrsneit239487234~nienienieni-ULYNE"
+./put-value.sh "infrastructure.iam.object_id"             "0ee98a8b-384b-4ac5-a198-bdfb6147c083"
+./put-value.sh "infrastructure.iam.object_type"           "Group"
+
+./put-value.sh "marketplace.aadTenant"                    "microsoft.onmicrosoft.com"
+./put-value.sh "marketplace.client_id"                    "deadbeef-1234-45f7-ae17-741d339bb986"
+./put-value.sh "marketplace.client_secret"                "sitrsneit239487234~nienienieni-ULYNE"
 
 
 #./put-value.sh "naming.RAND"               "$( LC_CTYPE=C tr -dc 'a-z0-9' < /dev/urandom | fold -w 4 | head -n 1 )"
@@ -35,3 +43,5 @@ cd "${basedir}"
 # ./put-value.sh "app_configuration_name"    "appcs-$(  ./get-value.sh "naming.solution" )"
 # ./put-value.sh "keyvault_name"             "kv-$(     ./get-value.sh "naming.solution" )"
 # ./put-value.sh "cosmosdb_name"             "cosmos-$( ./get-value.sh "naming.solutionLower" )"
+
+
