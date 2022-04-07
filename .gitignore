@@ -353,3 +353,4 @@ MigrationBackup/
 **/bin
 **/obj
 .vscode
+launchSettings.json
