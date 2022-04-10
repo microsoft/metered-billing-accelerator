@@ -4,6 +4,8 @@
 
 > This chapter would identify key elements in obtaining few insights from the data captured by the solution, sales and operational aspects. The data analytic solution would focus on leveraging Azure Databricks.
 
+![Using azure databricks](./metering_adb.png)
+
 ## Design goals
 
 The same design goals as for the entire solution are also valid in the data analytics section.
