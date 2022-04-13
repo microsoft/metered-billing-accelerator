@@ -10,10 +10,8 @@ open Metering.BaseTypes.EventHub
 module MeterCollectionLogic =
     open MeterCollection
 
-    let lastUpdate (someMeterCollection: MeterCollection option) : MessagePosition option = 
-        match someMeterCollection with 
-        | None -> None
-        | Some meters -> meters.LastUpdate 
+    let lastUpdate (mc: MeterCollection option) : MessagePosition option = 
+        mc |> Option.bind (fun m -> m.LastUpdate)
 
     [<Extension>]
     let getEventPosition (someMeters: MeterCollection option) : StartingPosition =
