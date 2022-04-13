@@ -45,6 +45,7 @@ namespace Metering.Aggregator
                     {
                         var response = await config.SubmitUsage(usage);
                         await producer.ReportUsagesSubmitted(response, CancellationToken.None);
+                        _logger.Log(LogLevel.Information, "Submitted {0} values", response.Results.Length);
                     }
                 }
             });
