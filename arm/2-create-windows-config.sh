@@ -5,7 +5,6 @@ file=set_vars.cmd
 echo "Reading the deployment results and creating a batch file, which you can run on Windows, to set environment vars"
 outputs="$( cat ./deployment.json | jq .properties.outputs.environmentConfiguration.value  )"
 
-#!/bin/bash
 cat > set_vars.cmd <<EOF
 setx.exe AZURE_METERING_MARKETPLACE_CLIENT_ID             $( ./get-value.sh "marketplace.client_id" )
 setx.exe AZURE_METERING_MARKETPLACE_CLIENT_SECRET         $( ./get-value.sh "marketplace.client_secret" )
