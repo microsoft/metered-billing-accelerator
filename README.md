@@ -1,6 +1,4 @@
 # `README.md`: The metering-billing-accelerator
-M-x markdown-toc-generate-toc
-
 ## tl;dr
 
 > This component takes care of the accounting necessary for correctly reporting custom metering information to the Azure Marketplace Metering API. 
