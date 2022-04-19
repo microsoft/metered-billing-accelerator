@@ -1,4 +1,5 @@
 # `README.md`: The metering-billing-accelerator
+M-x markdown-toc-generate-toc
 
 ## tl;dr
 
