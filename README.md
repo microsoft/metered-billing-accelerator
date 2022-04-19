@@ -29,14 +29,15 @@
   * [Endpoints](#endpoints)
   * [Local dev setup](#local-dev-setup)
 - [Demo time - How to run / try it yourself](#demo-time---how-to-run---try-it-yourself)
-  * [Example](#example)
+  
 - [Assembly overview](#assembly-overview)
-- [TODO](#todo)
 - [Missing features](#missing-features)
+- [Monitoring Recommendataion](./docs/AzureFunction-Monitoring.md)
+- [Enterprise Deployment Recommendation](./docs/Enterprise-Reference-Architecture-Single-region.md)
 - [Privacy and Telemetry Notice](#privacy-and-telemetry-notice)
 - [Wild ideas](#wild-ideas)
 - [Contributing](#contributing)
-- [Trademarks](#trademarks)
+-
 
 ## Design goals
 
