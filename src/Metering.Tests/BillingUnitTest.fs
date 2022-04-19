@@ -228,6 +228,142 @@ let ``Quantity.Math`` () =
 
     Assert.AreEqual(f 11.1, (q 3) + (f 8.1))
     
+[<Test>]
+let ``MeterCollectionLogic.handleMeteringEvent`` () =
+    let internalResourceId = "saas-guid-1234" |> SaaSSubscriptionID.create |> InternalResourceId.SaaSSubscription
+    
+    let subCreation = {
+        SubscriptionCreationInformation.Subscription = {
+            Plan = {
+                PlanId = "plan123" |> PlanId.create
+                BillingDimensions = 
+                    Map.empty
+                    |> Map.add ("dimension1" |> DimensionId.create) (1000u |> Quantity.createInt)
+                    |> Map.add ("dimension2" |> DimensionId.create) (Quantity.Infinite)
+            }
+            InternalResourceId = internalResourceId
+            RenewalInterval = Monthly
+            SubscriptionStart =  "2021-11-29T17:00:00Z" |> MeteringDateTime.fromStr           
+        }
+        InternalMetersMapping =
+            Map.empty
+            |> Map.add ("d1" |> ApplicationInternalMeterName.create) ("dimension1" |> DimensionId.create)
+            |> Map.add ("freestuff" |> ApplicationInternalMeterName.create) ("dimension2" |> DimensionId.create)
+            |> InternalMetersMapping
+    }
+
+    let time = { 
+        CurrentTimeProvider = CurrentTimeProvider.LocalSystem
+        GracePeriod = (Duration.FromMinutes 2.0) }
+
+    let createEvent sequenceNr timestamp evnt =
+        let partitionId = "2"
+        let timestamp = timestamp |> MeteringDateTime.fromStr
+        let messagePosition = MessagePosition.createData partitionId sequenceNr timestamp
+        let eventToCatchup = None
+
+        MeteringEvent.create evnt messagePosition eventToCatchup
+        
+    let createSubsc sequenceNr timestamp sub = 
+        sub |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent sequenceNr timestamp
+    let createUsage sequenceNr timestamp amount dimension =
+        { InternalUsageEvent.InternalResourceId = internalResourceId
+          Timestamp = timestamp |> MeteringDateTime.fromStr
+          MeterName = dimension |> ApplicationInternalMeterName.create
+          Quantity = amount |> Quantity.createInt
+          Properties = None }
+        |> MeteringUpdateEvent.UsageReported
+        |> createEvent sequenceNr timestamp
+
+    let check (f: MeterCollection -> unit) (mc: MeterCollection) : MeterCollection =
+        // check is a little helper to run a lambda 'f' on a MeterCollection, and return the MeterCollection (for piping purposes)
+        f mc
+        mc
+
+    let checkSub (f: Meter -> unit)  (mc: Meter) : Meter =
+        f mc
+        mc
+
+    let getMeter (mc: MeterCollection) (subId: InternalResourceId) (dimensionId: string) : MeterValue =
+        let dimensionId = dimensionId |> DimensionId.create
+
+        mc.MeterCollection
+        |> Map.find subId
+        |> (fun s -> s.CurrentMeterValues |> Map.find dimensionId)
+
+    let includes (q: Quantity) (mv: MeterValue) : unit =
+        // Ensures that the given MeterValue is exactly the given quantity
+        match mv with
+        | IncludedQuantity iq -> 
+            Assert.AreEqual(q, iq.Quantity)
+        | _ -> failwith "Not an IncludedQuantity"
+
+    let overageOf (q: Quantity) (mv: MeterValue) : unit =
+        match mv with
+        | ConsumedQuantity cq -> 
+            Assert.AreEqual(q, cq.Amount)
+        | _ -> failwith "Not an ConsumedQuantity"
+
+    let ensureUsageReported (subId: InternalResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
+        let dimension = DimensionId.create dimension
+        let timeSlot = MeteringDateTime.fromStr timeSlot
+        let quantity = Quantity.createInt quantity
+
+        mc.MeterCollection
+        |> Map.find subId
+        |> (fun x -> x.UsageToBeReported)
+        |> List.filter (fun i -> i.DimensionId = dimension && i.EffectiveStartTime = timeSlot && i.ResourceId = subId && i.Quantity = quantity)
+        |> List.length
+        |> (fun length -> Assert.AreEqual(1, length))
+
+        mc
+        
+    let handle a b = MeterCollectionLogic.handleMeteringEvent time b a
+    
+    // Have a little lambda which gives us an increasing sequence number
+    let mutable sequenceNumber = 0;
+    let sn () =
+        sequenceNumber <- sequenceNumber + 1
+        sequenceNumber
+
+    MeterCollection.Empty
+    // after the subscription creation, all meters should be at their original levels
+    |> handle (createSubsc (sn()) "2021-11-29T17:04:00Z" subCreation)
+    |> check (fun m -> Assert.AreEqual(1, m.MeterCollection.Count))
+    |> check (fun m -> Assert.IsTrue(m.MeterCollection |> Map.containsKey internalResourceId))
+    |> check (fun m -> getMeter m internalResourceId "dimension1" |> includes (Quantity.createInt 1000u))
+    |> check (fun m -> getMeter m internalResourceId "dimension2" |> includes (Quantity.Infinite))
+    |> check (fun m ->
+        m.MeterCollection
+        |> Map.find internalResourceId
+        |> checkSub (fun m ->  Assert.AreEqual(2, m.CurrentMeterValues |> Map.count))
+        |> ignore
+    )
+    // If we consume 999 out of 1000 included, then 1 included should remain
+    |> handle (createUsage (sn()) "2021-11-29T17:04:03Z" 999u "d1")
+    |> check (fun m -> getMeter m internalResourceId "dimension1" |> includes (Quantity.createInt 1u))
+    // If we consume a gazillion from the 'infinite' quantity, it should still be infinite
+    |> handle (createUsage (sn()) "2021-11-29T17:05:01Z" 10000u "freestuff")
+    |> check (fun m -> getMeter m internalResourceId "dimension2" |> includes (Quantity.Infinite))
+    // If we consume 2 units (from 1 included one), whe should have an overage of 1 for the current hour
+    |> handle (createUsage (sn()) "2021-11-29T18:00:01Z" 2u "d1")
+    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 1u))
+    // If we consume units in the next hour, the previous usage should be wrapped for submission
+    |> handle (createUsage (sn()) "2021-11-29T19:00:01Z" 2u "d1")
+    |> ensureUsageReported internalResourceId "dimension1" "2021-11-29T18:00:00Z" 1u
+    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 2u))
+    |> handle (createUsage (sn()) "2021-11-29T19:00:02Z" 2u "d1")
+    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 4u))
+    |> handle (createUsage (sn()) "2021-11-29T19:00:03Z" 1u "d1")
+    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 5u))
+    |> handle (createUsage (sn()) "2021-11-29T20:00:03Z" 1u "d1")
+    |> ensureUsageReported internalResourceId "dimension1" "2021-11-29T18:00:00Z" 1u
+    |> ensureUsageReported internalResourceId "dimension1" "2021-11-29T19:00:00Z" 5u
+    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 1u))
+    |> Json.toStr(1)
+    |> printfn "%s"
+
+
 //[<Test>]
 //let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =
 //    { MarketplaceSubmissionResult.Payload =

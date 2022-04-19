@@ -64,7 +64,7 @@ module MeterValue =
                     |> ConsumedQuantity.create now 
                     |> ConsumedQuantity
 
-    let someHandleQuantity (quantity: Quantity) (currentPosition: MeteringDateTime) (current: MeterValue option) : MeterValue option =
+    let someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: MeterValue option) : MeterValue option =
         let subtract quantity meterValue = 
             meterValue |> subtractQuantity currentPosition quantity
         

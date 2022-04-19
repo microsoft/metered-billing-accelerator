@@ -7,7 +7,8 @@ type Subscription =
     { Plan: Plan
       InternalResourceId: InternalResourceId
       RenewalInterval: RenewalInterval 
-      SubscriptionStart: MeteringDateTime } // When a certain plan was purchased
+      /// When a certain plan was purchased
+      SubscriptionStart: MeteringDateTime }
 
 module Subscription =
     let create plan internalResourceId pri subscriptionStart =

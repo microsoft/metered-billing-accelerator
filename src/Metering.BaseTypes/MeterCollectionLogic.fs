@@ -100,7 +100,7 @@ module MeterCollectionLogic =
             | UsageSubmittedToAPI submission ->
                 state
                 //|> applyMeters (Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission)))
-                |> applyMeters (Map.change (submission.Result |> MarketplaceSubmissionResult.resourceId) (Option.bind ((Meter.handleUsageSubmissionToAPI submission) >> Some)))
+                |> applyMeters (Map.change (submission.Result |> MarketplaceSubmissionResult.resourceId) (Option.bind ((Meter.handleUsageSubmissionToAPI submission messagePosition) >> Some)))
                 |> setLastProcessed messagePosition
             | UsageReported usage -> 
                 state 

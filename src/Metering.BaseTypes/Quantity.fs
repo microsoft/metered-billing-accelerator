@@ -65,8 +65,8 @@ type Quantity =
             | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (float a - b)
             | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - float b)
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a - b)
-            | (Infinite, _) -> Infinite
             | (_, Infinite) -> failwith "This must never happen"
+            | (Infinite, _) -> Infinite
             |> function
                 | MeteringInt i -> MeteringInt i
                 | MeteringFloat f -> 

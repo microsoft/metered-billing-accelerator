@@ -15,7 +15,7 @@ type ManagedApp =
     | ManagedAppIdentity
     
     /// Concrete value of the managed app resource group to report against
-    | ManagedAppResourceGroupID of string /// "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+    | ManagedAppResourceGroupID of string // "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
 
 /// This is the key by which to aggregate across multiple tenants
 type InternalResourceId =    

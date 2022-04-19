@@ -20,7 +20,6 @@ module MySeq =
             a
         Seq.map (inspect i)
 
-
 //let printme e = 
 //    match e.MeteringUpdateEvent with
 //    | UsageReported e -> 
@@ -38,16 +37,19 @@ let config : MeteringConfigurationProvider =
         { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
           GracePeriod = Duration.FromHours(6.0) } }
 
-let partitionId = "1" |> PartitionID.create
+let partitionId = "2" |> PartitionID.create
+
 CaptureProcessor.readAllEvents 
     CaptureProcessor.toMeteringUpdateEvent
     partitionId
     CancellationToken.None
     config.MeteringConnections
 |> Seq.iter (fun i -> 
+    let ts = (i.MessagePosition.PartitionTimestamp |> MeteringDateTime.toStr)
     match i.EventData with
     | UsageReported _ -> ()
-    | SubscriptionPurchased _ -> () 
+    | SubscriptionPurchased sp -> 
+        printfn "%s Subscription %s purchased" ts (sp.Subscription.InternalResourceId |> InternalResourceId.toStr)
     | SubscriptionDeletion _ -> ()
     | UnprocessableMessage _ -> ()
     | RemoveUnprocessedMessages _ -> ()
@@ -56,10 +58,10 @@ CaptureProcessor.readAllEvents
         | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity |> Quantity.toStr) (success.Status.ResourceURI.Value)
         | Error e -> 
             match e with 
-            | DuplicateSubmission d -> eprintfn "Duplicate %s" (d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
-            | ResourceNotFound r -> eprintfn "ResourceNotFound %s" (r.RequestData.ResourceId |> InternalResourceId.toStr)
-            | Expired e -> eprintfn "Expired %s" (e.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
-            | Generic g -> eprintfn "Error %A" g
+            | DuplicateSubmission d -> eprintfn "%s Duplicate %s" ts (d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
+            | ResourceNotFound r -> eprintfn "%s ResourceNotFound %s" ts (r.RequestData.ResourceId |> InternalResourceId.toStr)
+            | Expired e -> eprintfn "%s Expired %s" ts (e.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
+            | Generic g -> eprintfn "%s Error %A" ts g
 
     // | a -> printfn "%d %s" i.MessagePosition.SequenceNumber  (a |> MeteringUpdateEvent.toStr)s
 )
