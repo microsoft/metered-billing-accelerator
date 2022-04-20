@@ -87,14 +87,15 @@ let inspecto (header: string) (a: 'a) : 'a =
     a
 
 let demoAggregation (config: MeteringConfigurationProvider) =
-    let parseSub = 
-        Json.fromStr<SubscriptionCreationInformation> 
-        >> SubscriptionPurchased
-        >> (fun mue -> 
+    let parseSub  sequence json = 
+        json
+        |> Json.fromStr<SubscriptionCreationInformation> 
+        |> SubscriptionPurchased
+        |> (fun mue -> 
             MeteringEvent.create
                 mue
                 { PartitionID = "1" |> PartitionID.create
-                  SequenceNumber = 1L
+                  SequenceNumber = sequence
                   PartitionTimestamp = "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr }
                 ({ LastSequenceNumber = 100L
                    LastEnqueuedTime= "2021-11-05T10:00:25.7798568Z" |> MeteringDateTime.fromStr
@@ -110,13 +111,10 @@ let demoAggregation (config: MeteringConfigurationProvider) =
        "renewalInterval": "Monthly",
        "subscriptionStart": "2021-10-01T12:20:33",
        "scope": "11111111-8a88-4a47-a691-1b31c289fb33",
-       "plan": {
-         "planId": "plan2",
-         "billingDimensions": [
-           { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
-           { "dimension": "EMailCampaign", "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } },
+       "plan": { "planId": "plan2", "billingDimensions": { "MachineLearningJob": "10", "EMailCampaign":"250000" }
+     } },
      "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
-    }""" |> parseSub
+    }""" |> parseSub 1
 
     let sub2 =
         """{
@@ -124,13 +122,10 @@ let demoAggregation (config: MeteringConfigurationProvider) =
        "renewalInterval": "Monthly",
        "subscriptionStart": "2021-10-13T09:20:33",
        "scope": "22222222-8a88-4a47-a691-1b31c289fb33",
-       "plan": {
-         "planId": "plan2",
-         "billingDimensions": [
-           { "dimension": "MachineLearningJob", "name": "An expensive machine learning job", "unitOfMeasure": "machine learning jobs", "includedQuantity": { "monthly": "10" } },
-           { "dimension": "EMailCampaign", "name": "An e-mail sent for campaign usage", "unitOfMeasure": "e-mails", "includedQuantity": { "monthly": "250000" } } ] } },
+       "plan": {"planId": "plan2","billingDimensions": { "MachineLearningJob": "10", "EMailCampaign":  "250000" }
+     }},
      "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
-    }""" |> parseSub
+    }""" |> parseSub 2
 
 
     let sub3 =
@@ -141,14 +136,14 @@ let demoAggregation (config: MeteringConfigurationProvider) =
            "scope": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
            "plan": {
              "planId": "free_monthly_yearly",
-             "billingDimensions": [
-               { "dimension": "nodecharge", "name": "Per Node Connected", "unitOfMeasure": "node/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
-               { "dimension": "cpucharge", "name": "Per CPU Connected", "unitOfMeasure": "cpu/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
-               { "dimension": "datasourcecharge", "name": "Per Datasource Integration", "unitOfMeasure": "ds/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
-               { "dimension": "messagecharge", "name": "Per Message Transmitted", "unitOfMeasure": "message/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } },
-               { "dimension": "objectcharge", "name": "Per Object Detected", "unitOfMeasure": "object/hour", "includedQuantity": { "monthly": "1000", "annually": "10000" } } ] } },
+             "billingDimensions": {
+               "nodecharge": "1000",
+               "cpucharge": "1000",
+               "datasourcecharge": "1000",
+               "messagecharge":    "1000",
+               "objectcharge":    "1000" } } },
      "metersMapping": { "nde": "nodecharge", "cpu": "cpucharge", "dta": "datasourcecharge", "msg": "messagecharge", "obj": "objectcharge"}
-    }""" |> parseSub
+    }""" |> parseSub 3
 
 
     // 11111111-8a88-4a47-a691-1b31c289fb33 2021-10-01T12:20:34
@@ -159,29 +154,29 @@ let demoAggregation (config: MeteringConfigurationProvider) =
     // Position read pointer in EventHub to 001002, and start applying 
     let consumptionEvents = 
         """
-        001002 | 2021-10-13T14:12:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | ml    |      1 | Department=Data Science, Project ID=Skunkworks vNext
-        001003 | 2021-10-13T15:12:03 | 11111111-8a88-4a47-a691-1b31c289fb33 | ml    |      2
-        001004 | 2021-10-13T15:13:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |    300 | Email Campaign=User retention, Department=Marketing
-        001007 | 2021-10-13T15:19:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email | 300000 | Email Campaign=User retention, Department=Marketing
-        001008 | 2021-10-13T16:01:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
-        001009 | 2021-10-13T16:20:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
-        001010 | 2021-10-13T17:01:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
-        001011 | 2021-10-13T17:01:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 | Email Campaign=User retention, Department=Marketing
-        001012 | 2021-10-15T00:00:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 | Email Campaign=User retention, Department=Marketing
-        001013 | 2021-10-15T01:01:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 
-        001014 | 2021-10-15T01:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
-        001015 | 2021-10-15T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     11
-        001016 | 2021-10-15T03:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
-        001017 | 2021-10-16T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     8
-        001018 | 2021-10-16T12:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     1
-        001019 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | dta   |     3
-        001020 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | cpu   |     30001
+        04 | 2021-10-13T14:12:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | ml    |      1 | Department=Data Science, Project ID=Skunkworks vNext
+        05 | 2021-10-13T15:12:03 | 11111111-8a88-4a47-a691-1b31c289fb33 | ml    |      2
+        06 | 2021-10-13T15:13:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |    300 | Email Campaign=User retention, Department=Marketing
+        07 | 2021-10-13T15:19:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email | 300000 | Email Campaign=User retention, Department=Marketing
+        08 | 2021-10-13T16:01:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
+        09 | 2021-10-13T16:20:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
+        10 | 2021-10-13T17:01:01 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |      1 | Email Campaign=User retention, Department=Marketing
+        11 | 2021-10-13T17:01:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 | Email Campaign=User retention, Department=Marketing
+        12 | 2021-10-15T00:00:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 | Email Campaign=User retention, Department=Marketing
+        13 | 2021-10-15T01:01:02 | 11111111-8a88-4a47-a691-1b31c289fb33 | email |     10 
+        14 | 2021-10-15T01:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
+        15 | 2021-10-15T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     11
+        16 | 2021-10-15T03:01:02 | 22222222-8a88-4a47-a691-1b31c289fb33 | email |     10 
+        17 | 2021-10-16T01:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     8
+        18 | 2021-10-16T12:01:03 | 22222222-8a88-4a47-a691-1b31c289fb33 | ml    |     1
+        19 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | dta   |     3
+        20 | 2021-11-05T09:12:30 | fdc778a6-1281-40e4-cade-4a5fc11f5440 | cpu   |     30001
         """ |> parseConsumptionEvents
     
     let eventsFromEventHub = [ [sub1; sub2; sub3]; consumptionEvents ] |> List.concat // The first event must be the subscription creation, followed by many consumption events
 
     eventsFromEventHub
-    |> MeterCollectionLogic.handleMeteringEvents config.TimeHandlingConfiguration MeterCollection.Uninitialized
+    |> MeterCollectionLogic.handleMeteringEvents MeterCollection.Uninitialized
     |> Json.toStr 2
     |> inspect ""
     |> Json.fromStr<MeterCollection>
@@ -216,7 +211,7 @@ let demoAggregation (config: MeteringConfigurationProvider) =
 let demoStorage (config: MeteringConfigurationProvider) eventsFromEventHub =
     let events = 
         eventsFromEventHub
-        |> MeterCollectionLogic.handleMeteringEvents config.TimeHandlingConfiguration MeterCollection.Uninitialized // We start completely uninitialized
+        |> MeterCollectionLogic.handleMeteringEvents MeterCollection.Uninitialized // We start completely uninitialized
         |> Json.toStr 1                             |> inspect "meters"
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
@@ -257,16 +252,18 @@ let main argv =
     |> (fun x -> printfn "%A" x; x)
     |> ignore
 
-    //let config = 
-    //    { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-    //      SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEvent.Discard
-    //      GracePeriod = Duration.FromHours(6.0)
-    //      ManagedResourceGroupResolver = ManagedAppResourceGroupID.retrieveDummyID "/subscriptions/deadbeef-stuff/resourceGroups/somerg"
-    //      MeteringConnections = MeteringConnections.getFromEnvironment() }
+     
+
+    let config = 
+        MeteringConfigurationProvider.create 
+            (MeteringConnections.getFromEnvironment()) 
+            (MarketplaceClient.SubmitUsage)
 
     //demoUsageSubmission config
 
-    //let eventsFromEventHub = demoAggregation config
+    demoAggregation config
+    |> Json.toStr 1
+    |> (fun x -> printfn "%A" x)
     //demoStorage config eventsFromEventHub
 
     0

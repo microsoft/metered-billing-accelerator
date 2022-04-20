@@ -11,6 +11,7 @@ type Quantity =
     | Infinite // https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/saas-metered-billing
     | MeteringInt of uint
     | MeteringFloat of float
+
     interface IComparable<Quantity> with
         member this.CompareTo other : int =
             match (this, other) with
@@ -64,8 +65,8 @@ type Quantity =
             | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (float a - b)
             | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - float b)
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a - b)
-            | (Infinite, _) -> Infinite
             | (_, Infinite) -> failwith "This must never happen"
+            | (Infinite, _) -> Infinite
             |> function
                 | MeteringInt i -> MeteringInt i
                 | MeteringFloat f -> 
@@ -81,6 +82,8 @@ module Quantity =
     [<CompiledName("create")>]
     let createFloat f = (MeteringFloat f)
     
+    let zero = (MeteringInt 0u)
+
     let fromString (s: string) =
         if s = "Infinite"
         then Infinite

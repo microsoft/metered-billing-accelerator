@@ -45,6 +45,7 @@ namespace Metering.Aggregator
                     {
                         var response = await config.SubmitUsage(usage);
                         await producer.ReportUsagesSubmitted(response, CancellationToken.None);
+                        _logger.Log(LogLevel.Information, "Submitted {0} values", response.Results.Length);
                     }
                 }
             });
@@ -83,8 +84,7 @@ namespace Metering.Aggregator
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            Func<SomeMeterCollection, EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, SomeMeterCollection> accumulator =
-                MeteringAggregator.createAggregator(config.TimeHandlingConfiguration);
+           
 
             List<IDisposable> subscriptions = new();
 
@@ -126,7 +126,7 @@ namespace Metering.Aggregator
                         partitions[int.Parse(partitionId.value())] = partitionId.value();
 
                         IObservable<MeterCollection> events = group
-                            .Scan(seed: MeterCollectionModule.Uninitialized, accumulator: accumulator)
+                            .Scan(seed: MeterCollectionModule.Uninitialized, accumulator: MeteringAggregator.createAggregator)
                             .Choose(); // '.Choose()' is cleaner than '.Where(x => x.IsSome()).Select(x => x.Value)'
 
                         // Subscribe the creation of snapshots

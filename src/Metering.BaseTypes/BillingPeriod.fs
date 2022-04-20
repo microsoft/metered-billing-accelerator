@@ -68,8 +68,3 @@ module BillingPeriod =
         if previous.Hour <> eventTime.Hour || eventTime - previous >= Duration.FromHours(1.0)
         then Close
         else KeepOpen
-
-    let previousBillingIntervalCanBeClosedWakeup ((now: MeteringDateTime), (gracePeriod: Duration)) (previous: MeteringDateTime) : CloseBillingPeriod =
-        if now - previous >= gracePeriod
-        then Close
-        else KeepOpen

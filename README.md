@@ -157,11 +157,11 @@ The concrete JSON message (in EventHub) looks like this
       "plan":{
         "planId":"free_monthly_yearly",
         "billingDimensions": {
-          "messagecharge":    { "monthly": 1000, "annually": 10000 },
-          "cpucharge":        { "monthly": 1000, "annually": 10000 },
-          "datasourcecharge": { "monthly": 1000, "annually": 10000 },
-          "nodecharge":       { "monthly": 1000, "annually": 10000 },
-          "objectcharge":     { "monthly": 1000, "annually": 10000 }
+          "messagecharge":    1000,
+          "cpucharge":        1000,
+          "datasourcecharge": 1000,
+          "nodecharge":       1000,
+          "objectcharge":     1000,
         }
       }
     },
@@ -220,20 +220,20 @@ The `subscription/plan` item describes this in detail; having information on whe
         "plan":{
           "planId": "free_monthly_yearly",
           "billingDimensions": {
-            "messagecharge":    { "monthly": 1000, "annually": 10000 },
-            "cpucharge":        { "monthly": 1000, "annually": 10000 },
-            "datasourcecharge": { "monthly": 1000, "annually": 10000 },
-            "nodecharge":       { "monthly": 1000, "annually": 10000 },
-            "objectcharge":     { "monthly": 1000, "annually": 10000 }
+            "messagecharge":    1000,
+            "cpucharge":        1000,
+            "datasourcecharge": 1000,
+            "nodecharge":       1000,
+            "objectcharge":     1000,
           }
         }        
       },
       "currentMeters":{
-        "messagecharge":    { "included": { "monthly": 1000, "annually": 10000 } },
-        "cpucharge":        { "included": { "monthly":  892, "annually": 10000 } },
-        "datasourcecharge": { "included": {                  "annually":  9213 } },
-        "nodecharge":       { "consumed": { "consumedQuantity": 11018.8        } },
-        "objectcharge":     { "consumed": { "consumedQuantity":   118          } }
+        "messagecharge":    { "included": { "quantity": 1000 } },
+        "cpucharge":        { "included": { "quantity": 1000 } },
+        "datasourcecharge": { "included": { "quantity":  982 } },
+        "nodecharge":       { "consumed": { "consumedQuantity": 11018.8 } },
+        "objectcharge":     { "consumed": { "consumedQuantity":   118   } }
       },
       "usageToBeReported": [ // These are API calls which must be made
         {
@@ -260,12 +260,9 @@ The `subscription/plan` item describes this in detail; having information on whe
 
 **Counting the consumption**: In the above example, you can see 5 dimensions in different states for the given sample customer:
 
-- The `messagecharge` meter has an `"included":{"monthly":1000,"annually":10000,...}` value, which indicates that there has not been any consumption in this dimension, as it's the same values as were included in the plan.
-- The `cpucharge` meter has a value of `"included":{"monthly":892, "annually":10000,...}"`, which indicates that 108 units have already been consumed (in the current month), i.e. `monthly` included remaining value went down from 1000 to 892. The included monthly credits are first consumed, before 'touching' annual included quantities.
-- The `datasourcecharge` meter with the `"included":{ "annually": 9213, ...}` value shows that all included quantity *for the current month* has been eaten up, and for the remainder of the current billing year, 9213 units are still left over. 
-  - This snapshot is from 22nd of December. Given that the subscription was purchased on the 14th of December, and the renewal interval is `Monthly`, the `included/monthly` will be re-filled to `1000` on the 14th of January (leaving the remaining `annually` where it was).
-
-- The `nodecharge` and `objectcharge` meters completely depleted the included quantity for both the current month and year, and are now in the overage (for the current hour!!!), i.e. having values of `"consumed":{"consumedQuantity":11018.8, ...}` and `"consumed":{"consumedQuantity":118,...}` respectively. 
+- The `messagecharge` and `cpucharge` meters have an `"included": { "quantity": 1000 }` value, which indicates that there has not been any consumption in these dimensions, as their values are untouched (compared to the plan).
+- The `datasourcecharge` meter has a value of `"included": { "quantity":892 }"`, which indicates that 108 units have already been consumed (in the current month). This snapshot is from 22nd of December. Given that the subscription was purchased on the 14th of December, and the renewal interval is `Monthly`, the `included` will be re-filled to `1000` on the 14th of January.
+- The `nodecharge` and `objectcharge` meters completely depleted the included quantity for the current month and are now in the overage (indicating the overage for the current hour!!!), i.e. having values of `"consumed":{"consumedQuantity":11018.8, ...}` and `"consumed":{"consumedQuantity":118,...}` respectively. 
 
 For the `nodecharge` meter, you can also see that the `usageToBeReported` array contains an object `{ "planId":"free_monthly_yearly", "dimension":"nodecharge","resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440","quantity":5.0,"effectiveStartTime":"2021-12-22T09:00:00Z"}`, indicating that the usage emitter must report a `free_monthly_yearly/nodecharge = 5.0` consumption for the 09:00-10:00 time window on December 12th, 2021.
 

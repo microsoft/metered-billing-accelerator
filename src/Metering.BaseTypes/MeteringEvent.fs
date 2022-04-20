@@ -6,15 +6,18 @@ namespace Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 
 type MeteringEvent =
-    | Remote of Event:MeteringUpdateEvent * MessagePosition:MessagePosition * EventsToCatchup:EventsToCatchup option
-    | Local of Event:LocalControlEvent
+    { Event: MeteringUpdateEvent
+      MessagePosition: MessagePosition 
+      EventsToCatchup:EventsToCatchup option }
 
 module MeteringEvent =
     let create (e: MeteringUpdateEvent) (messagePosition: MessagePosition) (eventsToCatchup: EventsToCatchup option) : MeteringEvent =
-        Remote (Event = e, MessagePosition = messagePosition, EventsToCatchup = eventsToCatchup)
+        { Event = e
+          MessagePosition = messagePosition
+          EventsToCatchup = eventsToCatchup }
 
     let fromEventHubEvent (e: EventHubEvent<MeteringUpdateEvent>) : MeteringEvent =
-        Remote (Event = e.EventData, MessagePosition = e.MessagePosition, EventsToCatchup = e.EventsToCatchup)
+        { Event = e.EventData
+          MessagePosition = e.MessagePosition
+          EventsToCatchup = e.EventsToCatchup }
 
-    let createLocalEvent (e: LocalControlEvent) : MeteringEvent = 
-        Local (Event = e)

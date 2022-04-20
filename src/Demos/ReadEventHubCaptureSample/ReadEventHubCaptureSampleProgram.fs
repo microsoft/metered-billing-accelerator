@@ -20,7 +20,6 @@ module MySeq =
             a
         Seq.map (inspect i)
 
-
 //let printme e = 
 //    match e.MeteringUpdateEvent with
 //    | UsageReported e -> 
@@ -33,21 +32,21 @@ module MySeq =
 
 let config : MeteringConfigurationProvider = 
     { SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEventMock.PretendEverythingIsAccepted     
-      MeteringConnections = MeteringConnections.getFromEnvironment()
-      TimeHandlingConfiguration = 
-        { CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-          GracePeriod = Duration.FromHours(6.0) } }
+      MeteringConnections = MeteringConnections.getFromEnvironment() }
 
-let partitionId = "1" |> PartitionID.create
+let partitionId = "2" |> PartitionID.create
+
 CaptureProcessor.readAllEvents 
     CaptureProcessor.toMeteringUpdateEvent
     partitionId
     CancellationToken.None
     config.MeteringConnections
 |> Seq.iter (fun i -> 
+    let ts = (i.MessagePosition.PartitionTimestamp |> MeteringDateTime.toStr)
     match i.EventData with
     | UsageReported _ -> ()
-    | SubscriptionPurchased _ -> () 
+    | SubscriptionPurchased sp -> 
+        printfn "%s Subscription %s purchased" ts (sp.Subscription.InternalResourceId |> InternalResourceId.toStr)
     | SubscriptionDeletion _ -> ()
     | UnprocessableMessage _ -> ()
     | RemoveUnprocessedMessages _ -> ()
@@ -56,10 +55,10 @@ CaptureProcessor.readAllEvents
         | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity |> Quantity.toStr) (success.Status.ResourceURI.Value)
         | Error e -> 
             match e with 
-            | DuplicateSubmission d -> eprintfn "Duplicate %s" (d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
-            | ResourceNotFound r -> eprintfn "ResourceNotFound %s" (r.RequestData.ResourceId |> InternalResourceId.toStr)
-            | Expired e -> eprintfn "Expired %s" (e.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
-            | Generic g -> eprintfn "Error %A" g
+            | DuplicateSubmission d -> eprintfn "%s Duplicate %s" ts (d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
+            | ResourceNotFound r -> eprintfn "%s ResourceNotFound %s" ts (r.RequestData.ResourceId |> InternalResourceId.toStr)
+            | Expired e -> eprintfn "%s Expired %s" ts (e.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
+            | Generic g -> eprintfn "%s Error %A" ts g
 
     // | a -> printfn "%d %s" i.MessagePosition.SequenceNumber  (a |> MeteringUpdateEvent.toStr)s
 )
@@ -138,17 +137,15 @@ exit 0
 // let initialState : MeterCollection option = MeterCollection.Uninitialized
 let initialState = File.ReadAllText("C:\\Users\\chgeuer\\Desktop\\482127.json") |> Json.fromStr<MeterCollection> |> Some
 
-
 match initialState with
 | None -> 
-    let aggregate = MeterCollectionLogic.handleMeteringEvent config.TimeHandlingConfiguration
     let partitionId = "0"
     let x = 
         config.MeteringConnections
         |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent (partitionId |> PartitionID.create) CancellationToken.None 
         //|> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map MeteringEvent.fromEventHubEvent
-        |> Seq.scan aggregate MeterCollection.Empty
+        |> Seq.scan MeterCollectionLogic.handleMeteringEvent MeterCollection.Empty
         |> Seq.last
 
     //printfn "%s" (x |> Some |> MeterCollection.toStr)
@@ -170,7 +167,6 @@ match initialState with
 | Some initialState -> 
     // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
 
-    let aggregate = MeterCollectionLogic.handleMeteringEvent config.TimeHandlingConfiguration
     let startPosition = initialState.LastUpdate.Value
 
     let x = 
@@ -178,7 +174,7 @@ match initialState with
         |> CaptureProcessor.readEventsFromPosition CaptureProcessor.toMeteringUpdateEvent startPosition CancellationToken.None 
         // |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.map MeteringEvent.fromEventHubEvent
-        |> Seq.scan aggregate initialState
+        |> Seq.scan MeterCollectionLogic.handleMeteringEvent initialState
         |> Seq.last
 
     // printfn "%s" (x |> Some |> MeterCollection.toStr)

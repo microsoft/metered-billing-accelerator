@@ -55,13 +55,3 @@ module MeteringDateTime =
             zone = DateTimeZone.Utc,
             offset = Offset.Zero)
 
-type CurrentTimeProvider =
-    unit -> MeteringDateTime
-
-module CurrentTimeProvider =
-    let LocalSystem : CurrentTimeProvider = (fun () -> MeteringDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc))
-    let AlwaysReturnSameTime (time : MeteringDateTime) : CurrentTimeProvider = (fun () -> time)
-
-type TimeHandlingConfiguration =
-    { CurrentTimeProvider: CurrentTimeProvider
-      GracePeriod: Duration }

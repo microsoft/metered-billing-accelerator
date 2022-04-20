@@ -3,7 +3,8 @@
 
 namespace Metering.BaseTypes
 
-type ApplicationInternalMeterName = private ApplicationInternalMeterName of string // A meter name used between app and aggregator
+/// A meter name used between app and aggregator
+type ApplicationInternalMeterName = private ApplicationInternalMeterName of string 
 
 module ApplicationInternalMeterName =
     let value (ApplicationInternalMeterName x) = x
