@@ -348,40 +348,35 @@ Run these commands
 
 - `c foo`: This (c)reates a subscription. The demo app converts the string `foo` into a GUID `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`, and submits an event creating a new subscription.
 - `s foo 99`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
-- `s foo 1000`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
-- `s foo 10000`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
+- `s foo 900`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
+- `s foo 13`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
 
 Somewhere in the output, you will see this (at different spots):
 
 ```
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000/10000 (month/year)
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 901/10000 (month/year)
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 9901 (year)
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: 99 consumed
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 901
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: 12 consumed
 ```
 
 When the subscription was created (check the `plan.json` file in the `SimpleMeteringSubmissionClient` directory), these details were included in the plan:
 
 ```json
-    {
-      "dimension": "cpucharge",
-      "name": "Per CPU Connected",
-      "unitOfMeasure": "cpu/hour",
-      "includedQuantity": {
-        "monthly": "1000",
-        "annually": "10000"
-    }
+{
+  "cpucharge": "1000",
+}
 ```
 
-You can see an included annual quantity of 10000 units, and a monthly quantity of 1000. This is reflected in the output:
+You can see an included (monthly) quantity of 1000. This is reflected in the output:
 
 ```text
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000/10000 (month/year)
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000
 ```
 
-- Once you (s)ubmit a usage of 99 units (by typing `s foo 99`), the `Remaining 1000/10000 (month/year)` become `Remaining 901/10000 (month/year)`
-- Once you (s)ubmit a usage of 1000 units (by typing `s foo 1000`), the `Remaining 901/10000 (month/year)` become `Remaining 9901 (year)`
-- The last consumption of 10_000 units fully depletes the remaining 9901 annual credits, and brings you into the overage, i.e. the included quantity of `Remaining 9901 (year)` becomes `99 consumed`
+- Once you (s)ubmit a usage of 99 units (by typing `s foo 99`), the `Remaining 1000` become `Remaining 901`
+- Once you (s)ubmit a usage of 1000 units (by typing `s foo 900`), the `Remaining 901` become `Remaining 1`
+- The last consumption of 13 units fully depletes the remaining 1 credits, and brings you into the overage, i.e. the included quantity of `Remaining 1` becomes `12 consumed`
 
 ## Assembly overview
 
