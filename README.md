@@ -382,17 +382,35 @@ You can see an included (monthly) quantity of 1000. This is reflected in the out
 
 The metering accelerator is planned for three distinct deployment models:
 
-1. Self-managed "Managed App"
-2. Managed App with Central Aggregation
+1. 'Self-managed' Managed napplication
+2. Managed Application with Central Aggregation
 3. Software as a Service (SaaS)
 
 > NOTE: Currently, the "Managed App with Central Aggregation is still in the design phase".
 
 ![2022-04-04--metering-models](images/2022-04-04--metering-models.svg)
 
-### Self-managed "managed application"
+### 'Self-managed' Managed Application
 
-A [managed application][azure-app-metered-billing] 
+In this model, a [managed application][azure-app-metered-billing] directly submits metering information to Azure. The ISV bundles a copy of the metering aggregator into each managed application deployment, i.e. each managed application deployment can autonomously submit its own usage data. 
+
+The advantage of that model is that, from an ISV perspective, it's has a very low maintenance overhead, because the ISV can trust all customer deployments continuously working without the ISV's intervention. 
+
+The disadvantage is that the ARM template for the managed app needs to contain the aggregator components (storage, event hubs and compute), and that each managed app deployment incurs runtime costs (most notably event hubs and compute), resulting in higher infrastructure costs for the ISV's customers.
+
+### Managed Application with Central Aggregation
+
+> NOTE: Support for this model is not yet fully designed and implemented.
+
+To address the downsides of the *"'Self-managed' Managed Application"* approach, ISVs can decide to run a central instance of the metering aggregator in the ISV's own backend. In this model, all managed application deployments send their usage across the organizational boundary to the ISV. The ISV-hosted metering aggregator centrally aggregates usage across all managed app deployments, and submits metering data centrally to Azure.
+
+The advantage of that approach is that the managed apps do not incur hosting costs for the metering accelerator. However, the ISV needs to ensure availability of the metering aggregator backend, so all managed apps can successfully emit their usage.
+
+Another advantage is that the ISV centrally captures all usage of app deployments, enabling analytics scenarios, such as customer retention analysis, or recommending better-suited plans to customer who always have included quantities left over at the end of the billing period.
+
+### Software as a Service (SaaS)
+
+In the case of a SaaS offering, the ISV has to centrally run the metering accelerator (as integral part of the SaaS offer). The multi-tenanted SaaS application submits usage data for all SaaS customer into the central instance. 
 
 ## Assembly overview
 
