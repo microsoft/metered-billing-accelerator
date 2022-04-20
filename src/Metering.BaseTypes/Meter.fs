@@ -90,6 +90,13 @@ module Meter =
         |> applyToCurrentMeterValue (updateConsumption event.Quantity currentPosition.PartitionTimestamp someDimension)
         |> setLastProcessedMessage currentPosition // Todo: Decide where to update the position
 
+    let closePreviousHourIfNeeded (partitionTimestamp: MeteringDateTime) (meter: Meter) : Meter =
+        let previousTimestamp = meter.LastProcessedMessage.PartitionTimestamp
+
+        match BillingPeriod.previousBillingIntervalCanBeClosedNewEvent previousTimestamp partitionTimestamp with
+        | Close -> meter |> closePreviousMeteringPeriod
+        | KeepOpen -> meter
+
     let handleAggregatorCatchedUp (timeHandlingConfiguration: TimeHandlingConfiguration) (meter: Meter) : Meter =
         match BillingPeriod.previousBillingIntervalCanBeClosedWakeup (timeHandlingConfiguration.CurrentTimeProvider(), timeHandlingConfiguration.GracePeriod) meter.LastProcessedMessage.PartitionTimestamp  with
         | Close -> meter |> closePreviousMeteringPeriod

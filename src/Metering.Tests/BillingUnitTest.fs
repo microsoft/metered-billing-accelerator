@@ -230,27 +230,29 @@ let ``Quantity.Math`` () =
     
 [<Test>]
 let ``MeterCollectionLogic.handleMeteringEvent`` () =
-    let internalResourceId = "saas-guid-1234" |> SaaSSubscriptionID.create |> InternalResourceId.SaaSSubscription
+    let sub1 = "saas-guid-1234" |> SaaSSubscriptionID.create |> InternalResourceId.SaaSSubscription
+    let sub2 = "saas-guid-5678" |> SaaSSubscriptionID.create |> InternalResourceId.SaaSSubscription
     
-    let subCreation = {
-        SubscriptionCreationInformation.Subscription = {
-            Plan = {
-                PlanId = "plan123" |> PlanId.create
-                BillingDimensions = 
-                    Map.empty
-                    |> Map.add ("dimension1" |> DimensionId.create) (1000u |> Quantity.createInt)
-                    |> Map.add ("dimension2" |> DimensionId.create) (Quantity.Infinite)
+    let subCreation subId start = 
+        {
+            SubscriptionCreationInformation.Subscription = {
+                Plan = {
+                    PlanId = "plan123" |> PlanId.create
+                    BillingDimensions = 
+                        Map.empty
+                        |> Map.add ("dimension1" |> DimensionId.create) (1000u |> Quantity.createInt)
+                        |> Map.add ("dimension2" |> DimensionId.create) (Quantity.Infinite)
+                }
+                InternalResourceId = subId
+                RenewalInterval = Monthly
+                SubscriptionStart = start |> MeteringDateTime.fromStr           
             }
-            InternalResourceId = internalResourceId
-            RenewalInterval = Monthly
-            SubscriptionStart =  "2021-11-29T17:00:00Z" |> MeteringDateTime.fromStr           
+            InternalMetersMapping =
+                Map.empty
+                |> Map.add ("d1" |> ApplicationInternalMeterName.create) ("dimension1" |> DimensionId.create)
+                |> Map.add ("freestuff" |> ApplicationInternalMeterName.create) ("dimension2" |> DimensionId.create)
+                |> InternalMetersMapping
         }
-        InternalMetersMapping =
-            Map.empty
-            |> Map.add ("d1" |> ApplicationInternalMeterName.create) ("dimension1" |> DimensionId.create)
-            |> Map.add ("freestuff" |> ApplicationInternalMeterName.create) ("dimension2" |> DimensionId.create)
-            |> InternalMetersMapping
-    }
 
     let time = { 
         CurrentTimeProvider = CurrentTimeProvider.LocalSystem
@@ -266,8 +268,8 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         
     let createSubsc sequenceNr timestamp sub = 
         sub |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent sequenceNr timestamp
-    let createUsage sequenceNr timestamp amount dimension =
-        { InternalUsageEvent.InternalResourceId = internalResourceId
+    let createUsage sub sequenceNr timestamp amount dimension =
+        { InternalUsageEvent.InternalResourceId = sub
           Timestamp = timestamp |> MeteringDateTime.fromStr
           MeterName = dimension |> ApplicationInternalMeterName.create
           Quantity = amount |> Quantity.createInt
@@ -320,7 +322,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         
     let handle a b = MeterCollectionLogic.handleMeteringEvent time b a
     
-    // Have a little lambda which gives us an increasing sequence number
+    // Have a little lambda closure which gives us a continuously increasing sequence number
     let mutable sequenceNumber = 0;
     let sn () =
         sequenceNumber <- sequenceNumber + 1
@@ -328,38 +330,49 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
     MeterCollection.Empty
     // after the subscription creation, all meters should be at their original levels
-    |> handle (createSubsc (sn()) "2021-11-29T17:04:00Z" subCreation)
+    |> handle (createSubsc (sn()) "2021-11-29T17:04:00Z" (subCreation sub1 "2021-11-29T17:00:00Z"))
     |> check (fun m -> Assert.AreEqual(1, m.MeterCollection.Count))
-    |> check (fun m -> Assert.IsTrue(m.MeterCollection |> Map.containsKey internalResourceId))
-    |> check (fun m -> getMeter m internalResourceId "dimension1" |> includes (Quantity.createInt 1000u))
-    |> check (fun m -> getMeter m internalResourceId "dimension2" |> includes (Quantity.Infinite))
+    |> check (fun m -> Assert.IsTrue(m.MeterCollection |> Map.containsKey sub1))
+    |> check (fun m -> getMeter m sub1 "dimension1" |> includes (Quantity.createInt 1000u))
+    |> check (fun m -> getMeter m sub1 "dimension2" |> includes (Quantity.Infinite))
     |> check (fun m ->
         m.MeterCollection
-        |> Map.find internalResourceId
+        |> Map.find sub1
         |> checkSub (fun m ->  Assert.AreEqual(2, m.CurrentMeterValues |> Map.count))
         |> ignore
     )
     // If we consume 999 out of 1000 included, then 1 included should remain
-    |> handle (createUsage (sn()) "2021-11-29T17:04:03Z" 999u "d1")
-    |> check (fun m -> getMeter m internalResourceId "dimension1" |> includes (Quantity.createInt 1u))
+    |> handle (createUsage sub1 (sn()) "2021-11-29T17:04:03Z" 999u "d1")
+    |> check (fun m -> getMeter m sub1  "dimension1" |> includes (Quantity.createInt 1u))
     // If we consume a gazillion from the 'infinite' quantity, it should still be infinite
-    |> handle (createUsage (sn()) "2021-11-29T17:05:01Z" 10000u "freestuff")
-    |> check (fun m -> getMeter m internalResourceId "dimension2" |> includes (Quantity.Infinite))
+    |> handle (createUsage sub1 (sn()) "2021-11-29T17:05:01Z" 10000u "freestuff")
+    |> check (fun m -> getMeter m sub1  "dimension2" |> includes (Quantity.Infinite))
     // If we consume 2 units (from 1 included one), whe should have an overage of 1 for the current hour
-    |> handle (createUsage (sn()) "2021-11-29T18:00:01Z" 2u "d1")
-    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 1u))
+    |> handle (createUsage sub1 (sn()) "2021-11-29T18:00:01Z" 2u "d1")
+    |> check (fun m -> getMeter m sub1  "dimension1" |> overageOf (Quantity.createInt 1u))
     // If we consume units in the next hour, the previous usage should be wrapped for submission
-    |> handle (createUsage (sn()) "2021-11-29T19:00:01Z" 2u "d1")
-    |> ensureUsageReported internalResourceId "dimension1" "2021-11-29T18:00:00Z" 1u
-    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 2u))
-    |> handle (createUsage (sn()) "2021-11-29T19:00:02Z" 2u "d1")
-    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 4u))
-    |> handle (createUsage (sn()) "2021-11-29T19:00:03Z" 1u "d1")
-    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 5u))
-    |> handle (createUsage (sn()) "2021-11-29T20:00:03Z" 1u "d1")
-    |> ensureUsageReported internalResourceId "dimension1" "2021-11-29T18:00:00Z" 1u
-    |> ensureUsageReported internalResourceId "dimension1" "2021-11-29T19:00:00Z" 5u
-    |> check (fun m -> getMeter m internalResourceId "dimension1" |> overageOf (Quantity.createInt 1u))
+    |> handle (createUsage sub1 (sn()) "2021-11-29T19:00:01Z" 2u "d1")
+    |> ensureUsageReported sub1 "dimension1" "2021-11-29T18:00:00Z" 1u
+    |> check (fun m -> getMeter m sub1  "dimension1" |> overageOf (Quantity.createInt 2u))
+    |> handle (createUsage sub1 (sn()) "2021-11-29T19:00:02Z" 2u "d1")
+    |> check (fun m -> getMeter m sub1  "dimension1" |> overageOf (Quantity.createInt 4u))
+    |> handle (createUsage sub1 (sn()) "2021-11-29T19:00:03Z" 1u "d1")
+    |> check (fun m -> getMeter m sub1  "dimension1" |> overageOf (Quantity.createInt 5u))
+    // After having consumed 5 additional quantities between 19:00 -- 19:59, the next event at 20:00 also closes that period.
+    // Given that noone submitted / removed the previous 18:00-18:59 usage report, both are in the system
+    |> handle (createUsage sub1 (sn()) "2021-11-29T20:00:03Z" 1u "d1")
+    |> check (fun m -> getMeter m sub1  "dimension1" |> overageOf (Quantity.createInt 1u))
+    |> ensureUsageReported sub1 "dimension1" "2021-11-29T18:00:00Z" 1u
+    |> ensureUsageReported sub1 "dimension1" "2021-11-29T19:00:00Z" 5u
+    // let's add an additional subscription to the system
+    |> handle (createSubsc (sn()) "2021-11-29T19:04:00Z" (subCreation sub2 "2021-11-29T18:58:00Z"))
+    // Now we should have 2 subsriptions
+    |> check (fun m -> Assert.AreEqual(2, m.MeterCollection.Count))
+    // Submit usage to sub1 and then an hour later to sub2
+    |> handle (createUsage sub1 (sn()) "2021-11-29T21:00:03Z" 1u "d1")
+    |> handle (createUsage sub2 (sn()) "2021-11-29T22:00:03Z" 1u "d1")
+    |> ensureUsageReported sub1 "dimension1" "2021-11-29T20:00:00Z" 1u
+    |> ensureUsageReported sub1 "dimension1" "2021-11-29T21:00:00Z" 1u
     |> Json.toStr(1)
     |> printfn "%s"
 
@@ -482,8 +495,11 @@ let private roundTrip<'T> (filename: string) =
     Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
 
 [<Test>]
-let RoundTripMarketplaceStructures () =
+let ``Json.MarketplaceRequest`` () =
     roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
+
+[<Test>]
+let ``Json.Roundtrips`` () =
     roundTrip<MarketplaceSuccessResponse> "MarketplaceSuccessResponse.json"
     roundTrip<MarketplaceErrorDuplicate> "MarketplaceErrorDuplicate.json"
     roundTrip<MarketplaceGenericError> "MarketplaceGenericError.json"
@@ -501,7 +517,7 @@ let RoundTripMarketplaceStructures () =
 
 
 [<Test>]
-let ParsePlan() =
+let ``Json.ParsePlan`` () =
     let p =
         """
         {
@@ -534,7 +550,7 @@ module E =
         inherit EventData(new BinaryData(eventBody), properties, systemProperties, sequenceNumber, offset, enqueuedTime, partitionKey)
 
 [<Test>]
-let ParseEventData () =
+let ``Avro.ParseEventData`` () =
     let rnd = Random()
     let bytes = Array.create 16 0uy
     rnd.NextBytes(bytes)
