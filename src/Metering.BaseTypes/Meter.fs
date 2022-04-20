@@ -97,10 +97,6 @@ module Meter =
         | Close -> meter |> closePreviousMeteringPeriod
         | KeepOpen -> meter
 
-    let handleAggregatorCatchedUp (timeHandlingConfiguration: TimeHandlingConfiguration) (meter: Meter) : Meter =
-        match BillingPeriod.previousBillingIntervalCanBeClosedWakeup (timeHandlingConfiguration.CurrentTimeProvider(), timeHandlingConfiguration.GracePeriod) meter.LastProcessedMessage.PartitionTimestamp  with
-        | Close -> meter |> closePreviousMeteringPeriod
-        | KeepOpen -> meter
 
     let handleUnsuccessfulMeterSubmission (error: MarketplaceSubmissionError) (messagePosition: MessagePosition) (meter: Meter) : Meter =
         match error with

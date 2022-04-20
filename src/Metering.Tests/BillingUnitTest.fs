@@ -186,21 +186,6 @@ let ``BillingPeriod.previousBillingIntervalCanBeClosedNewEvent``() =
     ] |> runTestVectors test
 
 [<Test>]
-let ``BillingPeriod.previousBillingIntervalCanBeClosedWakeup`` () =
-    let test (idx, (prev, curr, (grace: float), expected)) =
-        let currentTime = curr |> MeteringDateTime.fromStr
-        let gracePeriod = Duration.FromHours(grace)
-
-        let result = prev |> MeteringDateTime.fromStr |> BillingPeriod.previousBillingIntervalCanBeClosedWakeup (currentTime, gracePeriod)
-                
-        Assert.AreEqual(expected, result, sprintf "Failure testc case #%d" idx)
-
-    [
-        ("2021-01-10T12:00:00", "2021-01-10T14:59:59", 3.0, KeepOpen)
-        ("2021-01-10T12:00:00", "2021-01-10T15:00:00", 3.0, Close)
-    ] |> runTestVectors test
-
-[<Test>]
 let ``Quantity.Serialization`` () =
     let test (idx, v) =
         Assert.AreEqual(v, v |> Json.toStr 1 |> Json.fromStr<Quantity>, sprintf "Failure testc case #%d" idx)
@@ -253,10 +238,6 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                 |> Map.add ("freestuff" |> ApplicationInternalMeterName.create) ("dimension2" |> DimensionId.create)
                 |> InternalMetersMapping
         }
-
-    let time = { 
-        CurrentTimeProvider = CurrentTimeProvider.LocalSystem
-        GracePeriod = (Duration.FromMinutes 2.0) }
 
     let createEvent sequenceNr timestamp evnt =
         let partitionId = "2"
@@ -326,7 +307,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         sequenceNumber <- sequenceNumber + 1
         sequenceNumber
 
-    let handle a b = MeterCollectionLogic.handleMeteringEvent time b a
+    let handle a b = MeterCollectionLogic.handleMeteringEvent b a
 
     let newusage sub date quantity dimension =
         handle (createUsage sub (sn()) date quantity dimension)

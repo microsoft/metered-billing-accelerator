@@ -133,7 +133,7 @@ module MeterCollectionLogic =
     let private setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }
 
-    let handleMeteringEvent (timeHandlingConfiguration: TimeHandlingConfiguration) (state: MeterCollection) ({Event = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup}: MeteringEvent) : MeterCollection =
+    let handleMeteringEvent (state: MeterCollection) ({Event = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup}: MeteringEvent) : MeterCollection =
         state
         |> enforceStrictSequenceNumbers messagePosition  // This line throws an exception if we're not being fed the right event #
         |> match meteringUpdateEvent with
@@ -146,10 +146,10 @@ module MeterCollectionLogic =
         |> closePreviousBillingHours messagePosition.PartitionTimestamp
         |> setLastProcessed messagePosition 
 
-    let handleMeteringEvents (timeHandlingConfiguration: TimeHandlingConfiguration) (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
+    let handleMeteringEvents (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
         let state =
             match state with
             | None -> MeterCollection.Empty
             | Some meterCollection -> meterCollection
 
-        meteringEvents |> List.fold (handleMeteringEvent timeHandlingConfiguration) state
+        meteringEvents |> List.fold handleMeteringEvent state
