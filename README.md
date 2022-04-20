@@ -21,7 +21,7 @@
 
 ## Which challenges does it solve for?
 
-ISV developers who want to enable their [managed application](https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing) or SaaS offers to leverage metered billing, and therefore need to submit metered billing data to the "[Azure Marketplace / Metered Billing API](https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis)", have to solve a similar set of challenges. 
+ISV developers who want to enable their [managed application][azure-app-metered-billing] or SaaS offers to leverage metered billing, and therefore need to submit metered billing data to the "[Azure Marketplace / Metered Billing API][marketplace-metering-service-apis]", have to solve a similar set of challenges. 
 
 > *"You must keep track of the usage in your code and only send usage events to Microsoft for the usage that is above the base fee."*
 
@@ -101,11 +101,11 @@ It does not cause harm if the aggregator gets shut-down in the middle of the act
 
 The architectural approach inside the aggregator is like this: The snapshot blob storage container contains all relevant state, up to a certain point in time. "Point in time" refers to a specific message sequence number in an Azure EventHub partition. When the aggregator starts, and get's ownership over one (or more) partitions in EH, it reads the most recent corresponding state (JSON files), and starts to continue sequentially processing all messages in the corresponding EventHub partition. 
 
-The business logic sequentially applies each event to the state, i.e. applying / [folding](https://en.wikipedia.org/wiki/Fold_(higher-order_function)) the events onto the state. The EventHub SDKs `EventProcessorClient`, alongside with the business logic, are wrapped in a Reactive Extension's observable, which then continuously emits new versions of the state.
+The business logic sequentially applies each event to the state, i.e. applying / [folding][folding] the events onto the state. The EventHub SDKs `EventProcessorClient`, alongside with the business logic, are wrapped in a Reactive Extension's observable, which then continuously emits new versions of the state.
 
-#### Business logic
+#### Business logicss
 
-The business logic is completely side-effect-free; it's a "[pure function](https://en.wikipedia.org/wiki/Pure_function)" (in functional-programming terms), and it does not perform any interactions with the outside world. Most notably, when the business logic determines that a certain value is ready to be submitted to the external metering API, it just records a job entry, to indicate that 'someone' is supposed to make that API call. 
+The business logic is completely side-effect-free; it's a "[pure function][pure function]" (in functional-programming terms), and it does not perform any interactions with the outside world. Most notably, when the business logic determines that a certain value is ready to be submitted to the external metering API, it just records a job entry, to indicate that 'someone' is supposed to make that API call. 
 
 Two subsequent functionalities subscribe to the stream of state updates: 
 
@@ -299,7 +299,7 @@ Configure the appropriate endpoints for EventHub and Storage via environment var
   - Set `AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER`, where the solution stores the aggregator state. **This is the long-term database of the system!!!**
   - Set `AZURE_METERING_INFRA_CAPTURE_CONTAINER` for the ability to read through EventHub capture.
   - Set `AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT` to the proper format of the blobs in the capture container, something like `{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}`, namely the value from the EventHub'r ARM configuration, `archiveDescription.destination.properties.archiveNameFormat`. 
-    Check the [documentation](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-resource-manager-namespace-event-hub-enable-capture#capturenameformat) for details
+    Check the [documentation][eventhub-capture-format] for details
 
 ### Local dev setup
 
@@ -378,9 +378,25 @@ You can see an included (monthly) quantity of 1000. This is reflected in the out
 - Once you (s)ubmit a usage of 1000 units (by typing `s foo 900`), the `Remaining 901` become `Remaining 1`
 - The last consumption of 13 units fully depletes the remaining 1 credits, and brings you into the overage, i.e. the included quantity of `Remaining 1` becomes `12 consumed`
 
+## Supported deployment models
+
+The metering accelerator is planned for three distinct deployment models:
+
+1. Self-managed "Managed App"
+2. Managed App with Central Aggregation
+3. Software as a Service (SaaS)
+
+> NOTE: Currently, the "Managed App with Central Aggregation is still in the design phase".
+
+![2022-04-04--metering-models](images/2022-04-04--metering-models.svg)
+
+### Self-managed "managed application"
+
+A [managed application][azure-app-metered-billing] 
+
 ## Assembly overview
 
-This gives an overview about the DLL depentencies
+This gives an overview about the DLL dependencies
 
 ```mermaid
 graph TD
@@ -444,8 +460,17 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow 
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
+
+[azure-app-metered-billing]: https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing "Metered billing for managed applications using the marketplace metering service"
+
+[marketplace-metering-service-apis]: https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis "Marketplace metered billing APIs"
+
+[eventhub-capture-format]: https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-resource-manager-namespace-event-hub-enable-capture#capturenameformat "EventHubs Capture Format "
+
+[pure function]: https://en.wikipedia.org/wiki/Pure_function "Pure Function"
+
+[folding]: https://en.wikipedia.org/wiki/Fold_(higher-order_function) "Fold (higher-order function) on Wikipedia"
