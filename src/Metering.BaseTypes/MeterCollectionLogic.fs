@@ -123,12 +123,10 @@ module MeterCollectionLogic =
         |> applyMeters (Map.change (submission.Result |> MarketplaceSubmissionResult.resourceId) (Option.bind ((Meter.handleUsageSubmissionToAPI submission messagePosition) >> Some)))
 
     /// Iterate over all current meters, and check if one of the overages can be converted into a metering API event.
-    let private closePreviousBillingHours (now: MeteringDateTime) (state: MeterCollection) : MeterCollection =
-        let updatedMeters =
-            state.MeterCollection
-            |> Map.map (fun _ meter -> Meter.closePreviousHourIfNeeded now meter)
-
-        { state with MeterCollection = updatedMeters }
+    let handleMeteringTimestamp now state =
+        state.MeterCollection
+        |> Map.map (fun _ meter -> Meter.closePreviousHourIfNeeded now meter)
+        |> (fun updatedMeters -> { state with MeterCollection = updatedMeters })
 
     let private setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }
@@ -143,13 +141,14 @@ module MeterCollectionLogic =
            | UsageReported internalUsageEvent -> addUsage internalUsageEvent messagePosition
            | UnprocessableMessage upm -> addUnprocessableMessage (UnprocessableMessage upm) messagePosition
            | RemoveUnprocessedMessages rupm -> removeUnprocessedMessages rupm
-        |> closePreviousBillingHours messagePosition.PartitionTimestamp
+        |> handleMeteringTimestamp messagePosition.PartitionTimestamp
         |> setLastProcessed messagePosition 
 
-    let handleMeteringEvents (state: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
-        let state =
-            match state with
+    let handleMeteringEvents (meterCollection: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
+        let meterCollection =
+            match meterCollection with
             | None -> MeterCollection.Empty
             | Some meterCollection -> meterCollection
 
-        meteringEvents |> List.fold handleMeteringEvent state
+        meteringEvents
+        |> List.fold  handleMeteringEvent meterCollection

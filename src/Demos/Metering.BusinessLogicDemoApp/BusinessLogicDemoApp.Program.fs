@@ -105,45 +105,78 @@ let demoAggregation (config: MeteringConfigurationProvider) =
         )
 
     // 11111111-8a88-4a47-a691-1b31c289fb33 is a sample GUID of a SaaS subscription
-    let sub1 =
-        """{
-     "subscription": {
-       "renewalInterval": "Monthly",
-       "subscriptionStart": "2021-10-01T12:20:33",
-       "scope": "11111111-8a88-4a47-a691-1b31c289fb33",
-       "plan": { "planId": "plan2", "billingDimensions": { "MachineLearningJob": "10", "EMailCampaign":"250000" }
-     } },
-     "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
-    }""" |> parseSub 1
+    let sub1 = 
+        """
+{
+	"subscription": {
+		"renewalInterval": "Monthly",
+		"subscriptionStart": "2021-10-01T12:20:33",
+		"scope": "11111111-8a88-4a47-a691-1b31c289fb33",
+		"plan": {
+			"planId": "plan2",
+			"billingDimensions": {
+				"MachineLearningJob": "10",
+				"EMailCampaign": "250000"
+			}
+		}
+	},
+	"metersMapping": {
+		"email": "EMailCampaign",
+		"ml": "MachineLearningJob"
+	}
+}
+        """ |> parseSub 1
 
     let sub2 =
-        """{
-     "subscription": {
-       "renewalInterval": "Monthly",
-       "subscriptionStart": "2021-10-13T09:20:33",
-       "scope": "22222222-8a88-4a47-a691-1b31c289fb33",
-       "plan": {"planId": "plan2","billingDimensions": { "MachineLearningJob": "10", "EMailCampaign":  "250000" }
-     }},
-     "metersMapping": { "email": "EMailCampaign", "ml": "MachineLearningJob" }
-    }""" |> parseSub 2
+        """
+{
+	"subscription": {
+		"renewalInterval": "Monthly",
+		"subscriptionStart": "2021-10-13T09:20:33",
+		"scope": "22222222-8a88-4a47-a691-1b31c289fb33",
+		"plan": {
+			"planId": "plan2",
+			"billingDimensions": {
+				"MachineLearningJob": "10",
+				"EMailCampaign": "250000"
+			}
+		}
+	},
+	"metersMapping": {
+		"email": "EMailCampaign",
+		"ml": "MachineLearningJob"
+	}
+}
+        """ |> parseSub 2
 
 
     let sub3 =
-        """{
-     "subscription": {
-           "renewalInterval": "Monthly",
-           "subscriptionStart": "2021-11-04T16:12:26",
-           "scope": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
-           "plan": {
-             "planId": "free_monthly_yearly",
-             "billingDimensions": {
-               "nodecharge": "1000",
-               "cpucharge": "1000",
-               "datasourcecharge": "1000",
-               "messagecharge":    "1000",
-               "objectcharge":    "1000" } } },
-     "metersMapping": { "nde": "nodecharge", "cpu": "cpucharge", "dta": "datasourcecharge", "msg": "messagecharge", "obj": "objectcharge"}
-    }""" |> parseSub 3
+        """
+{
+	"subscription": {
+		"renewalInterval": "Monthly",
+		"subscriptionStart": "2021-11-04T16:12:26",
+		"scope": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+		"plan": {
+			"planId": "free_monthly_yearly",
+			"billingDimensions": {
+				"nodecharge": "1000",
+				"cpucharge": "1000",
+				"datasourcecharge": "1000",
+				"messagecharge": 1000,
+				"objectcharge": "1000"
+			}
+		}
+	},
+	"metersMapping": {
+		"nde": "nodecharge",
+		"cpu": "cpucharge",
+		"dta": "datasourcecharge",
+		"msg": "messagecharge",
+		"obj": "objectcharge"
+	}
+}        
+        """ |> parseSub 3
 
 
     // 11111111-8a88-4a47-a691-1b31c289fb33 2021-10-01T12:20:34
