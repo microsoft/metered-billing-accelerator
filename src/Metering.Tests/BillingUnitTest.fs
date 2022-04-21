@@ -6,7 +6,6 @@ module Metering.NUnitTests.Billing
 open System
 open System.IO
 open NUnit.Framework
-open NodaTime
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.EventHub
@@ -215,8 +214,8 @@ let ``Quantity.Math`` () =
     
 [<Test>]
 let ``MeterCollectionLogic.handleMeteringEvent`` () =
-    let sub1 = "saas-guid-1234" |> SaaSSubscriptionID.create |> InternalResourceId.SaaSSubscription
-    let sub2 = "saas-guid-5678" |> SaaSSubscriptionID.create |> InternalResourceId.SaaSSubscription
+    let sub1 = "saas-guid-1234" |> InternalResourceId.fromStr
+    let sub2 = "saas-guid-5678" |> InternalResourceId.fromStr
     
     let subCreation subId start = 
         {
@@ -516,26 +515,43 @@ let private roundTrip<'T> (filename: string) =
     Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
 
 [<Test>]
-let ``Json.MarketplaceRequest`` () =
-    roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
+let ``Json.MarketplaceRequest`` () = roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
 
 [<Test>]
-let ``Json.Roundtrips`` () =
-    roundTrip<MarketplaceSuccessResponse> "MarketplaceSuccessResponse.json"
-    roundTrip<MarketplaceErrorDuplicate> "MarketplaceErrorDuplicate.json"
-    roundTrip<MarketplaceGenericError> "MarketplaceGenericError.json"
-    roundTrip<MarketplaceSubmissionError> "MarketplaceErrorDuplicate.json"
-    roundTrip<MarketplaceSubmissionError> "MarketplaceGenericError.json"
-    roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
-    roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
-    roundTrip<Plan> "plan.json"
-    roundTrip<MeterCollection> "state.json"
+let ``Json.MarketplaceSuccessResponseMarketplaceSuccessResponse`` () = roundTrip<MarketplaceSuccessResponse> "MarketplaceSuccessResponse.json"
 
-    [ "MarketplaceSuccessResponse.json"
-      "MarketplaceErrorDuplicate.json"
-      "MarketplaceGenericError.json" ]
-    |> List.iter roundTrip<MarketplaceSubmissionResult>
+[<Test>]
+let ``Json.MarketplaceSubmissionResultMarketplaceSuccessResponse`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceSuccessResponse.json"
 
+[<Test>]
+let ``Json.MarketplaceErrorDuplicateMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceErrorDuplicate> "MarketplaceErrorDuplicate.json"
+
+[<Test>]
+let ``Json.MarketplaceGenericErrorMarketplaceGenericError`` () = roundTrip<MarketplaceGenericError> "MarketplaceGenericError.json"
+
+[<Test>]
+let ``Json.MarketplaceSubmissionErrorMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceSubmissionError> "MarketplaceErrorDuplicate.json"
+
+[<Test>]
+let ``Json.MarketplaceSubmissionResultMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceErrorDuplicate.json"
+
+[<Test>]
+let ``Json.MarketplaceSubmissionErrorMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionError> "MarketplaceGenericError.json"
+
+[<Test>]
+let ``Json.MarketplaceSubmissionResultMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceGenericError.json"
+
+[<Test>]
+let ``Json.MarketplaceBatchRequest`` () = roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
+
+[<Test>]
+let ``Json.MarketplaceBatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
+
+[<Test>]
+let ``Json.plan`` () = roundTrip<Plan> "plan.json"
+
+[<Test>]
+let ``Json.state`` () = roundTrip<MeterCollection> "state.json"
 
 [<Test>]
 let ``Json.ParsePlan`` () =

@@ -3,7 +3,6 @@
 
 open System.Threading
 open System.IO
-open NodaTime
 //open Azure.Messaging.EventHubs.Consumer
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
