@@ -4,14 +4,21 @@
 namespace Metering.BaseTypes
 
 type Subscription = 
-    { Plan: Plan
+    { /// The details of the plan
+      Plan: Plan
+
+      /// The SaaS subscription ID or managed app ID.
       InternalResourceId: InternalResourceId
+
+      /// Whether this is an annual or a monthly plan.
       RenewalInterval: RenewalInterval 
-      SubscriptionStart: MeteringDateTime } // When a certain plan was purchased
+      
+      /// When a certain plan was purchased
+      SubscriptionStart: MeteringDateTime }
 
 module Subscription =
-    let create plan internalResourceId pri subscriptionStart =
+    let create plan internalResourceId renewalInterval subscriptionStart =
         { Plan = plan
           InternalResourceId = internalResourceId
-          RenewalInterval = pri
+          RenewalInterval = renewalInterval
           SubscriptionStart = subscriptionStart }

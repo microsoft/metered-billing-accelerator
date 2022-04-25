@@ -22,9 +22,6 @@ type MeteringUpdateEvent =
     /// Clean up state
     | RemoveUnprocessedMessages of RemoveUnprocessedMessages
 
-type LocalControlEvent =
-    /// A heart beat signal to potentially flush billing periods
-    | PartitionEventConsumptionCatchedUp
 
 module MeteringUpdateEvent =
     let partitionKey (mue: MeteringUpdateEvent) : string =

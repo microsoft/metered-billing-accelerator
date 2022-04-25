@@ -15,4 +15,3 @@ module CurrentMeterValues =
                 (k |> DimensionId.value)
                 (v |> MeterValue.toStr)
         )
-

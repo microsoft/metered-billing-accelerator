@@ -16,7 +16,7 @@ type SomeMeterCollection = MeterCollection option
  
 [<Extension>]
 module MeterCollection =
-    let value (x : MeterCollection) = x.MeterCollection
+    let value (x: MeterCollection) = x.MeterCollection
     
     let Uninitialized : (MeterCollection option) = None
     let Empty =

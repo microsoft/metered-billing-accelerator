@@ -18,7 +18,6 @@
   <ItemGroup>
     <Compile Include="Quantity.fs" />
     <Compile Include="ConsumedQuantity.fs" />
-    <Compile Include="IncludedQuantitySpecification.fs" />
     <Compile Include="IncludedQuantity.fs" />
     <Compile Include="RenewalInterval.fs" />
     <Compile Include="ResourceID.fs" />
