@@ -13,7 +13,7 @@ This document describes strategies on how we can implement support for migration
 
 For example, in a 'small' deployment, an ISV might start off with an EventHubs instance with 5 partitions, and might want to scale up partition count to a larger number.
 
-![2 aggregator instances running on the same EventHub](2022-04-25--15-31-00-scaling-16508998131572.svg)
+![2 aggregator instances running on the same EventHub](../images/2022-04-25--15-31-00-scaling.svg)
 
 Even though EventHubs [supports scaling-up the number of partitions in an event hub](https://docs.microsoft.com/en-us/azure/event-hubs/dynamically-add-partitions), this is not applicable to this solution, given that a changed partition number changes the hashing scheme, and events for a certain metering subscription might end up in a different partition in the existing event hub.
 
