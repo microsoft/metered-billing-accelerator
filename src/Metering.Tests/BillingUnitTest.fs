@@ -394,7 +394,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     // Given that noone submitted / removed the previous 18:00-18:59 usage report, both are in the system
     |> newusage            sub1 "2021-11-29T20:00:03Z" 1u "d1"
     |> ensureSequenceNumberHasBeenApplied 
-    |> inspectJson "What the f"
+    // |> inspectJson "What the f"
     |> assertOverage       sub1 "dimension1" 1u
     |> assertUsageReported sub1 "dimension1" "2021-11-29T18:00:00Z" 1u
     |> assertUsageReported sub1 "dimension1" "2021-11-29T19:00:00Z" 5u
@@ -410,8 +410,9 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> assertUsageReported sub1 "dimension1" "2021-11-29T20:00:00Z" 1u
     |> assertUsageReported sub1 "dimension1" "2021-11-29T21:00:00Z" 1u
     |> assertOverallUsageToBeReported sub1 "dimension1" 8u
-    |> Json.toStr(1)
-    |> printfn "%s"
+    //|> Json.toStr(1)
+    //|> printfn "%s"
+    |> ignore
 
 
 //[<Test>]
