@@ -4,11 +4,14 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NodaTime" Version="3.0.9" />
+    <PackageReference Include="NodaTime" Version="3.1.0" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="FSharpFuncUtil.fs" />
     <Compile Include="MeteringDateTime.fs" />
     <Compile Include="EventHubAbstractions.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
 </Project>
