@@ -316,9 +316,9 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         mc
     
     // Have a little lambda closure which gives us a continuously increasing sequence number
-    let mutable sequenceNumber = 0;
+    let mutable sequenceNumber = 0L;
     let sn () =
-        sequenceNumber <- sequenceNumber + 1
+        sequenceNumber <- sequenceNumber + 1L
         sequenceNumber
 
     let handle a b = MeterCollectionLogic.handleMeteringEvent b a
@@ -330,6 +330,14 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         check (fun m -> getMeter m sub dimension |> includes quantity)
     let assertOverage sub dimension quantity =
         check (fun m -> getMeter m sub dimension |> overageOf (Quantity.createInt quantity))
+
+    let ensureSequenceNumberHasBeenApplied =
+        check (fun m -> 
+            match m.LastUpdate with
+            | None -> Assert.Fail "missing LastUpdate"
+            | Some u -> Assert.AreEqual(sequenceNumber, u.SequenceNumber)
+        )
+
 
     let inspectJson (header: string) (a: 'a) : 'a =
         let json = a |> Json.toStr 1
@@ -344,6 +352,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     MeterCollection.Empty
     // after the subscription creation ...
     |> handle (createSubsc (sn()) "2021-11-29T17:04:00Z" (subCreation sub1 "2021-11-29T17:00:00Z"))
+    |> ensureSequenceNumberHasBeenApplied 
     // ... all meters should be at their original levels
     |> check (fun m -> Assert.AreEqual(1, m.MeterCollection.Count))
     |> check (fun m -> Assert.IsTrue(m.MeterCollection |> Map.containsKey sub1))
@@ -359,32 +368,40 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> assertOverallUsageToBeReported sub1 "dimension1" 0u
     // If we consume 999 out of 1000 included, then 1 included should remain
     |> newusage            sub1 "2021-11-29T17:04:03Z" 999u "d1"
+    |> ensureSequenceNumberHasBeenApplied 
     |> assertIncluded      sub1 "dimension1" (Quantity.createInt 1u)
     // If we consume a gazillion from the 'infinite' quantity, it should still be infinite
     |> newusage            sub1 "2021-11-29T17:05:01Z" 10000u "freestuff"
+    |> ensureSequenceNumberHasBeenApplied 
     |> assertIncluded      sub1 "dimension2" Quantity.Infinite
     // If we consume 2 units (from 1 included one), whe should have an overage of 1 for the current hour
     |> newusage            sub1 "2021-11-29T18:00:01Z" 2u "d1"
+    |> ensureSequenceNumberHasBeenApplied 
     |> assertOverage       sub1 "dimension1" 1u
     // If we consume units in the next hour, the previous usage should be wrapped for submission
     |> newusage            sub1 "2021-11-29T19:00:01Z" 2u "d1"
+    |> ensureSequenceNumberHasBeenApplied 
     |> assertUsageReported sub1 "dimension1" "2021-11-29T18:00:00Z" 1u
     |> assertOverallUsageToBeReported sub1 "dimension1" 1u
     |> assertOverage       sub1 "dimension1" 2u
     |> newusage            sub1 "2021-11-29T19:00:02Z" 2u "d1"
+    |> ensureSequenceNumberHasBeenApplied 
     |> assertOverage       sub1 "dimension1" 4u
     |> newusage            sub1 "2021-11-29T19:00:03Z" 1u "d1"
+    |> ensureSequenceNumberHasBeenApplied 
     |> assertOverage       sub1 "dimension1" 5u
     // After having consumed 5 additional quantities between 19:00 -- 19:59, the next event at 20:00 also closes that period.
     // Given that noone submitted / removed the previous 18:00-18:59 usage report, both are in the system
     |> newusage            sub1 "2021-11-29T20:00:03Z" 1u "d1"
-    |> inspectJson "What the f"
+    |> ensureSequenceNumberHasBeenApplied 
+    // |> inspectJson "What the f"
     |> assertOverage       sub1 "dimension1" 1u
     |> assertUsageReported sub1 "dimension1" "2021-11-29T18:00:00Z" 1u
     |> assertUsageReported sub1 "dimension1" "2021-11-29T19:00:00Z" 5u
     |> assertOverallUsageToBeReported sub1 "dimension1" 6u
     // let's add an additional subscription to the system
     |> handle (createSubsc (sn()) "2021-11-29T19:04:00Z" (subCreation sub2 "2021-11-29T18:58:00Z"))
+    |> ensureSequenceNumberHasBeenApplied 
     // Now we should have 2 subsriptions
     |> check (fun m -> Assert.AreEqual(2, m.MeterCollection.Count))
     // Submit usage to sub1 and then an hour later to sub2
@@ -393,8 +410,9 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> assertUsageReported sub1 "dimension1" "2021-11-29T20:00:00Z" 1u
     |> assertUsageReported sub1 "dimension1" "2021-11-29T21:00:00Z" 1u
     |> assertOverallUsageToBeReported sub1 "dimension1" 8u
-    |> Json.toStr(1)
-    |> printfn "%s"
+    //|> Json.toStr(1)
+    //|> printfn "%s"
+    |> ignore
 
 
 //[<Test>]
