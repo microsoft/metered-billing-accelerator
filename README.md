@@ -1,5 +1,7 @@
 # `README.md`: The metering-billing-accelerator
 
+[![.NET](actions/workflows/dotnet.yml/badge.svg?branch=main)]actions/workflows/dotnet.yml)
+
 ## tl;dr
 
 > This component takes care of the accounting necessary for correctly reporting custom metering information to the Azure Marketplace Metering API. 
