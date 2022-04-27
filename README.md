@@ -6,6 +6,42 @@
 
 > This component takes care of the accounting necessary for correctly reporting custom metering information to the Azure Marketplace Metering API. 
 
+## Table of contents
+
+- [Design goals](#design-goals)
+- [Which challenges does it solve for?](#which-challenges-does-it-solve-for-)
+  * [Tracking *included* usage and *overage* usage](#tracking--included--usage-and--overage--usage)
+  * [Replenishment at the right point in time](#replenishment-at-the-right-point-in-time)
+  * [Showing the customer what's left for the current billing cycle](#showing-the-customer-what-s-left-for-the-current-billing-cycle)
+  * [Azure Metering API requirements](#azure-metering-api-requirements)
+    + [Hourly aggregation](#hourly-aggregation)
+    + [Write-once / First write wins / No updates](#write-once---first-write-wins---no-updates)
+    + [Batching](#batching)
+- [Architecture](#architecture)
+  * [Recording usage](#recording-usage)
+  * [Aggregating usage](#aggregating-usage)
+    + [Business logic](#business-logic)
+    + [Submission to Marketplace API](#submission-to-marketplace-api)
+- [Data structures](#data-structures)
+  * [Client messages](#client-messages)
+    + [The `SubscriptionPurchased` event](#the--subscriptionpurchased--event)
+    + [The `UsageReported` message](#the--usagereported--message)
+  * [State file (for a single partition)](#state-file--for-a-single-partition-)
+- [Configuration via environment variables](#configuration-via-environment-variables)
+  * [Azure Marketplace API credential (to submit metering values to Azure)](#azure-marketplace-api-credential--to-submit-metering-values-to-azure-)
+  * [Infrastructure Credentials](#infrastructure-credentials)
+  * [Endpoints](#endpoints)
+  * [Local dev setup](#local-dev-setup)
+- [Demo time - How to run / try it yourself](#demo-time---how-to-run---try-it-yourself)
+  
+- [Assembly overview](#assembly-overview)
+- [Missing features](#missing-features)
+- [Monitoring Recommendataion](./docs/AzureFunction-Monitoring.md)
+- [Enterprise Deployment Recommendation](./docs/Enterprise-Reference-Architecture-Single-region.md)
+- [Privacy and Telemetry Notice](#privacy-and-telemetry-notice)
+- [Wild ideas](#wild-ideas)
+- [Contributing](#contributing)
+
 ## Design goals
 
 - Allow the application developer to submit all relevant usage events via a light-weight SDK, and not worry about the intricacies of Azure Marketplace Metering.
@@ -141,8 +177,6 @@ The `value/subscription/plan` element provides the Azure Marketplace plan's fina
 This customer purchased a plan called `free_monthly_yearly` in the partner portal, which lists 5 marketplace metering service dimensions, called `nodecharge`, `cpucharge`, `datasourcecharge`, `messagecharge` and `objectcharge`. Each of these has a 'monthly quantity included in base price' of 1000 units, and an 'annual quantity included' of 10000 units. 
 
 ![2022-01-27--17-29-47](images/partnerportalmeters.png)
-
-
 
 In addition, it contains a `metersMapping` table, which translates the application's internal name for a consumption event, such as `'cpu'`, into the dimension name which is officially configured in Azure marketplace, such as `'cpucharge'`.  
 
