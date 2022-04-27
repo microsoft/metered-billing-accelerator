@@ -1,8 +1,12 @@
 # `README.md`: The metering-billing-accelerator
+
+[![.NET Build](https://github.com/microsoft/metered-billing-accelerator/actions/workflows/dotnet.yml/badge.svg)](https://github.com/microsoft/metered-billing-accelerator/actions/workflows/dotnet.yml)
+
 ## tl;dr
 
 > This component takes care of the accounting necessary for correctly reporting custom metering information to the Azure Marketplace Metering API. 
 
+## Table of contents
 
 - [Design goals](#design-goals)
 - [Which challenges does it solve for?](#which-challenges-does-it-solve-for-)
@@ -37,7 +41,6 @@
 - [Privacy and Telemetry Notice](#privacy-and-telemetry-notice)
 - [Wild ideas](#wild-ideas)
 - [Contributing](#contributing)
--
 
 ## Design goals
 
@@ -174,8 +177,6 @@ The `value/subscription/plan` element provides the Azure Marketplace plan's fina
 This customer purchased a plan called `free_monthly_yearly` in the partner portal, which lists 5 marketplace metering service dimensions, called `nodecharge`, `cpucharge`, `datasourcecharge`, `messagecharge` and `objectcharge`. Each of these has a 'monthly quantity included in base price' of 1000 units, and an 'annual quantity included' of 10000 units. 
 
 ![2022-01-27--17-29-47](images/partnerportalmeters.png)
-
-
 
 In addition, it contains a `metersMapping` table, which translates the application's internal name for a consumption event, such as `'cpu'`, into the dimension name which is officially configured in Azure marketplace, such as `'cpucharge'`.  
 
