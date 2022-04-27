@@ -17,7 +17,7 @@ open Azure.Messaging.EventHubs.Consumer
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 
-module EventHubObservableClient =
+module EventHubObservableClientFSharpNoLongerInUse =
     type internal EventHubCaptureConf =
         | CanReadEverythingFromEventHub of EventPosition
         | ReadFromEventHubCaptureAndThenEventHub of LastProcessedSequenceNumber:SequenceNumber * LastProcessedEventTimestamp:MeteringDateTime

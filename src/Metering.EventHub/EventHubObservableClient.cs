@@ -25,7 +25,7 @@ internal record CanReadEverythingFromEventHub (EventPosition EventPosition) : Ev
 internal record ReadFromEventHubCaptureAndThenEventHub (SequenceNumber LastProcessedSequenceNumber, MeteringDateTime LastProcessedEventTimestamp) : EventHubCaptureConf;
 internal record ReadFromEventHubCaptureBeginningAndThenEventHub() : EventHubCaptureConf;
 
-public static class EventHubObservableClientCSharp
+public static class EventHubObservableClient
 {
     private static IObservable<EventHubProcessorEvent<TState, TEvent>> CreateInternal<TState, TEvent>(
         ILogger logger,
@@ -48,12 +48,15 @@ public static class EventHubObservableClientCSharp
 
         IDisposable csharpFunction(IObserver<EventHubProcessorEvent<TState, TEvent>> o)
         {
+            logger.LogInformation($"csharpFunction called");
+
             var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var innerCancellationToken = cts.Token;
             registerCancellationMessage(innerCancellationToken, "innerCancellationToken is Cancelled");
 
             Task ProcessEvent(ProcessEventArgs processEventArgs)
             {
+                logger.LogInformation($"ProcessEvent called: {processEventArgs.Partition.PartitionId}");
                 try
                 {
                     FSharpOption<EventHubEvent<TEvent>> x = createEventHubEventFromEventData(eventDataToEvent, processEventArgs);
@@ -77,6 +80,7 @@ public static class EventHubObservableClientCSharp
 
             Task ProcessError(ProcessErrorEventArgs processErrorEventArgs)
             {
+                logger.LogError($"ProcessError");
                 try
                 {
                     o.OnError(processErrorEventArgs.Exception);
@@ -117,6 +121,7 @@ public static class EventHubObservableClientCSharp
 
             async Task PartitionInitializing(PartitionInitializingEventArgs partitionInitializingEventArgs)
             {
+                logger.LogInformation($"PartitionInitializing: {partitionInitializingEventArgs.PartitionId}");
                 var partitionIdStr = partitionInitializingEventArgs.PartitionId;
 
                 TState initialState = await determineInitialState(partitionInitializingEventArgs, innerCancellationToken);
@@ -253,6 +258,7 @@ public static class EventHubObservableClientCSharp
 
             async Task createTask()
             {
+                logger.LogInformation($"createTask called");
                 var processor = newEventProcessorClient();
                 try
                 {
@@ -264,6 +270,7 @@ public static class EventHubObservableClientCSharp
                     try
                     {
                         await processor.StartProcessingAsync(cancellationToken);
+                        logger.LogInformation($"createTask / processor.StartProcessingAsync called");
                         await Task.Delay(Timeout.Infinite, cancellationToken);
                         o.OnCompleted();
                         await processor.StopProcessingAsync(cancellationToken);
@@ -284,6 +291,8 @@ public static class EventHubObservableClientCSharp
 
             return new CancellationDisposable(cts);
         }
+
+        logger.LogInformation($"Now returning the observable...");
 
         return Observable.Create<EventHubProcessorEvent<TState, TEvent>>(csharpFunction);   
     }
