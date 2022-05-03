@@ -10,16 +10,14 @@ type Meter =
       InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
       CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
       UsageToBeReported: MarketplaceRequest list // a list of usage elements which haven't yet been reported to the metering API
-      LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter
-
-    member this.setCurrentMeterValues x = { this with CurrentMeterValues = x }
+      LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter    
         
 module Meter =
-    
-    let applyToCurrentMeterValue f s = { s with CurrentMeterValues = (f s.CurrentMeterValues) }
-    let setLastProcessedMessage x s = { s with LastProcessedMessage = x }
-    let addUsageToBeReported x s = { s with UsageToBeReported = (x :: s.UsageToBeReported) }
-    let addUsagesToBeReported x s = { s with UsageToBeReported = List.concat [ x; s.UsageToBeReported ] }
+    let setCurrentMeterValues x this = { this with CurrentMeterValues = x }
+    let applyToCurrentMeterValue f this = { this with CurrentMeterValues = (f this.CurrentMeterValues) }
+    let setLastProcessedMessage x this = { this with LastProcessedMessage = x }
+    let addUsageToBeReported x this = { this with UsageToBeReported = (x :: this.UsageToBeReported) }
+    let addUsagesToBeReported x this = { this with UsageToBeReported = List.concat [ x; this.UsageToBeReported ] }
     
     /// Removes the item from the UsageToBeReported collection
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
@@ -50,7 +48,7 @@ module Meter =
             |> List.ofSeq
 
         state
-        |> (fun f -> f.setCurrentMeterValues (includedValuesWhichDontNeedToBeReported |> CurrentMeterValues.create))
+        |> setCurrentMeterValues (includedValuesWhichDontNeedToBeReported |> CurrentMeterValues.create)
         |> addUsagesToBeReported usagesToBeReported
     
     let updateConsumption (quantity: Quantity) (timestamp: MeteringDateTime) (someDimension: DimensionId option) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
@@ -131,7 +129,7 @@ module Meter =
         
     let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
         let currentMeters = meter.Subscription.Plan.BillingDimensions.currentMeterValues time 
-        meter.setCurrentMeterValues currentMeters
+        setCurrentMeterValues currentMeters meter
 
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : Meter =
         // When we receive the creation of a subscription
