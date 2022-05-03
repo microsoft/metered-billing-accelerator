@@ -39,6 +39,12 @@ type Quantity =
             | (Infinite, Infinite) -> true
             | (_, _) -> false
 
+    override this.ToString() =
+        match this with
+        | MeteringInt i -> i.ToString()
+        | MeteringFloat f -> f.ToString()
+        | Infinite -> "Infinite"
+
     override this.Equals obj =
         match obj with
           | :? Quantity as other -> (this :> IEquatable<_>).Equals other

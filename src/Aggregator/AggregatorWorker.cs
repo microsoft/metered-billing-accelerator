@@ -90,7 +90,7 @@ public class AggregatorWorker : BackgroundService
         var props = await config.MeteringConnections.createEventHubConsumerClient().GetEventHubPropertiesAsync(stoppingToken);
         var partitions = new string[props.PartitionIds.Length];
         Array.Fill(partitions, "_");
-        string currentPartitions() => string.Join("", partitions);
+        string currentPartitions() => string.Join("-", partitions);
 
         var groupedSub = EventHubObservableClient
             .Create<SomeMeterCollection, MeteringUpdateEvent>(

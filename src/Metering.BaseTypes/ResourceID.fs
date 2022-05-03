@@ -21,6 +21,13 @@ type ManagedApp =
 type InternalResourceId =    
     | ManagedApplication of ManagedApp
     | SaaSSubscription of SaaSSubscriptionID
+    override this.ToString() =
+        match this with
+        | SaaSSubscription saasId -> saasId |> SaaSSubscriptionID.value
+        | ManagedApplication mid -> 
+            match mid with 
+            | ManagedAppResourceGroupID rgid -> rgid
+            | ManagedAppIdentity -> "AzureManagedApplication"
 
 module InternalResourceId =
     // This marker is used to refer to a managed app, when there was not yet a lookup for the concrete ARM resource ID
