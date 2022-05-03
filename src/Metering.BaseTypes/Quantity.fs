@@ -12,38 +12,13 @@ type Quantity =
     | MeteringInt of uint
     | MeteringFloat of float
 
-    interface IComparable<Quantity> with
-        member this.CompareTo other : int =
-            match (this, other) with
-            | ((MeteringInt t), (MeteringInt o)) -> t.CompareTo(o)
-            | ((MeteringInt t), (MeteringFloat o)) -> (float t).CompareTo(o)
-            | ((MeteringFloat t), (MeteringInt o)) -> t.CompareTo(float o)
-            | ((MeteringFloat t), (MeteringFloat o)) -> t.CompareTo(o)
-            | (Infinite, _) -> 1
-            | (_, Infinite) -> -1
-
-    interface IComparable with
-        member this.CompareTo obj =
-            match obj with
-              | null                 -> 1
-              | :? Quantity as other -> (this :> IComparable<_>).CompareTo other
-              | _                    -> invalidArg "obj" $"not a {nameof(Quantity)}"
-        
-    interface IEquatable<Quantity> with
-        member this.Equals other =
-            match (this, other) with
-            | ((MeteringInt t), (MeteringInt o)) -> t = o
-            | ((MeteringInt t), (MeteringFloat o)) -> (float t).Equals(o)
-            | ((MeteringFloat t), (MeteringInt o)) -> t.Equals(float o)
-            | ((MeteringFloat t), (MeteringFloat o)) -> t = o
-            | (Infinite, Infinite) -> true
-            | (_, _) -> false
+    static member private infiniteMarker = "Infinite"
 
     override this.ToString() =
         match this with
         | MeteringInt i -> i.ToString()
         | MeteringFloat f -> f.ToString()
-        | Infinite -> "Infinite"
+        | Infinite -> Quantity.infiniteMarker
 
     override this.Equals obj =
         match obj with
@@ -74,20 +49,20 @@ type Quantity =
         | MeteringFloat f -> f >= 0.0
         | Infinite -> false
 
-    static member fromString (s: string) =
-        if s = "Infinite"
-        then Infinite
-        else 
-            if s.Contains(".")
-            then s |> Double.Parse |> MeteringFloat
-            else s |> UInt32.Parse |> MeteringInt
-    
     static member Zero
         with get() = (MeteringInt 0u)
 
     static member None 
         with get() : (Quantity option) = None
 
+    static member fromString (s: string) =
+        if s = Quantity.infiniteMarker
+        then Infinite
+        else 
+            if s.Contains(".")
+            then s |> Double.Parse |> MeteringFloat
+            else s |> UInt32.Parse |> MeteringInt
+    
     static member create (i: uint) = (MeteringInt i)
 
     static member create (f: float) = (MeteringFloat f)
@@ -97,6 +72,33 @@ type Quantity =
 
     [<CompiledName("some")>]
     static member someFloat = MeteringFloat >> Some
+
+    interface IComparable<Quantity> with
+        member this.CompareTo other : int =
+            match (this, other) with
+            | ((MeteringInt t), (MeteringInt o)) -> t.CompareTo(o)
+            | ((MeteringInt t), (MeteringFloat o)) -> (float t).CompareTo(o)
+            | ((MeteringFloat t), (MeteringInt o)) -> t.CompareTo(float o)
+            | ((MeteringFloat t), (MeteringFloat o)) -> t.CompareTo(o)
+            | (Infinite, _) -> 1
+            | (_, Infinite) -> -1
+
+    interface IComparable with
+        member this.CompareTo obj =
+            match obj with
+              | null                 -> 1
+              | :? Quantity as other -> (this :> IComparable<_>).CompareTo other
+              | _                    -> invalidArg "obj" $"not a {nameof(Quantity)}"
+        
+    interface IEquatable<Quantity> with
+        member this.Equals other =
+            match (this, other) with
+            | ((MeteringInt t), (MeteringInt o)) -> t = o
+            | ((MeteringInt t), (MeteringFloat o)) -> (float t).Equals(o)
+            | ((MeteringFloat t), (MeteringInt o)) -> t.Equals(float o)
+            | ((MeteringFloat t), (MeteringFloat o)) -> t = o
+            | (Infinite, Infinite) -> true
+            | (_, _) -> false
 
     static member (+) (a: Quantity, b: Quantity) =
         match (a, b) with

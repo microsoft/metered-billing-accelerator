@@ -10,8 +10,8 @@ type CurrentMeterValues = // Collects all meters per internal metering event typ
         with get() =
             let v (CurrentMeterValues x) = x
             this |> v
-            
-    static member create x = (CurrentMeterValues x)
+
+    static member create x = (CurrentMeterValues x)  
 
 module CurrentMeterValues =
     let toStr (cmv: CurrentMeterValues) =
