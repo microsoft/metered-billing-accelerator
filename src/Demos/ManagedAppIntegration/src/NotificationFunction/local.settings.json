@@ -1,0 +1,10 @@
+{
+    "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "<update for local testing>",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "URL_SIGNATURE": "6008ef3e-dca1-4f8d-a037-2f1561c4325c",
+    "LOCAL_RUN": "true"
+  }
+
+}

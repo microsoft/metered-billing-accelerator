@@ -1,0 +1,14 @@
+﻿{
+  "planId": "privatemeter",
+  "billingDimensions": {
+    "cpu1": {
+      "monthly": "0",
+      "annually": "0"
+    },
+    "mem1": {
+      "monthly": "0",
+      "annually": "0"
+    }
+
+  }
+}
