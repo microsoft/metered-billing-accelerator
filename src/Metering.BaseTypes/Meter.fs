@@ -11,9 +11,11 @@ type Meter =
       CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
       UsageToBeReported: MarketplaceRequest list // a list of usage elements which haven't yet been reported to the metering API
       LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter
+
+    member this.setCurrentMeterValues x = { this with CurrentMeterValues = x }
         
 module Meter =
-    let setCurrentMeterValues x s = { s with CurrentMeterValues = x }
+    
     let applyToCurrentMeterValue f s = { s with CurrentMeterValues = (f s.CurrentMeterValues) }
     let setLastProcessedMessage x s = { s with LastProcessedMessage = x }
     let addUsageToBeReported x s = { s with UsageToBeReported = (x :: s.UsageToBeReported) }
@@ -48,7 +50,7 @@ module Meter =
             |> List.ofSeq
 
         state
-        |> setCurrentMeterValues (includedValuesWhichDontNeedToBeReported |> CurrentMeterValues.create)
+        |> (fun f -> f.setCurrentMeterValues (includedValuesWhichDontNeedToBeReported |> CurrentMeterValues.create))
         |> addUsagesToBeReported usagesToBeReported
     
     let updateConsumption (quantity: Quantity) (timestamp: MeteringDateTime) (someDimension: DimensionId option) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
@@ -129,7 +131,7 @@ module Meter =
         
     let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
         let currentMeters = meter.Subscription.Plan.BillingDimensions.currentMeterValues time 
-        setCurrentMeterValues currentMeters meter
+        meter.setCurrentMeterValues currentMeters
 
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : Meter =
         // When we receive the creation of a subscription
