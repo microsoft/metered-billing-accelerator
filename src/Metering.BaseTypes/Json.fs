@@ -226,7 +226,7 @@ module Json =
             [
                 (internalResourceId, x.InternalResourceId.ToString() |> InternalResourceId.Encoder)
                 (timestamp, x.Timestamp |> MeteringDateTime.Encoder)
-                (meterName, x.MeterName |> ApplicationInternalMeterName.value |> Encode.string)
+                (meterName, x.MeterName.value |> Encode.string)
                 (quantity, x.Quantity |> Quantity.Encoder)
                 (properties, x.Properties |> EncodeProperties)
             ]
@@ -271,7 +271,7 @@ module Json =
         let Encoder (x: InternalMetersMapping) = 
             x
             |> InternalMetersMapping.value |> Map.toList
-            |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.value, v.Value |> Encode.string))
+            |> List.map (fun (k, v) -> (k.value, v.Value |> Encode.string))
             |> Encode.object
 
         let Decoder : Decoder<InternalMetersMapping> =
@@ -319,7 +319,7 @@ module Json =
                     (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
                     (planId, x.PlanId.Value |> Encode.string)
                     (dimensionId, x.DimensionId.Value |> Encode.string)                
-                    (quantity, x.Quantity |> Quantity.valueAsFloat |> Encode.float)                 
+                    (quantity, x.Quantity.AsFloat |> Encode.float)                 
                 ]
 
             let decode (get: Decode.IGetters) =
@@ -337,7 +337,7 @@ module Json =
             let (request) = 
                 ("request")
             
-            let encode x = [ (request, x |> MarketplaceBatchRequest.values |> List.map MarketplaceRequest.Encoder |> Encode.list) ]
+            let encode (x: MarketplaceBatchRequest) = [ (request, x.values |> List.map MarketplaceRequest.Encoder |> Encode.list) ]
 
             let decode (get: Decode.IGetters) = (get.Required.Field request (Decode.list MarketplaceRequest.Decoder)) |> MarketplaceBatchRequest.createBatch
 

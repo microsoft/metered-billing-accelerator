@@ -52,7 +52,7 @@ module Meter =
         |> addUsagesToBeReported usagesToBeReported
     
     let updateConsumption (quantity: Quantity) (timestamp: MeteringDateTime) (someDimension: DimensionId option) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
-        match quantity |> Quantity.isAllowedIncomingQuantity with
+        match quantity.isAllowedIncomingQuantity with
         | false -> 
             // if the incoming value is not a real (non-negative) number, don't change the meter. 
             currentMeterValues
@@ -148,7 +148,7 @@ module Meter =
 
         let uStr =
             m.UsageToBeReported
-            |> Seq.map MarketplaceRequest.toStr
+            |> Seq.map (fun a -> a.ToString())
             |> String.concat "\n"
 
         $"{mStr}\n{uStr}"

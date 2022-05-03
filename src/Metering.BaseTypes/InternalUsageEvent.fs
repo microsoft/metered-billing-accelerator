@@ -19,6 +19,5 @@ type InternalUsageEvent =
       /// An optional collection of additional properties.
       Properties: Map<string, string> option}
 
-module InternalUsageEvent =
-    let toStr (x: InternalUsageEvent) : string =
-        $"{x.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {x.InternalResourceId.ToString()} {x.MeterName |> ApplicationInternalMeterName.value}={x.Quantity |> Quantity.valueAsFloat}"
+    override this.ToString() =
+        $"{this.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {this.InternalResourceId.ToString()} {this.MeterName.value}={this.Quantity.AsFloat}"

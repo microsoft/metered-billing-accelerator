@@ -4,11 +4,10 @@
 namespace Metering.BaseTypes
 
 /// For SaaS offers, the resourceId is the SaaS subscription ID. 
-type SaaSSubscriptionID = private SaaSSubscriptionID of string
+type SaaSSubscriptionID = 
+    { Value: string }
 
-module SaaSSubscriptionID =
-    let create x = (SaaSSubscriptionID x)
-    let value (SaaSSubscriptionID x) = x
+    static member create x = { SaaSSubscriptionID.Value = x }
 
 type ManagedApp =
     /// Internally used handle for a managed app
@@ -24,7 +23,7 @@ type InternalResourceId =
     
     override this.ToString() =
         match this with
-        | SaaSSubscription saasId -> saasId |> SaaSSubscriptionID.value
+        | SaaSSubscription saasId -> saasId.Value
         | ManagedApplication mid -> 
             match mid with 
             | ManagedAppResourceGroupID rgid -> rgid
@@ -37,16 +36,3 @@ type InternalResourceId =
             if s.StartsWith("/subscriptions/")
             then s |> ManagedAppResourceGroupID |> ManagedApplication
             else s |> SaaSSubscriptionID.create |> SaaSSubscription
-
-module InternalResourceId =
-    // This marker is used to refer to a managed app, when there was not yet a lookup for the concrete ARM resource ID
-    let private ManagedAppMarkerString = "AzureManagedApplication"
-
-    let fromStr (s: string) : InternalResourceId =
-        if ManagedAppMarkerString.Equals(s)
-        then ManagedAppIdentity |> ManagedApplication
-        else
-            if s.StartsWith("/subscriptions/")
-            then s |> ManagedAppResourceGroupID |> ManagedApplication
-            else s |> SaaSSubscriptionID.create |> SaaSSubscription
-

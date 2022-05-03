@@ -37,7 +37,7 @@ async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, Su
             internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
             subscription: new(
                 plan: await readJson<Plan>("plan.json"),
-                internalResourceId: InternalResourceIdModule.fromStr(subscription.Id),
+                internalResourceId: InternalResourceId.fromStr(subscription.Id),
                 renewalInterval: RenewalInterval.Monthly,
                 subscriptionStart: MeteringDateTimeModule.fromStr(subscription.Established)));
 
@@ -130,7 +130,7 @@ static async Task Interactive(EventHubProducerClient eventHubProducerClient, Can
                     internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
                     subscription: new(
                         plan: await readJson<Plan>("plan.json"),
-                        internalResourceId: InternalResourceIdModule.fromStr(saasId),
+                        internalResourceId: InternalResourceId.fromStr(saasId),
                         renewalInterval: RenewalInterval.Monthly,
                         subscriptionStart: MeteringDateTimeModule.now()));
 

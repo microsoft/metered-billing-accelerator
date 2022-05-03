@@ -22,7 +22,6 @@ type MeteringUpdateEvent =
     /// Clean up state
     | RemoveUnprocessedMessages of RemoveUnprocessedMessages
 
-
 module MeteringUpdateEvent =
     let partitionKey (mue: MeteringUpdateEvent) : string =
         match mue with
@@ -44,9 +43,9 @@ module MeteringUpdateEvent =
 
     let toStr (mue: MeteringUpdateEvent) : string =
         match mue with
-        | SubscriptionPurchased x -> x |> SubscriptionCreationInformation.toStr
+        | SubscriptionPurchased x -> x.ToString()
         | SubscriptionDeletion x -> $"Deletion of {x}"
-        | UsageReported x -> x |> InternalUsageEvent.toStr
+        | UsageReported x -> x.ToString()
         | UsageSubmittedToAPI x -> x.Result |>  MarketplaceSubmissionResult.toStr        
         | UnprocessableMessage p -> 
             match p with

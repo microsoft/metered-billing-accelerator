@@ -107,7 +107,7 @@ let ``MeterValue.subtractQuantity``() =
     let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let test (idx, testcase) = 
-        let result = testcase.State |> MeterValue.subtractQuantity now testcase.Quantity 
+        let result = testcase.State.subtractQuantity now testcase.Quantity 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [
@@ -309,7 +309,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
             mc
             |> MeterCollection.metersToBeSubmitted
             |> Seq.filter (fun m -> m.ResourceId = subId && m.DimensionId = dimension)
-            |> Seq.sumBy (fun m -> m.Quantity |> Quantity.valueAsInt)
+            |> Seq.sumBy (fun m -> m.Quantity.AsInt)
             |> Quantity.create
 
         Assert.AreEqual(overallquantity, totalToBeSubmitted)

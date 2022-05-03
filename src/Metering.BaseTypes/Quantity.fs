@@ -56,6 +56,24 @@ type Quantity =
         | MeteringInt i -> i.GetHashCode()
         | MeteringFloat f -> f.GetHashCode()
 
+    member this.AsInt = 
+        match this with
+        | MeteringInt i -> i
+        | MeteringFloat f -> uint32 f
+        | Infinite -> failwith $"Trying to convert {nameof(Infinite)} to an uint64"
+
+    member this.AsFloat = 
+        match this with
+        | MeteringInt i -> float i
+        | MeteringFloat f -> f
+        | Infinite -> failwith $"Trying to convert {nameof(Infinite)} to a float"
+        
+    member this.isAllowedIncomingQuantity =
+        match this with
+        | MeteringInt i -> true
+        | MeteringFloat f -> f >= 0.0
+        | Infinite -> false
+
     static member fromString (s: string) =
         if s = "Infinite"
         then Infinite
@@ -67,10 +85,19 @@ type Quantity =
     static member Zero
         with get() = (MeteringInt 0u)
 
+    static member None 
+        with get() : (Quantity option) = None
+
     static member create (i: uint) = (MeteringInt i)
 
     static member create (f: float) = (MeteringFloat f)
     
+    [<CompiledName("some")>]
+    static member someInt = MeteringInt >> Some
+
+    [<CompiledName("some")>]
+    static member someFloat = MeteringFloat >> Some
+
     static member (+) (a: Quantity, b: Quantity) =
         match (a, b) with
             | ((MeteringInt a), (MeteringInt b)) -> MeteringInt  (a + b)
@@ -95,34 +122,3 @@ type Quantity =
                     then failwith "Cannot be negative"
                     else MeteringFloat f
                 | Infinite -> Infinite
-
-module Quantity =    
-    //[<CompiledName("create")>]
-    //let createInt i = (MeteringInt i)
-    
-    //[<CompiledName("create")>]
-    //let createFloat f = (MeteringFloat f)
-
-    [<CompiledName("some")>]
-    let someInt = MeteringInt >> Some
-    
-    [<CompiledName("some")>]
-    let someFloat = MeteringFloat >> Some
-    
-    let none : (Quantity option) = None
-
-    let valueAsInt = function
-        | MeteringInt i -> i
-        | MeteringFloat f -> uint32 f
-        | Infinite -> failwith "Trying to convert Infinity to an uint64"
-
-    let valueAsFloat = function
-        | MeteringInt i -> float i
-        | MeteringFloat f -> f
-        | Infinite -> failwith "Trying to convert Infinity to a float"
-        
-    let isAllowedIncomingQuantity : (Quantity -> bool) =
-        function
-        | MeteringInt i -> true
-        | MeteringFloat f -> f >= 0.0
-        | Infinite -> false
