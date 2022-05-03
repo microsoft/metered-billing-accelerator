@@ -158,8 +158,7 @@ match initialState with
         File.ReadAllText("latest.json")
         |> Json.fromStr<MeterCollection>
 
-    x
-    |> MeterCollection.metersToBeSubmitted
+    x.metersToBeSubmitted
     |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
     |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.Value) (a.DimensionId.Value) (a.Quantity.ToString()))
 
@@ -180,7 +179,6 @@ match initialState with
 
     printfn "%s" (x |> Json.toStr 2)
 
-    x
-    |> MeterCollection.metersToBeSubmitted
+    x.metersToBeSubmitted
     |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
     |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.Value) (a.DimensionId.Value) (a.Quantity.ToString()))

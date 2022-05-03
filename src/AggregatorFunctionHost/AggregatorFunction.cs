@@ -19,9 +19,6 @@ using Metering.BaseTypes.EventHub;
 using Metering.Integration;
 using Metering.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;
-using Microsoft.FSharp.Core;
-using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Processor;
 
 public class AggregatorStartup : FunctionsStartup
 {
@@ -86,7 +83,7 @@ public class AggregatorFunction
                 onNext: meterCollection =>
                 {
                     // Only add new (unseen) events to the concurrent queue.
-                    var current = meterCollection.metersToBeSubmitted().ToList();
+                    var current = meterCollection.metersToBeSubmitted.ToList();
                     var newOnes = current.Except(previousToBeSubmitted).ToList();
                     if (newOnes.Any())
                     {
@@ -142,7 +139,7 @@ public class AggregatorFunction
                     partitions[int.Parse(partitionId.value())] = partitionId.value();
 
                     IObservable<MeterCollection> events = group
-                        .Scan(seed: MeterCollectionModule.Uninitialized, accumulator: MeteringAggregator.createAggregator)
+                        .Scan(seed: MeterCollection.Uninitialized, accumulator: MeteringAggregator.createAggregator)
                         .Choose(); // '.Choose()' is cleaner than '.Where(x => x.IsSome()).Select(x => x.Value)'
 
                     // Subscribe the creation of snapshots

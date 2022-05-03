@@ -722,7 +722,7 @@ module Json =
 
         let encode (x: MeterCollection) : (string * JsonValue) list =
             [
-                (meters, x |> MeterCollection.value |> Map.toList |> List.map (fun (k, v) -> (k.ToString(), v |> Meter.Encoder)) |> Encode.object)                
+                (meters, x.MeterCollection |> Map.toList |> List.map (fun (k, v) -> (k.ToString(), v |> Meter.Encoder)) |> Encode.object)                
                 (unprocessable, x.UnprocessableMessages |> List.map EventHubEvent_MeteringUpdateEvent.Encoder |> Encode.list)
                 //(plans, x.Plans |> Plans.Encoder)
             ]

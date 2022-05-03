@@ -55,7 +55,7 @@ module ManagementUtils =
 
             return
                 match state with
-                | Some m -> m |> MeterCollection.metersToBeSubmitted
+                | Some m -> m.metersToBeSubmitted
                 | None -> Seq.empty            
 
         }

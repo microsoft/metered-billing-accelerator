@@ -306,8 +306,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         let overallquantity = Quantity.create overallquantity
 
         let totalToBeSubmitted =
-            mc
-            |> MeterCollection.metersToBeSubmitted
+            mc.metersToBeSubmitted
             |> Seq.filter (fun m -> m.ResourceId = subId && m.DimensionId = dimension)
             |> Seq.sumBy (fun m -> m.Quantity.AsInt)
             |> Quantity.create

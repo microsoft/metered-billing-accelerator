@@ -12,20 +12,25 @@ type MeterCollection =
       UnprocessableMessages: EventHubEvent<MeteringUpdateEvent> list
       LastUpdate: MessagePosition option }
 
+    member this.metersToBeSubmitted : MarketplaceRequest seq =
+        this.MeterCollection
+        |> Map.toSeq
+        |> Seq.collect (fun (_, meter) -> meter.UsageToBeReported)
+        // |> Seq.sortBy (fun r -> r.EffectiveStartTime.ToInstant())
+
+    static member Empty 
+        with get() =
+            { MeterCollection = Map.empty
+              UnprocessableMessages = List.empty
+              LastUpdate = None }
+    
+    static member Uninitialized 
+        with get() : (MeterCollection option) = None
+
 type SomeMeterCollection = MeterCollection option
  
 [<Extension>]
 module MeterCollection =
-    let value (x: MeterCollection) = x.MeterCollection
-    
-    let Uninitialized : (MeterCollection option) = None
-    let Empty =
-        { MeterCollection = Map.empty
-          UnprocessableMessages = List.empty
-          LastUpdate = None          
-          // Plans = Map.empty
-          }
-
     let toStrM (pid) (meters: Meter seq) : string =
         meters
         |> Seq.sortBy  (fun a -> a.Subscription.InternalResourceId)
@@ -45,10 +50,3 @@ module MeterCollection =
             mc.MeterCollection
             |> Map.values
             |> toStrM pid
-    
-    [<Extension>]
-    let metersToBeSubmitted  (x : MeterCollection) : MarketplaceRequest seq =
-        x.MeterCollection
-        |> Map.toSeq
-        |> Seq.collect (fun (_, meter) -> meter.UsageToBeReported)
-        // |> Seq.sortBy (fun r -> r.EffectiveStartTime.ToInstant())

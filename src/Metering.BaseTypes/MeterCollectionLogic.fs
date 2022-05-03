@@ -32,11 +32,10 @@ module MeterCollectionLogic =
         | Some p -> p.SequenceNumber
 
     let usagesToBeReported (meters: MeterCollection) : MarketplaceRequest list =
-        if meters |> value |> Seq.isEmpty 
+        if meters.MeterCollection |> Seq.isEmpty 
         then []
         else
-            meters
-            |> value
+            meters.MeterCollection
             |> Seq.map (fun x -> x.Value.UsageToBeReported)
             |> Seq.concat
             |> List.ofSeq
@@ -91,11 +90,11 @@ module MeterCollectionLogic =
             { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
 
     let private addUsage (internalUsageEvent: InternalUsageEvent) messagePosition state =
-        let existingSubscription = state |> value |> Map.containsKey internalUsageEvent.InternalResourceId 
+        let existingSubscription = state.MeterCollection |> Map.containsKey internalUsageEvent.InternalResourceId 
         if existingSubscription
         then 
             let newMeterCollection =
-                state |> value
+                state.MeterCollection
                 |> Map.change 
                     internalUsageEvent.InternalResourceId 
                     (Option.bind ((Meter.handleUsageEvent (internalUsageEvent, messagePosition)) >> Some))
@@ -105,7 +104,7 @@ module MeterCollectionLogic =
             state |> addUnprocessableMessage (UsageReported internalUsageEvent) messagePosition
 
     let private applyMeters (handler: Map<InternalResourceId, Meter> -> Map<InternalResourceId, Meter>) (state: MeterCollection)  : MeterCollection =
-        let newMeterCollection = state |> value |> handler
+        let newMeterCollection = state.MeterCollection |> handler
         { state with MeterCollection = newMeterCollection } 
 
     let private addSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) messagePosition state =

@@ -12,9 +12,6 @@ type MeterValue =
         | ConsumedQuantity cq -> cq.ToString()
         | IncludedQuantity iq -> iq.ToString()
     
-    static member createIncluded (now: MeteringDateTime) (quantity: Quantity) : MeterValue =
-        IncludedQuantity { Quantity = quantity; Created = now; LastUpdate = now }
-
     /// Subtracts the given Quantity from a MeterValue 
     member this.subtractQuantity (now: MeteringDateTime) (quantity: Quantity) : MeterValue =
         this
@@ -34,8 +31,10 @@ type MeterValue =
                     |> ConsumedQuantity.create now 
                     |> ConsumedQuantity
 
-module MeterValue =
-    let someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: MeterValue option) : MeterValue option =
+    static member createIncluded (now: MeteringDateTime) (quantity: Quantity) : MeterValue =
+        IncludedQuantity { Quantity = quantity; Created = now; LastUpdate = now }
+    
+    static member someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: MeterValue option) : MeterValue option =
         let subtract quantity (meterValue: MeterValue) = 
             meterValue.subtractQuantity currentPosition quantity
         
