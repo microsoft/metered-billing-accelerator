@@ -56,6 +56,21 @@ type Quantity =
         | MeteringInt i -> i.GetHashCode()
         | MeteringFloat f -> f.GetHashCode()
 
+    static member fromString (s: string) =
+        if s = "Infinite"
+        then Infinite
+        else 
+            if s.Contains(".")
+            then s |> Double.Parse |> MeteringFloat
+            else s |> UInt32.Parse |> MeteringInt
+    
+    static member Zero
+        with get() = (MeteringInt 0u)
+
+    static member create (i: uint) = (MeteringInt i)
+
+    static member create (f: float) = (MeteringFloat f)
+    
     static member (+) (a: Quantity, b: Quantity) =
         match (a, b) with
             | ((MeteringInt a), (MeteringInt b)) -> MeteringInt  (a + b)
@@ -82,27 +97,17 @@ type Quantity =
                 | Infinite -> Infinite
 
 module Quantity =    
-    [<CompiledName("create")>]
-    let createInt i = (MeteringInt i)
+    //[<CompiledName("create")>]
+    //let createInt i = (MeteringInt i)
     
-    [<CompiledName("create")>]
-    let createFloat f = (MeteringFloat f)
-    
-    let zero = (MeteringInt 0u)
-
-    let fromString (s: string) =
-        if s = "Infinite"
-        then Infinite
-        else 
-            if s.Contains(".")
-            then s |> Double.Parse |> createFloat
-            else s |> UInt32.Parse |> createInt
+    //[<CompiledName("create")>]
+    //let createFloat f = (MeteringFloat f)
 
     [<CompiledName("some")>]
-    let someInt = createInt >> Some
+    let someInt = MeteringInt >> Some
     
     [<CompiledName("some")>]
-    let someFloat = createFloat >> Some
+    let someFloat = MeteringFloat >> Some
     
     let none : (Quantity option) = None
 
@@ -115,12 +120,6 @@ module Quantity =
         | MeteringInt i -> float i
         | MeteringFloat f -> f
         | Infinite -> failwith "Trying to convert Infinity to a float"
-
-    let toStr : (Quantity -> string) = 
-        function
-        | MeteringInt i -> i.ToString()
-        | MeteringFloat f -> f.ToString()
-        | Infinite -> "Infinite"
         
     let isAllowedIncomingQuantity : (Quantity -> bool) =
         function

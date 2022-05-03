@@ -113,32 +113,32 @@ let ``MeterValue.subtractQuantity``() =
     [
         {
             // deduct without overage
-            State = IncludedQuantity { Quantity = Quantity.createInt 30u; Created = created; LastUpdate = lastUpdate}
-            Quantity = Quantity.createInt 13u
-            Expected = IncludedQuantity { Quantity = Quantity.createInt 17u; Created = created; LastUpdate = now}
+            State = IncludedQuantity { Quantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
+            Quantity = Quantity.create 13u
+            Expected = IncludedQuantity { Quantity = Quantity.create 17u; Created = created; LastUpdate = now}
         }
         {
             // deplete completely
-            State = IncludedQuantity { Quantity = Quantity.createInt 30u; Created = created; LastUpdate = lastUpdate}
-            Quantity = Quantity.createInt 30u
-            Expected = IncludedQuantity { Quantity = Quantity.zero; Created = created; LastUpdate = now}
+            State = IncludedQuantity { Quantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
+            Quantity = Quantity.create 30u
+            Expected = IncludedQuantity { Quantity = Quantity.Zero; Created = created; LastUpdate = now}
         }
         {
             // If there's nothing, it costs money
-            State = IncludedQuantity { Quantity = Quantity.zero; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2u
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 2u; Created = created; LastUpdate = now }
+            State = IncludedQuantity { Quantity = Quantity.Zero; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.create 2u
+            Expected = ConsumedQuantity { Amount = Quantity.create 2u; Created = created; LastUpdate = now }
         }
         {
             // Going further into the overage
-            State = ConsumedQuantity { Amount = Quantity.createInt 10u; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 2u
-            Expected = ConsumedQuantity { Amount = Quantity.createInt 12u; Created = created; LastUpdate = now }
+            State = ConsumedQuantity { Amount = Quantity.create 10u; Created = created; LastUpdate = lastUpdate }
+            Quantity = Quantity.create 2u
+            Expected = ConsumedQuantity { Amount = Quantity.create 12u; Created = created; LastUpdate = now }
         }
         {
             // If there's infinite, it never gets depleted
             State = IncludedQuantity { Quantity = Quantity.Infinite; Created = created; LastUpdate = lastUpdate }
-            Quantity = Quantity.createInt 200000u
+            Quantity = Quantity.create 200000u
             Expected = IncludedQuantity { Quantity = Quantity.Infinite; Created = created; LastUpdate = now }
         }
     ] |> runTestVectors test
@@ -152,19 +152,19 @@ let ``MeterValue.createIncluded``() =
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
 
     let test (idx, testcase) =
-        let result = MeterValue.createIncluded now (Quantity.createInt testcase.Value)
+        let result = MeterValue.createIncluded now (Quantity.create testcase.Value)
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [
         {
-            Input = IncludedQuantity { Quantity = Quantity.createInt 1u; Created = created; LastUpdate = lastUpdate } 
+            Input = IncludedQuantity { Quantity = Quantity.create 1u; Created = created; LastUpdate = lastUpdate } 
             Value = 9u
-            Expected = IncludedQuantity { Quantity = Quantity.createInt 9u; Created = created; LastUpdate = now } 
+            Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
         }
         {
-            Input = ConsumedQuantity { Amount = Quantity.createInt 100_000u; Created = created; LastUpdate = lastUpdate }
+            Input = ConsumedQuantity { Amount = Quantity.create 100_000u; Created = created; LastUpdate = lastUpdate }
             Value = 9u
-            Expected = IncludedQuantity { Quantity = Quantity.createInt 9u; Created = created; LastUpdate = now } 
+            Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
         }
     ] |> runTestVectors test
 
@@ -191,14 +191,14 @@ let ``Quantity.Serialization`` () =
 
     [
         Infinite
-        Quantity.createInt 10u
-        Quantity.createFloat 10.1
+        Quantity.create 10u
+        Quantity.create 10.1
     ] |> runTestVectors test
 
 [<Test>]
 let ``Quantity.Math`` () =
-    let q : (int -> Quantity) = uint32 >> Quantity.createInt
-    let f : (float -> Quantity) = float >> Quantity.createFloat
+    let q : (int -> Quantity) = uint32 >> Quantity.create
+    let f : (float -> Quantity) = float >> Quantity.create
     
     Assert.AreEqual(q 10, (q 3) + (q 7))
     Assert.AreEqual(q 7, (q 10) - (q 3))
@@ -224,7 +224,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                     PlanId = "plan123" |> PlanId.create
                     BillingDimensions = 
                         Map.empty
-                        |> Map.add ("dimension1" |> DimensionId.create) (1000u |> Quantity.createInt)
+                        |> Map.add ("dimension1" |> DimensionId.create) (1000u |> Quantity.create)
                         |> Map.add ("dimension2" |> DimensionId.create) (Quantity.Infinite)
                 }
                 InternalResourceId = subId
@@ -248,11 +248,12 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         
     let createSubsc sequenceNr timestamp sub = 
         sub |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent sequenceNr timestamp
-    let createUsage sub sequenceNr timestamp amount dimension =
+    
+    let createUsage sub sequenceNr timestamp (amount: uint) dimension =
         { InternalUsageEvent.InternalResourceId = sub
           Timestamp = timestamp |> MeteringDateTime.fromStr
           MeterName = dimension |> ApplicationInternalMeterName.create
-          Quantity = amount |> Quantity.createInt
+          Quantity = amount |> Quantity.create
           Properties = None }
         |> MeteringUpdateEvent.UsageReported
         |> createEvent sequenceNr timestamp
@@ -289,7 +290,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     let assertUsageReported (subId: InternalResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
         let dimension = DimensionId.create dimension
         let timeSlot = MeteringDateTime.fromStr timeSlot
-        let quantity = Quantity.createInt quantity
+        let quantity = Quantity.create quantity
 
         mc.MeterCollection
         |> Map.find subId
@@ -302,14 +303,14 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
     let assertOverallUsageToBeReported (subId: InternalResourceId)  (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
         let dimension = DimensionId.create dimension
-        let overallquantity = Quantity.createInt overallquantity
+        let overallquantity = Quantity.create overallquantity
 
         let totalToBeSubmitted =
             mc
             |> MeterCollection.metersToBeSubmitted
             |> Seq.filter (fun m -> m.ResourceId = subId && m.DimensionId = dimension)
             |> Seq.sumBy (fun m -> m.Quantity |> Quantity.valueAsInt)
-            |> Quantity.createInt
+            |> Quantity.create
 
         Assert.AreEqual(overallquantity, totalToBeSubmitted)
 
@@ -328,8 +329,9 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
     let assertIncluded sub dimension quantity =
         check (fun m -> getMeter m sub dimension |> includes quantity)
-    let assertOverage sub dimension quantity =
-        check (fun m -> getMeter m sub dimension |> overageOf (Quantity.createInt quantity))
+    
+    let assertOverage sub dimension (quantity: uint) =
+        check (fun m -> getMeter m sub dimension |> overageOf (Quantity.create quantity))
 
     let ensureSequenceNumberHasBeenApplied =
         check (fun m -> 
@@ -356,7 +358,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     // ... all meters should be at their original levels
     |> check (fun m -> Assert.AreEqual(1, m.MeterCollection.Count))
     |> check (fun m -> Assert.IsTrue(m.MeterCollection |> Map.containsKey sub1))
-    |> assertIncluded      sub1 "dimension1" (Quantity.createInt 1000u)
+    |> assertIncluded      sub1 "dimension1" (Quantity.create 1000u)
     |> assertIncluded      sub1 "dimension2" Quantity.Infinite
     |> check (fun m ->
         m.MeterCollection
@@ -369,7 +371,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     // If we consume 999 out of 1000 included, then 1 included should remain
     |> newusage            sub1 "2021-11-29T17:04:03Z" 999u "d1"
     |> ensureSequenceNumberHasBeenApplied 
-    |> assertIncluded      sub1 "dimension1" (Quantity.createInt 1u)
+    |> assertIncluded      sub1 "dimension1" (Quantity.create 1u)
     // If we consume a gazillion from the 'infinite' quantity, it should still be infinite
     |> newusage            sub1 "2021-11-29T17:05:01Z" 10000u "freestuff"
     |> ensureSequenceNumberHasBeenApplied 
@@ -466,10 +468,10 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
 [<Test>]
 let ``Quantity.Comparison``() =
-    let fiveInt = Quantity.createInt 5u
-    let tenInt = Quantity.createInt 10u
-    let fiveFloat = Quantity.createFloat 5.0
-    let tenFloat = Quantity.createFloat 10.0
+    let fiveInt = Quantity.create 5u
+    let tenInt = Quantity.create 10u
+    let fiveFloat = Quantity.create 5.0
+    let tenFloat = Quantity.create 10.0
     
     Assert.AreEqual(fiveFloat, fiveInt)
     Assert.AreEqual(tenFloat, tenInt)
@@ -585,13 +587,13 @@ let ``Json.ParsePlan`` () =
         }
         """
         |> Json.fromStr<Plan>
-    Assert.AreEqual("the_plan", p.PlanId |> PlanId.value)
+    Assert.AreEqual("the_plan", p.PlanId.Value)
 
     let check d v =
         Assert.AreEqual(v, p.BillingDimensions |> Map.find (DimensionId.create d))
     check "infinite" Quantity.Infinite
-    check "literal" (Quantity.createInt 2u)
-    check "quoted" (Quantity.createInt 1000000u)
+    check "literal" (Quantity.create 2u)
+    check "quoted" (Quantity.create 1000000u)
 
 
 module E =

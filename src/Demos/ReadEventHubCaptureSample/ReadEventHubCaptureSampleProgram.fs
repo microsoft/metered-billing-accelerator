@@ -45,17 +45,17 @@ CaptureProcessor.readAllEvents
     match i.EventData with
     | UsageReported _ -> ()
     | SubscriptionPurchased sp -> 
-        printfn "%s Subscription %s purchased" ts (sp.Subscription.InternalResourceId |> InternalResourceId.toStr)
+        printfn "%s Subscription %s purchased" ts (sp.Subscription.InternalResourceId.ToString())
     | SubscriptionDeletion _ -> ()
     | UnprocessableMessage _ -> ()
     | RemoveUnprocessedMessages _ -> ()
     | UsageSubmittedToAPI submitted -> 
         match submitted.Result with 
-        | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity |> Quantity.toStr) (success.Status.ResourceURI.Value)
+        | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity.ToString()) (success.Status.ResourceURI.Value)
         | Error e -> 
             match e with 
             | DuplicateSubmission d -> eprintfn "%s Duplicate %s" ts (d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
-            | ResourceNotFound r -> eprintfn "%s ResourceNotFound %s" ts (r.RequestData.ResourceId |> InternalResourceId.toStr)
+            | ResourceNotFound r -> eprintfn "%s ResourceNotFound %s" ts (r.RequestData.ResourceId.ToString())
             | Expired e -> eprintfn "%s Expired %s" ts (e.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
             | Generic g -> eprintfn "%s Error %A" ts g
 
@@ -161,7 +161,7 @@ match initialState with
     x
     |> MeterCollection.metersToBeSubmitted
     |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
-    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId |> InternalResourceId.toStr) (a.PlanId |> PlanId.value) (a.DimensionId |> DimensionId.value) (a.Quantity |> Quantity.toStr)  )
+    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.Value) (a.DimensionId.Value) (a.Quantity.ToString()))
 
 | Some initialState -> 
     // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
@@ -183,4 +183,4 @@ match initialState with
     x
     |> MeterCollection.metersToBeSubmitted
     |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
-    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId |> InternalResourceId.toStr) (a.PlanId |> PlanId.value) (a.DimensionId |> DimensionId.value) (a.Quantity |> Quantity.toStr)  )
+    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.Value) (a.DimensionId.Value) (a.Quantity.ToString()))

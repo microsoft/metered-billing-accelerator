@@ -143,7 +143,7 @@ module Meter =
         let mStr =
             m.CurrentMeterValues
             |> CurrentMeterValues.toStr
-            |> Seq.map(fun v -> $"{pid} {m.Subscription.InternalResourceId |> InternalResourceId.toStr}: {v}")
+            |> Seq.map(fun v -> $"{pid} {m.Subscription.InternalResourceId.ToString()}: {v}")
             |> String.concat "\n"
 
         let uStr =

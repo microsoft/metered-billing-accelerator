@@ -14,4 +14,4 @@ module IncludedQuantity =
     let decrease now quantity (q: IncludedQuantity) = { q with Quantity = q.Quantity - quantity ; LastUpdate = now }
 
     let toStr (iq: IncludedQuantity) : string =
-        sprintf "Remaining %s" (iq.Quantity |> Quantity.toStr)
+        sprintf "Remaining %s" (iq.Quantity.ToString())

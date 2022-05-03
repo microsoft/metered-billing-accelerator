@@ -26,10 +26,10 @@ type MeteringUpdateEvent =
 module MeteringUpdateEvent =
     let partitionKey (mue: MeteringUpdateEvent) : string =
         match mue with
-        | SubscriptionPurchased x -> x.Subscription.InternalResourceId |> InternalResourceId.toStr
-        | SubscriptionDeletion x -> x |> InternalResourceId.toStr
-        | UsageReported x -> x.InternalResourceId |> InternalResourceId.toStr
-        | UsageSubmittedToAPI x -> x.Result |> MarketplaceSubmissionResult.resourceId |> InternalResourceId.toStr
+        | SubscriptionPurchased x -> x.Subscription.InternalResourceId.ToString()
+        | SubscriptionDeletion x -> x.ToString()
+        | UsageReported x -> x.InternalResourceId.ToString()
+        | UsageSubmittedToAPI x -> (x.Result |> MarketplaceSubmissionResult.resourceId).ToString()
         | UnprocessableMessage _ -> ""
         | RemoveUnprocessedMessages _ -> ""
 
@@ -45,7 +45,7 @@ module MeteringUpdateEvent =
     let toStr (mue: MeteringUpdateEvent) : string =
         match mue with
         | SubscriptionPurchased x -> x |> SubscriptionCreationInformation.toStr
-        | SubscriptionDeletion x -> $"Deletion of {x |> InternalResourceId.toStr}"
+        | SubscriptionDeletion x -> $"Deletion of {x}"
         | UsageReported x -> x |> InternalUsageEvent.toStr
         | UsageSubmittedToAPI x -> x.Result |>  MarketplaceSubmissionResult.toStr        
         | UnprocessableMessage p -> 

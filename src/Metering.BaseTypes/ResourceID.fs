@@ -21,6 +21,7 @@ type ManagedApp =
 type InternalResourceId =    
     | ManagedApplication of ManagedApp
     | SaaSSubscription of SaaSSubscriptionID
+    
     override this.ToString() =
         match this with
         | SaaSSubscription saasId -> saasId |> SaaSSubscriptionID.value
@@ -28,6 +29,14 @@ type InternalResourceId =
             match mid with 
             | ManagedAppResourceGroupID rgid -> rgid
             | ManagedAppIdentity -> "AzureManagedApplication"
+
+    static member fromStr (s: string) : InternalResourceId =
+        if "AzureManagedApplication".Equals(s)
+        then ManagedAppIdentity |> ManagedApplication
+        else
+            if s.StartsWith("/subscriptions/")
+            then s |> ManagedAppResourceGroupID |> ManagedApplication
+            else s |> SaaSSubscriptionID.create |> SaaSSubscription
 
 module InternalResourceId =
     // This marker is used to refer to a managed app, when there was not yet a lookup for the concrete ARM resource ID
@@ -40,12 +49,4 @@ module InternalResourceId =
             if s.StartsWith("/subscriptions/")
             then s |> ManagedAppResourceGroupID |> ManagedApplication
             else s |> SaaSSubscriptionID.create |> SaaSSubscription
-
-    let toStr str = 
-        match str with 
-        | SaaSSubscription saasId -> saasId |> SaaSSubscriptionID.value
-        | ManagedApplication mid -> 
-            match mid with 
-            | ManagedAppResourceGroupID rgid -> rgid
-            | ManagedAppIdentity -> ManagedAppMarkerString
 

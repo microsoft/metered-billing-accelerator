@@ -4,15 +4,13 @@
 namespace Metering.BaseTypes
 
 /// The ID of the plan (as defined in partner center)
-type PlanId = private PlanId of string
+type PlanId = 
+    { Value: string }
 
-module PlanId = 
-    let value (PlanId x) = x
-    let create x = (PlanId x)
-
+    static member create value = { Value = value }
+    
 /// The immutable dimension identifier referenced while emitting usage events (as defined in partner center).
-type DimensionId = private DimensionId of string
-
-module DimensionId = 
-    let value (DimensionId x) = x
-    let create x = (DimensionId x)
+type DimensionId =
+    { Value: string }
+    
+    static member create value = { Value = value }

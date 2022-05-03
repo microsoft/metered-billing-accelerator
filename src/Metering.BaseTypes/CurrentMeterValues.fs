@@ -12,6 +12,6 @@ module CurrentMeterValues =
         |> Map.toSeq
         |> Seq.map (fun (k,v) -> 
             sprintf "%30s: %s" 
-                (k |> DimensionId.value)
+                (k.Value)
                 (v |> MeterValue.toStr)
         )

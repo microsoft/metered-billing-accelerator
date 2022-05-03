@@ -66,15 +66,15 @@ module Json =
                     then 
                         match s |> Double.TryParse with
                         | false, _ -> (sprintf "Failed to decode `%s`" s) |> Decode.fail
-                        | _, v -> v |> Quantity.createFloat |> Decode.succeed
+                        | _, v -> v |> Quantity.create |> Decode.succeed
                     else
                         match s |> UInt32.TryParse with
                         | false, _ -> (sprintf "Failed to decode `%s`" s) |> Decode.fail
-                        | _, v -> v |> Quantity.createInt |> Decode.succeed
+                        | _, v -> v |> Quantity.create |> Decode.succeed
 
             [ 
-                Decode.uint32 |> Decode.andThen(Quantity.createInt >> Decode.succeed)
-                Decode.float |> Decode.andThen(Quantity.createFloat >> Decode.succeed)
+                Decode.uint32 |> Decode.andThen(Quantity.create >> Decode.succeed)
+                Decode.float |> Decode.andThen(Quantity.create >> Decode.succeed)
                 Decode.string |> Decode.andThen(decodeStringQuantity)
             ] |> Decode.oneOf
 
@@ -188,10 +188,10 @@ module Json =
         let (planId, billingDimensions) = ("planId", "billingDimensions")
 
         let encode (x: Plan) : (string * JsonValue) list =
-            let a = x.BillingDimensions |> Map.toSeq |> Seq.map (fun (k, v) -> (k |> DimensionId.value |> Encode.string, v |> Quantity.Encoder))
+            let a = x.BillingDimensions |> Map.toSeq |> Seq.map (fun (k, v) -> (k.Value |> Encode.string, v |> Quantity.Encoder))
             [
-                (planId, x.PlanId |> PlanId.value |> Encode.string)
-                (billingDimensions, x.BillingDimensions |> Map.toList |> List.map (fun (k, v) -> (k |> DimensionId.value, v |> Quantity.Encoder)) |> Encode.object)
+                (planId, x.PlanId.Value |> Encode.string)
+                (billingDimensions, x.BillingDimensions |> Map.toList |> List.map (fun (k, v) -> (k.Value, v |> Quantity.Encoder)) |> Encode.object)
             ]
             
         let decode (get: Decode.IGetters) : Plan =
@@ -206,7 +206,7 @@ module Json =
 
     module InternalResourceId =        
         let Encoder =
-            InternalResourceId.toStr >> Encode.string
+            Encode.string
                    
         let Decoder : Decoder<InternalResourceId> = 
             Decode.string |> Decode.andThen(InternalResourceId.fromStr >> Decode.succeed)
@@ -224,7 +224,7 @@ module Json =
                 |> Encode.object
             
             [
-                (internalResourceId, x.InternalResourceId |> InternalResourceId.Encoder)
+                (internalResourceId, x.InternalResourceId.ToString() |> InternalResourceId.Encoder)
                 (timestamp, x.Timestamp |> MeteringDateTime.Encoder)
                 (meterName, x.MeterName |> ApplicationInternalMeterName.value |> Encode.string)
                 (quantity, x.Quantity |> Quantity.Encoder)
@@ -254,7 +254,7 @@ module Json =
                 (plan, x.Plan |> Plan.Encoder)
                 (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
                 (subscriptionStart, x.SubscriptionStart |> MeteringDateTime.Encoder)
-                (internalResourceId, x.InternalResourceId |> InternalResourceId.Encoder)
+                (internalResourceId, x.InternalResourceId.ToString() |> InternalResourceId.Encoder)
             ]
         
         let decode (get: Decode.IGetters) : Subscription =
@@ -271,7 +271,7 @@ module Json =
         let Encoder (x: InternalMetersMapping) = 
             x
             |> InternalMetersMapping.value |> Map.toList
-            |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.value, v |> DimensionId.value |> Encode.string))
+            |> List.map (fun (k, v) -> (k |> ApplicationInternalMeterName.value, v.Value |> Encode.string))
             |> Encode.object
 
         let Decoder : Decoder<InternalMetersMapping> =
@@ -284,7 +284,7 @@ module Json =
         let Encoder (x: CurrentMeterValues) = 
             x
             |> Map.toList
-            |> List.map (fun (d, m) -> (d |> DimensionId.value, m |> MeterValue.Encoder))
+            |> List.map (fun (d, m) -> (d.Value, m |> MeterValue.Encoder))
             |> Encode.object
 
         let Decoder : Decoder<CurrentMeterValues> =
@@ -315,10 +315,10 @@ module Json =
             
             let encode (x: MarketplaceRequest) : (string * JsonValue) list =
                 [
-                    (resourceId, x.ResourceId |> InternalResourceId.Encoder)
+                    (resourceId, x.ResourceId.ToString() |> InternalResourceId.Encoder)
                     (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
-                    (planId, x.PlanId |> PlanId.value |> Encode.string)
-                    (dimensionId, x.DimensionId |> DimensionId.value |> Encode.string)                
+                    (planId, x.PlanId.Value |> Encode.string)
+                    (dimensionId, x.DimensionId.Value |> Encode.string)                
                     (quantity, x.Quantity |> Quantity.valueAsFloat |> Encode.float)                 
                 ]
 
@@ -680,7 +680,7 @@ module Json =
         let encode (x: MeteringUpdateEvent) : (string * JsonValue) list =
             match x with
             | SubscriptionPurchased x -> x |> encodeKeyValue "SubscriptionPurchased" SubscriptionCreationInformation.Encoder
-            | SubscriptionDeletion x -> x |> encodeKeyValue "SubscriptionDeleted" InternalResourceId.Encoder
+            | SubscriptionDeletion x -> x.ToString() |> encodeKeyValue "SubscriptionDeleted" InternalResourceId.Encoder
             | UsageReported x -> x |> encodeKeyValue "UsageReported" InternalUsageEvent.Encoder
             | UsageSubmittedToAPI x -> x |> encodeKeyValue "UsageSubmittedToAPI" MarketplaceResponse.Encoder
             | UnprocessableMessage x -> x |> encodeKeyValue "UnprocessableMessage" UnprocessableMessage.Encoder
@@ -722,7 +722,7 @@ module Json =
 
         let encode (x: MeterCollection) : (string * JsonValue) list =
             [
-                (meters, x |> MeterCollection.value |> Map.toList |> List.map (fun (k, v) -> (k |> InternalResourceId.toStr, v |> Meter.Encoder)) |> Encode.object)                
+                (meters, x |> MeterCollection.value |> Map.toList |> List.map (fun (k, v) -> (k.ToString(), v |> Meter.Encoder)) |> Encode.object)                
                 (unprocessable, x.UnprocessableMessages |> List.map EventHubEvent_MeteringUpdateEvent.Encoder |> Encode.list)
                 //(plans, x.Plans |> Plans.Encoder)
             ]

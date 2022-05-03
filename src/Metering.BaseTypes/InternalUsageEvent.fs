@@ -21,4 +21,4 @@ type InternalUsageEvent =
 
 module InternalUsageEvent =
     let toStr (x: InternalUsageEvent) : string =
-        $"{x.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {x.InternalResourceId |> InternalResourceId.toStr} {x.MeterName |> ApplicationInternalMeterName.value}={x.Quantity |> Quantity.valueAsFloat}"
+        $"{x.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {x.InternalResourceId.ToString()} {x.MeterName |> ApplicationInternalMeterName.value}={x.Quantity |> Quantity.valueAsFloat}"
