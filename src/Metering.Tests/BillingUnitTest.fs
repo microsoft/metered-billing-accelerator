@@ -37,28 +37,6 @@ let ``BillingPeriod.createFromIndex`` () =
         (bp "2|2021-07-13T12:00:03|2021-08-12T12:00:02"),
         (BillingPeriod.createFromIndex sub 2u))
 
-type Subscription_determineBillingPeriod_Vector = { Purchase: (RenewalInterval * string); Expected: string; Candidate: string}
-        
-[<Test>]
-let ``BillingPeriod.determineBillingPeriod`` () =
-    let test (idx, testcase) =
-        let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
-        let expected : Result<BillingPeriod, BusinessError> = Ok(bp testcase.Expected)
-        let compute = BillingPeriod.determineBillingPeriod subscription (d testcase.Candidate)
-        Assert.AreEqual(expected, compute, sprintf "Failure test case %d expected=%A but was %A" idx expected compute);
-
-    [
-        {Purchase=(Monthly, "2021-05-13T12:00:00"); Candidate="2021-05-30T12:00:00"; Expected="0|2021-05-13T12:00:00|2021-06-12T11:59:59"}
-        {Purchase=(Monthly, "2021-05-13T12:00:00"); Candidate="2021-08-01T12:00:00"; Expected="2|2021-07-13T12:00:00|2021-08-12T11:59:59"}
-        // if I purchase on the 29th of Feb in a leap year, 
-        // my billing renews on 28th of Feb the next year, 
-        // therefore last day of the current billing period is 27th next year
-        {Purchase=(Annually, "2004-02-29T12:00:00"); Candidate="2004-03-29T12:00:00"; Expected="0|2004-02-29T12:00:00|2005-02-27T11:59:59"}
-        {Purchase=(Annually, "2021-05-13T12:00:00"); Candidate="2021-08-01T12:00:00"; Expected="0|2021-05-13T12:00:00|2022-05-12T11:59:59"}
-        {Purchase=(Annually, "2021-05-13T12:00:00"); Candidate="2022-08-01T12:00:00"; Expected="1|2022-05-13T12:00:00|2023-05-12T11:59:59"}
-    ] |> runTestVectors test
-
 type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * string); BillingPeriodIndex: uint; Candidate: string; Expected: bool}
 
 [<Test>]
@@ -76,28 +54,6 @@ let ``BillingPeriod.isInBillingPeriod`` () =
         { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-09-12T11:59:59"; Expected=true}
         { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-09-13T12:00:00"; Expected=false}
         { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=4u; Candidate="2021-09-13T12:00:00"; Expected=true}
-    ] |> runTestVectors test
-
-type BillingPeriod_getBillingPeriodDelta_Vector = { Purchase: (RenewalInterval * string); Previous: string; Current: string; Expected: BillingPeriodResult}
-
-[<Test>]
-let ``BillingPeriod.getBillingPeriodDelta`` () =
-    let test (idx, testcase) =
-        let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
-        let result = (BillingPeriod.getBillingPeriodDelta subscription (d testcase.Previous) (d testcase.Current))
-        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
-
-    [
-        { Purchase=(Monthly,"2021-05-13T12:00:00"); Previous="2021-05-13T12:00:00"; Current="2021-05-13T12:00:00"; Expected=SameBillingPeriod }
-        { Purchase=(Monthly,"2021-05-13T12:00:00"); Previous="2021-08-13T12:00:00"; Current="2021-08-15T12:00:00"; Expected=SameBillingPeriod }
-        { Purchase=(Monthly,"2021-08-17T12:00:00"); Previous="2021-08-17T12:00:00"; Current="2021-09-12T12:00:00"; Expected=SameBillingPeriod }
-        
-        // When the second flips, a new BillingPeriod starts
-        { Purchase=(Monthly,"2021-05-13T12:00:00"); Previous="2021-08-17T12:00:00"; Current="2021-09-13T11:59:59"; Expected=SameBillingPeriod }
-        { Purchase=(Monthly,"2021-05-13T12:00:00"); Previous="2021-08-17T12:00:00"; Current="2021-09-13T12:00:00"; Expected=1u |> BillingPeriodsAgo}
-        
-        { Purchase=(Monthly,"2021-05-13T12:00:00"); Previous="2021-08-17T12:00:00"; Current="2021-10-13T12:00:00"; Expected=2u |> BillingPeriodsAgo }
     ] |> runTestVectors test
 
 type MeterValue_subtractQuantityFromMeterValue_Vector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
