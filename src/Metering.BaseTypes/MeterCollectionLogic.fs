@@ -13,7 +13,7 @@ module MeterCollectionLogic =
     let lastUpdate (mc: MeterCollection option) : MessagePosition option = 
         mc |> Option.bind (fun m -> m.LastUpdate)
 
-    [<Extension>]
+    [<Extension>] 
     let getEventPosition (someMeters: MeterCollection option) : StartingPosition =
         match someMeters with
         | None -> StartingPosition.Earliest

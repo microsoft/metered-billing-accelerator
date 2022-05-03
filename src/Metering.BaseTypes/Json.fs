@@ -188,10 +188,10 @@ module Json =
         let (planId, billingDimensions) = ("planId", "billingDimensions")
 
         let encode (x: Plan) : (string * JsonValue) list =
-            let a = x.BillingDimensions |> Map.toSeq |> Seq.map (fun (k, v) -> (k.Value |> Encode.string, v |> Quantity.Encoder))
+            let a = x.BillingDimensions.Dimensions |> Map.toSeq |> Seq.map (fun (k, v) -> (k.value |> Encode.string, v |> Quantity.Encoder))
             [
-                (planId, x.PlanId.Value |> Encode.string)
-                (billingDimensions, x.BillingDimensions |> Map.toList |> List.map (fun (k, v) -> (k.Value, v |> Quantity.Encoder)) |> Encode.object)
+                (planId, x.PlanId.value |> Encode.string)
+                (billingDimensions, x.BillingDimensions.Dimensions |> Map.toList |> List.map (fun (k, v) -> (k.value, v |> Quantity.Encoder)) |> Encode.object)
             ]
             
         let decode (get: Decode.IGetters) : Plan =
@@ -199,7 +199,7 @@ module Json =
 
             {
                 PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
-                BillingDimensions = get.Required.Field billingDimensions ((Decode.keyValuePairs Quantity.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> Decode.succeed))
+                BillingDimensions = get.Required.Field billingDimensions ((Decode.keyValuePairs Quantity.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> BillingDimensions.create |> Decode.succeed))
             }
          
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
@@ -271,7 +271,7 @@ module Json =
         let Encoder (x: InternalMetersMapping) = 
             x
             |> InternalMetersMapping.value |> Map.toList
-            |> List.map (fun (k, v) -> (k.value, v.Value |> Encode.string))
+            |> List.map (fun (k, v) -> (k.value, v.value |> Encode.string))
             |> Encode.object
 
         let Decoder : Decoder<InternalMetersMapping> =
@@ -284,7 +284,7 @@ module Json =
         let Encoder (x: CurrentMeterValues) = 
             x
             |> Map.toList
-            |> List.map (fun (d, m) -> (d.Value, m |> MeterValue.Encoder))
+            |> List.map (fun (d, m) -> (d.value, m |> MeterValue.Encoder))
             |> Encode.object
 
         let Decoder : Decoder<CurrentMeterValues> =
@@ -317,8 +317,8 @@ module Json =
                 [
                     (resourceId, x.ResourceId.ToString() |> InternalResourceId.Encoder)
                     (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
-                    (planId, x.PlanId.Value |> Encode.string)
-                    (dimensionId, x.DimensionId.Value |> Encode.string)                
+                    (planId, x.PlanId.value |> Encode.string)
+                    (dimensionId, x.DimensionId.value |> Encode.string)                
                     (quantity, x.Quantity.AsFloat |> Encode.float)                 
                 ]
 

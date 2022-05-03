@@ -27,7 +27,7 @@ let runTestVectors test testcases = testcases |> List.indexed |> List.map test |
 
 let somePlan : Plan = 
     { PlanId = "PlanId" |> PlanId.create
-      BillingDimensions = Map.empty }
+      BillingDimensions = Map.empty |> BillingDimensions.create }
 
 [<Test>]
 let ``BillingPeriod.createFromIndex`` () =
@@ -226,6 +226,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                         Map.empty
                         |> Map.add ("dimension1" |> DimensionId.create) (1000u |> Quantity.create)
                         |> Map.add ("dimension2" |> DimensionId.create) (Quantity.Infinite)
+                        |> BillingDimensions.create
                 }
                 InternalResourceId = subId
                 RenewalInterval = Monthly
@@ -586,14 +587,13 @@ let ``Json.ParsePlan`` () =
         }
         """
         |> Json.fromStr<Plan>
-    Assert.AreEqual("the_plan", p.PlanId.Value)
+    Assert.AreEqual("the_plan", p.PlanId.value)
 
     let check d v =
-        Assert.AreEqual(v, p.BillingDimensions |> Map.find (DimensionId.create d))
+        Assert.AreEqual(v, p.BillingDimensions.Dimensions |> Map.find (DimensionId.create d))
     check "infinite" Quantity.Infinite
     check "literal" (Quantity.create 2u)
     check "quoted" (Quantity.create 1000000u)
-
 
 module E =
     open System.Collections.Generic

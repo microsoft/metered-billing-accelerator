@@ -137,7 +137,7 @@ module MarketplaceSubmissionResult =
 
     let toStr (x: MarketplaceSubmissionResult) : string =
         match x with
-        | Ok success -> $"Marketplace OK: {success.RequestData.ResourceId.ToString()}/{success.RequestData.PlanId.Value}/{success.RequestData.DimensionId.Value} Period {success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr} {success.Status.MessageTime |> MeteringDateTime.toStr} {success.RequestData.Quantity.ToString()}"
+        | Ok success -> $"Marketplace OK: {success.RequestData.ResourceId.ToString()}/{success.RequestData.PlanId.value}/{success.RequestData.DimensionId.value} Period {success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr} {success.Status.MessageTime |> MeteringDateTime.toStr} {success.RequestData.Quantity.ToString()}"
         | Error e -> 
             match e with
             | DuplicateSubmission d -> $"Marketplace Duplicate: {d.PreviouslyAcceptedMessage.RequestData.ResourceId.ToString()} {d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr}"
@@ -165,7 +165,7 @@ type MarketplaceResponse =
         match this.Result with
         | Ok x -> 
             let successfulRequest = x.RequestData
-            $"{successfulRequest.EffectiveStartTime |> MeteringDateTime.toStr}: Usage submitted: {successfulRequest.ResourceId} {successfulRequest.PlanId.Value}/{successfulRequest.DimensionId.Value}={successfulRequest.Quantity.AsFloat}"
+            $"{successfulRequest.EffectiveStartTime |> MeteringDateTime.toStr}: Usage submitted: {successfulRequest.ResourceId} {successfulRequest.PlanId.value}/{successfulRequest.DimensionId.value}={successfulRequest.Quantity.AsFloat}"
         | Error e -> 
             match e with
             | DuplicateSubmission x -> $"Duplicate of {x.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime} {x.PreviouslyAcceptedMessage.RequestData.ResourceId}"

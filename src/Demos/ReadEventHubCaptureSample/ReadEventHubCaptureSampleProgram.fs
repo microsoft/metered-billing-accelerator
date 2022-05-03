@@ -160,7 +160,7 @@ match initialState with
 
     x.metersToBeSubmitted
     |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
-    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.Value) (a.DimensionId.Value) (a.Quantity.ToString()))
+    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.value) (a.DimensionId.value) (a.Quantity.ToString()))
 
 | Some initialState -> 
     // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
@@ -181,4 +181,4 @@ match initialState with
 
     x.metersToBeSubmitted
     |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
-    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.Value) (a.DimensionId.Value) (a.Quantity.ToString()))
+    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.value) (a.DimensionId.value) (a.Quantity.ToString()))

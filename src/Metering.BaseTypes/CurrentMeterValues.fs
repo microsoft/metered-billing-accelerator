@@ -12,6 +12,6 @@ module CurrentMeterValues =
         |> Map.toSeq
         |> Seq.map (fun (k,v) -> 
             sprintf "%30s: %s" 
-                (k.Value)
+                (k.value)
                 (v.ToString())
         )
