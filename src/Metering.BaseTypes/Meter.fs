@@ -30,7 +30,7 @@ module Meter =
 
         // From the state.CurrentMeterValues, remove all those which are about consumption, and turn them into an API call
         let (consumedValues, includedValuesWhichDontNeedToBeReported) = 
-            state.CurrentMeterValues
+            state.CurrentMeterValues.value
             |> Map.partition (fun _ -> isConsumedQuantity)
 
         let usagesToBeReported = 
@@ -48,7 +48,7 @@ module Meter =
             |> List.ofSeq
 
         state
-        |> setCurrentMeterValues includedValuesWhichDontNeedToBeReported
+        |> setCurrentMeterValues (includedValuesWhichDontNeedToBeReported |> CurrentMeterValues.create)
         |> addUsagesToBeReported usagesToBeReported
     
     let updateConsumption (quantity: Quantity) (timestamp: MeteringDateTime) (someDimension: DimensionId option) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
@@ -62,17 +62,19 @@ module Meter =
                 // TODO: Log that an unknown meter was reported
                 currentMeterValues
             | Some dimension ->
-                if currentMeterValues |> Map.containsKey dimension
+                if currentMeterValues.value |> Map.containsKey dimension
                 then
                     // The meter exists (might be included or overage), so handle properly
-                    currentMeterValues
+                    currentMeterValues.value
                     |> Map.change dimension (MeterValue.someHandleQuantity timestamp quantity)
+                    |> CurrentMeterValues.create
                 else
                     // No existing meter value, i.e. record as overage
                     let newConsumption = ConsumedQuantity (ConsumedQuantity.create timestamp quantity)
 
-                    currentMeterValues
+                    currentMeterValues.value
                     |> Map.add dimension newConsumption
+                    |> CurrentMeterValues.create
 
     let handleUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : Meter) : Meter =
         let someDimension : DimensionId option = 
@@ -134,7 +136,7 @@ module Meter =
         { Subscription = subscriptionCreationInformation.Subscription
           InternalMetersMapping = subscriptionCreationInformation.InternalMetersMapping
           LastProcessedMessage = messagePosition
-          CurrentMeterValues = Map.empty
+          CurrentMeterValues = Map.empty |> CurrentMeterValues.create
           UsageToBeReported = List.empty }
         |> topupMonthlyCreditsOnNewSubscription messagePosition.PartitionTimestamp
 

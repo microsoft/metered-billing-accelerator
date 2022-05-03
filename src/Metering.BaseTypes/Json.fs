@@ -282,13 +282,13 @@ module Json =
         let turnKeyIntoDimensionId (k, v) =  (k |> DimensionId.create, v)
 
         let Encoder (x: CurrentMeterValues) = 
-            x
+            x.value
             |> Map.toList
             |> List.map (fun (d, m) -> (d.value, m |> MeterValue.Encoder))
             |> Encode.object
 
         let Decoder : Decoder<CurrentMeterValues> =
-            (Decode.keyValuePairs MeterValue.Decoder) |> Decode.andThen  (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> Decode.succeed)
+            (Decode.keyValuePairs MeterValue.Decoder) |> Decode.andThen  (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> CurrentMeterValues.create |> Decode.succeed)
 
     module SubscriptionCreationInformation =
         let (subscription, metersMapping) =

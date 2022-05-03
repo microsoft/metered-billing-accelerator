@@ -273,7 +273,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
         mc.MeterCollection
         |> Map.find subId
-        |> (fun s -> s.CurrentMeterValues |> Map.find dimensionId)
+        |> (fun s -> s.CurrentMeterValues.value |> Map.find dimensionId)
 
     let includes (q: Quantity) (mv: MeterValue) : unit =
         // Ensures that the given MeterValue is exactly the given quantity
@@ -363,7 +363,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> check (fun m ->
         m.MeterCollection
         |> Map.find sub1
-        |> checkSub (fun m ->  Assert.AreEqual(2, m.CurrentMeterValues |> Map.count))
+        |> checkSub (fun m ->  Assert.AreEqual(2, m.CurrentMeterValues.value |> Map.count))
         |> ignore
     )
     // Up until now, there should nothing to be reported.

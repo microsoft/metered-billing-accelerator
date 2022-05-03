@@ -21,3 +21,4 @@ type BillingDimensions =
         |> Map.toSeq
         |> Seq.map(fun (dimensionId, quantity) -> (dimensionId, quantity |> toIncluded))
         |> Map.ofSeq
+        |> CurrentMeterValues.create
