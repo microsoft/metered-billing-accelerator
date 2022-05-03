@@ -142,8 +142,7 @@ module Meter =
 
     let toStr (pid: string) (m: Meter) =
         let mStr =
-            m.CurrentMeterValues
-            |> CurrentMeterValues.toStr
+            m.CurrentMeterValues.toStrings
             |> Seq.map(fun v -> $"{pid} {m.Subscription.InternalResourceId.ToString()}: {v}")
             |> String.concat "\n"
 

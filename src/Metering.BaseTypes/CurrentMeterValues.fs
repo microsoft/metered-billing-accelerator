@@ -13,9 +13,8 @@ type CurrentMeterValues = // Collects all meters per internal metering event typ
 
     static member create x = (CurrentMeterValues x)  
 
-module CurrentMeterValues =
-    let toStr (cmv: CurrentMeterValues) =
-        cmv.value
+    member internal this.toStrings =
+        this.value
         |> Map.toSeq
         |> Seq.map (fun (k,v) -> 
             sprintf "%30s: %s" 
