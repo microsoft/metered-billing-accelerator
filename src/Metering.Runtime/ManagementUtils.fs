@@ -15,22 +15,15 @@ open Metering.Integration
 module ManagementUtils =
     [<Extension>]
     let recreateStateFromEventHubCapture (config: MeteringConfigurationProvider) (messagePosition: MessagePosition) : MeterCollection =
-        let cancellationToken = CancellationToken.None
-
-        let aggregate = MeterCollectionLogic.handleMeteringEvent
-        let initialState : MeterCollection option = MeterCollection.Uninitialized
-
         config.MeteringConnections
-        |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent messagePosition.PartitionID cancellationToken 
+        |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent messagePosition.PartitionID CancellationToken.None
         |> Seq.filter (fun e -> e.MessagePosition.SequenceNumber < messagePosition.SequenceNumber)
-        |> Seq.scan aggregate MeterCollection.Empty
+        |> Seq.scan MeterCollectionLogic.handleMeteringEvent MeterCollection.Empty
         |> Seq.last
 
     [<Extension>]
     let recreateLatestStateFromEventHubCapture (config: MeteringConfigurationProvider) (partitionId: PartitionID)  =
         let cancellationToken = CancellationToken.None
-
-        let initialState : MeterCollection option = MeterCollection.Uninitialized
 
         let x = 
             config.MeteringConnections

@@ -99,7 +99,6 @@ module Meter =
         | Close -> meter |> closePreviousMeteringPeriod
         | KeepOpen -> meter
 
-
     let handleUnsuccessfulMeterSubmission (error: MarketplaceSubmissionError) (messagePosition: MessagePosition) (meter: Meter) : Meter =
         match error with
         | DuplicateSubmission duplicate -> 
