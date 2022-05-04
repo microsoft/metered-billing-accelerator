@@ -65,55 +65,54 @@ from azure.eventhub import EventData
 eventHubConnectionString = 'CHANGE THIS VALUE WITH THE DEPLOYMENT OUTPUT VALUE'
 eventHubName = 'CHANGE THIS VALUE WITH THE DEPLOYMENT OUTPUT VALUE'
 
+# Create a producer client to send messages to the event hub.
+# Specify a connection string to your event hubs namespace and
+# the event hub name.
 producer = EventHubProducerClient.from_connection_string(conn_str=eventHubConnectionString, eventhub_name=eventHubName)
 
 async def init():
-    # Create a producer client to send messages to the event hub.
-    # Specify a connection string to your event hubs namespace and
-    # the event hub name.
-    async with producer:
-        # Create a batch.
-        event_data_batch = await producer.create_batch()
-
-        # Add events to the batch.
-
     
-            event_data_batch.add(EventData("""{
-                                                "type":"SubscriptionPurchased",
-                                                "value":{
-                                                "subscription":{
-                                                "scope":"XXXXXX-MARKETPLACE-SUBSCRIPTION-ID",
-                                                "subscriptionStart":"2022-04-08T08:45:20Z",
-                                                "renewalInterval":"Monthly",
-                                                "plan":{
-                                                      "planId":"gold_plan_id",
-                                                      "billingDimensions": {
-                                                      "user_id": { "monthly": 10, "annually": 0 },
-                                                      }
+    async with producer:
+      # Create a batch.
+      event_data_batch = await producer.create_batch()
+
+      # Add events to the batch.
+      event_data_batch.add(EventData("""{
+                                          "type":"SubscriptionPurchased",
+                                          "value":{
+                                          "subscription":{
+                                          "scope":"XXXXXX-MARKETPLACE-SUBSCRIPTION-ID",
+                                          "subscriptionStart":"2022-04-08T08:45:20Z",
+                                          "renewalInterval":"Monthly",
+                                          "plan":{
+                                                "planId":"gold_plan_id",
+                                                "billingDimensions": {
+                                                "user_id": { "monthly": 10, "annually": 0 },
                                                 }
-                                                },
-                                                "metersMapping":{
-                                                "user_id": "user_id"
-                                                }
-                                                }
-                                                } """))
-        
-            event_data_batch.add(EventData("""{
-                                          "type": "UsageReported",
-                                          "value": {
-                                                "internalResourceId": "XXXXXX-MARKETPLACE-SUBSCRIPTION-ID",
-                                                "timestamp":          "2022-04-08T08:45:20Z",
-                                                "meterName":          "user_id",
-                                                "quantity":           1
+                                          }
+                                          },
+                                          "metersMapping":{
+                                          "user_id": "user_id"
+                                          }
                                           }
                                           } """))
+      
+      event_data_batch.add(EventData("""{
+                                    "type": "UsageReported",
+                                    "value": {
+                                          "internalResourceId": "XXXXXX-MARKETPLACE-SUBSCRIPTION-ID",
+                                          "timestamp":          "2022-04-08T08:45:20Z",
+                                          "meterName":          "user_id",
+                                          "quantity":           1
+                                    }
+                                    } """))
 
 
         # Send the batch of events to the event hub.
         await producer.send_batch(event_data_batch)
 
       
-      loop = asyncio.get_event_loop()
-      loop.run_until_complete(init())
+loop = asyncio.get_event_loop()
+loop.run_until_complete(init())
 
 ```
