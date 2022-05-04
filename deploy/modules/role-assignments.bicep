@@ -3,8 +3,8 @@ param storageName string
 
 param principalId string
 param appNamePrefix string
-param roleId string = 'b24988ac-6180-42a0-ab88-20f7382dd24c' // Contributor role
-
+param storageRole string = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor role
+param evenHubRole string = 'f526a384-b230-433a-b45c-95f59c4a2dec' // Azure Event Hubs Data Owner role
 
 resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2021-11-01' existing = {
   name: eventHubName
@@ -15,7 +15,7 @@ resource eventhubRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-08
 
   scope: eventHub
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f526a384-b230-433a-b45c-95f59c4a2dec')
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', evenHubRole)
     principalId: principalId
     principalType: 'ServicePrincipal'
   }
@@ -29,7 +29,7 @@ resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-
   name: guid(appNamePrefix, storageName)
   scope: storage
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageRole)
     principalId: principalId
     principalType: 'ServicePrincipal'
   }

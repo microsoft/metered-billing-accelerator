@@ -10,7 +10,7 @@ param checkpointContainerName string = 'checkpoint'
 resource mainstorage 'Microsoft.Storage/storageAccounts@2021-08-01' = {
   kind: 'StorageV2'
   location: location
-  name: '${appNamePrefix}${uniqueString(resourceGroup().id)}'
+  name: '${appNamePrefix}sa'
   properties: {
     accessTier: 'Hot'
     allowBlobPublicAccess: false

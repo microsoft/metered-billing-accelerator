@@ -3,17 +3,7 @@
 @description('Prefix for created resources.')
 param appNamePrefix string
 
-@allowed([
-  'northcentralusstage'
-  'westcentralus'
-  'westeurope'
-  'jioindiawest'
-  'northeurope'
-  'canadacentral'
-  'eastus2'
-  'eastus'
-])
-param location string = 'westeurope'
+param location string = resourceGroup().location
 
 //Storage Account params
 param isHnsEnabled bool = true //Must be true if you want to use the analytics queries
