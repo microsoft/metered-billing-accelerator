@@ -17,19 +17,19 @@ module EventHubIntegration =
         match e with
         | PartitionInitializing (pi, _) -> pi
         | PartitionClosing pi -> pi
-        | EHEvent e -> e.MessagePosition.PartitionID
-        | EHError (pi, _) -> pi
+        | EventReceived e -> e.MessagePosition.PartitionID
+        | ProcessingError (pi, _) -> pi
         
     let toStr<'TState, 'TEvent> (converter: 'TEvent -> string) (e: EventHubProcessorEvent<'TState, 'TEvent>) : string =
         match e with
         | PartitionInitializing (pi, _)-> $"{pi.value} Initializing"
         | PartitionClosing pi -> $"{pi.value} Closing"
-        | EHEvent e -> $"{e.MessagePosition.PartitionID.value} Event: {e.EventData |> converter}"
-        | EHError (pi, ex) -> $"{pi.value} Error: {ex.Message}"
+        | EventReceived e -> $"{e.MessagePosition.PartitionID.value} Event: {e.EventData |> converter}"
+        | ProcessingError (pi, ex) -> $"{pi.value} Error: {ex.Message}"
     
     let getEvent<'TState, 'TEvent> (e: EventHubProcessorEvent<'TState, 'TEvent>) : EventHubEvent<'TEvent> =
         match e with
-        | EHEvent e -> e
+        | EventReceived e -> e
         | _ -> raise (new ArgumentException(message = $"Not an {nameof(EventHubEvent)}", paramName = nameof(e)))
 
     let createMessagePositionFromEventData (partitionId: PartitionID) (eventData: EventData) : MessagePosition =

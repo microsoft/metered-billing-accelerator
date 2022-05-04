@@ -52,7 +52,7 @@ module EventHubObservableClientFSharpNoLongerInUse =
             let ProcessEvent (processEventArgs: ProcessEventArgs) : Task =
                 try
                     match (createEventHubEventFromEventData eventDataToEvent processEventArgs) with
-                    | Some e -> o.OnNext(EHEvent e)
+                    | Some e -> o.OnNext(EventReceived e)
                     | None -> 
                         let catchUp = processEventArgs.Partition.ReadLastEnqueuedEventProperties()
                         logger.LogDebug <| sprintf $"Didn't find events: PartitionId {processEventArgs.Partition.PartitionId} SequenceNumber {catchUp.SequenceNumber} EnqueuedTime {catchUp.EnqueuedTime} LastReceivedTime {catchUp.LastReceivedTime} ###############"
@@ -148,7 +148,7 @@ module EventHubObservableClientFSharpNoLongerInUse =
                                     (partitionInitializingEventArgs.PartitionId |> PartitionID.create)
                                     cancellationToken
                                 |> Seq.map (fun e -> 
-                                    o.OnNext(EHEvent e)
+                                    o.OnNext(EventReceived e)
                                     e.MessagePosition.SequenceNumber
                                 )
                                 |> Seq.tryLast
@@ -173,7 +173,7 @@ module EventHubObservableClientFSharpNoLongerInUse =
                                     (MessagePosition.create partitionIdStr sn t)
                                     cancellationToken
                                 |> Seq.map (fun e -> 
-                                    o.OnNext(EHEvent e)
+                                    o.OnNext(EventReceived e)
                                     e.MessagePosition.SequenceNumber
                                 )
                                 |> Seq.tryLast

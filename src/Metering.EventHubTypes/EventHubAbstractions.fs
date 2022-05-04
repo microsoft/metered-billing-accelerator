@@ -106,8 +106,8 @@ type EventHubEvent<'TEvent> =
 type EventHubProcessorEvent<'TState, 'TEvent> =    
     | PartitionInitializing of PartitionID:PartitionID * InitialState:'TState
     | PartitionClosing of PartitionID
-    | EHEvent of EventHubEvent<'TEvent>
-    | EHError of PartitionID:PartitionID * Exception:exn
+    | EventReceived of EventHubEvent<'TEvent>
+    | ProcessingError of PartitionID:PartitionID * Exception:exn
 
 type EventHubName =
     { NamespaceName: string

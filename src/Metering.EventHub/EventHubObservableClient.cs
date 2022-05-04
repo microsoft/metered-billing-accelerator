@@ -62,7 +62,7 @@ public static class EventHubObservableClient
                     FSharpOption<EventHubEvent<TEvent>> x = createEventHubEventFromEventData(eventDataToEvent, processEventArgs);
                     if (x.IsSome())
                     {
-                        o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEHEvent(x.Value));
+                        o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventReceived(x.Value));
                     }
                     else
                     {
@@ -190,7 +190,7 @@ public static class EventHubObservableClient
                             eventDataToEvent, partitionId, cancellationToken)
                         .Select(e =>
                         {
-                            o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEHEvent(e));
+                            o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventReceived(e));
                             return e.MessagePosition.SequenceNumber;
                         })
                         .LastOrDefault(defaultValue: -1);
@@ -226,7 +226,7 @@ public static class EventHubObservableClient
                             eventDataToEvent, messagePosition, cancellationToken)
                         .Select(e =>
                         {
-                            o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEHEvent(e));
+                            o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventReceived(e));
                             return e.MessagePosition.SequenceNumber;
                         })
                         .LastOrDefault(defaultValue: -1);

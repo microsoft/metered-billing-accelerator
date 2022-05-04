@@ -22,11 +22,11 @@ module MeteringAggregator =
         | None ->
             match e with
             | PartitionInitializing (_, initialState)-> initialState
-            | EHEvent x -> x |> apply MeterCollection.Empty |> Some
+            | EventReceived x -> x |> apply MeterCollection.Empty |> Some
             | _ -> None
         | Some meterCollection ->
             match e with
-            | EHEvent x -> x |> apply meterCollection |> Some
+            | EventReceived x -> x |> apply meterCollection |> Some
             | _ -> None
 
     [<Extension>]
