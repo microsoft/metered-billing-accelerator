@@ -21,7 +21,7 @@ resource sa 'Microsoft.Resources/resourceGroups@2021-01-01' = {
   location: location
 }
 
-module storage 'main-existing-rg.bicep' = {
+module rgDeployment 'main-existing-rg.bicep' = {
   name: '${appNamePrefix}-rg-deployment'
   params: {
     appNamePrefix: appNamePrefix
@@ -32,3 +32,6 @@ module storage 'main-existing-rg.bicep' = {
   }
   scope: resourceGroup(sa.name)
 }
+
+output eventHubConnectionString string = rgDeployment.outputs.eventHubConnectionString
+output eventHubName string = rgDeployment.outputs.eventHubName
