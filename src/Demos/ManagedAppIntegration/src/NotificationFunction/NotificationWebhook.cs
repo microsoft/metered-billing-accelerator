@@ -27,7 +27,7 @@ namespace ManagedWebhook
 
         [FunctionName("NotificationWebhook")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "notification")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "resource")] HttpRequest req,
             ILogger log,
             ExecutionContext context)
         {
@@ -45,7 +45,6 @@ namespace ManagedWebhook
                 log.LogError($"Unexpected or missing 'sig' parameter value '{sig}'");
                 return new UnauthorizedResult();
             }
-
             using (var streamReader = new StreamReader(req.Body))
             {
                 var requestBody = await streamReader
@@ -77,14 +76,18 @@ namespace ManagedWebhook
                     // If provisioning of a marketplace application instance is successful, we persist a billing entry to be picked up by the chron metric emitting job
                     if (notificationDefinition.EventType == "PUT" && notificationDefinition.ProvisioningState == "Succeeded" && notificationDefinition.BillingDetails?.ResourceUsageId != null)
                     {
+                        var planPath = config["LOCAL_PATH"] + "plan.json";
+                        var dimPath = config["LOCAL_PATH"] + "mapping.json";
+
                         var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
                         System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
                         var subscription = notificationDefinition.BillingDetails.ResourceUsageId;
+                        
 
                         var sub = new SubscriptionCreationInformation(
-                        internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
+                        internalMetersMapping: await readJson<InternalMetersMapping>(dimPath),
                         subscription: new Subscription(
-                            plan: await readJson<Metering.BaseTypes.Plan>("plan.json"),
+                            plan: await readJson<Metering.BaseTypes.Plan>(planPath),
                             internalResourceId: InternalResourceIdModule.fromStr(subscription),
                             renewalInterval: RenewalInterval.Monthly,
                             subscriptionStart: MeteringDateTimeModule.fromStr(DateTime.Now.ToString())));

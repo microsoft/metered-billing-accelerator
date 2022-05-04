@@ -74,14 +74,16 @@ namespace ManagedWebhook
 
                 if (meteredUsage.ResourceId != null)
                 {
-                        var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
-                        System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
+                   var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
+                    log.LogTrace($"Initiate eventhub client");
+
+                    System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
                     
                     var meters = new[] { meteredUsage.Dimension } // this line assume mapping.json used dimensionID for both key values
                    .Select(x => MeterValueModule.create(x, meteredUsage.Quantity))
                    .ToArray();
 
-
+                    log.LogTrace($"Emitting metered { meteredUsage.Quantity} to Dim {meteredUsage.Dimension} and ResourceID {meteredUsage.ResourceId}");
                     await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(meteredUsage.ResourceId, meters), cts.Token);
 
 
