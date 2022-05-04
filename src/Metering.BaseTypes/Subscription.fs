@@ -16,8 +16,7 @@ type Subscription =
       /// When a certain plan was purchased
       SubscriptionStart: MeteringDateTime }
 
-module Subscription =
-    let create plan internalResourceId renewalInterval subscriptionStart =
+    static member create plan internalResourceId renewalInterval subscriptionStart =
         { Plan = plan
           InternalResourceId = internalResourceId
           RenewalInterval = renewalInterval

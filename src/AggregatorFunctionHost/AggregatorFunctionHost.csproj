@@ -10,7 +10,6 @@
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="4.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Metering.EventHub.FSharp\Metering.EventHub.FSharp.fsproj" />
     <ProjectReference Include="..\Metering.EventHub\Metering.EventHub.csproj" />
     <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>

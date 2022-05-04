@@ -19,9 +19,6 @@ using Metering.BaseTypes.EventHub;
 using Metering.Integration;
 using Metering.EventHub;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;
-using Microsoft.FSharp.Core;
-using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Processor;
 
 public class AggregatorStartup : FunctionsStartup
 {
@@ -86,7 +83,7 @@ public class AggregatorFunction
                 onNext: meterCollection =>
                 {
                     // Only add new (unseen) events to the concurrent queue.
-                    var current = meterCollection.metersToBeSubmitted().ToList();
+                    var current = meterCollection.metersToBeSubmitted.ToList();
                     var newOnes = current.Except(previousToBeSubmitted).ToList();
                     if (newOnes.Any())
                     {
@@ -103,13 +100,13 @@ public class AggregatorFunction
     {
         if (meterCollection.getLastSequenceNumber() % 100 == 0)
         {
-            _logger.LogInformation($"{prefix()} Processed event {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
+            _logger.LogInformation($"{prefix()} Processed event {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
         }
 
         if (meterCollection.getLastSequenceNumber() % 500 == 0)
         {
             MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
-            _logger.LogInformation($"{prefix()} Saved state {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
+            _logger.LogInformation($"{prefix()} Saved state {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
         }
     }
 
@@ -124,25 +121,25 @@ public class AggregatorFunction
         string currentPartitions() => string.Join("", partitions);
 
         var groupedSub = EventHubObservableClient
-            .create<SomeMeterCollection, MeteringUpdateEvent>(
+            .Create<SomeMeterCollection, MeteringUpdateEvent>(
                 logger: _logger,
-                getPartitionId: FuncConvert.FromFunc<EventHubProcessorEvent<SomeMeterCollection, MeteringUpdateEvent>, PartitionID>(EventHubIntegration.partitionId),
-                newEventProcessorClient: FuncConvert.FromFunc(config.MeteringConnections.createEventProcessorClient),
-                newEventHubConsumerClient: FuncConvert.FromFunc(config.MeteringConnections.createEventHubConsumerClient),
-                eventDataToEvent: FuncConvert.FromFunc<EventData, MeteringUpdateEvent>(CaptureProcessor.toMeteringUpdateEvent),
-                createEventHubEventFromEventData: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, ProcessEventArgs, FSharpOption<EventHubEvent<MeteringUpdateEvent>>>(EventHubIntegration.createEventHubEventFromEventData),
-                readAllEvents: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, PartitionID, CancellationToken, IEnumerable<EventHubEvent<MeteringUpdateEvent>>>((a, b, c) => CaptureProcessor.readAllEvents(a, b, c, config.MeteringConnections)),
-                readEventsFromPosition: FuncConvert.FromFunc<FSharpFunc<EventData, MeteringUpdateEvent>, MessagePosition, CancellationToken, IEnumerable<EventHubEvent<MeteringUpdateEvent>>>((a, b, c) => CaptureProcessor.readEventsFromPosition(a, b, c, config.MeteringConnections)),
-                loadLastState: FuncConvert.FromFunc<PartitionID, CancellationToken, Task<SomeMeterCollection>>((a, b) => MeterCollectionStore.loadLastState(config, a, b)),
-                determinePosition: FuncConvert.FromFunc<SomeMeterCollection, StartingPosition>(MeterCollectionLogic.getEventPosition),
+                getPartitionId: EventHubIntegration.partitionId,
+                newEventProcessorClient: config.MeteringConnections.createEventProcessorClient,
+                newEventHubConsumerClient: config.MeteringConnections.createEventHubConsumerClient,
+                eventDataToEvent: CaptureProcessor.toMeteringUpdateEvent,
+                createEventHubEventFromEventData: EventHubIntegration.CreateEventHubEventFromEventData,
+                readAllEvents: config.MeteringConnections.ReadAllEvents,
+                readEventsFromPosition: config.MeteringConnections.ReadEventsFromPosition,
+                loadLastState: config.loadLastState,
+                determinePosition: MeterCollectionLogic.getEventPosition,
                 cancellationToken: stoppingToken)
             .Subscribe(
                 onNext: group => {
                     var partitionId = group.Key;
-                    partitions[int.Parse(partitionId.value())] = partitionId.value();
+                    partitions[int.Parse(partitionId.value)] = partitionId.value;
 
                     IObservable<MeterCollection> events = group
-                        .Scan(seed: MeterCollectionModule.Uninitialized, accumulator: MeteringAggregator.createAggregator)
+                        .Scan(seed: MeterCollection.Uninitialized, accumulator: MeteringAggregator.createAggregator)
                         .Choose(); // '.Choose()' is cleaner than '.Where(x => x.IsSome()).Select(x => x.Value)'
 
                     // Subscribe the creation of snapshots
@@ -151,12 +148,12 @@ public class AggregatorFunction
                             onNext: coll => RegularlyCreateSnapshots(partitionId, coll, currentPartitions),
                             onError: ex =>
                             {
-                                _logger.LogError($"Error {partitionId.value()}: {ex.Message}");
+                                _logger.LogError($"Error {partitionId.value}: {ex.Message}");
                             },
                             onCompleted: () =>
                             {
-                                _logger.LogWarning($"Closing {partitionId.value()}");
-                                partitions[int.Parse(partitionId.value())] = "_";
+                                _logger.LogWarning($"Closing {partitionId.value}");
+                                partitions[int.Parse(partitionId.value)] = "_";
                             })
                         .AddToSubscriptions(subscriptions);
 

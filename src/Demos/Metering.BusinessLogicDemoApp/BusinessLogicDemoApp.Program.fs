@@ -37,28 +37,28 @@ let parseConsumptionEvents (str: string) =
                     | _ -> failwith "cannot happen")
                 |> Map.ofList
                 |> Some
-    
+            
             s.Split([|'|'|], 6)
             |> Array.toList
             |> List.map (fun s -> s.Trim())
             |> function
                 | [sequencenr; datestr; internalResourceId; name; amountstr; props] -> 
-                    Some <| MeteringEvent.create
+                    Some <| EventHubEvent<MeteringUpdateEvent>.createEventHub
                         ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
                            Timestamp = datestr |> MeteringDateTime.fromStr 
                            MeterName = name |> ApplicationInternalMeterName.create
-                           Quantity = amountstr |> UInt32.Parse |> Quantity.createInt
+                           Quantity = amountstr |> UInt32.Parse |> Quantity.create
                            Properties = props |> parseProps } |> UsageReported)
                         { PartitionID = "1" |> PartitionID.create
                           SequenceNumber = sequencenr |> Int64.Parse
                           PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                         (dummyEventsToCatchUp datestr)
                 | [sequencenr; datestr; internalResourceId; name; amountstr] ->
-                    Some <| MeteringEvent.create
+                    Some <| EventHubEvent<MeteringUpdateEvent>.createEventHub
                         ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
                            Timestamp = datestr |> MeteringDateTime.fromStr
                            MeterName = name |> ApplicationInternalMeterName.create
-                           Quantity = amountstr |> UInt32.Parse |> Quantity.createInt
+                           Quantity = amountstr |> UInt32.Parse |> Quantity.create
                            Properties = None } |> UsageReported )
                         { PartitionID = "1" |> PartitionID.create
                           SequenceNumber = sequencenr |> Int64.Parse
@@ -92,7 +92,7 @@ let demoAggregation (config: MeteringConfigurationProvider) =
         |> Json.fromStr<SubscriptionCreationInformation> 
         |> SubscriptionPurchased
         |> (fun mue -> 
-            MeteringEvent.create
+            EventHubEvent<MeteringUpdateEvent>.createEventHub
                 mue
                 { PartitionID = "1" |> PartitionID.create
                   SequenceNumber = sequence
@@ -275,7 +275,7 @@ let main argv =
         { InternalResourceId = ManagedApplication ManagedAppIdentity 
           Timestamp = MeteringDateTime.now()
           MeterName = ApplicationInternalMeterName.create "cpu"
-          Quantity = Quantity.createInt 10u
+          Quantity = Quantity.create 10u
           Properties = None } |> UsageReported 
 
     usage

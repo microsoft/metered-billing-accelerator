@@ -4,14 +4,20 @@
 namespace Metering.BaseTypes
 
 type CurrentMeterValues = // Collects all meters per internal metering event type
-    Map<DimensionId, MeterValue> 
+    private | Value of Map<DimensionId, MeterValue> 
 
-module CurrentMeterValues =
-    let toStr (cmv: CurrentMeterValues) =
-        cmv
+    member this.value
+        with get() =
+            let v (Value x) = x
+            this |> v
+
+    static member create x = (Value x)  
+
+    member internal this.toStrings =
+        this.value
         |> Map.toSeq
         |> Seq.map (fun (k,v) -> 
             sprintf "%30s: %s" 
-                (k |> DimensionId.value)
-                (v |> MeterValue.toStr)
+                (k.value)
+                (v.ToString())
         )

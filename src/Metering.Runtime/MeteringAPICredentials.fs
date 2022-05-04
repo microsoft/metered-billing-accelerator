@@ -12,11 +12,10 @@ type MeteringAPICredentials =
     | ManagedIdentity
     | ServicePrincipalCredential of ServicePrincipalCredential
 
-module MeteringAPICredentials =
-    let createManagedIdentity () : MeteringAPICredentials = 
+    static member createManagedIdentity () : MeteringAPICredentials = 
         ManagedIdentity
-
-    let createServicePrincipal tenantId clientId clientSecret : MeteringAPICredentials =
+ 
+    static member createServicePrincipal tenantId clientId clientSecret : MeteringAPICredentials =
         { ClientId = clientId
           ClientSecret = clientSecret
           TenantId = tenantId } |> ServicePrincipalCredential

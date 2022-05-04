@@ -21,26 +21,29 @@ type MarketplaceRequest = // From aggregator to metering API
 
       /// Unique identifier of the resource against which usage is emitted, can be a resourceId or resourceUri
       ResourceId: InternalResourceId }
-
-module MarketplaceRequest =
-    let toStr (x: MarketplaceRequest) : string =
-        $"Usage: {x.ResourceId |> InternalResourceId.toStr} {x.EffectiveStartTime} {x.PlanId}/{x.DimensionId}: {x.Quantity |> Quantity.toStr}"
+    
+    override this.ToString() =
+        $"Usage: {this.ResourceId.ToString()} {this.EffectiveStartTime} {this.PlanId}/{this.DimensionId}: {this.Quantity.ToString()}"
 
 type MarketplaceBatchRequest = 
-    private Entries of MarketplaceRequest list
+    private | Value of MarketplaceRequest list
 
-module MarketplaceBatchRequest =
-    let values (Entries e) = e
-    
-    let createBatch (x: MarketplaceRequest seq) : MarketplaceBatchRequest = 
+    member this.values
+        with get() =
+            let v (Value x) = x
+            this |> v
+
+    static member create x = (Value x)
+
+    static member createBatch (x: MarketplaceRequest seq) = 
         x
         |> Seq.toList
         |> (fun l -> 
             if l.Length > 25
             then raise (new ArgumentException(message = $"A maximum of 25 {nameof(MarketplaceRequest)} item is allowed")) 
             else l)
-        |> Entries
-    
+        |> MarketplaceBatchRequest.create 
+
 type SubmissionStatus =
     /// Accepted.
     | Accepted
@@ -101,9 +104,7 @@ type MarketplaceArgumentErrorData =
     { Error: MarketplaceErrorCode
       Target: string }
 
-module MarketplaceArgumentErrorData =
-    let toStr (e: MarketplaceArgumentErrorData) : string = 
-        $"{e.Error.Code}: {e.Error.Message}"
+     override this.ToString() = $"{this.Error.Code}: {this.Error.Message}"
 
 type MarketplaceGenericError =
     { RequestData: MarketplaceRequest
@@ -111,12 +112,9 @@ type MarketplaceGenericError =
       Error: MarketplaceArgumentErrorData
       ErrorDetails: MarketplaceArgumentErrorData list }
 
-module MarketplaceGenericError =
-    let toStr (e: MarketplaceGenericError) : string =
-        $"{e.Error |> MarketplaceArgumentErrorData.toStr}"
+    override this.ToString() = this.Error.ToString()
 
-    let resourceId (e: MarketplaceGenericError) =
-        e.RequestData.ResourceId
+    member this.resourceId () = this.RequestData.ResourceId
 
 type MarketplaceSubmissionError =
     | DuplicateSubmission of MarketplaceErrorDuplicate
@@ -134,20 +132,20 @@ module MarketplaceSubmissionResult =
         | Error e ->
             match e with 
             | DuplicateSubmission d -> d.FailedRequest.ResourceId
-            | ResourceNotFound e -> e |> MarketplaceGenericError.resourceId
-            | Expired e -> e |> MarketplaceGenericError.resourceId
-            | Generic e -> e |> MarketplaceGenericError.resourceId
+            | ResourceNotFound e -> e.resourceId()
+            | Expired e -> e.resourceId()
+            | Generic e -> e.resourceId()
 
     let toStr (x: MarketplaceSubmissionResult) : string =
         match x with
-        | Ok success -> $"Marketplace OK: {success.RequestData.ResourceId |> InternalResourceId.toStr}/{success.RequestData.PlanId |> PlanId.value}/{success.RequestData.DimensionId |> DimensionId.value} Period {success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr} {success.Status.MessageTime |> MeteringDateTime.toStr} {success.RequestData.Quantity |> Quantity.toStr}"
+        | Ok success -> $"Marketplace OK: {success.RequestData.ResourceId.ToString()}/{success.RequestData.PlanId.value}/{success.RequestData.DimensionId.value} Period {success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr} {success.Status.MessageTime |> MeteringDateTime.toStr} {success.RequestData.Quantity.ToString()}"
         | Error e -> 
             match e with
-            | DuplicateSubmission d -> $"Marketplace Duplicate: {d.PreviouslyAcceptedMessage.RequestData.ResourceId |> InternalResourceId.toStr} {d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr}"
-            | ResourceNotFound d -> $"Marketplace NotFound: ResourceId {d.RequestData.ResourceId |> InternalResourceId.toStr}"
+            | DuplicateSubmission d -> $"Marketplace Duplicate: {d.PreviouslyAcceptedMessage.RequestData.ResourceId.ToString()} {d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr}"
+            | ResourceNotFound d -> $"Marketplace NotFound: ResourceId {d.RequestData.ResourceId.ToString()}"
             | Expired d -> 
                 let tooLate = (d.Status.MessageTime - d.RequestData.EffectiveStartTime)
-                $"Marketplace Expired: {d.RequestData.ResourceId |> InternalResourceId.toStr}: Time delta between billingTime and submission: {tooLate}"
+                $"Marketplace Expired: {d.RequestData.ResourceId.ToString()}: Time delta between billingTime and submission: {tooLate}"
             | Generic d ->  sprintf "Marketplace Generic Error: %A" d
 
 type AzureHttpResponseHeaders =
@@ -164,26 +162,24 @@ type MarketplaceResponse =
     { Headers: AzureHttpResponseHeaders 
       Result: MarketplaceSubmissionResult }
 
-module MarketplaceResponse =
-    let create (headers: AzureHttpResponseHeaders) (result: MarketplaceSubmissionResult) =
-        { Headers = headers
-          Result = result }
-
-    let toStr (x: MarketplaceResponse) : string =
-        match x.Result with
+    override this.ToString() =
+        match this.Result with
         | Ok x -> 
             let successfulRequest = x.RequestData
-            $"{successfulRequest.EffectiveStartTime |> MeteringDateTime.toStr}: Usage submitted: {successfulRequest.ResourceId} {successfulRequest.PlanId |> PlanId.value}/{successfulRequest.DimensionId |> DimensionId.value}={successfulRequest.Quantity |> Quantity.valueAsFloat}"
+            $"{successfulRequest.EffectiveStartTime |> MeteringDateTime.toStr}: Usage submitted: {successfulRequest.ResourceId} {successfulRequest.PlanId.value}/{successfulRequest.DimensionId.value}={successfulRequest.Quantity.AsFloat}"
         | Error e -> 
             match e with
             | DuplicateSubmission x -> $"Duplicate of {x.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime} {x.PreviouslyAcceptedMessage.RequestData.ResourceId}"
             | ResourceNotFound x -> $"Bad resource ID: {x.RequestData.ResourceId}" 
             | Expired x -> $"InvalidEffectiveStartTime: {x.RequestData.EffectiveStartTime}"
             | Generic x -> $"Something bad happened: {x}"
-              
+
+    static member create (headers: AzureHttpResponseHeaders) (result: MarketplaceSubmissionResult) =
+        { Headers = headers
+          Result = result }
+
 type MarketplaceBatchResponse = 
     { Results: MarketplaceResponse list }
 
-module MarketplaceBatchResponse = 
-    let create (results: MarketplaceResponse list) = 
+    static member create (results: MarketplaceResponse list) = 
         { Results = results} 
