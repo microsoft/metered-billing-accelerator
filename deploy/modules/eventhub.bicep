@@ -5,7 +5,11 @@ param eventHubSku string = 'Standard'
 param skuCapacity int = 1
 param location string = resourceGroup().location
 param storageAccountId string
-param consumerGroupName string
+param consumerGroupName string = 'consumerGroupName'
+param captureContainerName string = 'capture'
+param archiveNameFormat string
+param messageRetentionInDays int = 3
+param partitionCount int = 5
 
 resource eh_namespace 'Microsoft.EventHub/namespaces@2021-11-01' = {
   name: '${appNamePrefix}-eh-namespace'
@@ -15,7 +19,7 @@ resource eh_namespace 'Microsoft.EventHub/namespaces@2021-11-01' = {
     tier: eventHubSku
     capacity: skuCapacity
   }
-  properties: {  //TODO: Check this values 
+  properties: {
     disableLocalAuth: false
     isAutoInflateEnabled: false
     kafkaEnabled: true
@@ -24,15 +28,15 @@ resource eh_namespace 'Microsoft.EventHub/namespaces@2021-11-01' = {
 }
 
 
-resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2017-04-01' = {
+resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2021-11-01' = {
   name: '${eh_namespace.name}/${appNamePrefix}-eh'
   properties: {
     captureDescription: {
       destination: {
         name: 'EventHubArchive.AzureBlockBlob'
         properties: {
-          archiveNameFormat: '{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}'
-          blobContainer: '${appNamePrefix}-capture'
+          archiveNameFormat: archiveNameFormat
+          blobContainer: captureContainerName
           storageAccountResourceId: storageAccountId
         }
       }
@@ -42,18 +46,20 @@ resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2017-04-01' = {
       sizeLimitInBytes: 314572800
       skipEmptyArchives: true
     }
-    messageRetentionInDays: 2
-    partitionCount: 11
+    messageRetentionInDays: messageRetentionInDays
+    partitionCount: partitionCount
     status: 'Active'
   }
 }
 
 resource eventHub_Send 'Microsoft.EventHub/namespaces/eventhubs/authorizationRules@2021-01-01-preview' = {
   parent: eventHub
-  name: 'Send'
+  name: 'MarketplaceAggregator'
   properties: {
     rights: [
       'Send'
+      'Listen'
+      'Manage'
     ]
   }
   dependsOn: [
@@ -70,12 +76,14 @@ resource consumerGroup 'Microsoft.EventHub/namespaces/eventhubs/consumergroups@2
   ]
 }
 
-
 // Determine our connection string
 var eventHubNamespaceConnectionString = listKeys(eventHub_Send.id, eventHub_Send.apiVersion).primaryConnectionString
 
 // Output our variables
 
 output eventHubNamespaceConnectionString string = eventHubNamespaceConnectionString
-output eventHubName string = '${appNamePrefix}-eh-namespace'
+output eventHubNamespaceName string = eh_namespace.name
+output eventHubName string = eventHub.name
+output eventHubInstanceName string = '${appNamePrefix}-eh'
+
 
