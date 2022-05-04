@@ -5,11 +5,11 @@ namespace Metering.BaseTypes
 
 /// A meter name used between app and aggregator
 type ApplicationInternalMeterName = 
-    private | ApplicationInternalMeterName of string 
+    private | Value of string 
 
     member this.value
         with get() =
-            let v (ApplicationInternalMeterName x) = x
+            let v (Value x) = x
             this |> v
-    
-    static member create x = (ApplicationInternalMeterName x)
+
+    static member create x = (Value x)

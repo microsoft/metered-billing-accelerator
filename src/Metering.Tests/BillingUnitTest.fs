@@ -192,16 +192,16 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                 Map.empty
                 |> Map.add ("d1" |> ApplicationInternalMeterName.create) ("dimension1" |> DimensionId.create)
                 |> Map.add ("freestuff" |> ApplicationInternalMeterName.create) ("dimension2" |> DimensionId.create)
-                |> InternalMetersMapping
+                |> InternalMetersMapping.create
         }
 
-    let createEvent sequenceNr timestamp evnt =
+    let createEvent sequenceNr timestamp (evnt: MeteringUpdateEvent) =
         let partitionId = "2"
         let timestamp = timestamp |> MeteringDateTime.fromStr
         let messagePosition = MessagePosition.createData partitionId sequenceNr timestamp
         let eventToCatchup = None
 
-        MeteringEvent.create evnt messagePosition eventToCatchup
+        EventHubEvent.createEventHub evnt messagePosition eventToCatchup
         
     let createSubsc sequenceNr timestamp sub = 
         sub |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent sequenceNr timestamp
@@ -546,7 +546,7 @@ let ``Json.ParsePlan`` () =
     Assert.AreEqual("the_plan", p.PlanId.value)
 
     let check d v =
-        Assert.AreEqual(v, p.BillingDimensions.Dimensions |> Map.find (DimensionId.create d))
+        Assert.AreEqual(v, p.BillingDimensions.value |> Map.find (DimensionId.create d))
     check "infinite" Quantity.Infinite
     check "literal" (Quantity.create 2u)
     check "quoted" (Quantity.create 1000000u)

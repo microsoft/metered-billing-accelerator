@@ -44,7 +44,7 @@ module MeterCollection =
             let pid =
                 match mc.LastUpdate with
                 | None -> ""
-                | Some p -> p.PartitionID |> PartitionID.value 
+                | Some p -> p.PartitionID.value 
                 |> sprintf "%2s"
 
             mc.MeterCollection

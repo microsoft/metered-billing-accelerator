@@ -37,13 +37,13 @@ let parseConsumptionEvents (str: string) =
                     | _ -> failwith "cannot happen")
                 |> Map.ofList
                 |> Some
-    
+            
             s.Split([|'|'|], 6)
             |> Array.toList
             |> List.map (fun s -> s.Trim())
             |> function
                 | [sequencenr; datestr; internalResourceId; name; amountstr; props] -> 
-                    Some <| MeteringEvent.create
+                    Some <| EventHubEvent<MeteringUpdateEvent>.createEventHub
                         ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
                            Timestamp = datestr |> MeteringDateTime.fromStr 
                            MeterName = name |> ApplicationInternalMeterName.create
@@ -54,7 +54,7 @@ let parseConsumptionEvents (str: string) =
                           PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                         (dummyEventsToCatchUp datestr)
                 | [sequencenr; datestr; internalResourceId; name; amountstr] ->
-                    Some <| MeteringEvent.create
+                    Some <| EventHubEvent<MeteringUpdateEvent>.createEventHub
                         ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
                            Timestamp = datestr |> MeteringDateTime.fromStr
                            MeterName = name |> ApplicationInternalMeterName.create
@@ -92,7 +92,7 @@ let demoAggregation (config: MeteringConfigurationProvider) =
         |> Json.fromStr<SubscriptionCreationInformation> 
         |> SubscriptionPurchased
         |> (fun mue -> 
-            MeteringEvent.create
+            EventHubEvent<MeteringUpdateEvent>.createEventHub
                 mue
                 { PartitionID = "1" |> PartitionID.create
                   SequenceNumber = sequence

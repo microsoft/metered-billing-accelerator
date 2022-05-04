@@ -62,7 +62,7 @@ public static class EventHubObservableClient
                     FSharpOption<EventHubEvent<TEvent>> x = createEventHubEventFromEventData(eventDataToEvent, processEventArgs);
                     if (x.IsSome())
                     {
-                        o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(x.Value));
+                        o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEHEvent(x.Value));
                     }
                     else
                     {
@@ -174,7 +174,7 @@ public static class EventHubObservableClient
                 Task OnlyEventHub(CanReadEverythingFromEventHub x)
                 {
                     o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
-                        PartitionIDModule.create(partitionIdStr), initialState));
+                        PartitionID.create(partitionIdStr), initialState));
                     partitionInitializingEventArgs.DefaultStartingPosition = x.EventPosition;
                     return Task.CompletedTask;
                 }
@@ -182,15 +182,15 @@ public static class EventHubObservableClient
                 Task AllCaptureThenEventHub(ReadFromEventHubCaptureBeginningAndThenEventHub x)
                 {
                     o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
-                        PartitionIDModule.create(partitionIdStr), initialState));
-                    PartitionID partitionId = PartitionIDModule.create(partitionInitializingEventArgs.PartitionId);
+                        PartitionID.create(partitionIdStr), initialState));
+                    PartitionID partitionId = PartitionID.create(partitionInitializingEventArgs.PartitionId);
 
                     var lastProcessedEventReadFromCaptureSequenceNumber =
                         readAllEvents(
                             eventDataToEvent, partitionId, cancellationToken)
                         .Select(e =>
                         {
-                            o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(e));
+                            o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEHEvent(e));
                             return e.MessagePosition.SequenceNumber;
                         })
                         .LastOrDefault(defaultValue: -1);
@@ -214,7 +214,7 @@ public static class EventHubObservableClient
                 Task SomeCaptureThenEventHub(ReadFromEventHubCaptureAndThenEventHub x)
                 {
                     o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
-                        PartitionIDModule.create(partitionIdStr), initialState));
+                        PartitionID.create(partitionIdStr), initialState));
 
                     var messagePosition = MessagePositionModule.createData(
                         partitionId: partitionIdStr,
@@ -226,7 +226,7 @@ public static class EventHubObservableClient
                             eventDataToEvent, messagePosition, cancellationToken)
                         .Select(e =>
                         {
-                            o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventHubEvent(e));
+                            o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEHEvent(e));
                             return e.MessagePosition.SequenceNumber;
                         })
                         .LastOrDefault(defaultValue: -1);
@@ -311,7 +311,7 @@ public static class EventHubObservableClient
         CancellationToken cancellationToken = default)
     {
         Task<TState> determineInitialState(PartitionInitializingEventArgs args, CancellationToken ct) => 
-            loadLastState(PartitionIDModule.create(args.PartitionId), ct);
+            loadLastState(PartitionID.create(args.PartitionId), ct);
         
         return CreateInternal(logger, 
                 determineInitialState, 

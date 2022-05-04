@@ -16,18 +16,17 @@ module MeteringAggregator =
     let aggregate (meters: MeterCollection option) (e: EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>) : MeterCollection option =
         let apply meterCollection eventHubEvent =
             eventHubEvent
-            |> MeteringEvent.fromEventHubEvent 
             |> handleMeteringEvent meterCollection
             
         match meters with 
         | None ->
             match e with
             | PartitionInitializing (_, initialState)-> initialState
-            | EventHubEvent x -> x |> apply MeterCollection.Empty |> Some
+            | EHEvent x -> x |> apply MeterCollection.Empty |> Some
             | _ -> None
         | Some meterCollection ->
             match e with
-            | EventHubEvent x -> x |> apply meterCollection |> Some
+            | EHEvent x -> x |> apply meterCollection |> Some
             | _ -> None
 
     [<Extension>]

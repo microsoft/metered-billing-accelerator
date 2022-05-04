@@ -5,14 +5,14 @@ namespace Metering.BaseTypes
 
 /// For SaaS offers, the resourceId is the SaaS subscription ID. 
 type SaaSSubscriptionID = 
-    private | SaaSSubscriptionID of string
+    private | Value of string
 
     member this.value
         with get() =
-            let v (SaaSSubscriptionID x) = x
+            let v (Value x) = x
             this |> v
             
-    static member create (x: string) = (SaaSSubscriptionID x)
+    static member create (x: string) = (Value x)
 
 type ManagedApp =
     /// Internally used handle for a managed app

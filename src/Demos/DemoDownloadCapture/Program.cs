@@ -13,7 +13,7 @@ var connections = MeteringConnectionsModule.getFromEnvironment();
 var x = CaptureProcessorCS.ReadAllEvents(
     connections: connections,
     convert: CaptureProcessor.toMeteringUpdateEvent,
-    partitionId: PartitionIDModule.create("2"));
+    partitionId: PartitionID.create("2"));
 
 await foreach (MeteringUpdateEvent e in x)
 {

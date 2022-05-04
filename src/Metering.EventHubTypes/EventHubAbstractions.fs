@@ -10,21 +10,25 @@ type SequenceNumber = int64
 
 type DifferenceBetweenTwoSequenceNumbers = SequenceNumber
 
-type PartitionID = PartitionID of string
+type PartitionID = 
+    private | PartitionID of string
 
-[<Extension>]
-module PartitionID =
-    [<Extension>]
-    let value (PartitionID x) = x
-    let create x = (PartitionID x)
+    member this.value
+        with get() : string =
+            let v (PartitionID x) = x
+            this |> v
 
-type PartitionKey = PartitionKey of string
+    static member create (x: string) : PartitionID = (PartitionID x)
 
-[<Extension>]
-module PartitionKey =
-    [<Extension>]
-    let value (PartitionKey x) = x
-    let create x = (PartitionKey x)
+type PartitionKey = 
+    private | PartitionKey of string
+
+    member this.value
+        with get() : string =
+            let v (PartitionKey x) = x
+            this |> v
+
+    static member create (x: string) : PartitionKey = (PartitionKey x)
 
 type PartitionIdentifier =
     | PartitionID of PartitionID
@@ -77,9 +81,8 @@ type EventSource =
     | EventHub
     | Capture of BlobName:string
 
-module EventSource =
-    let toStr = 
-        function
+    override this.ToString() =
+        match this with
         | EventHub -> "EventHub"
         | Capture(BlobName=b) -> b 
 
@@ -91,21 +94,32 @@ type EventHubEvent<'TEvent> =
       /// Indicate whether an event was read from EventHub, or from the associated capture storage.      
       Source: EventSource }
 
+    static member createEventHub (evnt: 'TEvent) (messagePosition: MessagePosition) (eventsToCatchup: EventsToCatchup option) : EventHubEvent<'TEvent> =
+        { EventData = evnt
+          MessagePosition = messagePosition
+          EventsToCatchup = eventsToCatchup
+          Source = EventHub }
+
+    static member createFromCapture (evnt: 'TEvent) (messagePosition: MessagePosition) (eventsToCatchup: EventsToCatchup option) (blobName: string) : EventHubEvent<'TEvent> =
+        { EventData = evnt
+          MessagePosition = messagePosition
+          EventsToCatchup = eventsToCatchup
+          Source = EventHub }
+
 type EventHubProcessorEvent<'TState, 'TEvent> =    
     | PartitionInitializing of PartitionID:PartitionID * InitialState:'TState
     | PartitionClosing of PartitionID
-    | EventHubEvent of EventHubEvent<'TEvent>
-    | EventHubError of PartitionID:PartitionID * Exception:exn
+    | EHEvent of EventHubEvent<'TEvent>
+    | EHError of PartitionID:PartitionID * Exception:exn
 
 type EventHubName =
     { NamespaceName: string
       FullyQualifiedNamespace: string
       InstanceName: string }
-
-module EventHubName =
-    let create nameSpaceName instanceName =
+    
+    static member create nameSpaceName instanceName =
         { NamespaceName = nameSpaceName
           FullyQualifiedNamespace = $"{nameSpaceName}.servicebus.windows.net"
           InstanceName = instanceName }
 
-    let toStr (e: EventHubName) = $"{e.FullyQualifiedNamespace}/{e.InstanceName}"
+    override this.ToString() = $"{this.FullyQualifiedNamespace}/{this.InstanceName}"

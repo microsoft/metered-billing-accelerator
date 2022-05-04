@@ -23,7 +23,6 @@ module ManagementUtils =
         config.MeteringConnections
         |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent messagePosition.PartitionID cancellationToken 
         |> Seq.filter (fun e -> e.MessagePosition.SequenceNumber < messagePosition.SequenceNumber)
-        |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan aggregate MeterCollection.Empty
         |> Seq.last
 
@@ -36,7 +35,6 @@ module ManagementUtils =
         let x = 
             config.MeteringConnections
             |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent partitionId cancellationToken 
-            |> Seq.map MeteringEvent.fromEventHubEvent
             |> Seq.scan MeterCollectionLogic.handleMeteringEvent MeterCollection.Empty
             |> Seq.last
 

@@ -23,7 +23,7 @@ module MeterCollectionLogic =
     let getLastUpdateAsString (meters: MeterCollection) : string =
         match meters.LastUpdate with
         | None -> "Earliest"
-        | Some p -> $"partition {p.PartitionID |> PartitionID.value} / sequence# {p.SequenceNumber}"
+        | Some p -> $"partition {p.PartitionID.value} / sequence# {p.SequenceNumber}"
 
     [<Extension>]
     let getLastSequenceNumber (meters: MeterCollection) : SequenceNumber =
@@ -130,7 +130,7 @@ module MeterCollectionLogic =
     let private setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }
 
-    let handleMeteringEvent (state: MeterCollection) ({Event = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup}: MeteringEvent) : MeterCollection =
+    let handleMeteringEvent (state: MeterCollection) ({EventData = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup}: EventHubEvent<MeteringUpdateEvent>) : MeterCollection =
         state
         |> enforceStrictSequenceNumbers messagePosition  // This line throws an exception if we're not being fed the right event #
         |> match meteringUpdateEvent with
@@ -143,7 +143,7 @@ module MeterCollectionLogic =
         |> handleMeteringTimestamp messagePosition.PartitionTimestamp
         |> setLastProcessed messagePosition 
 
-    let handleMeteringEvents (meterCollection: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
+    let handleMeteringEvents (meterCollection: MeterCollection option) (meteringEvents: EventHubEvent<MeteringUpdateEvent> list) : MeterCollection =
         let meterCollection =
             match meterCollection with
             | None -> MeterCollection.Empty

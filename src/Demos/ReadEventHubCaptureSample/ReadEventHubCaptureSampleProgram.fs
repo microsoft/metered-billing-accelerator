@@ -143,7 +143,6 @@ match initialState with
         config.MeteringConnections
         |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent (partitionId |> PartitionID.create) CancellationToken.None 
         //|> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
-        |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan MeterCollectionLogic.handleMeteringEvent MeterCollection.Empty
         |> Seq.last
 
@@ -171,7 +170,6 @@ match initialState with
         config.MeteringConnections
         |> CaptureProcessor.readEventsFromPosition CaptureProcessor.toMeteringUpdateEvent startPosition CancellationToken.None 
         // |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
-        |> Seq.map MeteringEvent.fromEventHubEvent
         |> Seq.scan MeterCollectionLogic.handleMeteringEvent initialState
         |> Seq.last
 

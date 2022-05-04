@@ -85,7 +85,7 @@ module Json =
 
         let encode (x: MessagePosition) : (string * JsonValue) list =
             [
-                (partitionId, x.PartitionID |> PartitionID.value |> Encode.string)
+                (partitionId, x.PartitionID.value |> Encode.string)
                 (sequenceNumber, x.SequenceNumber |> Encode.int64)
                 (partitionTimestamp, x.PartitionTimestamp |> MeteringDateTime.Encoder)
             ]
@@ -188,10 +188,10 @@ module Json =
         let (planId, billingDimensions) = ("planId", "billingDimensions")
 
         let encode (x: Plan) : (string * JsonValue) list =
-            let a = x.BillingDimensions.Dimensions |> Map.toSeq |> Seq.map (fun (k, v) -> (k.value |> Encode.string, v |> Quantity.Encoder))
+            let a = x.BillingDimensions.value |> Map.toSeq |> Seq.map (fun (k, v) -> (k.value |> Encode.string, v |> Quantity.Encoder))
             [
                 (planId, x.PlanId.value |> Encode.string)
-                (billingDimensions, x.BillingDimensions.Dimensions |> Map.toList |> List.map (fun (k, v) -> (k.value, v |> Quantity.Encoder)) |> Encode.object)
+                (billingDimensions, x.BillingDimensions.value |> Map.toList |> List.map (fun (k, v) -> (k.value, v |> Quantity.Encoder)) |> Encode.object)
             ]
             
         let decode (get: Decode.IGetters) : Plan =
@@ -269,8 +269,8 @@ module Json =
 
     module InternalMetersMapping =
         let Encoder (x: InternalMetersMapping) = 
-            x
-            |> InternalMetersMapping.value |> Map.toList
+            x.value
+            |> Map.toList
             |> List.map (fun (k, v) -> (k.value, v.value |> Encode.string))
             |> Encode.object
 
@@ -645,7 +645,7 @@ module Json =
 
         let Encoder ({PartitionID = partitionID; Selection = selection}: RemoveUnprocessedMessages) : JsonValue =
             [
-                ("partitionId", partitionID |> PartitionID.value |> Encode.string)
+                ("partitionId", partitionID.value |> Encode.string)
                 encodeSelection selection
             ] |> Encode.object
 

@@ -26,23 +26,24 @@ type MarketplaceRequest = // From aggregator to metering API
         $"Usage: {this.ResourceId.ToString()} {this.EffectiveStartTime} {this.PlanId}/{this.DimensionId}: {this.Quantity.ToString()}"
 
 type MarketplaceBatchRequest = 
-    private | Entries of MarketplaceRequest list
+    private | Value of MarketplaceRequest list
 
-    member this.values 
+    member this.values
         with get() =
-            let values (Entries e) = e
-            this |> values
+            let v (Value x) = x
+            this |> v
 
-module MarketplaceBatchRequest =    
-    let createBatch (x: MarketplaceRequest seq) : MarketplaceBatchRequest = 
+    static member create x = (Value x)
+
+    static member createBatch (x: MarketplaceRequest seq) = 
         x
         |> Seq.toList
         |> (fun l -> 
             if l.Length > 25
             then raise (new ArgumentException(message = $"A maximum of 25 {nameof(MarketplaceRequest)} item is allowed")) 
             else l)
-        |> Entries
-    
+        |> MarketplaceBatchRequest.create 
+
 type SubmissionStatus =
     /// Accepted.
     | Accepted

@@ -89,7 +89,7 @@ module MeteringEventHubExtensions =
     let private SubmitMeteringUpdateEventToPartition (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (cancellationToken: CancellationToken) (meteringUpdateEvent: MeteringUpdateEvent) : Task =
         task {
             let! eventBatch = eventHubProducerClient.CreateBatchAsync(
-                options = new CreateBatchOptions (PartitionId = (partitionId |> PartitionID.value)),
+                options = new CreateBatchOptions (PartitionId = partitionId.value),
                 cancellationToken = cancellationToken)
             
             meteringUpdateEvent

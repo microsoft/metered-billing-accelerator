@@ -35,7 +35,6 @@
     <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="UnprocessableMessage.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />
-    <Compile Include="MeteringEvent.fs" />
     <Compile Include="Meter.fs" />
     <Compile Include="MeterCollection.fs" />
     <Compile Include="MeterCollectionLogic.fs" />

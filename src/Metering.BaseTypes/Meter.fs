@@ -78,7 +78,7 @@ module Meter =
 
     let handleUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : Meter) : Meter =
         let someDimension : DimensionId option = 
-            state.InternalMetersMapping |> InternalMetersMapping.value |> Map.tryFind event.MeterName
+            state.InternalMetersMapping.value |> Map.tryFind event.MeterName
         
         let closePreviousIntervalIfNeeded : (Meter -> Meter) = 
             let last = state.LastProcessedMessage.PartitionTimestamp

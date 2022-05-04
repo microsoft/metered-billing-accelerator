@@ -27,7 +27,7 @@ module Status =
         let getPartitionProps (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionId: PartitionID) = 
             task {
                 let! p = client.GetPartitionPropertiesAsync(
-                    partitionId = (partitionId |> PartitionID.value), 
+                    partitionId = (partitionId.value), 
                     cancellationToken = cancellationToken)
                 return (partitionId, PartitionProps(
                     PartitionId = partitionId,
@@ -100,7 +100,7 @@ module Status =
                                 NumberOfEvents = seqid 
                                 TimeDeltaSeconds = -1 })
 
-                    | _ -> failwith $"Could not find {partitionId |> PartitionID.value}: {part} {stateLastMessagePos}"
+                    | _ -> failwith $"Could not find {partitionId.value}: {part} {stateLastMessagePos}"
                 )
                 |> Map.ofSeq
         }

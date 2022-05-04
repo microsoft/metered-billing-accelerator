@@ -72,13 +72,13 @@ public class AggregatorWorker : BackgroundService
     {
         if (meterCollection.getLastSequenceNumber() % 100 == 0)
         {
-            _logger.LogInformation($"{prefix()} Processed event {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
+            _logger.LogInformation($"{prefix()} Processed event {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
         }
 
         //if (meterCollection.getLastSequenceNumber() % 500 == 0)
         {
             MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
-            _logger.LogInformation($"{prefix()} Saved state {partitionId.value()}#{meterCollection.getLastSequenceNumber()}");
+            _logger.LogInformation($"{prefix()} Saved state {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
         }
     }
 
@@ -108,7 +108,7 @@ public class AggregatorWorker : BackgroundService
             .Subscribe(
                 onNext: group => {
                     var partitionId = group.Key;
-                    partitions[int.Parse(partitionId.value())] = partitionId.value();
+                    partitions[int.Parse(partitionId.value)] = partitionId.value;
 
                     IObservable<MeterCollection> events = group
                         .Scan(seed: MeterCollection.Uninitialized, accumulator: MeteringAggregator.createAggregator)
@@ -120,12 +120,12 @@ public class AggregatorWorker : BackgroundService
                             onNext: coll => RegularlyCreateSnapshots(partitionId, coll, currentPartitions),
                             onError: ex =>
                             {
-                                _logger.LogError($"Error {partitionId.value()}: {ex.Message}");
+                                _logger.LogError($"Error {partitionId.value}: {ex.Message}");
                             },
                             onCompleted: () =>
                             {
-                                _logger.LogWarning($"Closing {partitionId.value()}");
-                                partitions[int.Parse(partitionId.value())] = "_";
+                                _logger.LogWarning($"Closing {partitionId.value}");
+                                partitions[int.Parse(partitionId.value)] = "_";
                             })
                         .AddToSubscriptions(subscriptions);
 
