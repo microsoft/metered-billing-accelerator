@@ -1,8 +1,9 @@
-# Instalation
+# Installation
 
-The simplest way to deploy this solution is by using the bicep fiels located in this folder.
+The simplest way to deploy this solution is by using the bicep files located in this folder.
 
 ## Prerequisites
+
 1. Installed Bicep.
 
       Follow the instructions in the [Deployment environment](https://docs.microsoft.com/en-us/azure/azure-resource-manager/bicep/install#deployment-environment) section and install Bicep as part of your Azure CLI, Azure PowerShell or as a standalone package.
@@ -27,8 +28,10 @@ az deployment sub create -f main-new-rg.bicep \
       --parameters AZURE_METERING_MARKETPLACE_CLIENT_ID=$CHANGE-WITH-CLIENT_ID \
       --parameters AZURE_METERING_MARKETPLACE_CLIENT_SECRET=$CHANGE-WITH-CLIENT_SECRET \
       --parameters AZURE_METERING_MARKETPLACE_TENANT_ID=$CHANGE-WITH-TENANT_ID \
-``` 
+```
+
 2. Deploy the solution into an existing resource group:
+
 ```azurecli
 az deployment group create --template-file main-existingRG.bicep  \
       --parameters appNamePrefix=$meteredbilling \
@@ -49,13 +52,13 @@ az deployment group create --template-file main-existingRG.bicep  \
 
 ## Usage
 
-After the deployment you can start sending metering events to the EventHub. 
+After the deployment you can start sending metering events to the EventHub.
 
-To understund the messages sent from the client pleas navigate to [Client messages](metered-billing-accelerator#client-messages) section.
+To understand the messages sent from the client pleas navigate to [Client messages](metered-billing-accelerator#client-messages) section.
 
 To configure your producer take the eventHubName and eventHubConnectionString values from the output of the deployment.
 
-### Example script in python:
+### Example script in python
 
 ```python
 import asyncio
