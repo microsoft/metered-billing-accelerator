@@ -17,7 +17,7 @@ module MeterCollectionLogic =
     let getEventPosition (someMeters: MeterCollection option) : StartingPosition =
         match someMeters with
         | None -> StartingPosition.Earliest
-        | Some meters -> meters.LastUpdate |> MessagePosition.startingPosition
+        | Some meters -> meters.LastUpdate |> StartingPosition.from
 
     [<Extension>]
     let getLastUpdateAsString (meters: MeterCollection) : string =

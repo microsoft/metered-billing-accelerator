@@ -216,7 +216,7 @@ public static class EventHubObservableClient
                     o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
                         PartitionID.create(partitionIdStr), initialState));
 
-                    var messagePosition = MessagePositionModule.createData(
+                    var messagePosition = MessagePosition.create(
                         partitionId: partitionIdStr,
                         sequenceNumber: x.LastProcessedSequenceNumber,
                         partitionTimestamp: x.LastProcessedEventTimestamp);

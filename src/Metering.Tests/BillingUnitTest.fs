@@ -198,7 +198,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     let createEvent sequenceNr timestamp (evnt: MeteringUpdateEvent) =
         let partitionId = "2"
         let timestamp = timestamp |> MeteringDateTime.fromStr
-        let messagePosition = MessagePosition.createData partitionId sequenceNr timestamp
+        let messagePosition = MessagePosition.create partitionId sequenceNr timestamp
         let eventToCatchup = None
 
         EventHubEvent.createEventHub evnt messagePosition eventToCatchup

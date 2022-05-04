@@ -144,7 +144,7 @@ module MeterCollectionStore =
                 { EventHubName = 
                     EventHubName.create ns hub
                   MessagePosition = 
-                    (MessagePosition.createData 
+                    (MessagePosition.create 
                         partitionId 
                         sequenceNumber 
                         (MeteringDateTime.create y m d H M S)) } |> Some

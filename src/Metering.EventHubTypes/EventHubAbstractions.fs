@@ -3,7 +3,6 @@
 
 namespace Metering.BaseTypes.EventHub
 
-open System.Runtime.CompilerServices
 open Metering.BaseTypes
 
 type SequenceNumber = int64
@@ -34,32 +33,30 @@ type PartitionIdentifier =
     | PartitionID of PartitionID
     | PartitionKey of PartitionKey
 
-module PartitionIdentifier =
-    let createId = PartitionID.create >> PartitionID
-    let createKey = PartitionKey.create >> PartitionKey
+    static member createId = PartitionID.create >> PartitionID
+
+    static member createKey = PartitionKey.create >> PartitionKey
 
 type MessagePosition = 
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber
-      // Offset: int64
       PartitionTimestamp: MeteringDateTime }
+
+    static member create (partitionId: string) (sequenceNumber: int64) (partitionTimestamp: MeteringDateTime) : MessagePosition =
+        { PartitionID = partitionId |> PartitionID.create
+          SequenceNumber = sequenceNumber
+          PartitionTimestamp = partitionTimestamp }
 
 type StartingPosition =
     | Earliest
     | NextEventAfter of LastProcessedSequenceNumber: SequenceNumber * PartitionTimestamp: MeteringDateTime
 
-module MessagePosition =
-    let startingPosition (someMessagePosition: MessagePosition option) : StartingPosition =
+    static member from (someMessagePosition: MessagePosition option) : StartingPosition =
         match someMessagePosition with
         | None -> Earliest
         | Some pos -> NextEventAfter(
             LastProcessedSequenceNumber = pos.SequenceNumber, 
             PartitionTimestamp = pos.PartitionTimestamp)
-    
-    let createData (partitionId: string) (sequenceNumber: int64) (partitionTimestamp: MeteringDateTime) =
-        { PartitionID = partitionId |> PartitionID.create
-          SequenceNumber = sequenceNumber
-          PartitionTimestamp = partitionTimestamp }
 
 type SeekPosition =
     | FromSequenceNumber of SequenceNumber: SequenceNumber 

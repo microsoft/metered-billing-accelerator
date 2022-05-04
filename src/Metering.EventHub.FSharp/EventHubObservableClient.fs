@@ -170,7 +170,7 @@ module EventHubObservableClientFSharpNoLongerInUse =
                             let lastProcessedEventReadFromCaptureSequenceNumber = 
                                 readEventsFromPosition
                                     eventDataToEvent
-                                    (MessagePosition.createData partitionIdStr sn t)
+                                    (MessagePosition.create partitionIdStr sn t)
                                     cancellationToken
                                 |> Seq.map (fun e -> 
                                     o.OnNext(EHEvent e)
