@@ -53,9 +53,9 @@ After the deployment you can start sending metering events to the EventHub.
 
 To understund the messages sent from the client pleas navigate to [Client messages](metered-billing-accelerator#client-messages) section.
 
-### Example script in python:
+To configure your producer take the eventHubName and eventHubConnectionString values from the output of the deployment.
 
-Take the eventHubName and eventHubConnectionString values from the output of the deployment.
+### Example script in python:
 
 ```python
 import asyncio
