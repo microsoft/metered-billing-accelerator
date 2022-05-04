@@ -7,11 +7,10 @@ using Azure.Messaging.EventHubs.Producer;
 using Metering.BaseTypes;
 using Metering.ClientSDK;
 using Metering.Integration;
-using MeterValueModule = Metering.ClientSDK.MeterValueModule;
 
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
-var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
+var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
 
 Console.WriteLine($"namespace: {eventHubProducerClient.FullyQualifiedNamespace}");
 
@@ -55,11 +54,14 @@ async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, 
 {
     foreach (var sub in subs)
     {
-        var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-               .Select(x => MeterValueModule.create(x, 999))
-               .ToArray();
-
-        await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(sub.Id, meters), ct);
+        foreach (var meter in new[] { "nde", "cpu", "dta", "msg", "obj" })
+        {
+            await eventHubProducerClient.SubmitSaaSMeterAsync(
+                saasSubscriptionId: sub.Id,
+                applicationInternalMeterName: meter,
+                quantity: 999,
+                cancellationToken: ct);
+        }
     }
 }
 
@@ -73,11 +75,11 @@ async Task BatchKnownIDs(EventHubProducerClient eventHubProducerClient, SubSum[]
         foreach (var sub in subs)
         {
             var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                   .Select(x => MeterValueModule.create(x, random.NextDouble())).ToArray();
+                   .Select(x => MeterValues.create(x, random.NextDouble())).ToArray();
 
             if (i++ % 10 == 0) { Console.Write("."); }
 
-            await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(sub.Id, meters), ct);
+            await eventHubProducerClient.SubmitSaaSMetersAsync(sub.Id, meters, ct);
             await Task.Delay(TimeSpan.FromSeconds(random.NextDouble() * 10), ct);
         }        
     }
@@ -96,12 +98,12 @@ static async Task BatchRandomId(EventHubProducerClient eventHubProducerClient, s
     while (true)
     {
         var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                   .Select(x => MeterValueModule.create(x, 0.1))
+                   .Select(x => MeterValues.create(x, 0.1))
                    .ToArray();
 
         if (i++ % 10 == 0) { Console.Write("."); }
 
-        await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
+        await eventHubProducerClient.SubmitSaaSMetersAsync(saasId, meters, ct);
         await Task.Delay(TimeSpan.FromSeconds(5), ct);
     }
 }
@@ -144,21 +146,21 @@ static async Task Interactive(EventHubProducerClient eventHubProducerClient, Can
                 var count = GetQuantity(command);
 
                 var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                    .Select(x => MeterValueModule.create(x, count))
+                    .Select(x => MeterValues.create(x, count))
                     .ToArray();
 
                 await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
-                await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
+                await eventHubProducerClient.SubmitSaaSMetersAsync(saasId, meters, ct);
             }
             else
             {
                 await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
                 var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                    .Select(x => MeterValueModule.create(x, 1.0))
+                    .Select(x => MeterValues.create(x, 1.0))
                     .ToArray();
 
                 await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
-                await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(saasId, meters), ct);
+                await eventHubProducerClient.SubmitSaaSMetersAsync(saasId, meters, ct);
             }
         }
     }

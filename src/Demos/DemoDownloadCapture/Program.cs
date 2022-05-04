@@ -8,7 +8,7 @@ using static Metering.BaseTypes.MeteringUpdateEvent;
 
 Console.WriteLine("Hello, World!");
 
-var connections = MeteringConnectionsModule.getFromEnvironment();
+var connections = MeteringConnections.getFromEnvironment();
 
 var x = CaptureProcessorCS.ReadAllEvents(
     connections: connections,

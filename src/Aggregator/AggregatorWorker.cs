@@ -85,7 +85,7 @@ public class AggregatorWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         List<IDisposable> subscriptions = new();
-
+        
         // pretty-print which partitions we already 'own'
         var props = await config.MeteringConnections.createEventHubConsumerClient().GetEventHubPropertiesAsync(stoppingToken);
         var partitions = new string[props.PartitionIds.Length];

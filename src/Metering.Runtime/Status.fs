@@ -71,7 +71,7 @@ module Status =
     [<Extension>]
     let fetchEventsToCatchup (config: MeteringConfigurationProvider) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<Map<PartitionID, EventsToCatchup>> =
         task {
-            let client = config.MeteringConnections |> MeteringConnections.createEventHubConsumerClient
+            let client = config.MeteringConnections.createEventHubConsumerClient()
             let! partitionIds = getPartitionIDs client cancellationToken
 
             let! partitionProperties = partitionIds |> getPartitionProperties client cancellationToken           
@@ -108,7 +108,7 @@ module Status =
     [<Extension>]
     let fetchStates (config: MeteringConfigurationProvider) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         task {
-            let client = config.MeteringConnections |> MeteringConnections.createEventHubConsumerClient
+            let client = config.MeteringConnections.createEventHubConsumerClient()
             let! partitionIds = getPartitionIDs client cancellationToken
             let! storedStates = partitionIds |> getStates config cancellationToken
 
