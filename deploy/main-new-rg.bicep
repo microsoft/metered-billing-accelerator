@@ -2,7 +2,7 @@ targetScope = 'subscription'
 param appNamePrefix string
 @allowed([
   'northcentralusstage'
-  'westcentralus,eastus'
+  'westcentralus'
   'westeurope'
   'jioindiawest'
   'northeurope'
