@@ -1,0 +1,241 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for the resources."
+            }
+        },
+        "functionName": {
+            "type": "string",
+            "defaultValue": "[uniqueString(resourceGroup().id)]",
+            "metadata": {
+                "description": "Unique name of the function app to be created."
+            }
+        },
+        "urlSignature": {
+            "type": "string",
+            "defaultValue": "[newGuid()]",
+            "metadata": {
+                "description": "The signature token to protect the webhook endpoint."
+            }
+        },
+        "_artifactsLocation": {
+            "type": "string",
+            "metadata": {
+                "description": "The base URI where artifacts Zip file  required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
+            },
+            "defaultValue": "THE LOCATION OF FUCTION PACKAGE AFTER COMPILING AND UPLOADING"
+        },
+        "captureContainer": {
+        "type": "string", 
+        "defaultValue" : ""
+        },
+        "captureFormat": {
+        "type": "string" , 
+        "defaultValue" : ""
+        },
+        "checkpointsContainer":{
+        "type": "string" , 
+        "defaultValue" : ""
+        },
+
+        "clientId": {
+        "type": "string" , 
+        "defaultValue" : ""
+        },
+        "clientSecret": {
+        "type": "string" , 
+        "defaultValue" : ""
+        },
+        "eventhubInstance": {
+        "type": "string" , 
+        "defaultValue" : ""
+        },                        
+
+        "eventhubNamespace": {
+        "type": "string" , 
+        "defaultValue" : ""
+        },
+        "snapshotsContainer": {
+        "type": "string", 
+        "defaultValue" : "" 
+        },
+        "tenantId":{
+        "type": "string" , 
+        "defaultValue" : ""
+        },                             
+                                
+        "marketplaceClientID": {
+        "type": "string" , 
+        "defaultValue" : ""
+        },
+        "marketplaceClientSecret": {
+        "type": "string" , 
+        "defaultValue" : ""
+        },
+        "marketplaceTenantId": {
+        "type": "string", 
+        "defaultValue" : "" 
+        },
+        "localPath": {
+        "type": "string", 
+        "defaultValue" : "d:\\home\\site\\wwwroot\\" 
+        }
+
+
+    },
+    "variables": {
+        "resourceName": "[toLower(take(concat(parameters('functionName'),uniqueString(resourceGroup().id)),24))]",
+        "storageAccountName": "[variables('resourceName')]",
+        "appInsightsName": "[variables('resourceName')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('storageAccountName')]",
+            "location": "[parameters('location')]",
+            "kind": "StorageV2",
+            "sku": {
+                "name": "Standard_LRS"
+            }
+        },        
+        {
+            "apiVersion": "2018-05-01-preview",
+            "name": "[variables('appInsightsName')]",
+            "type": "microsoft.insights/components",
+            "location": "[parameters('location')]",
+            "tags": {
+                "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', variables('appInsightsName'))]": "Resource"
+            },
+            "properties": {
+                "ApplicationId": "[variables('appInsightsName')]",
+                "Request_Source": "IbizaWebAppExtensionCreate"
+            }
+        },
+        {
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2019-08-01",
+            "name": "[parameters('functionName')]",
+            "location": "[parameters('location')]",
+            "kind": "functionapp",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+                "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+            ],
+            "properties": {
+                "name": "[parameters('functionName')]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "AzureWebJobsDashboard",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2018-02-01').keys[0].value)]"
+                        },
+                        {
+                            "name": "AzureWebJobsStorage",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2018-02-01').keys[0].value)]"
+                        },
+                        {
+                            "name": "AzureWebJobsSecretStorageType",
+                            "value": "Files"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',variables('storageAccountName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2018-02-01').keys[0].value)]"
+                        },
+                        {
+                            "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+                            "value": "[reference(resourceId('microsoft.insights/components/', variables('appInsightsName')), '2018-05-01-preview').InstrumentationKey]"
+                        },
+                        {
+                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                            "value": "~4"
+                        },
+                        {
+                            "name": "FUNCTIONS_WORKER_RUNTIME",
+                            "value": "dotnet"
+                        },
+                        {
+                            "name": "WEBSITE_RUN_FROM_PACKAGE",
+                            "value": "[parameters('_artifactsLocation')]"
+                        },
+                        {
+                            "name": "URL_SIGNATURE",
+                            "value": "[parameters('urlSignature')]"
+                        },
+                        
+                        {
+                        "name": "AZURE_METERING_INFRA_CAPTURE_CONTAINER",
+                        "value": "[parameters('captureContainer')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT",
+                        "value": "[parameters('captureFormat')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER",
+                        "value": "[parameters('checkpointsContainer')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_INFRA_CLIENT_ID",
+                        "value": "[parameters('clientId')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_INFRA_CLIENT_SECRET",
+                        "value": "[parameters('clientSecret')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME",
+                        "value": "[parameters('eventhubInstance')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME",
+                        "value": "[parameters('eventhubNamespace')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER",
+                        "value": "[parameters('snapshotsContainer')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_INFRA_TENANT_ID",
+                        "value":"[parameters('tenantId')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_MARKETPLACE_CLIENT_ID",
+                        "value": "[parameters('marketplaceClientID')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_MARKETPLACE_CLIENT_SECRET",
+                        "value": "[parameters('marketplaceClientSecret')]"
+                        },
+                        {
+                        "name": "AZURE_METERING_MARKETPLACE_TENANT_ID",
+                        "value": "[parameters('marketplaceTenantId')]"
+                        },
+                        {
+                        "name": "LOCAL_PATH",
+                        "value": "[parameters('localPath')]"
+                        }
+
+                    ]
+                },
+                "clientAffinityEnabled": false,
+                "reserved": false
+            }
+        }
+    ],
+    "outputs": {
+        "tenantId": {
+            "type": "string",
+            "value": "[subscription().tenantId]"
+        },
+        "webhookEndpoint": {
+            "type": "string",
+            "value": "[replace(listSecrets(resourceId('Microsoft.Web/sites/functions', parameters('functionName'), 'Webhook'), '2019-08-01').trigger_url, '/Webhook?', concat('?sig=',parameters('urlSignature'),'&'))]"
+        }
+    }
+}
