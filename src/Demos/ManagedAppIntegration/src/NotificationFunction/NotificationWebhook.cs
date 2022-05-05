@@ -81,16 +81,14 @@ namespace ManagedWebhook
 
                         var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
                         System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
-                        var subscription = notificationDefinition.BillingDetails.ResourceUsageId;
                         
-
                         var sub = new SubscriptionCreationInformation(
                         internalMetersMapping: await readJson<InternalMetersMapping>(dimPath),
                         subscription: new Subscription(
                             plan: await readJson<Metering.BaseTypes.Plan>(planPath),
-                            internalResourceId: InternalResourceIdModule.fromStr(subscription),
+                            internalResourceId: InternalResourceIdModule.fromStr(notificationDefinition.ApplicationId),
                             renewalInterval: RenewalInterval.Monthly,
-                            subscriptionStart: MeteringDateTimeModule.fromStr(DateTime.Now.ToString())));
+                            subscriptionStart: MeteringDateTimeModule.now()));
 
 
                         log.LogTrace(Json.toStr(1, sub));

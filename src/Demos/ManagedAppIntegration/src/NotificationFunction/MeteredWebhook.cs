@@ -79,12 +79,11 @@ namespace ManagedWebhook
 
                     System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
                     
-                    var meters = new[] { meteredUsage.Dimension } // this line assume mapping.json used dimensionID for both key values
-                   .Select(x => MeterValueModule.create(x, meteredUsage.Quantity))
-                   .ToArray();
+                    var meter = meteredUsage.Dimension // this line assume mapping.json used dimensionID for both key values
+                   .Select(x => MeterValueModule.create(meteredUsage.Dimension, meteredUsage.Quantity)).First();
 
                     log.LogTrace($"Emitting metered { meteredUsage.Quantity} to Dim {meteredUsage.Dimension} and ResourceID {meteredUsage.ResourceId}");
-                    await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(meteredUsage.ResourceId, meters), cts.Token);
+                    await eventHubProducerClient.SubmitManagedAppMeterAsync(meter, cts.Token);
 
 
                     log.LogTrace($"Successfully Subscribed managed app {meteredUsage.ResourceId} with Qty {meteredUsage.Quantity}");

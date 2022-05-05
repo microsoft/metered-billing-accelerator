@@ -3,8 +3,9 @@
   "Values": {
     "AzureWebJobsStorage": "<update for local testing>",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "URL_SIGNATURE": "6008ef3e-dca1-4f8d-a037-2f1561c4325c",
-    "LOCAL_RUN": "true"
+    "URL_SIGNATURE": "34e8e09e-96b6-4911-8e1d-5b531f127e10",
+    "LOCAL_RUN": "true",
+    "LOCAL_PATH": "C:\\github\\metered-billing-accelerator-1\\src\\Demos\\ManagedAppIntegration\\src\\NotificationFunction\\"
   }
 
 }
