@@ -25,7 +25,7 @@
             "type": "string",
             "defaultValue": "[uniqueString(resourceGroup().id)]",
             "metadata": {
-                "description": "Unique name of the function app to be created."
+                "description": "Unique name of the function app to be created during deployment."
             }
         },
         "dimensionConfig": {

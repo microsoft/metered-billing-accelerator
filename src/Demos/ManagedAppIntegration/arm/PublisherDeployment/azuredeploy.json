@@ -20,7 +20,7 @@
             "type": "string",
             "defaultValue": "[newGuid()]",
             "metadata": {
-                "description": "The signature token to protect the webhook endpoint."
+                "description": "Signature token to protect the webhook endpoint."
             }
         },
         "_artifactsLocation": {
