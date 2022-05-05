@@ -16,6 +16,16 @@ ARM template expects the following configuration
 
 1. <b>DIMENSION_CONFIG</b> predefined dimensions and quantities that the function will use to emit usage event to Azure marketplace
 
+## Deployment Sequence
+1. Deploy [Billing Accelerator](https://github.com/msalemcode/metered-billing-accelerator-1/tree/main/scripts)
+1. Deploy Publisher function and capture sig and notification URL
+1. Update Managed App Main Template with Billing WebHook URL and sig 
+1. Package the Managed App
+1. Update Partner Center with the package and Notification URL from step#1
+1. Test managed app by deploying and monitoring Application Insights
+
+
+
 ## Installation
 Use ARM template under `arm` folder to deploy the meter monitoring system.
 ### Option #1
