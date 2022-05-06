@@ -30,16 +30,16 @@
         },
         "dimensionConfig": {
             "type": "string",
-            "defaultValue": "[[{\"dimension\":\"cpu1\", \"quantity\":10}, {\"dimension\":\"mem1\", \"quantity\":50}]",
+            "defaultValue": "",
             "metadata": {
-                "description": "The dimension and quantity config for the chron job to send billing metrics."
+                "description": "The dimension and quantity config for the chron job to send billing metrics. here is example [[{\"dimension\":\"cpu1\", \"quantity\":10}, {\"dimension\":\"mem1\", \"quantity\":50}]"
             }
         },
         "notificationWebHook_URI": {
             "type": "string",
-            "defaultValue": "https://notificationfunction20220501090634.azurewebsites.net/api/billing?sig=6008ef3e-dca1-4f8d-a037-2f1561c4325c",
+            "defaultValue": "",
             "metadata": {
-                "description": "The Notification URI that the app calls to report usage."
+                "description": "The Notification URI that the app calls to report usage. Get it from PC"
             }
         },
         "applicationResourceRoleAssignment": {

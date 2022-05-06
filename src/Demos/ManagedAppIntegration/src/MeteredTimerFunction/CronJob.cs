@@ -44,10 +44,11 @@ namespace ManagedWebhook
 
                     foreach (var dimensionConfig in dimensionConfigs)
                     {
-                       // var response = await CronJob.EmitUsageEvents(config, armHttpClient, dimensionConfig, application.Properties.BillingDetails?.ResourceUsageId, application.Plan.Name).ConfigureAwait(continueOnCapturedContext: false);
+                        // Using Billing ResourceUsageId
+                        var response = await CronJob.EmitUsageEvents(config, armHttpClient, dimensionConfig, application.Properties.BillingDetails?.ResourceUsageId, application.Plan.Name).ConfigureAwait(continueOnCapturedContext: false);
                         
                         // Using Application URI
-                        var response = await CronJob.EmitUsageEvents(config, armHttpClient, dimensionConfig, applicationResourceId, application.Plan.Name).ConfigureAwait(continueOnCapturedContext: false);
+                       // var response = await CronJob.EmitUsageEvents(config, armHttpClient, dimensionConfig, applicationResourceId, application.Plan.Name).ConfigureAwait(continueOnCapturedContext: false);
                         var responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(continueOnCapturedContext: false);
                         if (response.IsSuccessStatusCode)
                         {
