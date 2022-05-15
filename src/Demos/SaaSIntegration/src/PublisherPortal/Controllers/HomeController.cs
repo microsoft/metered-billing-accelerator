@@ -261,12 +261,9 @@ public class HomeController : Controller
             }
         }
 
-
         // Call metering SDK now
         var meterplan = new Metering.BaseTypes.Plan(PlanIdModule.create(planId),billingDimensions);
         var meterMapping = InternalMetersMapping.NewInternalMetersMapping(dimensionsMapping);
-
-
 
         System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
         var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
@@ -277,10 +274,7 @@ public class HomeController : Controller
             internalResourceId: InternalResourceIdModule.fromStr(subscriptionId.ToString()),
             renewalInterval: RenewalInterval.Monthly,
             subscriptionStart: MeteringDateTimeModule.now()));
-
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, cts.Token);
- 
-
 
     }
 }
