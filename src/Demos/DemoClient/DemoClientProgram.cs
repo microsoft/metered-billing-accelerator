@@ -15,14 +15,13 @@ var eventHubProducerClient = MeteringConnections.createEventHubProducerClientFor
 Console.WriteLine($"namespace: {eventHubProducerClient.FullyQualifiedNamespace}");
 
 var subs = new[] {
-    new SubSum("fdc778a6-1281-40e4-cade-4a5fc11f5440", "2021-11-04T16:12:26"),
-    new SubSum("8151a707-467c-4105-df0b-44c3fca5880d", "2021-12-14T18:20:00")
+    new SubSum("4005cc52-70e9-4dfb-c66c-e97d3bb70632", "2022-05-14T18:14:47")
 };
 
 using CancellationTokenSource cts = new();
 //await CreateSubscriptions(eventHubProducerClient, subs, cts.Token);
-//await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
-await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
+await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
+//await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
 cts.Cancel();
 
 #pragma warning disable CS8321 // Local function is declared but never used
@@ -54,7 +53,7 @@ async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, 
 {
     foreach (var sub in subs)
     {
-        foreach (var meter in new[] { "nde", "cpu", "dta", "msg", "obj" })
+        foreach (var meter in new[] { "cpu1", "mem1" })
         {
             await eventHubProducerClient.SubmitSaaSMeterAsync(
                 saasSubscriptionId: sub.Id,
@@ -97,7 +96,7 @@ static async Task BatchRandomId(EventHubProducerClient eventHubProducerClient, s
     var saasId = guidFromStr(subName);
     while (true)
     {
-        var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+        var meters = new[] { "cpu1", "mem1" }
                    .Select(x => MeterValues.create(x, 0.1))
                    .ToArray();
 

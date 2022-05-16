@@ -22,8 +22,8 @@ using Newtonsoft.Json;
 using System.Linq;
 using System.Text;
 using Metering.Integration;
+using Metering.BaseTypes;
 using Metering.ClientSDK;
-using MeterValueModule = Metering.ClientSDK.MeterValueModule;
 
 namespace LandingPage.Controllers
 {
@@ -56,6 +56,7 @@ namespace LandingPage.Controllers
         /// <returns></returns>
         public async Task<IActionResult> IndexAsync(string token, CancellationToken cancellationToken)
         {
+           
             if (string.IsNullOrEmpty(token))
             {
                 this.ModelState.AddModelError(string.Empty, "Token URL parameter cannot be empty");
@@ -64,6 +65,7 @@ namespace LandingPage.Controllers
             }
 
             token = token.Replace(" ", "+");
+            HttpContext.Session.SetString("currentToken", token);
             // resolve the subscription using the marketplace purchase id token
             var resolvedSubscription = (await _marketplaceSaaSClient.Fulfillment.ResolveAsync(token, cancellationToken: cancellationToken)).Value;
             HttpContext.Session.SetString("currentSubscriptionId", resolvedSubscription.Subscription.Id.ToString());
@@ -123,6 +125,7 @@ namespace LandingPage.Controllers
                 this.ViewBag.Message = "Token URL parameter cannot be empty";
                 return this.View();
             }
+
 
             // resolve the subscription using the marketplace purchase id token
             var resolvedSubscription = (await _marketplaceSaaSClient.Fulfillment.ResolveAsync(token, cancellationToken: cancellationToken)).Value;
@@ -256,14 +259,19 @@ namespace LandingPage.Controllers
             // Get Dim
 
             System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
-            var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
+            var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
 
-            var meters = dimensions.Split(",")
-                       .Select(x => MeterValueModule.create(x, qtny)).ToArray();
+            var meters = dimensions.Split(",");
+
+            foreach (var dim in meters)
+            {
                 await eventHubProducerClient.SubmitSaaSMeterAsync(
-                    SaaSConsumptionModule.create(subscriptionId, meters),
+                    saasSubscriptionId: subscriptionId,
+                    applicationInternalMeterName: dim,
+                    quantity: qtny,
                     cancellationToken: cts.Token);
-            
+            }
+
 
 
         }
