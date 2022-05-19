@@ -58,7 +58,7 @@ module CaptureProcessor =
         $"{captureFileNameFormat}.avro"
             .Replace("{Namespace}", eventHubName.NamespaceName)
             .Replace("{EventHub}", eventHubName.InstanceName)
-            .Replace("{PartitionId}", partitionId |> PartitionID.value)
+            .Replace("{PartitionId}", partitionId.value)
             .Replace("{Year}", "(?<year>\d{4})")
             .Replace("{Month}", "(?<month>\d{2})")
             .Replace("{Day}", "(?<day>\d{2})")

@@ -13,17 +13,17 @@ module MeterCollectionLogic =
     let lastUpdate (mc: MeterCollection option) : MessagePosition option = 
         mc |> Option.bind (fun m -> m.LastUpdate)
 
-    [<Extension>]
+    [<Extension>] 
     let getEventPosition (someMeters: MeterCollection option) : StartingPosition =
         match someMeters with
         | None -> StartingPosition.Earliest
-        | Some meters -> meters.LastUpdate |> MessagePosition.startingPosition
+        | Some meters -> meters.LastUpdate |> StartingPosition.from
 
     [<Extension>]
     let getLastUpdateAsString (meters: MeterCollection) : string =
         match meters.LastUpdate with
         | None -> "Earliest"
-        | Some p -> $"partition {p.PartitionID |> PartitionID.value} / sequence# {p.SequenceNumber}"
+        | Some p -> $"partition {p.PartitionID.value} / sequence# {p.SequenceNumber}"
 
     [<Extension>]
     let getLastSequenceNumber (meters: MeterCollection) : SequenceNumber =
@@ -32,11 +32,10 @@ module MeterCollectionLogic =
         | Some p -> p.SequenceNumber
 
     let usagesToBeReported (meters: MeterCollection) : MarketplaceRequest list =
-        if meters |> value |> Seq.isEmpty 
+        if meters.MeterCollection |> Seq.isEmpty 
         then []
         else
-            meters
-            |> value
+            meters.MeterCollection
             |> Seq.map (fun x -> x.Value.UsageToBeReported)
             |> Seq.concat
             |> List.ofSeq
@@ -91,11 +90,11 @@ module MeterCollectionLogic =
             { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
 
     let private addUsage (internalUsageEvent: InternalUsageEvent) messagePosition state =
-        let existingSubscription = state |> value |> Map.containsKey internalUsageEvent.InternalResourceId 
+        let existingSubscription = state.MeterCollection |> Map.containsKey internalUsageEvent.InternalResourceId 
         if existingSubscription
         then 
             let newMeterCollection =
-                state |> value
+                state.MeterCollection
                 |> Map.change 
                     internalUsageEvent.InternalResourceId 
                     (Option.bind ((Meter.handleUsageEvent (internalUsageEvent, messagePosition)) >> Some))
@@ -105,7 +104,7 @@ module MeterCollectionLogic =
             state |> addUnprocessableMessage (UsageReported internalUsageEvent) messagePosition
 
     let private applyMeters (handler: Map<InternalResourceId, Meter> -> Map<InternalResourceId, Meter>) (state: MeterCollection)  : MeterCollection =
-        let newMeterCollection = state |> value |> handler
+        let newMeterCollection = state.MeterCollection |> handler
         { state with MeterCollection = newMeterCollection } 
 
     let private addSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) messagePosition state =
@@ -131,7 +130,7 @@ module MeterCollectionLogic =
     let private setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }
 
-    let handleMeteringEvent (state: MeterCollection) ({Event = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup}: MeteringEvent) : MeterCollection =
+    let handleMeteringEvent (state: MeterCollection) ({EventData = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup}: EventHubEvent<MeteringUpdateEvent>) : MeterCollection =
         state
         |> enforceStrictSequenceNumbers messagePosition  // This line throws an exception if we're not being fed the right event #
         |> match meteringUpdateEvent with
@@ -144,7 +143,7 @@ module MeterCollectionLogic =
         |> handleMeteringTimestamp messagePosition.PartitionTimestamp
         |> setLastProcessed messagePosition 
 
-    let handleMeteringEvents (meterCollection: MeterCollection option) (meteringEvents: MeteringEvent list) : MeterCollection =
+    let handleMeteringEvents (meterCollection: MeterCollection option) (meteringEvents: EventHubEvent<MeteringUpdateEvent> list) : MeterCollection =
         let meterCollection =
             match meterCollection with
             | None -> MeterCollection.Empty

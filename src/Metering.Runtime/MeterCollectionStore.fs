@@ -111,10 +111,10 @@ module MeterCollectionStore =
         let private regexPattern = "(?<ns>[^\.]+?)\.servicebus\.windows\.net/(?<hub>[^\/]+?)/(?<partitionid>[^\/]+?)/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})--(?<hour>\d{2})-(?<minute>\d{2})-(?<second>\d{2})---sequencenr-(?<sequencenr>\d+)\.json\.gz" // " // (?<year>\d{4})
     
         let internal latestName (config: MeteringConfigurationProvider) (partitionId: PartitionID) =
-            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{partitionId |> PartitionID.value}/latest.json.gz"
+            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{partitionId.value}/latest.json.gz"
     
         let internal currentName (config: MeteringConfigurationProvider) (lastUpdate: MessagePosition) =
-            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{lastUpdate.PartitionID |> PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
+            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{lastUpdate.PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
     
         let blobnameToPosition config blobName = 
             let i32 (m: Match) (name: string) = 
@@ -144,7 +144,7 @@ module MeterCollectionStore =
                 { EventHubName = 
                     EventHubName.create ns hub
                   MessagePosition = 
-                    (MessagePosition.createData 
+                    (MessagePosition.create 
                         partitionId 
                         sequenceNumber 
                         (MeteringDateTime.create y m d H M S)) } |> Some

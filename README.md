@@ -33,13 +33,10 @@
   * [Endpoints](#endpoints)
   * [Local dev setup](#local-dev-setup)
 - [Demo time - How to run / try it yourself](#demo-time---how-to-run---try-it-yourself)
-  
 - [Assembly overview](#assembly-overview)
-- [Missing features](#missing-features)
-- [Monitoring Recommendataion](./docs/AzureFunction-Monitoring.md)
+- [Monitoring Recommendations](./docs/AzureFunction-Monitoring.md)
 - [Enterprise Deployment Recommendation](./docs/Enterprise-Reference-Architecture-Single-region.md)
 - [Privacy and Telemetry Notice](#privacy-and-telemetry-notice)
-- [Wild ideas](#wild-ideas)
 - [Contributing](#contributing)
 
 ## Design goals
@@ -457,46 +454,29 @@ graph TD
      EventHubTypes([Metering.EventHubTypes.dll])
      BaseTypes([Metering.BaseTypes.dll]) --> EventHubTypes
      RunTime([Metering.Runtime.dll]) --> BaseTypes
-     EventHubFSharp([Metering.EventHub.FSharp.dll]) --> EventHubTypes
+     EventHub([Metering.EventHub.dll]) --> EventHubTypes
      Aggregator(Aggregator.exe) --> RunTime
-     Aggregator --> EventHubFSharp
+     Aggregator --> EventHub
      
     style EventHubTypes  fill:#222,color:#fff,stroke-width:0px
     style BaseTypes      fill:#222,color:#fff,stroke-width:0px
     style RunTime        fill:#222,color:#fff,stroke-width:0px
-    style EventHubFSharp fill:#222,color:#fff,stroke-width:0px
+    style EventHub       fill:#222,color:#fff,stroke-width:0px
     style Aggregator     fill:#777,color:#fff,stroke-width:0px
 ```
 
 - `Metering.EventHubTypes.dll` contains a few base abstractions related to Azure EventHub (SequenceNumbers, PartitionIDs, etc.)
 - `Metering.BaseTypes.dll` contains the core data types and their JSON serializations
 - `Metering.Runtime.dll` contains the integration with the outer world, such as Azure Identity, Blob Storage, EventHub
-- `Metering.EventHub.FSharp.dll` and `Metering.EventHub.dll` contain the Reactive Extensions wrapper around the EventHub SDK. The F# version will be retired soon.
-
-## TODO
-
-- [ ] compensating action / compensating usage for an unsubmittable api call, it it exists. needs to make handleevent recursive
-- [x] marketplace client to support batch
-- [ ] collect plans separately in JSON to avoid duplication
-- [ ] Floats can be negative
-
-## Missing features
-
-- [ ] Instrumentation, logging, metrics
+- `Metering.EventHub.dll` contains the Reactive Extensions wrapper around the EventHub SDK. 
 
 ## Privacy and Telemetry Notice
 
-When you deploy/run this software, it regularly submits usage/metering data to the Microsoft Azure Metering API; in fact that's its main reason to exist. It is supposed to aggregate your customer's software usage information, and to submit it to `https://marketplaceapi.microsoft.com` (or `https://saasapi.azure.com`, which seems to be the more modern hostname for the metering API).  *If you don't want that, don't use it.* You can't turn that off via configuration.
+When you deploy/run this software, it regularly submits usage/metering data to the Microsoft Azure Metering API; in fact that's its main reason to exist. It is supposed to aggregate your customer's software usage information, and to submit it to `https://marketplaceapi.microsoft.com` (or `https://saasapi.azure.com`, which seems to be the more modern hostname for the metering API).  *If you don't want that, don't use it.* You can't turn off it's main purpose via configuration.
 
 Besides that, it does **not** send any telemetry, error reporting, etc., to Microsoft. 
 
 For Microsoft in general, you can find our privacy statement at https://go.microsoft.com/fwlink/?LinkID=824704. 
-
-## Wild ideas
-
-- [ ] track per meter which hours have been ever submitted in a large bitfield. 
-  - 365days/year * 24h/day * 1bit/(h*meter) / 8bit/byte * (4/3 extension due to base64)== 1460 byte/(year*meter). 
-  - With an additional overhead of 1460 bytes per year and meter, we can track which in which hours we have submitted metering values.
 
 ## Contributing
 

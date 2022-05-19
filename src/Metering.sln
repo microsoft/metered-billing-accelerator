@@ -45,9 +45,13 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Mockup", "Metering
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.EventHubTypes", "Metering.EventHubTypes\Metering.EventHubTypes.fsproj", "{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.EventHub.FSharp", "Metering.EventHub.FSharp\Metering.EventHub.FSharp.fsproj", "{5EF7FB74-B670-4D08-AB1A-F2D29A28F3FC}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.EventHub", "Metering.EventHub\Metering.EventHub.csproj", "{8893A675-FA73-4213-9C13-C92CF54D0C17}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.RuntimeCS", "Metering.RuntimeCS\Metering.RuntimeCS.csproj", "{C1DF191D-2724-4D01-ABA0-31DE247C405A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DemoDownloadCapture", "Demos\DemoDownloadCapture\DemoDownloadCapture.csproj", "{E3DB61E9-B1B7-4CBD-AF7C-4AF1C0AB204F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleSerialization", "Demos\SimpleSerialization\SimpleSerialization.csproj", "{B81F891D-C187-4DC2-B32C-25875B28B04D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -107,14 +111,22 @@ Global
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5EF7FB74-B670-4D08-AB1A-F2D29A28F3FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5EF7FB74-B670-4D08-AB1A-F2D29A28F3FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5EF7FB74-B670-4D08-AB1A-F2D29A28F3FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5EF7FB74-B670-4D08-AB1A-F2D29A28F3FC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8893A675-FA73-4213-9C13-C92CF54D0C17}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8893A675-FA73-4213-9C13-C92CF54D0C17}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8893A675-FA73-4213-9C13-C92CF54D0C17}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8893A675-FA73-4213-9C13-C92CF54D0C17}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C1DF191D-2724-4D01-ABA0-31DE247C405A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C1DF191D-2724-4D01-ABA0-31DE247C405A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C1DF191D-2724-4D01-ABA0-31DE247C405A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C1DF191D-2724-4D01-ABA0-31DE247C405A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3DB61E9-B1B7-4CBD-AF7C-4AF1C0AB204F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3DB61E9-B1B7-4CBD-AF7C-4AF1C0AB204F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3DB61E9-B1B7-4CBD-AF7C-4AF1C0AB204F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3DB61E9-B1B7-4CBD-AF7C-4AF1C0AB204F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B81F891D-C187-4DC2-B32C-25875B28B04D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B81F891D-C187-4DC2-B32C-25875B28B04D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B81F891D-C187-4DC2-B32C-25875B28B04D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B81F891D-C187-4DC2-B32C-25875B28B04D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -124,6 +136,8 @@ Global
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{2A7F95C9-5A33-4530-B023-814362AB307D} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{B40115AB-446F-4391-9BC0-8FD2947A8DFC} = {63515470-9590-4E66-9C64-9F0D3B86547E}
+		{E3DB61E9-B1B7-4CBD-AF7C-4AF1C0AB204F} = {63515470-9590-4E66-9C64-9F0D3B86547E}
+		{B81F891D-C187-4DC2-B32C-25875B28B04D} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D3FA63C3-048D-4660-A9A0-7299AF2C0417}

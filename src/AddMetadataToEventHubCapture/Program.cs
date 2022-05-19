@@ -5,7 +5,7 @@ using Metering.EventHub;
 
 static string DateTimeOffsetToString(DateTimeOffset d) => MeteringDateTimeModule.toStr(MeteringDateTimeModule.fromDateTimeOffset(d));
 
-var configuration = MeteringConnectionsModule.getFromEnvironment();
+var configuration = MeteringConnections.getFromEnvironment();
 var captureContainer = configuration.EventHubConfig.CaptureStorage.Value.Storage;
 await foreach (var blob in captureContainer.GetBlobsAsync())
 {

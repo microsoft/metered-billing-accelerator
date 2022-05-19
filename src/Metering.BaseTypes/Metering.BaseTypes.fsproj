@@ -29,14 +29,12 @@
     <Compile Include="ApplicationInternalMeterName.fs" />
     <Compile Include="InternalUsageEvent.fs" />
     <Compile Include="Subscription.fs" />
-    <Compile Include="BusinessError.fs" />
     <Compile Include="BillingPeriod.fs" />
     <Compile Include="InternalMetersMapping.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
     <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="UnprocessableMessage.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />
-    <Compile Include="MeteringEvent.fs" />
     <Compile Include="Meter.fs" />
     <Compile Include="MeterCollection.fs" />
     <Compile Include="MeterCollectionLogic.fs" />

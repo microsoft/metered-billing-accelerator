@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETCore.Targets" Version="3.0.0" PrivateAssets="all" />
+    <PackageReference Include="Azure.Identity" Version="1.6.0" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.11.0" />
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
+    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
+    <PackageReference Include="Apache.Avro" Version="1.11.0" />
+    <PackageReference Include="NodaTime" Version="3.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Metering.BaseTypes\Metering.BaseTypes.fsproj" />
+    <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
+  </ItemGroup>
+</Project>

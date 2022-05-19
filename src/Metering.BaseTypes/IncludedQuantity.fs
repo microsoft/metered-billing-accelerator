@@ -8,10 +8,8 @@ type IncludedQuantity =
       Created: MeteringDateTime 
       LastUpdate: MeteringDateTime }
 
-module IncludedQuantity =
-    let set now quantity (q: IncludedQuantity) = { q with Quantity = quantity ; LastUpdate = now }
+    override this.ToString() = sprintf "Remaining %s" (this.Quantity.ToString())
 
-    let decrease now quantity (q: IncludedQuantity) = { q with Quantity = q.Quantity - quantity ; LastUpdate = now }
+    member this.set now quantity = { this with Quantity = quantity ; LastUpdate = now }
 
-    let toStr (iq: IncludedQuantity) : string =
-        sprintf "Remaining %s" (iq.Quantity |> Quantity.toStr)
+    member this.decrease now quantity = { this with Quantity = this.Quantity - quantity ; LastUpdate = now }
