@@ -15,7 +15,7 @@ using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 using Metering.BaseTypes;
 using Metering.ClientSDK;
 using Metering.Integration;
-using MeterValueModule = Metering.ClientSDK.MeterValueModule;
+
 
 
 namespace ManagedWebhook
@@ -74,15 +74,19 @@ namespace ManagedWebhook
 
                 if (meteredUsage.ResourceId != null)
                 {
-                   var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
+                   var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
                     log.LogTrace($"Initiate eventhub client");
 
                     System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
                     
-                    var meter = meteredUsage.Dimension.Select(x => MeterValueModule.create(meteredUsage.Dimension, meteredUsage.Quantity)).First();
                     
                     log.LogTrace($"Emitting Quantity { meteredUsage.Quantity} of Dim {meteredUsage.Dimension} to ResourceID {meteredUsage.ResourceId}");
-                    await eventHubProducerClient.SubmitSaaSMeterAsync(SaaSConsumptionModule.create(meteredUsage.ResourceId, meter));
+                    await eventHubProducerClient.SubmitSaaSMeterAsync(
+                                 saasSubscriptionId: meteredUsage.ResourceId,
+                                    applicationInternalMeterName: meteredUsage.Dimension,
+                                    quantity: meteredUsage.Quantity,
+                                    cancellationToken: cts.Token
+                        );
 
 
                     log.LogTrace($"Successfully Subscribed managed app {meteredUsage.ResourceId} with Qty {meteredUsage.Quantity}");

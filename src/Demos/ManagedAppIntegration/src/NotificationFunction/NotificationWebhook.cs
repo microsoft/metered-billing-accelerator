@@ -79,14 +79,14 @@ namespace ManagedWebhook
                         var planPath = config["LOCAL_PATH"] + "plan.json";
                         var dimPath = config["LOCAL_PATH"] + "mapping.json";
 
-                        var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
+                        var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
                         System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
                         
                         var sub = new SubscriptionCreationInformation(
                         internalMetersMapping: await readJson<InternalMetersMapping>(dimPath),
                         subscription: new Subscription(
                             plan: await readJson<Metering.BaseTypes.Plan>(planPath),
-                            internalResourceId: InternalResourceIdModule.fromStr(notificationDefinition.ApplicationId),
+                            internalResourceId: InternalResourceId.fromStr(notificationDefinition.ApplicationId),
                             renewalInterval: RenewalInterval.Monthly,
                             subscriptionStart: MeteringDateTimeModule.now()));
 
