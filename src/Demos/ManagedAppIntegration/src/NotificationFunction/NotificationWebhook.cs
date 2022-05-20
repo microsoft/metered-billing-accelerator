@@ -86,7 +86,7 @@ namespace ManagedWebhook
                         internalMetersMapping: await readJson<InternalMetersMapping>(dimPath),
                         subscription: new Subscription(
                             plan: await readJson<Metering.BaseTypes.Plan>(planPath),
-                            internalResourceId: InternalResourceId.fromStr(notificationDefinition.ApplicationId),
+                            internalResourceId: InternalResourceId.fromStr(notificationDefinition.BillingDetails?.ResourceUsageId),
                             renewalInterval: RenewalInterval.Monthly,
                             subscriptionStart: MeteringDateTimeModule.now()));
 
