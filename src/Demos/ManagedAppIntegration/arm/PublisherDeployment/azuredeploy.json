@@ -28,7 +28,7 @@
             "metadata": {
                 "description": "The base URI where artifacts Zip file  required by this template are located. When the template is deployed using the accompanying scripts, a private location in the subscription will be used and this value will be automatically generated."
             },
-            "defaultValue": "THE LOCATION OF FUCTION PACKAGE AFTER COMPILING AND UPLOADING"
+            "defaultValue": "https://github.com/msalemcode/metered-billing-accelerator-1/raw/msalem/create_ama_demo/src/Demos/ManagedAppIntegration/arm/PublisherDeployment/artifacts/functionpackage.zip"
         },
         "captureContainer": {
         "type": "string", 
@@ -235,7 +235,7 @@
         },
         "webhookEndpoint": {
             "type": "string",
-            "value": "[replace(listSecrets(resourceId('Microsoft.Web/sites/functions', parameters('functionName'), 'Webhook'), '2019-08-01').trigger_url, '/Webhook?', concat('?sig=',parameters('urlSignature'),'&'))]"
+            "value": "[concat('https://', parameters('functionName'), '.azurewebsites.net/api','?sig=',parameters('urlSignature'))]"
         }
     }
 }
