@@ -15,22 +15,32 @@ var eventHubProducerClient = MeteringConnections.createEventHubProducerClientFor
 Console.WriteLine($"namespace: {eventHubProducerClient.FullyQualifiedNamespace}");
 
 var subs = new[] {
-    new SubSum("4005cc52-70e9-4dfb-c66c-e97d3bb70632", "2022-05-14T18:14:47")
+    new SubSum("0852f7eb-a664-4683-d707-e2350edcfee9", "2022-06-02T23:37:34")
 };
 
 using CancellationTokenSource cts = new();
+await DeleteSubscriptions(eventHubProducerClient, subs, cts.Token);
 //await CreateSubscriptions(eventHubProducerClient, subs, cts.Token);
-await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
+//await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
 //await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
 cts.Cancel();
 
 #pragma warning disable CS8321 // Local function is declared but never used
+
+async Task DeleteSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
+{
+    foreach (var subscription in subscriptions)
+    {
+        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
+    }
+}
 async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
 #pragma warning restore CS8321 // Local function is declared but never used
 {
     
     foreach (var subscription in subscriptions)
     {
+
         var sub = new SubscriptionCreationInformation(
             internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
             subscription: new(
@@ -41,7 +51,11 @@ async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, Su
 
         await Console.Out.WriteLineAsync(Json.toStr(1, sub));
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, ct);
-    }
+
+        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
+
+            
+     }
 }
 
 /// <summary>

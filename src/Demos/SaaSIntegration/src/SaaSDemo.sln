@@ -5,7 +5,7 @@ VisualStudioVersion = 17.1.31903.286
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PublisherPortal", "PublisherPortal\PublisherPortal.csproj", "{6A09F38A-D079-4C75-BB26-D891CF87EB52}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MeteredPage", "MeteredPage\MeteredPage.csproj", "{DDFBD287-841A-4D4C-B3FC-997640087A84}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LandingPage", "LandingPage\LandingPage.csproj", "{DDFBD287-841A-4D4C-B3FC-997640087A84}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

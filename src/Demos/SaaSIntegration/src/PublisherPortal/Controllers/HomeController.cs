@@ -121,7 +121,7 @@ public class HomeController : Controller
 
         if(response.Status == 200)
         {
-            ActiveMeteredSubscription(id, planId);
+            await ActiveMeteredSubscription(id, planId);
         }
 
 
@@ -138,6 +138,7 @@ public class HomeController : Controller
     [Route("Delete/{id}")]
     public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
+
         _logger.Log(LogLevel.Information, "Deleting subscription");
 
         var operationId = await _marketplaceSaaSClient.Fulfillment.DeleteSubscriptionAsync(id, cancellationToken: cancellationToken);
@@ -227,13 +228,13 @@ public class HomeController : Controller
     /// <param name="subscriptionId">The subscription ID</param>
     /// <param name="planId">Plan ID</param>
     /// <returns></returns>
-    private async void ActiveMeteredSubscription(Guid? subscriptionId, string planId)
+    private async Task ActiveMeteredSubscription(Guid? subscriptionId, string planId)
     {
         // Get all plans
         var plans = _marketplaceSaaSClient.Fulfillment.ListAvailablePlans((Guid)subscriptionId).Value.Plans;
 
         // Create Key Maps for Meter Accelerator Subscription 
-        var billingDimensions = new FSharpMap <DimensionId, IncludedQuantitySpecification>(new List<Tuple<DimensionId, IncludedQuantitySpecification>>());
+        var billingDimensionsMap = new FSharpMap <DimensionId, Quantity>(new List<Tuple<DimensionId, Quantity>>());
         var dimensionsMapping = new FSharpMap<ApplicationInternalMeterName, DimensionId>(new List<Tuple<ApplicationInternalMeterName, DimensionId >> ());
 
         // Build Plan now
@@ -245,16 +246,10 @@ public class HomeController : Controller
                 {
                     foreach (var dim in billing.MeteredQuantityIncluded)
                     {
-                        if (billing.TermUnit.ToString() == "P1M")
-                        {
-                            billingDimensions.Add(DimensionIdModule.create(dim.DimensionId), new IncludedQuantitySpecification(QuantityModule.create(Convert.ToUInt32(dim.Units)), null));
-                        }
-                        else
-                        {
-                            billingDimensions.Add(DimensionIdModule.create(dim.DimensionId), new IncludedQuantitySpecification(null,QuantityModule.create(Convert.ToUInt32(dim.Units))));
-                        }
+                        billingDimensionsMap=billingDimensionsMap.Add(DimensionId.create(dim.DimensionId), Quantity.create(Convert.ToUInt32(dim.Units)));
+
                         // add to Dim list
-                        dimensionsMapping.Add(ApplicationInternalMeterNameModule.create(dim.DimensionId), DimensionIdModule.create(dim.DimensionId));
+                        dimensionsMapping=dimensionsMapping.Add(ApplicationInternalMeterName.create(dim.DimensionId), DimensionId.create(dim.DimensionId));
                     }
                 }
                 break;
@@ -262,16 +257,16 @@ public class HomeController : Controller
         }
 
         // Call metering SDK now
-        var meterplan = new Metering.BaseTypes.Plan(PlanIdModule.create(planId),billingDimensions);
-        var meterMapping = InternalMetersMapping.NewInternalMetersMapping(dimensionsMapping);
+        var meterplan = new Metering.BaseTypes.Plan(PlanId.create(planId),BillingDimensions.create(billingDimensionsMap));
+        var meterMapping = InternalMetersMapping.create(dimensionsMapping);
 
         System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
-        var eventHubProducerClient = MeteringConnectionsModule.createEventHubProducerClientForClientSDK();
+        var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
         var sub = new SubscriptionCreationInformation(
         internalMetersMapping: meterMapping,
         subscription: new(
             plan: meterplan,
-            internalResourceId: InternalResourceIdModule.fromStr(subscriptionId.ToString()),
+            internalResourceId: InternalResourceId.fromStr(subscriptionId.ToString()),
             renewalInterval: RenewalInterval.Monthly,
             subscriptionStart: MeteringDateTimeModule.now()));
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, cts.Token);

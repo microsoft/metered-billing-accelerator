@@ -24,7 +24,7 @@ else
                 <form method="post" enctype="multipart/form-data">
                     <div class="form-group">
                         <div class="col-md-10">
-                            <input type="file" name="files" multiple />
+                            <input type="file" name="files" multiple onclick="clearBox()" />
                         </div>
                     </div>
                     <br />
@@ -38,10 +38,17 @@ else
         </div>
         <hr />
         <div class="modal-body" >
-            <textarea  rows = 15 cols="100" readonly>
+            <textarea  rows = 15 cols="100" readonly id="ocrDetail">
                 @Model.OcrDetail
             </textarea>
         </div>
+
+        <script>
+            function clearBox() {
+                box = document.getElementById("ocrDetail");
+                box.value = "";
+            }
+        </script>
 
     }
     else

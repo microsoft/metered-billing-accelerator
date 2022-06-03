@@ -82,16 +82,20 @@ namespace LandingPage.Controllers
                     HttpContext.Session.SetString("currentPlanId", plan.PlanId);
 
                     // get Demension
-                  StringBuilder dimStr = new StringBuilder();
-                   foreach (var component in plan.PlanComponents.MeteringDimensions)
+                    if (plan.PlanComponents.MeteringDimensions.Count > 0)
                     {
-                       dimStr.Append(component.Id.ToString());
-                        dimStr.Append(",");
-                            
+                        StringBuilder dimStr = new StringBuilder();
+                        foreach (var component in plan.PlanComponents.MeteringDimensions)
+                        {
+                            dimStr.Append(component.Id.ToString());
+                            dimStr.Append(",");
 
+
+                        }
+
+                        dimStr.Length--;
+                        HttpContext.Session.SetString("currentDimensions", dimStr.ToString());
                     }
-                    dimStr.Length--;
-                    HttpContext.Session.SetString("currentDimensions",dimStr.ToString());
                 }
             }
 
