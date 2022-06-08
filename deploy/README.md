@@ -34,7 +34,7 @@ az deployment sub create -f main-new-rg.bicep \
 2. Deploy the solution into an existing resource group:
 
 ```azurecli
-az deployment group create --template-file main-existingRG.bicep  \
+az deployment group create --template-file main-existing-rg.bicep  \
       --parameters appNamePrefix=$meteredbilling \
       --resource-group $meteredbilling-rg \
       --parameters ADApplicationID=$CHANGE-WITH-CLIENT_ID \
