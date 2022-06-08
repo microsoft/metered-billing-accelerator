@@ -14,8 +14,5 @@ namespace LandingPage.ViewModels.Home
         public string SubscriptionId { get; set; }
         public string TenantId { get; set; }
         public string PurchaseIdToken { get; set; }
-        public string OcrDetail { get; set; }
-
-
     }
 }

@@ -85,22 +85,21 @@ else
             <tbody>
                 @foreach (var plan in Model.SubscriptionPlans.Plans)
                 {
-                    if ((bool)!plan.IsStopSell)
-                    {
-                        <tr>
-                            <td colspan="2">
-                                <b>@plan.DisplayName</b>
+                    <tr>
+                        <td colspan="2">
+                            <b>@plan.DisplayName</b>
 
-                                @if (@plan.PlanId == Model.Subscription.PlanId)
-                                {
-                                    <span>- Current plan</span>
-                                }
-                            </td>
-                        </tr>
-                        <tr><td class="main-td">DisplayName</td><td>@Html.Raw(plan.DisplayName)</td></tr>
-                        <tr><td class="main-td">Description</td><td>@Html.Raw(plan.Description)</td></tr>
-                        <tr><td class="main-td">PlanId</td><td>@plan.PlanId</td></tr>
-                    }
+                            @if (@plan.PlanId == Model.Subscription.PlanId)
+                            {
+                                <span>- Current plan</span>
+                            }
+
+
+                        </td>
+                    </tr>
+                    <tr><td class="main-td">DisplayName</td><td>@Html.Raw(plan.DisplayName)</td></tr>
+                    <tr><td class="main-td">Description</td><td>@Html.Raw(plan.Description)</td></tr>
+                    <tr><td class="main-td">PlanId</td><td>@plan.PlanId</td></tr>
                 }
             </tbody>
         </table>

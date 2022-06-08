@@ -14,6 +14,7 @@ using Microsoft.Identity.Web.UI;
 using Microsoft.Marketplace.SaaS;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Logging;
 
 namespace LandingPage
 {
@@ -36,11 +37,6 @@ namespace LandingPage
                     .AddMicrosoftGraph() // Use defaults with Graph V1
                     .AddInMemoryTokenCaches(); // Add token caching
 
-            services.AddSession(options =>
-            {
-                options.Cookie.HttpOnly = true;
-                options.Cookie.IsEssential = true;
-            });
             // Configure OpenIdConnect
             services.Configure<OpenIdConnectOptions>(options =>
             {
@@ -92,7 +88,6 @@ namespace LandingPage
             app.UseStaticFiles();
 
             app.UseRouting();
-            app.UseSession();
 
             app.UseAuthentication();
             app.UseAuthorization();
