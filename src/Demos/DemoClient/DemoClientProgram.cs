@@ -15,23 +15,32 @@ var eventHubProducerClient = MeteringConnections.createEventHubProducerClientFor
 Console.WriteLine($"namespace: {eventHubProducerClient.FullyQualifiedNamespace}");
 
 var subs = new[] {
-    new SubSum("fdc778a6-1281-40e4-cade-4a5fc11f5440", "2021-11-04T16:12:26"),
-    new SubSum("8151a707-467c-4105-df0b-44c3fca5880d", "2021-12-14T18:20:00")
+    new SubSum("0852f7eb-a664-4683-d707-e2350edcfee9", "2022-06-02T23:37:34")
 };
 
 using CancellationTokenSource cts = new();
+await DeleteSubscriptions(eventHubProducerClient, subs, cts.Token);
 //await CreateSubscriptions(eventHubProducerClient, subs, cts.Token);
 //await ConsumeIncludedAtOnce(eventHubProducerClient, subs, cts.Token);
-await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
+//await BatchKnownIDs(eventHubProducerClient, subs, cts.Token);
 cts.Cancel();
 
 #pragma warning disable CS8321 // Local function is declared but never used
+
+async Task DeleteSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
+{
+    foreach (var subscription in subscriptions)
+    {
+        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
+    }
+}
 async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
 #pragma warning restore CS8321 // Local function is declared but never used
 {
     
     foreach (var subscription in subscriptions)
     {
+
         var sub = new SubscriptionCreationInformation(
             internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
             subscription: new(
@@ -42,7 +51,11 @@ async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, Su
 
         await Console.Out.WriteLineAsync(Json.toStr(1, sub));
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, ct);
-    }
+
+        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
+
+            
+     }
 }
 
 /// <summary>
@@ -54,7 +67,7 @@ async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, 
 {
     foreach (var sub in subs)
     {
-        foreach (var meter in new[] { "nde", "cpu", "dta", "msg", "obj" })
+        foreach (var meter in new[] { "cpu1", "mem1" })
         {
             await eventHubProducerClient.SubmitSaaSMeterAsync(
                 saasSubscriptionId: sub.Id,
@@ -97,7 +110,7 @@ static async Task BatchRandomId(EventHubProducerClient eventHubProducerClient, s
     var saasId = guidFromStr(subName);
     while (true)
     {
-        var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+        var meters = new[] { "cpu1", "mem1" }
                    .Select(x => MeterValues.create(x, 0.1))
                    .ToArray();
 

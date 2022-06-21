@@ -1,0 +1,94 @@
+﻿@model PublisherPortal.ViewModels.Meter.PublisherMetersModel
+@{
+    ViewData["Title"] = "Contoso Offer Meter Page";
+}
+
+@if (ViewBag.Message != null)
+{
+
+    <h2>@ViewBag.Message</h2>
+}
+else
+{
+          <h3>
+            Metered Usage Summary as of @Model.lastProcessedMessage
+        </h3>
+    <div class="modal-body" >
+            <table>
+                 <thead>
+                    <tr>
+                    <td>Dimension</td>
+                    <td>Consumed</td>
+                    <td>Remaining</td>
+                    <td>ToBe Process</td>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var meter in Model.CurrentTotal)
+                {
+                <tr>
+                    <td>@meter.DimensionName</td>
+                    <td>@meter.ConsumedDimensionQuantity</td>
+                    <td>@meter.IncludedDimensionQuantity</td>
+                    <td>@meter.ToBeProcess</td>
+                </tr>
+                }
+                </tbody>
+            </table>
+            <br/>
+        </div>
+
+        <div class="modal-body" >
+            <span><b>Current Metered Usage</b></span>
+             <table>
+                <thead>
+                    <tr>
+                    <td>SubscriptionId</td>
+                    <td>Dimension</td>
+                    <td>Consumed</td>
+                    <td>Remaining</td>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var meter in Model.CurrentMeterSummary)
+                {
+                <tr>
+                    <td>@meter.SubscriptionId</td>
+                    <td>@meter.DimensionName</td>
+                    <td>@meter.ConsumedDimensionQuantity</td>
+                    <td>@meter.IncludedDimensionQuantity</td>
+                </tr>
+                }
+            </tbody>
+            </table>
+            <br/>
+        </div>
+
+        <div class="modal-body" >
+            <span><b>Usage To Be Reported</b></span>
+             <table>
+                <thead>
+                    <tr>
+                    <td>Dimension</td>
+                    <td>Quantity</td>
+                    <td>Effective Start Date</td>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var meter in Model.CurrentToBeReported)
+                {
+                <tr>
+                    <td>@meter.SubscriptionId</td>
+                    <td>@meter.DimensionName</td>
+                    <td>@meter.Quantity</td>
+                    <td>@meter.EffectiveStartTime</td>
+                </tr>
+                }
+            </tbody>
+            </table>
+            </div>
+        
+
+
+  
+}

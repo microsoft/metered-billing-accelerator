@@ -25,8 +25,7 @@ Please follow the deployment setps as it is listed here in order to deploy the M
 
 
 ### Deploy Billing Accelerator
-1. Use the following script to deploy [Billing Accelerator](https://github.com/msalemcode/
-metered-billing-accelerator-1/tree/main/scripts)
+1. Use the following script to deploy [Billing Accelerator](https://github.com/microsoft/metered-billing-accelerator/tree/main/deploy)
 2. Grant Infrastructure AAD App a **Storage Blob Data Owner Role** over the billing accelerator Storage as following
 ![storage-iam](images/storage_iam1.png)
 ![storage-iam](images/storage_iam2.png)

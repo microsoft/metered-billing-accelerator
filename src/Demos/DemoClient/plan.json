@@ -1,10 +1,6 @@
 ﻿{
-  "planId": "free_monthly_yearly",
+  "planId": "meteredplus",
   "billingDimensions": {
-    "nodecharge":       "1000",
-    "cpucharge":        1000,
-    "datasourcecharge": 1000,
-    "objectcharge":     "1000",
-    "messagecharge":    "1000"
+    "mem": "0"
   }
 }

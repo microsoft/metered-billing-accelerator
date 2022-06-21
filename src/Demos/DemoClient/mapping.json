@@ -1,7 +1,3 @@
 ﻿{
-  "nde": "nodecharge",
-  "cpu": "cpucharge",
-  "dta": "datasourcecharge",
-  "msg": "messagecharge",
-  "obj": "objectcharge"
+  "mem": "mem"
 }

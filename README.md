@@ -272,7 +272,8 @@ The `subscription/plan` item describes this in detail; having information on whe
         {
           "resourceId":"8151a707-467c-4105-df0b-44c3fca5880d",
           "effectiveStartTime":"2021-12-22T09:00:00Z",
-          "planId":"free_monthly_yearly", "dimension": "nodecharge", 
+          "planId":"free_monthly_yearly",
+          "dimension": "nodecharge", 
           "quantity": 5.0
         }
       ],
