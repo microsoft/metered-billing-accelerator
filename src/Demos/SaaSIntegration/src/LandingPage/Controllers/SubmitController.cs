@@ -1,15 +1,11 @@
-﻿using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+﻿namespace LandingPage.Controllers;
+
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace LandingPage.Controllers
+[Authorize(AuthenticationSchemes = OpenIdConnectDefaults.AuthenticationScheme)]
+public class SubmitController : Controller
 {
-    [Authorize(AuthenticationSchemes = OpenIdConnectDefaults.AuthenticationScheme)]
-    public class SubmitController : Controller
-    {
-        public IActionResult Index()
-        {
-            return View();
-        }
-    }
+    public IActionResult Index() => View();
 }

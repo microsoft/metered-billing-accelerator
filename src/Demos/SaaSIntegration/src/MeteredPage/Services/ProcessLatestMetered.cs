@@ -27,8 +27,9 @@ public class ProcessLatestMetered
 
     public async Task<CustomerMetersModel> GetLatestMetered(string subscriptionId)
     {
-        CustomerMetersModel currentMeters = new();
-        string latest = eventHubNameSpace + ".servicebus.windows.net/" + eventHubName + "/0/latest.json.gz";
+        // TODO There is a hard-coded partition ID
+        int hardCodedPartitionIdMustBeChanged = 0;
+        string latest =  $"{eventHubNameSpace}.servicebus.windows.net/{eventHubName}/{hardCodedPartitionIdMustBeChanged}/latest.json.gz";
         BlobServiceClient blobServiceClient = new(storageConnectionString);
         BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient("snapshots");
         BlobClient blobClient = containerClient.GetBlobClient(latest);
@@ -42,14 +43,14 @@ public class ProcessLatestMetered
         decompressor.CopyTo(outputFileStream);
         outputFileStream.Close();
 
-        //sync version
-        string jsonString = File.ReadAllText(DecompressedFileName);
-
+        string jsonString = await File.ReadAllTextAsync(DecompressedFileName);
         var metercollections = Json.fromStr<MeterCollection>(jsonString);
 
-        currentMeters.SubscriptionId = subscriptionId;
-        // get Last Process Time
-        currentMeters.lastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString();
+        CustomerMetersModel currentMeters = new()
+        {
+            SubscriptionId = subscriptionId,
+            LastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString()
+        };
 
         foreach (KeyValuePair<InternalResourceId, Meter> kvp in metercollections.MeterCollection)
         {

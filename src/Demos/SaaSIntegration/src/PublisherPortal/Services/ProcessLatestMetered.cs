@@ -29,10 +29,10 @@ namespace PublisherPortal.Services
             this.downloadlocation = configuration["Downloadlocation"];
             this.storageConnectionString = configuration["StorageConnectionString"];
         }
+
         public async Task<PublisherMetersModel> GetLatestMetered(string subscriptionId)
         {
-            
-            PublisherMetersModel currentPublisherMeters = new PublisherMetersModel();
+            PublisherMetersModel currentPublisherMeters = new();
 
             string latest = eventHubNameSpace + ".servicebus.windows.net/" + eventHubName + "/0/latest.json.gz";
             BlobServiceClient blobServiceClient = new BlobServiceClient(storageConnectionString);
@@ -48,12 +48,10 @@ namespace PublisherPortal.Services
             decompressor.CopyTo(outputFileStream);
             outputFileStream.Close();
 
-
             //sync version
             string jsonString = File.ReadAllText(DecompressedFileName);
 
             var metercollections = Json.fromStr<MeterCollection>(jsonString);
-
 
             // get Last Process Time
             currentPublisherMeters.lastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString();
@@ -79,9 +77,7 @@ namespace PublisherPortal.Services
 
                     }
                     currentPublisherMeters.CurrentMeterSummary.Add(meterSummary);
-                    
                 }
-
             }
 
             // Get to be Reported
@@ -97,8 +93,6 @@ namespace PublisherPortal.Services
                         toBeReported.EffectiveStartTime = marketplace.EffectiveStartTime.ToString();
 
                     currentPublisherMeters.CurrentToBeReported.Add(toBeReported);
-                    
-
                 }
             }
 
