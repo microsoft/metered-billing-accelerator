@@ -27,14 +27,14 @@ cts.Cancel();
 
 #pragma warning disable CS8321 // Local function is declared but never used
 
-async Task DeleteSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
+static async Task DeleteSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
 {
     foreach (var subscription in subscriptions)
     {
         await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
     }
 }
-async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
+static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
 #pragma warning restore CS8321 // Local function is declared but never used
 {
     
@@ -62,7 +62,7 @@ async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, Su
 /// The current demo plans contain 1000 monthly units. This essentially consumes up all included quantities (except one)
 /// </summary>
 #pragma warning disable CS8321 // Local function is declared but never used
-async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
+static async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
 #pragma warning restore CS8321 // Local function is declared but never used
 {
     foreach (var sub in subs)
@@ -78,25 +78,25 @@ async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerClient, 
     }
 }
 
-async Task BatchKnownIDs(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
-{
-    Random random = new (); 
+//async Task BatchKnownIDs(EventHubProducerClient eventHubProducerClient, SubSum[] subs, CancellationToken ct)
+//{
+//    Random random = new (); 
     
-    int i = 0;
-    while (true)
-    {
-        foreach (var sub in subs)
-        {
-            var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                   .Select(x => MeterValues.create(x, random.NextDouble())).ToArray();
+//    int i = 0;
+//    while (true)
+//    {
+//        foreach (var sub in subs)
+//        {
+//            var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
+//                   .Select(x => MeterValues.create(x, random.NextDouble())).ToArray();
 
-            if (i++ % 10 == 0) { Console.Write("."); }
+//            if (i++ % 10 == 0) { Console.Write("."); }
 
-            await eventHubProducerClient.SubmitSaaSMetersAsync(sub.Id, meters, ct);
-            await Task.Delay(TimeSpan.FromSeconds(random.NextDouble() * 10), ct);
-        }        
-    }
-}
+//            await eventHubProducerClient.SubmitSaaSMetersAsync(sub.Id, meters, ct);
+//            await Task.Delay(TimeSpan.FromSeconds(random.NextDouble() * 10), ct);
+//        }        
+//    }
+//}
 
 static string guidFromStr(string str) => new Guid(SHA1.Create().ComputeHash(Encoding.UTF8.GetBytes(str)).Take(16).ToArray()).ToString();
 
