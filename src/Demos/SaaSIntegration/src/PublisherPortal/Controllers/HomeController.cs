@@ -1,25 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿namespace PublisherPortal.Controllers;
+
+using Metering.BaseTypes;
+using Metering.ClientSDK;
+using Metering.Integration;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.FSharp.Collections;
 using Microsoft.Marketplace.SaaS;
 using Microsoft.Marketplace.SaaS.Models;
 using PublisherPortal.ViewModels;
 using PublisherPortal.ViewModels.Home;
 using PublisherPortal.ViewModels.Shared;
-using Azure.Messaging.EventHubs.Producer;
-using Metering.BaseTypes;
-using Metering.ClientSDK;
-using Metering.Integration;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Subscription = Microsoft.Marketplace.SaaS.Models.Subscription;
-using Microsoft.FSharp.Collections;
-
-namespace PublisherPortal.Controllers;
 
 [Authorize]
 [Route("~/")]
@@ -28,11 +26,7 @@ public class HomeController : Controller
     private readonly ILogger<HomeController> _logger;
     private readonly IMarketplaceSaaSClient _marketplaceSaaSClient;
 
-
-    static async Task<T> readJson<T>(string name) => Metering.BaseTypes.Json.fromStr<T>(name);
-
-    
-
+    static T readJson<T>(string name) => Metering.BaseTypes.Json.fromStr<T>(name);
 
     public HomeController(
         ILogger<HomeController> logger,
@@ -49,7 +43,7 @@ public class HomeController : Controller
     /// <returns>IActionResult</returns>
     public async Task<IActionResult> IndexAsync(CancellationToken cancellationToken)
     {
-        IList<Subscription> subscriptionsList = new List<Subscription>();
+        List<Subscription> subscriptionsList = new();
             
         var subscriptions = _marketplaceSaaSClient.Fulfillment.ListSubscriptionsAsync(cancellationToken: cancellationToken);
 
@@ -57,8 +51,8 @@ public class HomeController : Controller
         {
             subscriptionsList.Add(subscription);
         }
-            
-        var model = new IndexViewModel()
+
+        IndexViewModel model = new()
         {
             Subscriptions = subscriptionsList.OrderBy(s => s.Name).ToList<Subscription>()
         };
@@ -79,9 +73,8 @@ public class HomeController : Controller
         Subscription subscription = (await _marketplaceSaaSClient.Fulfillment.GetSubscriptionAsync(id, cancellationToken: cancellationToken)).Value;
         SubscriptionPlans plans = (await _marketplaceSaaSClient.Fulfillment.ListAvailablePlansAsync(id, cancellationToken: cancellationToken)).Value;
 
-        var model = new SubscriptionViewModel()
+        SubscriptionViewModel model = new()
         {
-
             Subscription = subscription,
             Plans = plans.Plans
         };
@@ -124,7 +117,6 @@ public class HomeController : Controller
             await ActiveMeteredSubscription(id, planId);
         }
 
-
         return this.RedirectToAction("Subscription", new { id = id });
 
     }
@@ -138,7 +130,6 @@ public class HomeController : Controller
     [Route("Delete/{id}")]
     public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken cancellationToken)
     {
-
         _logger.Log(LogLevel.Information, "Deleting subscription");
 
         var operationId = await _marketplaceSaaSClient.Fulfillment.DeleteSubscriptionAsync(id, cancellationToken: cancellationToken);
@@ -160,7 +151,7 @@ public class HomeController : Controller
     {
         _logger.Log(LogLevel.Information, $"Changing Plan to: {planId}");
 
-        var subscriberPlan = new SubscriberPlan()
+        SubscriberPlan subscriberPlan = new()
         {
             PlanId = planId,
         };
@@ -187,7 +178,7 @@ public class HomeController : Controller
         var subscriptionOperations = (await _marketplaceSaaSClient.Operations.ListOperationsAsync(subscriptionId, cancellationToken: cancellationToken)).Value;
         var operationStatus = (await _marketplaceSaaSClient.Operations.GetOperationStatusAsync(subscriptionId, operationId, cancellationToken: cancellationToken)).Value;
 
-        var model = new OperationsViewModel()
+        OperationsViewModel model = new()
         {
             Subscription = subscription,
             SubscriptionOperations = subscriptionOperations.Operations,
@@ -208,7 +199,7 @@ public class HomeController : Controller
     [Route("Update/{subscriptionId:Guid}/{planId}/{operationId:Guid}")]
     public async Task<IActionResult> UpdateAsync(Guid subscriptionId, string planId, Guid operationId, CancellationToken cancellationToken)
     {
-        var updateOperation = new UpdateOperation()
+        UpdateOperation updateOperation = new()
         {
             PlanId = planId,
             Status = UpdateOperationStatusEnum.Success
@@ -257,19 +248,18 @@ public class HomeController : Controller
         }
 
         // Call metering SDK now
-        var meterplan = new Metering.BaseTypes.Plan(PlanId.create(planId),BillingDimensions.create(billingDimensionsMap));
+        Metering.BaseTypes.Plan meterplan = new(PlanId.create(planId), BillingDimensions.create(billingDimensionsMap));
         var meterMapping = InternalMetersMapping.create(dimensionsMapping);
 
         System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
         var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
-        var sub = new SubscriptionCreationInformation(
-        internalMetersMapping: meterMapping,
-        subscription: new(
-            plan: meterplan,
-            internalResourceId: InternalResourceId.fromStr(subscriptionId.ToString()),
-            renewalInterval: RenewalInterval.Monthly,
-            subscriptionStart: MeteringDateTimeModule.now()));
+        SubscriptionCreationInformation sub = new(
+            internalMetersMapping: meterMapping,
+            subscription: new(
+                plan: meterplan,
+                internalResourceId: InternalResourceId.fromStr(subscriptionId.ToString()),
+                renewalInterval: RenewalInterval.Monthly,
+                subscriptionStart: MeteringDateTimeModule.now()));
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, cts.Token);
-
     }
 }

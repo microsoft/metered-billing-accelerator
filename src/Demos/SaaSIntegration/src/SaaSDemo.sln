@@ -7,7 +7,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PublisherPortal", "Publishe
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LandingPage", "LandingPage\LandingPage.csproj", "{DDFBD287-841A-4D4C-B3FC-997640087A84}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MeteredPage", "MeteredPage\MeteredPage.csproj", "{0BC23055-629F-4F0A-8D36-CD69FB5C48F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MeteredPage", "MeteredPage\MeteredPage.csproj", "{299DBD68-F7E3-41BD-9BDF-D4F837BCBC53}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BaseProjects", "BaseProjects", "{721C0B38-8549-4D78-973C-8D7F0E1101AF}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BaseTypes", "..\..\..\Metering.BaseTypes\Metering.BaseTypes.fsproj", "{CB1C9556-07DA-49BF-8C16-4510E6F02F29}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.EventHubTypes", "..\..\..\Metering.EventHubTypes\Metering.EventHubTypes.fsproj", "{91286AE4-DE96-46A2-B36B-B7C49BC58A4F}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Runtime", "..\..\..\Metering.Runtime\Metering.Runtime.fsproj", "{C769AE54-62E8-4154-95D9-C6949C7983C6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,13 +31,30 @@ Global
 		{DDFBD287-841A-4D4C-B3FC-997640087A84}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DDFBD287-841A-4D4C-B3FC-997640087A84}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DDFBD287-841A-4D4C-B3FC-997640087A84}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0BC23055-629F-4F0A-8D36-CD69FB5C48F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0BC23055-629F-4F0A-8D36-CD69FB5C48F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0BC23055-629F-4F0A-8D36-CD69FB5C48F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0BC23055-629F-4F0A-8D36-CD69FB5C48F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{299DBD68-F7E3-41BD-9BDF-D4F837BCBC53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{299DBD68-F7E3-41BD-9BDF-D4F837BCBC53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{299DBD68-F7E3-41BD-9BDF-D4F837BCBC53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{299DBD68-F7E3-41BD-9BDF-D4F837BCBC53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CB1C9556-07DA-49BF-8C16-4510E6F02F29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CB1C9556-07DA-49BF-8C16-4510E6F02F29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CB1C9556-07DA-49BF-8C16-4510E6F02F29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CB1C9556-07DA-49BF-8C16-4510E6F02F29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{91286AE4-DE96-46A2-B36B-B7C49BC58A4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{91286AE4-DE96-46A2-B36B-B7C49BC58A4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{91286AE4-DE96-46A2-B36B-B7C49BC58A4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{91286AE4-DE96-46A2-B36B-B7C49BC58A4F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C769AE54-62E8-4154-95D9-C6949C7983C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C769AE54-62E8-4154-95D9-C6949C7983C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C769AE54-62E8-4154-95D9-C6949C7983C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C769AE54-62E8-4154-95D9-C6949C7983C6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CB1C9556-07DA-49BF-8C16-4510E6F02F29} = {721C0B38-8549-4D78-973C-8D7F0E1101AF}
+		{91286AE4-DE96-46A2-B36B-B7C49BC58A4F} = {721C0B38-8549-4D78-973C-8D7F0E1101AF}
+		{C769AE54-62E8-4154-95D9-C6949C7983C6} = {721C0B38-8549-4D78-973C-8D7F0E1101AF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EF4E97A4-6689-4703-8C9F-EDB5155AC788}

@@ -1,3 +1,5 @@
+namespace PublisherPortal;
+
 using System.Threading.Tasks;
 using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -13,8 +15,6 @@ using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using Microsoft.Marketplace.SaaS;
 using Microsoft.Marketplace.Metering;
-
-namespace PublisherPortal;
 
 public class Startup
 {
