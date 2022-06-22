@@ -10,7 +10,7 @@
     <PackageReference Include="Thoth.Json.Net" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.3" />
+    <PackageReference Update="FSharp.Core" Version="6.0.5" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.EventHubTypes\Metering.EventHubTypes.fsproj" />
