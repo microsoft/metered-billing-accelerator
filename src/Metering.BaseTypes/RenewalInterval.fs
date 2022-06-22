@@ -9,13 +9,13 @@ type RenewalInterval =
     | Monthly
     | Annually
 
-module RenewalInterval =
-    let duration (pre: RenewalInterval) =
-        match pre with
-        | Monthly -> Period.FromMonths(1)
-        | Annually -> Period.FromYears(1)
-
-    let add (pre: RenewalInterval) (i: uint) : Period =
-        match pre with
+    member this.Duration 
+        with get() = 
+            match this with
+            | Monthly -> Period.FromMonths(1)
+            | Annually -> Period.FromYears(1)
+    
+     member this.add (i: uint) : Period =
+        match this with
         | Monthly -> Period.FromMonths(int i)
         | Annually -> Period.FromYears(int i)

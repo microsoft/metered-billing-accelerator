@@ -1,15 +1,23 @@
-﻿// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT license.
+﻿// Licensed under the MIT license.
 
 namespace Metering.BaseTypes
 
-type InternalUsageEvent = // From app to aggregator
-    { InternalResourceId: InternalResourceId
-      Timestamp: MeteringDateTime  // timestamp from the sending app
+/// Internal usage event Message, sent from app to aggregator. 
+type InternalUsageEvent =
+    { /// The resource ID, i.e. SaaS subscription ID or managed app ID.
+      InternalResourceId: InternalResourceId
+      
+      /// Timestamp (wallclock) of the sending app. This is only for recording purposes. The business logic uses EventHub timestamps.
+      Timestamp: MeteringDateTime
+      
+      /// Application-internal name of the meter / billing dimension. 
       MeterName: ApplicationInternalMeterName
+
+      /// The consumed quantity.
       Quantity: Quantity
+
+      /// An optional collection of additional properties.
       Properties: Map<string, string> option}
 
-module InternalUsageEvent =
-    let toStr (x: InternalUsageEvent) : string =
-        $"{x.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {x.InternalResourceId |> InternalResourceId.toStr} {x.MeterName |> ApplicationInternalMeterName.value}={x.Quantity |> Quantity.valueAsFloat}"
+    override this.ToString() =
+        $"{this.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {this.InternalResourceId.ToString()} {this.MeterName.value}={this.Quantity.AsFloat}"

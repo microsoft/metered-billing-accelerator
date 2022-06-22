@@ -22,34 +22,21 @@ type MeteringUpdateEvent =
     /// Clean up state
     | RemoveUnprocessedMessages of RemoveUnprocessedMessages
 
-type LocalControlEvent =
-    /// A heart beat signal to potentially flush billing periods
-    | PartitionEventConsumptionCatchedUp
-
-module MeteringUpdateEvent =
-    let partitionKey (mue: MeteringUpdateEvent) : string =
-        match mue with
-        | SubscriptionPurchased x -> x.Subscription.InternalResourceId |> InternalResourceId.toStr
-        | SubscriptionDeletion x -> x |> InternalResourceId.toStr
-        | UsageReported x -> x.InternalResourceId |> InternalResourceId.toStr
-        | UsageSubmittedToAPI x -> x.Result |> MarketplaceSubmissionResult.resourceId |> InternalResourceId.toStr
-        | UnprocessableMessage _ -> ""
-        | RemoveUnprocessedMessages _ -> ""
-
-    let type_name (mue: MeteringUpdateEvent) : string =
-        match mue with
-        | SubscriptionPurchased _ -> nameof(SubscriptionPurchased)
-        | SubscriptionDeletion _ -> nameof(SubscriptionDeletion)
-        | UsageReported _ -> nameof(UsageReported)
-        | UsageSubmittedToAPI _ -> nameof(UsageSubmittedToAPI)
-        | UnprocessableMessage _ -> nameof(UnprocessableMessage)
-        | RemoveUnprocessedMessages _ -> nameof(RemoveUnprocessedMessages)
-
-    let toStr (mue: MeteringUpdateEvent) : string =
-        match mue with
-        | SubscriptionPurchased x -> x |> SubscriptionCreationInformation.toStr
-        | SubscriptionDeletion x -> $"Deletion of {x |> InternalResourceId.toStr}"
-        | UsageReported x -> x |> InternalUsageEvent.toStr
+    member this.partitionKey 
+        with get() : string =
+            match this with
+            | SubscriptionPurchased x -> x.Subscription.InternalResourceId.ToString()
+            | SubscriptionDeletion x -> x.ToString()
+            | UsageReported x -> x.InternalResourceId.ToString()
+            | UsageSubmittedToAPI x -> (x.Result |> MarketplaceSubmissionResult.resourceId).ToString()
+            | UnprocessableMessage _ -> ""
+            | RemoveUnprocessedMessages _ -> ""
+    
+    override this.ToString() =
+        match this with
+        | SubscriptionPurchased x -> x.ToString()
+        | SubscriptionDeletion x -> $"Deletion of {x}"
+        | UsageReported x -> x.ToString()
         | UsageSubmittedToAPI x -> x.Result |>  MarketplaceSubmissionResult.toStr        
         | UnprocessableMessage p -> 
             match p with

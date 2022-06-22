@@ -27,7 +27,7 @@ module Status =
         let getPartitionProps (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionId: PartitionID) = 
             task {
                 let! p = client.GetPartitionPropertiesAsync(
-                    partitionId = (partitionId |> PartitionID.value), 
+                    partitionId = (partitionId.value), 
                     cancellationToken = cancellationToken)
                 return (partitionId, PartitionProps(
                     PartitionId = partitionId,
@@ -71,7 +71,7 @@ module Status =
     [<Extension>]
     let fetchEventsToCatchup (config: MeteringConfigurationProvider) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<Map<PartitionID, EventsToCatchup>> =
         task {
-            let client = config.MeteringConnections |> MeteringConnections.createEventHubConsumerClient
+            let client = config.MeteringConnections.createEventHubConsumerClient()
             let! partitionIds = getPartitionIDs client cancellationToken
 
             let! partitionProperties = partitionIds |> getPartitionProperties client cancellationToken           
@@ -100,7 +100,7 @@ module Status =
                                 NumberOfEvents = seqid 
                                 TimeDeltaSeconds = -1 })
 
-                    | _ -> failwith $"Could not find {partitionId |> PartitionID.value}: {part} {stateLastMessagePos}"
+                    | _ -> failwith $"Could not find {partitionId.value}: {part} {stateLastMessagePos}"
                 )
                 |> Map.ofSeq
         }
@@ -108,7 +108,7 @@ module Status =
     [<Extension>]
     let fetchStates (config: MeteringConfigurationProvider) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         task {
-            let client = config.MeteringConnections |> MeteringConnections.createEventHubConsumerClient
+            let client = config.MeteringConnections.createEventHubConsumerClient()
             let! partitionIds = getPartitionIDs client cancellationToken
             let! storedStates = partitionIds |> getStates config cancellationToken
 

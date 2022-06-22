@@ -11,6 +11,68 @@ type Quantity =
     | Infinite // https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/saas-metered-billing
     | MeteringInt of uint
     | MeteringFloat of float
+
+    static member private infiniteMarker = "Infinite"
+
+    override this.ToString() =
+        match this with
+        | MeteringInt i -> i.ToString()
+        | MeteringFloat f -> f.ToString()
+        | Infinite -> Quantity.infiniteMarker
+
+    override this.Equals obj =
+        match obj with
+          | :? Quantity as other -> (this :> IEquatable<_>).Equals other
+          | _                    -> false
+
+    override this.GetHashCode () =
+        match this with
+        | Infinite -> "Infinite".GetHashCode()
+        | MeteringInt i -> i.GetHashCode()
+        | MeteringFloat f -> f.GetHashCode()
+
+    member this.AsInt = 
+        match this with
+        | MeteringInt i -> i
+        | MeteringFloat f -> uint32 f
+        | Infinite -> failwith $"Trying to convert {nameof(Infinite)} to an uint64"
+
+    member this.AsFloat = 
+        match this with
+        | MeteringInt i -> float i
+        | MeteringFloat f -> f
+        | Infinite -> failwith $"Trying to convert {nameof(Infinite)} to a float"
+        
+    member this.isAllowedIncomingQuantity =
+        match this with
+        | MeteringInt i -> true
+        | MeteringFloat f -> f >= 0.0
+        | Infinite -> false
+
+    static member Zero
+        with get() = (MeteringInt 0u)
+
+    static member None 
+        with get() : (Quantity option) = None
+
+    static member fromString (s: string) =
+        if s = Quantity.infiniteMarker
+        then Infinite
+        else 
+            if s.Contains(".")
+            then s |> Double.Parse |> MeteringFloat
+            else s |> UInt32.Parse |> MeteringInt
+    
+    static member create (i: uint) = (MeteringInt i)
+
+    static member create (f: float) = (MeteringFloat f)
+    
+    [<CompiledName("some")>]
+    static member someInt = MeteringInt >> Some
+
+    [<CompiledName("some")>]
+    static member someFloat = MeteringFloat >> Some
+
     interface IComparable<Quantity> with
         member this.CompareTo other : int =
             match (this, other) with
@@ -38,17 +100,6 @@ type Quantity =
             | (Infinite, Infinite) -> true
             | (_, _) -> false
 
-    override this.Equals obj =
-        match obj with
-          | :? Quantity as other -> (this :> IEquatable<_>).Equals other
-          | _                    -> false
-
-    override this.GetHashCode () =
-        match this with
-        | Infinite -> "Infinite".GetHashCode()
-        | MeteringInt i -> i.GetHashCode()
-        | MeteringFloat f -> f.GetHashCode()
-
     static member (+) (a: Quantity, b: Quantity) =
         match (a, b) with
             | ((MeteringInt a), (MeteringInt b)) -> MeteringInt  (a + b)
@@ -64,8 +115,8 @@ type Quantity =
             | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (float a - b)
             | ((MeteringFloat a), (MeteringInt b)) -> MeteringFloat (a - float b)
             | ((MeteringFloat a), (MeteringFloat b)) -> MeteringFloat (a - b)
-            | (Infinite, _) -> Infinite
             | (_, Infinite) -> failwith "This must never happen"
+            | (Infinite, _) -> Infinite
             |> function
                 | MeteringInt i -> MeteringInt i
                 | MeteringFloat f -> 
@@ -73,48 +124,3 @@ type Quantity =
                     then failwith "Cannot be negative"
                     else MeteringFloat f
                 | Infinite -> Infinite
-
-module Quantity =    
-    [<CompiledName("create")>]
-    let createInt i = (MeteringInt i)
-    
-    [<CompiledName("create")>]
-    let createFloat f = (MeteringFloat f)
-    
-    let fromString (s: string) =
-        if s = "Infinite"
-        then Infinite
-        else 
-            if s.Contains(".")
-            then s |> Double.Parse |> createFloat
-            else s |> UInt32.Parse |> createInt
-
-    [<CompiledName("some")>]
-    let someInt = createInt >> Some
-    
-    [<CompiledName("some")>]
-    let someFloat = createFloat >> Some
-    
-    let none : (Quantity option) = None
-
-    let valueAsInt = function
-        | MeteringInt i -> i
-        | MeteringFloat f -> uint32 f
-        | Infinite -> failwith "Trying to convert Infinity to an uint64"
-
-    let valueAsFloat = function
-        | MeteringInt i -> float i
-        | MeteringFloat f -> f
-        | Infinite -> failwith "Trying to convert Infinity to a float"
-
-    let toStr : (Quantity -> string) = 
-        function
-        | MeteringInt i -> i.ToString()
-        | MeteringFloat f -> f.ToString()
-        | Infinite -> "Infinite"
-        
-    let isAllowedIncomingQuantity : (Quantity -> bool) =
-        function
-        | MeteringInt i -> true
-        | MeteringFloat f -> f >= 0.0
-        | Infinite -> false

@@ -19,23 +19,26 @@ namespace DemoWebApp.Pages
         }
 
         public void OnGet() { }
-        public Task OnPostNodeChargeAsync(CancellationToken ct) => Submit(1.0, "nde", ct);
-        public Task OnPostCpuChargeAsync(CancellationToken ct) => Submit(1.0, "cpu", ct);
-        public Task OnPostDataSourceChargeAsync(CancellationToken ct) => Submit(1.0, "dta", ct);
-        public Task OnPostMessageChargeAsync(CancellationToken ct) => Submit(1.0, "msg", ct);
-        public Task OnPostObjectChargeAsync(CancellationToken ct) => Submit(1.0, "obj", ct);
+        public Task OnPostNodeChargeAsync(CancellationToken ct) => Submit("nde", 1.0, ct);
+        public Task OnPostCpuChargeAsync(CancellationToken ct) => Submit("cpu", 1.0, ct);
+        public Task OnPostDataSourceChargeAsync(CancellationToken ct) => Submit("dta", 1.0, ct);
+        public Task OnPostMessageChargeAsync(CancellationToken ct) => Submit("msg", 1.0, ct);
+        public Task OnPostObjectChargeAsync(CancellationToken ct) => Submit("obj", 1.0,  ct);
 
         const string saasId = "fdc778a6-1281-40e4-cade-4a5fc11f5440";
 
-        private async Task Submit(double amount, string name, CancellationToken ct)
+        private async Task Submit(string applicationInternalName, double amount, CancellationToken ct)
         {
             await _eventHubProducerClient.SubmitSaaSMeterAsync(
-                SaaSConsumptionModule.create(saasId, MeterValueModule.create(name, amount)), ct);
-            
-            //await _eventHubProducerClient.SubmitManagedAppMeterAsync(
-            //    MeterValueModule.create(name, amount), ct);
+                  saasSubscriptionId: saasId,
+                  applicationInternalMeterName: applicationInternalName,
+                  quantity: amount,
+                  cancellationToken: ct);
 
-            var msg = $"Submitted consumption of {amount} {name}";
+            //await _eventHubProducerClient.SubmitManagedAppMeterAsync(
+            //    MeterValues.create(applicationInternalName, amount), ct);
+
+            var msg = $"Submitted consumption of {applicationInternalName}={amount} ";
 
             Msg = msg;
             _logger.LogInformation(msg);

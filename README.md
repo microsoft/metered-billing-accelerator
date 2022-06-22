@@ -1,8 +1,43 @@
 # `README.md`: The metering-billing-accelerator
 
+[![.NET Build](https://github.com/microsoft/metered-billing-accelerator/actions/workflows/dotnet.yml/badge.svg)](https://github.com/microsoft/metered-billing-accelerator/actions/workflows/dotnet.yml)
+
 ## tl;dr
 
 > This component takes care of the accounting necessary for correctly reporting custom metering information to the Azure Marketplace Metering API. 
+
+## Table of contents
+
+- [Design goals](#design-goals)
+- [Which challenges does it solve for?](#which-challenges-does-it-solve-for-)
+  * [Tracking *included* usage and *overage* usage](#tracking--included--usage-and--overage--usage)
+  * [Replenishment at the right point in time](#replenishment-at-the-right-point-in-time)
+  * [Showing the customer what's left for the current billing cycle](#showing-the-customer-what-s-left-for-the-current-billing-cycle)
+  * [Azure Metering API requirements](#azure-metering-api-requirements)
+    + [Hourly aggregation](#hourly-aggregation)
+    + [Write-once / First write wins / No updates](#write-once---first-write-wins---no-updates)
+    + [Batching](#batching)
+- [Architecture](#architecture)
+  * [Recording usage](#recording-usage)
+  * [Aggregating usage](#aggregating-usage)
+    + [Business logic](#business-logic)
+    + [Submission to Marketplace API](#submission-to-marketplace-api)
+- [Data structures](#data-structures)
+  * [Client messages](#client-messages)
+    + [The `SubscriptionPurchased` event](#the--subscriptionpurchased--event)
+    + [The `UsageReported` message](#the--usagereported--message)
+  * [State file (for a single partition)](#state-file--for-a-single-partition-)
+- [Configuration via environment variables](#configuration-via-environment-variables)
+  * [Azure Marketplace API credential (to submit metering values to Azure)](#azure-marketplace-api-credential--to-submit-metering-values-to-azure-)
+  * [Infrastructure Credentials](#infrastructure-credentials)
+  * [Endpoints](#endpoints)
+  * [Local dev setup](#local-dev-setup)
+- [Demo time - How to run / try it yourself](#demo-time---how-to-run---try-it-yourself)
+- [Assembly overview](#assembly-overview)
+- [Monitoring Recommendations](./docs/AzureFunction-Monitoring.md)
+- [Enterprise Deployment Recommendation](./docs/Enterprise-Reference-Architecture-Single-region.md)
+- [Privacy and Telemetry Notice](#privacy-and-telemetry-notice)
+- [Contributing](#contributing)
 
 ## Design goals
 
@@ -21,7 +56,7 @@
 
 ## Which challenges does it solve for?
 
-ISV developers who want to enable their [managed application](https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing) or SaaS offers to leverage metered billing, and therefore need to submit metered billing data to the "[Azure Marketplace / Metered Billing API](https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis)", have to solve a similar set of challenges. 
+ISV developers who want to enable their [managed application][azure-app-metered-billing] or SaaS offers to leverage metered billing, and therefore need to submit metered billing data to the "[Azure Marketplace / Metered Billing API][marketplace-metering-service-apis]", have to solve a similar set of challenges. 
 
 > *"You must keep track of the usage in your code and only send usage events to Microsoft for the usage that is above the base fee."*
 
@@ -101,11 +136,11 @@ It does not cause harm if the aggregator gets shut-down in the middle of the act
 
 The architectural approach inside the aggregator is like this: The snapshot blob storage container contains all relevant state, up to a certain point in time. "Point in time" refers to a specific message sequence number in an Azure EventHub partition. When the aggregator starts, and get's ownership over one (or more) partitions in EH, it reads the most recent corresponding state (JSON files), and starts to continue sequentially processing all messages in the corresponding EventHub partition. 
 
-The business logic sequentially applies each event to the state, i.e. applying / [folding](https://en.wikipedia.org/wiki/Fold_(higher-order_function)) the events onto the state. The EventHub SDKs `EventProcessorClient`, alongside with the business logic, are wrapped in a Reactive Extension's observable, which then continuously emits new versions of the state.
+The business logic sequentially applies each event to the state, i.e. applying / [folding][folding] the events onto the state. The EventHub SDKs `EventProcessorClient`, alongside with the business logic, are wrapped in a Reactive Extension's observable, which then continuously emits new versions of the state.
 
-#### Business logic
+#### Business logicss
 
-The business logic is completely side-effect-free; it's a "[pure function](https://en.wikipedia.org/wiki/Pure_function)" (in functional-programming terms), and it does not perform any interactions with the outside world. Most notably, when the business logic determines that a certain value is ready to be submitted to the external metering API, it just records a job entry, to indicate that 'someone' is supposed to make that API call. 
+The business logic is completely side-effect-free; it's a "[pure function][pure function]" (in functional-programming terms), and it does not perform any interactions with the outside world. Most notably, when the business logic determines that a certain value is ready to be submitted to the external metering API, it just records a job entry, to indicate that 'someone' is supposed to make that API call. 
 
 Two subsequent functionalities subscribe to the stream of state updates: 
 
@@ -140,8 +175,6 @@ This customer purchased a plan called `free_monthly_yearly` in the partner porta
 
 ![2022-01-27--17-29-47](images/partnerportalmeters.png)
 
-
-
 In addition, it contains a `metersMapping` table, which translates the application's internal name for a consumption event, such as `'cpu'`, into the dimension name which is officially configured in Azure marketplace, such as `'cpucharge'`.  
 
 The concrete JSON message (in EventHub) looks like this
@@ -157,11 +190,11 @@ The concrete JSON message (in EventHub) looks like this
       "plan":{
         "planId":"free_monthly_yearly",
         "billingDimensions": {
-          "messagecharge":    { "monthly": 1000, "annually": 10000 },
-          "cpucharge":        { "monthly": 1000, "annually": 10000 },
-          "datasourcecharge": { "monthly": 1000, "annually": 10000 },
-          "nodecharge":       { "monthly": 1000, "annually": 10000 },
-          "objectcharge":     { "monthly": 1000, "annually": 10000 }
+          "messagecharge":    1000,
+          "cpucharge":        1000,
+          "datasourcecharge": 1000,
+          "nodecharge":       1000,
+          "objectcharge":     1000,
         }
       }
     },
@@ -220,26 +253,27 @@ The `subscription/plan` item describes this in detail; having information on whe
         "plan":{
           "planId": "free_monthly_yearly",
           "billingDimensions": {
-            "messagecharge":    { "monthly": 1000, "annually": 10000 },
-            "cpucharge":        { "monthly": 1000, "annually": 10000 },
-            "datasourcecharge": { "monthly": 1000, "annually": 10000 },
-            "nodecharge":       { "monthly": 1000, "annually": 10000 },
-            "objectcharge":     { "monthly": 1000, "annually": 10000 }
+            "messagecharge":    1000,
+            "cpucharge":        1000,
+            "datasourcecharge": 1000,
+            "nodecharge":       1000,
+            "objectcharge":     1000,
           }
         }        
       },
       "currentMeters":{
-        "messagecharge":    { "included": { "monthly": 1000, "annually": 10000 } },
-        "cpucharge":        { "included": { "monthly":  892, "annually": 10000 } },
-        "datasourcecharge": { "included": {                  "annually":  9213 } },
-        "nodecharge":       { "consumed": { "consumedQuantity": 11018.8        } },
-        "objectcharge":     { "consumed": { "consumedQuantity":   118          } }
+        "messagecharge":    { "included": { "quantity": 1000 } },
+        "cpucharge":        { "included": { "quantity": 1000 } },
+        "datasourcecharge": { "included": { "quantity":  982 } },
+        "nodecharge":       { "consumed": { "consumedQuantity": 11018.8 } },
+        "objectcharge":     { "consumed": { "consumedQuantity":   118   } }
       },
       "usageToBeReported": [ // These are API calls which must be made
         {
           "resourceId":"8151a707-467c-4105-df0b-44c3fca5880d",
           "effectiveStartTime":"2021-12-22T09:00:00Z",
-          "planId":"free_monthly_yearly", "dimension": "nodecharge", 
+          "planId":"free_monthly_yearly",
+          "dimension": "nodecharge", 
           "quantity": 5.0
         }
       ],
@@ -260,12 +294,9 @@ The `subscription/plan` item describes this in detail; having information on whe
 
 **Counting the consumption**: In the above example, you can see 5 dimensions in different states for the given sample customer:
 
-- The `messagecharge` meter has an `"included":{"monthly":1000,"annually":10000,...}` value, which indicates that there has not been any consumption in this dimension, as it's the same values as were included in the plan.
-- The `cpucharge` meter has a value of `"included":{"monthly":892, "annually":10000,...}"`, which indicates that 108 units have already been consumed (in the current month), i.e. `monthly` included remaining value went down from 1000 to 892. The included monthly credits are first consumed, before 'touching' annual included quantities.
-- The `datasourcecharge` meter with the `"included":{ "annually": 9213, ...}` value shows that all included quantity *for the current month* has been eaten up, and for the remainder of the current billing year, 9213 units are still left over. 
-  - This snapshot is from 22nd of December. Given that the subscription was purchased on the 14th of December, and the renewal interval is `Monthly`, the `included/monthly` will be re-filled to `1000` on the 14th of January (leaving the remaining `annually` where it was).
-
-- The `nodecharge` and `objectcharge` meters completely depleted the included quantity for both the current month and year, and are now in the overage (for the current hour!!!), i.e. having values of `"consumed":{"consumedQuantity":11018.8, ...}` and `"consumed":{"consumedQuantity":118,...}` respectively. 
+- The `messagecharge` and `cpucharge` meters have an `"included": { "quantity": 1000 }` value, which indicates that there has not been any consumption in these dimensions, as their values are untouched (compared to the plan).
+- The `datasourcecharge` meter has a value of `"included": { "quantity":892 }"`, which indicates that 108 units have already been consumed (in the current month). This snapshot is from 22nd of December. Given that the subscription was purchased on the 14th of December, and the renewal interval is `Monthly`, the `included` will be re-filled to `1000` on the 14th of January.
+- The `nodecharge` and `objectcharge` meters completely depleted the included quantity for the current month and are now in the overage (indicating the overage for the current hour!!!), i.e. having values of `"consumed":{"consumedQuantity":11018.8, ...}` and `"consumed":{"consumedQuantity":118,...}` respectively. 
 
 For the `nodecharge` meter, you can also see that the `usageToBeReported` array contains an object `{ "planId":"free_monthly_yearly", "dimension":"nodecharge","resourceId":"fdc778a6-1281-40e4-cade-4a5fc11f5440","quantity":5.0,"effectiveStartTime":"2021-12-22T09:00:00Z"}`, indicating that the usage emitter must report a `free_monthly_yearly/nodecharge = 5.0` consumption for the 09:00-10:00 time window on December 12th, 2021.
 
@@ -302,7 +333,7 @@ Configure the appropriate endpoints for EventHub and Storage via environment var
   - Set `AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER`, where the solution stores the aggregator state. **This is the long-term database of the system!!!**
   - Set `AZURE_METERING_INFRA_CAPTURE_CONTAINER` for the ability to read through EventHub capture.
   - Set `AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT` to the proper format of the blobs in the capture container, something like `{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}`, namely the value from the EventHub'r ARM configuration, `archiveDescription.destination.properties.archiveNameFormat`. 
-    Check the [documentation](https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-resource-manager-namespace-event-hub-enable-capture#capturenameformat) for details
+    Check the [documentation][eventhub-capture-format] for details
 
 ### Local dev setup
 
@@ -351,90 +382,102 @@ Run these commands
 
 - `c foo`: This (c)reates a subscription. The demo app converts the string `foo` into a GUID `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`, and submits an event creating a new subscription.
 - `s foo 99`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
-- `s foo 1000`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
-- `s foo 10000`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
+- `s foo 900`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
+- `s foo 13`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
 
 Somewhere in the output, you will see this (at different spots):
 
 ```
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000/10000 (month/year)
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 901/10000 (month/year)
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 9901 (year)
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: 99 consumed
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 901
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: 12 consumed
 ```
 
 When the subscription was created (check the `plan.json` file in the `SimpleMeteringSubmissionClient` directory), these details were included in the plan:
 
 ```json
-    {
-      "dimension": "cpucharge",
-      "name": "Per CPU Connected",
-      "unitOfMeasure": "cpu/hour",
-      "includedQuantity": {
-        "monthly": "1000",
-        "annually": "10000"
-    }
+{
+  "cpucharge": "1000",
+}
 ```
 
-You can see an included annual quantity of 10000 units, and a monthly quantity of 1000. This is reflected in the output:
+You can see an included (monthly) quantity of 1000. This is reflected in the output:
 
 ```text
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000/10000 (month/year)
+ 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000
 ```
 
-- Once you (s)ubmit a usage of 99 units (by typing `s foo 99`), the `Remaining 1000/10000 (month/year)` become `Remaining 901/10000 (month/year)`
-- Once you (s)ubmit a usage of 1000 units (by typing `s foo 1000`), the `Remaining 901/10000 (month/year)` become `Remaining 9901 (year)`
-- The last consumption of 10_000 units fully depletes the remaining 9901 annual credits, and brings you into the overage, i.e. the included quantity of `Remaining 9901 (year)` becomes `99 consumed`
+- Once you (s)ubmit a usage of 99 units (by typing `s foo 99`), the `Remaining 1000` become `Remaining 901`
+- Once you (s)ubmit a usage of 1000 units (by typing `s foo 900`), the `Remaining 901` become `Remaining 1`
+- The last consumption of 13 units fully depletes the remaining 1 credits, and brings you into the overage, i.e. the included quantity of `Remaining 1` becomes `12 consumed`
+
+## Supported deployment models
+
+The metering accelerator is planned for three distinct deployment models:
+
+1. 'Self-managed' Managed napplication
+2. Managed Application with Central Aggregation
+3. Software as a Service (SaaS)
+
+> NOTE: Currently, the "Managed App with Central Aggregation is still in the design phase".
+
+![2022-04-04--metering-models](images/2022-04-04--metering-models.svg)
+
+### 'Self-managed' Managed Application
+
+In this model, a [managed application][azure-app-metered-billing] directly submits metering information to Azure. The ISV bundles a copy of the metering aggregator into each managed application deployment, i.e. each managed application deployment can autonomously submit its own usage data. 
+
+The advantage of that model is that, from an ISV perspective, it's has a very low maintenance overhead, because the ISV can trust all customer deployments continuously working without the ISV's intervention. 
+
+The disadvantage is that the ARM template for the managed app needs to contain the aggregator components (storage, event hubs and compute), and that each managed app deployment incurs runtime costs (most notably event hubs and compute), resulting in higher infrastructure costs for the ISV's customers.
+
+### Managed Application with Central Aggregation
+
+> NOTE: Support for this model is not yet fully designed and implemented.
+
+To address the downsides of the *"'Self-managed' Managed Application"* approach, ISVs can decide to run a central instance of the metering aggregator in the ISV's own backend. In this model, all managed application deployments send their usage across the organizational boundary to the ISV. The ISV-hosted metering aggregator centrally aggregates usage across all managed app deployments, and submits metering data centrally to Azure.
+
+The advantage of that approach is that the managed apps do not incur hosting costs for the metering accelerator. However, the ISV needs to ensure availability of the metering aggregator backend, so all managed apps can successfully emit their usage.
+
+Another advantage is that the ISV centrally captures all usage of app deployments, enabling analytics scenarios, such as customer retention analysis, or recommending better-suited plans to customer who always have included quantities left over at the end of the billing period.
+
+### Software as a Service (SaaS)
+
+In the case of a SaaS offering, the ISV has to centrally run the metering accelerator (as integral part of the SaaS offer). The multi-tenanted SaaS application submits usage data for all SaaS customer into the central instance. 
 
 ## Assembly overview
 
-This gives an overview about the DLL depentencies
+This gives an overview about the DLL dependencies
 
 ```mermaid
 graph TD
      EventHubTypes([Metering.EventHubTypes.dll])
      BaseTypes([Metering.BaseTypes.dll]) --> EventHubTypes
      RunTime([Metering.Runtime.dll]) --> BaseTypes
-     EventHubFSharp([Metering.EventHub.FSharp.dll]) --> EventHubTypes
+     EventHub([Metering.EventHub.dll]) --> EventHubTypes
      Aggregator(Aggregator.exe) --> RunTime
-     Aggregator --> EventHubFSharp
+     Aggregator --> EventHub
      
     style EventHubTypes  fill:#222,color:#fff,stroke-width:0px
     style BaseTypes      fill:#222,color:#fff,stroke-width:0px
     style RunTime        fill:#222,color:#fff,stroke-width:0px
-    style EventHubFSharp fill:#222,color:#fff,stroke-width:0px
+    style EventHub       fill:#222,color:#fff,stroke-width:0px
     style Aggregator     fill:#777,color:#fff,stroke-width:0px
 ```
 
 - `Metering.EventHubTypes.dll` contains a few base abstractions related to Azure EventHub (SequenceNumbers, PartitionIDs, etc.)
 - `Metering.BaseTypes.dll` contains the core data types and their JSON serializations
 - `Metering.Runtime.dll` contains the integration with the outer world, such as Azure Identity, Blob Storage, EventHub
-- `Metering.EventHub.FSharp.dll` and `Metering.EventHub.dll` contain the Reactive Extensions wrapper around the EventHub SDK. The F# version will be retired soon.
-
-## TODO
-
-- [ ] compensating action / compensating usage for an unsubmittable api call, it it exists. needs to make handleevent recursive
-- [x] marketplace client to support batch
-- [ ] collect plans separately in JSON to avoid duplication
-- [ ] Floats can be negative
-
-## Missing features
-
-- [ ] Instrumentation, logging, metrics
+- `Metering.EventHub.dll` contains the Reactive Extensions wrapper around the EventHub SDK. 
 
 ## Privacy and Telemetry Notice
 
-When you deploy/run this software, it regularly submits usage/metering data to the Microsoft Azure Metering API; in fact that's its main reason to exist. It is supposed to aggregate your customer's software usage information, and to submit it to `https://marketplaceapi.microsoft.com` (or `https://saasapi.azure.com`, which seems to be the more modern hostname for the metering API).  *If you don't want that, don't use it.* You can't turn that off via configuration.
+When you deploy/run this software, it regularly submits usage/metering data to the Microsoft Azure Metering API; in fact that's its main reason to exist. It is supposed to aggregate your customer's software usage information, and to submit it to `https://marketplaceapi.microsoft.com` (or `https://saasapi.azure.com`, which seems to be the more modern hostname for the metering API).  *If you don't want that, don't use it.* You can't turn off it's main purpose via configuration.
 
 Besides that, it does **not** send any telemetry, error reporting, etc., to Microsoft. 
 
 For Microsoft in general, you can find our privacy statement at https://go.microsoft.com/fwlink/?LinkID=824704. 
-
-## Wild ideas
-
-- [ ] track per meter which hours have been ever submitted in a large bitfield. 
-  - 365days/year * 24h/day * 1bit/(h*meter) / 8bit/byte * (4/3 extension due to base64)== 1460 byte/(year*meter). 
-  - With an additional overhead of 1460 bytes per year and meter, we can track which in which hours we have submitted metering values.
 
 ## Contributing
 
@@ -452,8 +495,17 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 ## Trademarks
 
-This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft 
-trademarks or logos is subject to and must follow 
+This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft trademarks or logos is subject to and must follow 
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
+
+[azure-app-metered-billing]: https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing "Metered billing for managed applications using the marketplace metering service"
+
+[marketplace-metering-service-apis]: https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis "Marketplace metered billing APIs"
+
+[eventhub-capture-format]: https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-resource-manager-namespace-event-hub-enable-capture#capturenameformat "EventHubs Capture Format "
+
+[pure function]: https://en.wikipedia.org/wiki/Pure_function "Pure Function"
+
+[folding]: https://en.wikipedia.org/wiki/Fold_(higher-order_function) "Fold (higher-order function) on Wikipedia"

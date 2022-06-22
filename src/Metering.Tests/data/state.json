@@ -10,26 +10,11 @@
         "plan": {
           "planId": "free_monthly_yearly",
           "billingDimensions": {
-            "cpucharge": {
-              "monthly": 1000,
-              "annually": 10000
-            },
-            "datasourcecharge": {
-              "monthly": 1000,
-              "annually": 10000
-            },
-            "messagecharge": {
-              "monthly": 1000,
-              "annually": 10000
-            },
-            "nodecharge": {
-              "monthly": 1000,
-              "annually": 10000
-            },
-            "objectcharge": {
-              "monthly": 1000,
-              "annually": 10000
-            }
+            "cpucharge": "Infinite",
+            "datasourcecharge": 1000,
+            "messagecharge": 1000,
+            "nodecharge": 1000,
+            "objectcharge": 1000
           }
         },
         "renewalInterval": "Monthly",
@@ -46,40 +31,35 @@
       "currentMeters": {
         "cpucharge": {
           "included": {
-            "monthly": 999.0290544782792,
-            "annually": 10000,
+            "quantity": "Infinite",
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }
         },
         "datasourcecharge": {
           "included": {
-            "monthly": 999.8413857234018,
-            "annually": 10000,
+            "quantity": 999,
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }
         },
         "messagecharge": {
           "included": {
-            "monthly": 999.4581042385067,
-            "annually": 10000,
+            "quantity": 999.123,
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }
         },
         "nodecharge": {
           "included": {
-            "monthly": 999.2648524500139,
-            "annually": 10000,
+            "quantity": 999,
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }
         },
         "objectcharge": {
           "included": {
-            "monthly": 999.7963399605178,
-            "annually": 10000,
+            "quantity": 999,
             "created": "2022-01-28T15:36:17Z",
             "lastUpdate": "2022-01-28T15:36:21Z"
           }

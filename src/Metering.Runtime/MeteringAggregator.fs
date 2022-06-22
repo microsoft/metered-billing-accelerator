@@ -13,26 +13,25 @@ open Metering.BaseTypes
 module MeteringAggregator =
     open MeterCollectionLogic
 
-    let aggregate (config: TimeHandlingConfiguration) (meters: MeterCollection option) (e: EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>) : MeterCollection option =
+    let aggregate (meters: MeterCollection option) (e: EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>) : MeterCollection option =
         let apply meterCollection eventHubEvent =
             eventHubEvent
-            |> MeteringEvent.fromEventHubEvent 
-            |> handleMeteringEvent config meterCollection
+            |> handleMeteringEvent meterCollection
             
         match meters with 
         | None ->
             match e with
             | PartitionInitializing (_, initialState)-> initialState
-            | EventHubEvent x -> x |> apply MeterCollection.Empty |> Some
+            | EventReceived x -> x |> apply MeterCollection.Empty |> Some
             | _ -> None
         | Some meterCollection ->
             match e with
-            | EventHubEvent x -> x |> apply meterCollection |> Some
+            | EventReceived x -> x |> apply meterCollection |> Some
             | _ -> None
 
     [<Extension>]
-    let createAggregator (config: TimeHandlingConfiguration) : Func<MeterCollection option, EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>, MeterCollection option> =
-        aggregate config
+    let createAggregator: Func<MeterCollection option, EventHubProcessorEvent<MeterCollection option, MeteringUpdateEvent>, MeterCollection option> =
+        aggregate
 
     [<Extension>]
     let AddMeteringAggregatorConfigFromEnvironment (services: IServiceCollection) =
