@@ -1,19 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.13" />
-    <PackageReference Include="Microsoft.NETCore.Targets" Version="3.0.0" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
-    <PackageReference Include="Azure.Identity" Version="1.6.0" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.11.0" />
-    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
-    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\..\Metering.BaseTypes\Metering.BaseTypes.fsproj" />
