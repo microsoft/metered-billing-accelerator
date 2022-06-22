@@ -1,22 +1,21 @@
-﻿using Newtonsoft.Json;
+﻿namespace ManagedWebhook.Definitions;
 
-namespace ManagedWebhook.Definitions
+using Newtonsoft.Json;
+
+/// <summary>
+/// The application definition
+/// </summary>
+public class ApplicationDefinition
 {
     /// <summary>
-    /// The application definition
+    /// Gets or sets the properties.
     /// </summary>
-    public class ApplicationDefinition
-    {
-        /// <summary>
-        /// Gets or sets the properties.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public ApplicationProperties Properties { get; set; }
+    [JsonProperty(Required = Required.Always)]
+    public ApplicationProperties Properties { get; set; }
 
-        /// <summary>
-        /// Gets or sets the plan.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public Plan Plan { get; set; }
-    }
+    /// <summary>
+    /// Gets or sets the plan.
+    /// </summary>
+    [JsonProperty(Required = Required.Always)]
+    public Plan Plan { get; set; }
 }
