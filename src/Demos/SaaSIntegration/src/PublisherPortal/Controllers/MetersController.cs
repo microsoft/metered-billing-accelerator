@@ -1,30 +1,23 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
+﻿namespace PublisherPortal.Controllers;
+
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using PublisherPortal.Services;
-namespace PublisherPortal.Controllers;
+using System.Threading.Tasks;
 
 [Route("~/Meters")]
 public class MetersController : Controller
 {
     private IConfiguration _configuration;
 
-
-    public MetersController(
-
-        IConfiguration Configuration)
+    public MetersController(IConfiguration Configuration)
     {
-
         _configuration = Configuration;
     }
 
     public async Task<ActionResult> IndexAsync()
     {
-         var processMetered = new ProcessLatestMetered(_configuration);
+        ProcessLatestMetered processMetered = new(_configuration);
         var model = await processMetered.GetLatestMetered("");
         return View(model);
     }
