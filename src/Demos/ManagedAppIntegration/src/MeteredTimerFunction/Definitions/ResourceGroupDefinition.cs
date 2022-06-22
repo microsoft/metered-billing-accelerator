@@ -1,16 +1,15 @@
-﻿using Newtonsoft.Json;
+﻿namespace ManagedWebhook.Definitions;
 
-namespace ManagedWebhook.Definitions
+using Newtonsoft.Json;
+
+/// <summary>
+/// The resource group definition
+/// </summary>
+public class ResourceGroupDefinition
 {
     /// <summary>
-    /// The resource group definition
+    /// Gets or sets the managed by.
     /// </summary>
-    public class ResourceGroupDefinition
-    {
-        /// <summary>
-        /// Gets or sets the managed by.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string ManagedBy { get; set; }
-    }
+    [JsonProperty(Required = Required.Always)]
+    public string ManagedBy { get; set; }
 }

@@ -1,34 +1,33 @@
-﻿using Newtonsoft.Json;
+﻿namespace ManagedWebhook.Definitions;
 
-namespace ManagedWebhook.Definitions
+using Newtonsoft.Json;
+
+/// <summary>
+/// The marketplace plan.
+/// </summary>
+public class Plan
 {
     /// <summary>
-    /// The marketplace plan.
+    /// Gets or sets the publisher.
     /// </summary>
-    public class Plan
-    {
-        /// <summary>
-        /// Gets or sets the publisher.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Publisher { get; set; }
+    [JsonProperty(Required = Required.Always)]
+    public string Publisher { get; set; }
 
-        /// <summary>
-        /// Gets or sets the product (offer name).
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Product { get; set; }
+    /// <summary>
+    /// Gets or sets the product (offer name).
+    /// </summary>
+    [JsonProperty(Required = Required.Always)]
+    public string Product { get; set; }
 
-        /// <summary>
-        /// Gets or sets the SKU name.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Name { get; set; }
+    /// <summary>
+    /// Gets or sets the SKU name.
+    /// </summary>
+    [JsonProperty(Required = Required.Always)]
+    public string Name { get; set; }
 
-        /// <summary>
-        /// Gets or sets the plan version.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Version { get; set; }
-    }
+    /// <summary>
+    /// Gets or sets the plan version.
+    /// </summary>
+    [JsonProperty(Required = Required.Always)]
+    public string Version { get; set; }
 }
