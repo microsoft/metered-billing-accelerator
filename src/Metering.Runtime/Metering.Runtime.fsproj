@@ -6,7 +6,7 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NETCore.Targets" Version="3.0.0" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.NETCore.Targets" Version="5.0.0" PrivateAssets="all" />
     <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
     <PackageReference Include="System.Reactive.Linq" Version="5.0.0" />
@@ -14,15 +14,15 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="6.0.1" />
     <PackageReference Include="Azure.Identity" Version="1.6.0" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.11.0" />
-    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.6.2" />
-    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.6.2" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.12.0" />
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.7.0" />
+    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.7.0" />
     <PackageReference Include="Apache.Avro" Version="1.11.0" />
     <PackageReference Include="NodaTime" Version="3.1.0" />
     <PackageReference Include="Thoth.Json.Net" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.3" />
+    <PackageReference Update="FSharp.Core" Version="6.0.5" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.BaseTypes\Metering.BaseTypes.fsproj" />
