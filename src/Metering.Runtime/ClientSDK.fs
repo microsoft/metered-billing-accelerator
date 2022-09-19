@@ -103,7 +103,7 @@ module MeteringEventHubExtensions =
         meters
         |> Seq.map (fun v -> enforceNonNegativeAndNonInfiniteQuantity v.Quantity; v)
         |> Seq.map(fun v -> 
-            { InternalResourceId = InternalResourceId.fromStr resourceId
+            { InternalResourceId = InternalResourceId.fromResourceID resourceId
               Quantity = v.Quantity
               Timestamp = MeteringDateTime.now()
               MeterName = v.Name
@@ -123,7 +123,7 @@ module MeteringEventHubExtensions =
         meters
         |> Seq.map (fun v -> enforceNonNegativeAndNonInfiniteQuantity v.Quantity; v)
         |> Seq.map (fun v -> 
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> ResourceID
+            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromResourceID
               Quantity = v.Quantity
               Timestamp = MeteringDateTime.now()
               MeterName = v.Name
@@ -137,7 +137,7 @@ module MeteringEventHubExtensions =
     [<CompiledName("SubmitSaaSMeterAsync")>] // Naming these for C# method overloading
     let submitSaaSMeterUIntAsync (eventHubProducerClient: EventHubProducerClient) (saasSubscriptionId: string) (applicationInternalMeterName: string) (quantity: uint) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         [
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromStr
+            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromResourceID
               Quantity = quantity |> Quantity.create
               Timestamp = MeteringDateTime.now()
               MeterName = applicationInternalMeterName |> ApplicationInternalMeterName.create
@@ -150,7 +150,7 @@ module MeteringEventHubExtensions =
     [<CompiledName("SubmitSaaSMeterAsync")>] // Naming these for C# method overloading
     let submitSaaSMeterFloatAsync (eventHubProducerClient: EventHubProducerClient) (saasSubscriptionId: string) (applicationInternalMeterName: string) (quantity: float) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         [
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromStr
+            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromResourceID
               Quantity = quantity |> Quantity.create
               Timestamp = MeteringDateTime.now()
               MeterName = applicationInternalMeterName |> ApplicationInternalMeterName.create

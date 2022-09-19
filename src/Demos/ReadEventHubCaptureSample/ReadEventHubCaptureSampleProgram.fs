@@ -51,7 +51,7 @@ CaptureProcessor.readAllEvents
     | RemoveUnprocessedMessages _ -> ()
     | UsageSubmittedToAPI submitted -> 
         match submitted.Result with 
-        | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity.ToString()) (success.Status.ResourceURI.Value)
+        | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity.ToString()) (success.RequestData.ResourceId.ToString())
         | Error e -> 
             match e with 
             | DuplicateSubmission d -> eprintfn "%s Duplicate %s" ts (d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)

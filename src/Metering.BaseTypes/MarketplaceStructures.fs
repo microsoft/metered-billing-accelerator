@@ -68,17 +68,13 @@ type SubmissionStatus =
 
 type UsageEventID = string
 
-type ResourceURI = string
-
 type MarketplaceSubmissionStatus =
     { /// The "status"
       Status: SubmissionStatus
       /// The "messageTime"
       MessageTime: MeteringDateTime
       /// The "usageEventId"
-      UsageEventID: UsageEventID option
-      /// The "resourceUri"
-      ResourceURI: ResourceURI option }
+      UsageEventID: UsageEventID option }
     
 type MarketplaceErrorCode =
     { Code: string 

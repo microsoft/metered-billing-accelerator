@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation.
+﻿ // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
 namespace Metering.BaseTypes
@@ -79,7 +79,6 @@ module Json =
             ] |> Decode.oneOf
 
     module MessagePosition =
-
         let (partitionId, sequenceNumber, partitionTimestamp) = 
             ("partitionId", "sequenceNumber", "partitionTimestamp")
 
@@ -205,15 +204,31 @@ module Json =
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
 
     module InternalResourceId =
-        let Encoder =
-            Encode.string
-                   
-        let Decoder : Decoder<InternalResourceId> = 
-            Decode.string |> Decode.andThen(InternalResourceId.fromStr >> Decode.succeed)
-      
+        let (resourceId, resourceUri) =
+            ("resourceId", "resourceUri");
+
+        let encode (x: InternalResourceId) : (string * JsonValue) list =
+            []
+            |> (fun l -> 
+                match x.ResourceURI with
+                | None -> l
+                | Some u -> (resourceUri, u |> Encode.string) :: l)
+            |> (fun l -> 
+                match x.ResourceID with
+                | None -> l
+                | Some u -> (resourceId, u |> Encode.string) :: l)
+        
+        let decode (get: Decode.IGetters) : InternalResourceId =
+            {
+                ResourceID = get.Optional.Field resourceId Decode.string
+                ResourceURI = get.Optional.Field resourceUri Decode.string
+            }
+    
+        let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
+
     module InternalUsageEvent =
-        let (timestamp, meterName, quantity, properties, internalResourceId) =
-            ("timestamp", "meterName", "quantity", "properties", "internalResourceId");
+        let (timestamp, meterName, quantity, properties) =
+            ("timestamp", "meterName", "quantity", "properties");
 
         let encode (x: InternalUsageEvent) : (string * JsonValue) list =
             let EncodeProperties (x: (Map<string, string> option)) = 
@@ -222,14 +237,15 @@ module Json =
                 |> Map.toSeq |> Seq.toList<string * string>
                 |> List.map (fun (k,v) -> (k, v |> Encode.string))
                 |> Encode.object
-            
+
             [
-                (internalResourceId, x.InternalResourceId.ToString() |> InternalResourceId.Encoder)
                 (timestamp, x.Timestamp |> MeteringDateTime.Encoder)
                 (meterName, x.MeterName.value |> Encode.string)
                 (quantity, x.Quantity |> Quantity.Encoder)
                 (properties, x.Properties |> EncodeProperties)
             ]
+            |> List.append (x.InternalResourceId |> InternalResourceId.encode)
+            
         
         let decode (get: Decode.IGetters) : InternalUsageEvent =
             let DecodeProperties : Decoder<Map<string,string>> =
@@ -237,7 +253,7 @@ module Json =
                 |> Decode.andThen (Map.ofList >> Decode.succeed)
 
             {
-                InternalResourceId = get.Required.Field internalResourceId InternalResourceId.Decoder
+                InternalResourceId = get |> InternalResourceId.decode 
                 Timestamp = get.Required.Field timestamp MeteringDateTime.Decoder
                 MeterName = (get.Required.Field meterName Decode.string) |> ApplicationInternalMeterName.create
                 Quantity = get.Required.Field quantity Quantity.Decoder
@@ -254,15 +270,15 @@ module Json =
                 (plan, x.Plan |> Plan.Encoder)
                 (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
                 (subscriptionStart, x.SubscriptionStart |> MeteringDateTime.Encoder)
-                (internalResourceId, x.InternalResourceId.ToString() |> InternalResourceId.Encoder)
             ]
+            |> List.append (x.InternalResourceId |> InternalResourceId.encode)
         
         let decode (get: Decode.IGetters) : Subscription =
             {
                 Plan = get.Required.Field plan Plan.Decoder
                 RenewalInterval = get.Required.Field renewalInterval RenewalInterval.Decoder
                 SubscriptionStart = get.Required.Field subscriptionStart MeteringDateTime.Decoder
-                InternalResourceId = get.Required.Field internalResourceId InternalResourceId.Decoder
+                InternalResourceId = get |> InternalResourceId.decode
             }
 
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
@@ -315,16 +331,16 @@ module Json =
             
             let encode (x: MarketplaceRequest) : (string * JsonValue) list =
                 [
-                    (resourceId, x.ResourceId.ToString() |> InternalResourceId.Encoder)
                     (effectiveStartTime, x.EffectiveStartTime |> MeteringDateTime.Encoder)
                     (planId, x.PlanId.value |> Encode.string)
                     (dimensionId, x.DimensionId.value |> Encode.string)                
                     (quantity, x.Quantity.AsFloat |> Encode.float)                 
                 ]
+                |> List.append (x.ResourceId |> InternalResourceId.encode)
 
             let decode (get: Decode.IGetters) =
                 {
-                    ResourceId = get.Required.Field resourceId InternalResourceId.Decoder
+                    ResourceId = get |> InternalResourceId.decode 
                     EffectiveStartTime = get.Required.Field effectiveStartTime MeteringDateTime.Decoder
                     PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
                     DimensionId = (get.Required.Field dimensionId Decode.string) |> DimensionId.create
@@ -393,13 +409,6 @@ module Json =
             let encode (x: UsageEventID option) = x |> JsonUtil.encodeOption usageEventId Encode.string
 
             let decode (get: Decode.IGetters) = get.Optional.Field usageEventId Decode.string
-        
-        module ResourceURI =
-            let (resourceUri) = ("resourceUri")
-
-            let encode (x: ResourceURI option) = x |> JsonUtil.encodeOption resourceUri Encode.string
-
-            let decode (get: Decode.IGetters) = get.Optional.Field resourceUri Decode.string
 
         module MarketplaceSubmissionStatus =
             // A composed type, where various types are represented in the same JSON object
@@ -408,7 +417,6 @@ module Json =
                     x.Status |> SubmissionStatus.encode
                     x.MessageTime |> MessageTime.encode
                     x.UsageEventID |> UsageEventID.encode
-                    x.ResourceURI |> ResourceURI.encode
                 ]
                 |> List.concat
 
@@ -417,7 +425,6 @@ module Json =
                     Status = get |> SubmissionStatus.decode
                     MessageTime = get |> MessageTime.decode
                     UsageEventID = get |> UsageEventID.decode
-                    ResourceURI = get |> ResourceURI.decode
                 }
 
         module MarketplaceErrorCode =
@@ -680,7 +687,7 @@ module Json =
         let encode (x: MeteringUpdateEvent) : (string * JsonValue) list =
             match x with
             | SubscriptionPurchased x -> x |> encodeKeyValue "SubscriptionPurchased" SubscriptionCreationInformation.Encoder
-            | SubscriptionDeletion x -> x.ToString() |> encodeKeyValue "SubscriptionDeleted" InternalResourceId.Encoder
+            | SubscriptionDeletion x -> x |> encodeKeyValue "SubscriptionDeleted" InternalResourceId.Encoder
             | UsageReported x -> x |> encodeKeyValue "UsageReported" InternalUsageEvent.Encoder
             | UsageSubmittedToAPI x -> x |> encodeKeyValue "UsageSubmittedToAPI" MarketplaceResponse.Encoder
             | UnprocessableMessage x -> x |> encodeKeyValue "UnprocessableMessage" UnprocessableMessage.Encoder
@@ -742,8 +749,29 @@ module Json =
                 //Plans = get.Required.Field plans Plans.Decoder
             }
 
+    type A =
+        { 
+            v: string 
+            InternalResourceId: InternalResourceId
+        }
+    module A =
+        let encode (x: A) : (string * JsonValue) list =
+            [
+                ("a", x.v |> Encode.string)
+            ]
+            |> List.append (x.InternalResourceId |> InternalResourceId.encode)
+            
+        let decode (get: Decode.IGetters) : A =
+            {
+                InternalResourceId = get |> InternalResourceId.decode 
+                v = get.Required.Field "a" Decode.string
+            }
+        
+        let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
+
     let enrich x =
         x
+        |> JsonUtil.withCustom A.encode A.decode
         |> Extra.withUInt64
         |> Extra.withInt64
         |> Extra.withCustom Marketplace.MarketplaceRequest.Encoder Marketplace.MarketplaceRequest.Decoder
