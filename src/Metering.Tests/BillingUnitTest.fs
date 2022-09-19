@@ -527,6 +527,13 @@ let ``Json.MarketplaceBatchRequest`` () = roundTrip<MarketplaceBatchRequest> "Ma
 let ``Json.MarketplaceBatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
 
 [<Test>]
+let ``Json.Messages.MeteringUpdateEvent.usageReported`` () = roundTrip<MeteringUpdateEvent> "messages/usageReported.json"
+[<Test>]
+let ``Json.Messages.MeteringUpdateEvent.usageReportedOnlyResourceUri`` () = roundTrip<MeteringUpdateEvent> "messages/usageReportedOnlyResourceUri.json"
+[<Test>]
+let ``Json.Messages.MeteringUpdateEvent.usageReportedOnlyResourceId`` () = roundTrip<MeteringUpdateEvent> "messages/usageReportedOnlyResourceId.json"
+
+[<Test>]
 let ``Json.plan`` () = roundTrip<Plan> "plan.json"
 
 [<Test>]
