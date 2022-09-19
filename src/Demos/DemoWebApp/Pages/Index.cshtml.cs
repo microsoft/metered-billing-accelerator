@@ -25,12 +25,12 @@ namespace DemoWebApp.Pages
         public Task OnPostMessageChargeAsync(CancellationToken ct) => Submit("msg", 1.0, ct);
         public Task OnPostObjectChargeAsync(CancellationToken ct) => Submit("obj", 1.0,  ct);
 
-        const string saasId = "fdc778a6-1281-40e4-cade-4a5fc11f5440";
+        const string resourceId = "fdc778a6-1281-40e4-cade-4a5fc11f5440";
 
         private async Task Submit(string applicationInternalName, double amount, CancellationToken ct)
         {
-            await _eventHubProducerClient.SubmitSaaSMeterAsync(
-                  saasSubscriptionId: saasId,
+            await _eventHubProducerClient.SubmitMeterAsync(
+                  resourceId: resourceId,
                   applicationInternalMeterName: applicationInternalName,
                   quantity: amount,
                   cancellationToken: ct);
