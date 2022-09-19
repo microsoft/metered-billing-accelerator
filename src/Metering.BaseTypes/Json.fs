@@ -709,13 +709,16 @@ module Json =
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
         module MeterCollection =
-            let (meters, unprocessable, lastProcessedMessage, plans) = ("meters", "unprocessable", "lastProcessedMessage", "plans")
+            let (meters, unprocessable, lastProcessedMessage, plans) = 
+                ("meters", "unprocessable", "lastProcessedMessage", "plans")
+            
+            let mx (m: Meter) =
+                m.Subscription.MarketplaceResourceId
 
             let encode (x: MeterCollection) : (string * JsonValue) list =
                 [
-                    (meters, x.MeterCollection |> Map.toList |> List.map (fun (k, v) -> (k.ToString(), v |> Meter.Encoder)) |> Encode.object)                
+                    (meters, x.MeterCollection |> Map.toList |> List.map (fun (marketplaceResourceId, meter) -> (marketplaceResourceId.ToString(), meter |> Meter.Encoder)) |> Encode.object)                
                     (unprocessable, x.UnprocessableMessages |> List.map EventHubEvent_MeteringUpdateEvent.Encoder |> Encode.list)
-                    //(plans, x.Plans |> Plans.Encoder)
                 ]
                 |> (fun l -> 
                     match x.LastUpdate with
@@ -727,10 +730,9 @@ module Json =
                     (k |> MarketplaceResourceId.fromStr, v)
 
                 {
-                    MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType |> Map.ofList |> Decode.succeed))
+                    MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun (r: (string * Meter) list) -> r |> List.map turnKeyIntoSubscriptionType |> Map.ofList |> Decode.succeed))
                     UnprocessableMessages = get.Required.Field unprocessable (Decode.list EventHubEvent_MeteringUpdateEvent.Decoder)
                     LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder
-                    //Plans = get.Required.Field plans Plans.Decoder
                 }
 
     open JsonInternals

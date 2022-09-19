@@ -8,7 +8,6 @@ open Metering.BaseTypes.EventHub
 
 type MeterCollection = 
     { MeterCollection: Map<MarketplaceResourceId, Meter>
-      //Plans: Plans
       UnprocessableMessages: EventHubEvent<MeteringUpdateEvent> list
       LastUpdate: MessagePosition option }
 

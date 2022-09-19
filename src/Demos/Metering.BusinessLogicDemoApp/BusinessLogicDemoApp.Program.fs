@@ -10,6 +10,11 @@ open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.Integration
 
+//let id1 = MarketplaceResourceId.fromResourceID "fdc778a6-1281-40e4-cade-4a5fc11f5440"
+//let id2 = MarketplaceResourceId.fromResourceURI "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+//let id3 = MarketplaceResourceId.from "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription" "fdc778a6-1281-40e4-cade-4a5fc11f5440"
+//printfn "%A %A %A" id1 id2 id3
+
 let parseConsumptionEvents (str: string) = 
     let multilineParse parser (str : string) =  
         str
