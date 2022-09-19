@@ -7,8 +7,23 @@ using Azure.Messaging.EventHubs.Producer;
 using Metering.BaseTypes;
 using Metering.ClientSDK;
 using Metering.Integration;
+using NodaTime;
+using static Metering.BaseTypes.MeteringUpdateEvent;
 
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+
+Console.WriteLine(Json.toStr(0, UsageReported.NewUsageReported(
+    new Metering.BaseTypes.InternalUsageEvent(
+        Metering.BaseTypes.MarketplaceResourceId.fromResourceID("nin"),
+        new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc),
+        ApplicationInternalMeterName.create("cpu"),
+        Metering.BaseTypes.Quantity.create(1.0),
+        null))));
+
+Console.WriteLine(Json.toStr(0, UsageReported.NewSubscriptionDeletion(
+    Metering.BaseTypes.MarketplaceResourceId.from("nin", "/subscription/123"))));
+return;
+
 
 var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
 

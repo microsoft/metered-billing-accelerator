@@ -12,6 +12,8 @@ type MarketplaceResourceId =
         { ResourceURI: string option
           ResourceID: string option }
 
+    static member private requiredPrefixForResourceUris = "/subscriptions/"
+
     override this.ToString() =
         match (this.ResourceURI, this.ResourceID) with
         | (Some uri, _ )-> uri
@@ -20,12 +22,15 @@ type MarketplaceResourceId =
  
     static member from resourceUri resourceId = { ResourceURI = Some resourceUri; ResourceID = Some resourceId }
 
-    static member fromResourceURI resourceUri = { ResourceURI = Some resourceUri; ResourceID = None }
+    static member fromResourceURI (resourceUri: string) = 
+        if resourceUri.StartsWith(MarketplaceResourceId.requiredPrefixForResourceUris)
+        then { ResourceURI = Some resourceUri; ResourceID = None }
+        else raise (new System.ArgumentException(message = $"String must start with {MarketplaceResourceId.requiredPrefixForResourceUris}", paramName = nameof(resourceUri)))
 
     static member fromResourceID resourceId = { ResourceURI = None; ResourceID = Some resourceId }
 
     static member fromStr (s: string) : MarketplaceResourceId =
-        if s.StartsWith("/subscriptions/")
+        if s.StartsWith(MarketplaceResourceId.requiredPrefixForResourceUris)
         then s |> MarketplaceResourceId.fromResourceURI
         else s |> MarketplaceResourceId.fromResourceID
 
