@@ -52,7 +52,7 @@ public class ProcessLatestMetered
             LastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString()
         };
 
-        foreach (KeyValuePair<InternalResourceId, Meter> kvp in metercollections.MeterCollection)
+        foreach (KeyValuePair<MarketplaceResourceId, Meter> kvp in metercollections.MeterCollection)
         {
             if (currentMeters.SubscriptionId == kvp.Key.ToString())
             {
@@ -82,7 +82,7 @@ public class ProcessLatestMetered
             foreach (var marketplace in metercollections.metersToBeSubmitted)
             {
                 var toBeReported = new ToBeReportedModel();
-                if (currentMeters.SubscriptionId == marketplace.ResourceId.ToString())
+                if (currentMeters.SubscriptionId == marketplace.MarketplaceResourceId.ToString())
                 {
                     toBeReported.PlanId = marketplace.PlanId.ToString();
                     toBeReported.DimensionId = marketplace.DimensionId.ToString();

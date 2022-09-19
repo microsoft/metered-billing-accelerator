@@ -19,16 +19,6 @@ module MySeq =
             a
         Seq.map (inspect i)
 
-//let printme e = 
-//    match e.MeteringUpdateEvent with
-//    | UsageReported e -> 
-//        sprintf "%s %s %s"
-//            (e.InternalResourceId |> InternalResourceId.toStr)
-//            (e.MeterName |> ApplicationInternalMeterName.value)
-//            (e.Quantity |> Quantity.toStr)
-//        |> Some
-//    | _ -> None
-
 let config : MeteringConfigurationProvider = 
     { SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEventMock.PretendEverythingIsAccepted     
       MeteringConnections = MeteringConnections.getFromEnvironment() }
@@ -45,17 +35,17 @@ CaptureProcessor.readAllEvents
     match i.EventData with
     | UsageReported _ -> ()
     | SubscriptionPurchased sp -> 
-        printfn "%s Subscription %s purchased" ts (sp.Subscription.InternalResourceId.ToString())
+        printfn "%s Subscription %s purchased" ts (sp.Subscription.MarketplaceResourceId.ToString())
     | SubscriptionDeletion _ -> ()
     | UnprocessableMessage _ -> ()
     | RemoveUnprocessedMessages _ -> ()
     | UsageSubmittedToAPI submitted -> 
         match submitted.Result with 
-        | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity.ToString()) (success.RequestData.ResourceId.ToString())
+        | Ok success -> printfn "%s %s %s %s" (success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)  (success.Status.MessageTime |> MeteringDateTime.toStr) (success.RequestData.Quantity.ToString()) (success.RequestData.MarketplaceResourceId.ToString())
         | Error e -> 
             match e with 
             | DuplicateSubmission d -> eprintfn "%s Duplicate %s" ts (d.PreviouslyAcceptedMessage.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
-            | ResourceNotFound r -> eprintfn "%s ResourceNotFound %s" ts (r.RequestData.ResourceId.ToString())
+            | ResourceNotFound r -> eprintfn "%s ResourceNotFound %s" ts (r.RequestData.MarketplaceResourceId.ToString())
             | Expired e -> eprintfn "%s Expired %s" ts (e.RequestData.EffectiveStartTime |> MeteringDateTime.toStr)
             | Generic g -> eprintfn "%s Error %A" ts g
 
@@ -116,7 +106,7 @@ exit 0
 //let bytes = Array.create 16 0uy
 //rnd.NextBytes(bytes)
 
-//let j = "[{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.0995601Z\",\"meterName\":\"nde\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.113733Z\",\"meterName\":\"cpu\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137354Z\",\"meterName\":\"dta\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137357Z\",\"meterName\":\"msg\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"internalResourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137359Z\",\"meterName\":\"obj\",\"quantity\":\"20\",\"properties\":{}}}]"
+//let j = "[{\"type\":\"UsageReported\",\"value\":{\"resourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.0995601Z\",\"meterName\":\"nde\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"resourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.113733Z\",\"meterName\":\"cpu\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"resourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137354Z\",\"meterName\":\"dta\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"resourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137357Z\",\"meterName\":\"msg\",\"quantity\":\"20\",\"properties\":{}}},{\"type\":\"UsageReported\",\"value\":{\"resourceId\":\"2b196a35-1379-4cb0-5457-4d18c28d46e6\",\"timestamp\":\"2021-12-10T14:29:10.1137359Z\",\"meterName\":\"obj\",\"quantity\":\"20\",\"properties\":{}}}]"
 //let bytes = System.Text.Encoding.UTF8.GetBytes(j)
 //let ed = EventDataDummy.create "1.avro" bytes 13L 100L "0"
 //let ue = ed |> EventHubObservableClient.toMeteringUpdateEvent 
@@ -159,7 +149,7 @@ match initialState with
 
     x.metersToBeSubmitted
     |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
-    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.value) (a.DimensionId.value) (a.Quantity.ToString()))
+    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.MarketplaceResourceId.ToString()) (a.PlanId.value) (a.DimensionId.value) (a.Quantity.ToString()))
 
 | Some initialState -> 
     // let startPosition = (MessagePosition.createData partitionId 141 64576 (MeteringDateTime.fromStr "2021-12-07T18:55:38.6Z"))
@@ -179,4 +169,4 @@ match initialState with
 
     x.metersToBeSubmitted
     |> Seq.sortBy (fun a -> a.EffectiveStartTime.ToInstant())
-    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.ResourceId.ToString()) (a.PlanId.value) (a.DimensionId.value) (a.Quantity.ToString()))
+    |> Seq.iter (fun a -> printfn "%s %s %s/%s %s" (a.EffectiveStartTime |> MeteringDateTime.toStr) (a.MarketplaceResourceId.ToString()) (a.PlanId.value) (a.DimensionId.value) (a.Quantity.ToString()))

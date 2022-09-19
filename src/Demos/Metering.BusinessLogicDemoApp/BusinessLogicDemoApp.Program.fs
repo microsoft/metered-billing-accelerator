@@ -42,9 +42,9 @@ let parseConsumptionEvents (str: string) =
             |> Array.toList
             |> List.map (fun s -> s.Trim())
             |> function
-                | [sequencenr; datestr; internalResourceId; name; amountstr; props] -> 
+                | [sequencenr; datestr; marketplaceResourceId; name; amountstr; props] -> 
                     Some <| EventHubEvent<MeteringUpdateEvent>.createEventHub
-                        ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
+                        ({ MarketplaceResourceId = marketplaceResourceId |> MarketplaceResourceId.fromStr
                            Timestamp = datestr |> MeteringDateTime.fromStr 
                            MeterName = name |> ApplicationInternalMeterName.create
                            Quantity = amountstr |> UInt32.Parse |> Quantity.create
@@ -53,9 +53,9 @@ let parseConsumptionEvents (str: string) =
                           SequenceNumber = sequencenr |> Int64.Parse
                           PartitionTimestamp = datestr |> MeteringDateTime.fromStr }
                         (dummyEventsToCatchUp datestr)
-                | [sequencenr; datestr; internalResourceId; name; amountstr] ->
+                | [sequencenr; datestr; marketplaceResourceId; name; amountstr] ->
                     Some <| EventHubEvent<MeteringUpdateEvent>.createEventHub
-                        ({ InternalResourceId = internalResourceId |> InternalResourceId.fromStr
+                        ({ MarketplaceResourceId = marketplaceResourceId |> MarketplaceResourceId.fromStr
                            Timestamp = datestr |> MeteringDateTime.fromStr
                            MeterName = name |> ApplicationInternalMeterName.create
                            Quantity = amountstr |> UInt32.Parse |> Quantity.create
@@ -226,7 +226,7 @@ let demoAggregation (config: MeteringConfigurationProvider) =
 //    let SomeValidSaaSSubscriptionID = "fdc778a6-1281-40e4-cade-4a5fc11f5440"
 
 //    let usage =
-//        { ResourceId = InternalResourceId.fromStr SomeValidSaaSSubscriptionID
+//        { MarketplaceResourceId = MarketplaceResourceId.fromStr SomeValidSaaSSubscriptionID
 //          Quantity = Quantity.createFloat 2.3m
 //          PlanId = "free_monthly_yearly" |> PlanId.create
 //          DimensionId = "datasourcecharge" |> DimensionId.create
@@ -272,7 +272,7 @@ let demoStorage (config: MeteringConfigurationProvider) eventsFromEventHub =
 [<EntryPoint>]
 let main argv = 
     let usage : MeteringUpdateEvent = 
-        { InternalResourceId = InternalResourceId.fromStr "/subscriptions/.../resourceGroups/customer-owned-rg/providers/Microsoft.Solutions/applications/myapp123"
+        { MarketplaceResourceId = MarketplaceResourceId.fromStr "/subscriptions/.../resourceGroups/customer-owned-rg/providers/Microsoft.Solutions/applications/myapp123"
           Timestamp = MeteringDateTime.now()
           MeterName = ApplicationInternalMeterName.create "cpu"
           Quantity = Quantity.create 10u

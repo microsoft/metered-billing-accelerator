@@ -31,7 +31,7 @@ static async Task DeleteSubscriptions(EventHubProducerClient eventHubProducerCli
 {
     foreach (var subscription in subscriptions)
     {
-        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
+        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(MarketplaceResourceId.fromStr(subscription.Id), ct);
     }
 }
 static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
@@ -45,14 +45,14 @@ static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerCli
             internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
             subscription: new(
                 plan: await readJson<Plan>("plan.json"),
-                internalResourceId: InternalResourceId.fromStr(subscription.Id),
+                marketplaceResourceId: MarketplaceResourceId.fromStr(subscription.Id),
                 renewalInterval: RenewalInterval.Monthly,
                 subscriptionStart: MeteringDateTimeModule.fromStr(subscription.Established)));
 
         await Console.Out.WriteLineAsync(Json.toStr(1, sub));
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, ct);
 
-        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
+        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(MarketplaceResourceId.fromStr(subscription.Id), ct);
 
             
      }
@@ -145,7 +145,7 @@ static async Task Interactive(EventHubProducerClient eventHubProducerClient, Can
                     internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
                     subscription: new(
                         plan: await readJson<Plan>("plan.json"),
-                        internalResourceId: InternalResourceId.fromStr(saasId),
+                        marketplaceResourceId: MarketplaceResourceId.fromStr(saasId),
                         renewalInterval: RenewalInterval.Monthly,
                         subscriptionStart: MeteringDateTimeModule.now()));
 

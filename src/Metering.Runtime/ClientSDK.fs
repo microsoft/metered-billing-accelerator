@@ -30,11 +30,11 @@ type MeterValues =
           Name = applicationInternalName |> ApplicationInternalMeterName.create }        
         
 type Consumption =
-    { InternalResourceId: InternalResourceId 
+    { MarketplaceResourceId: MarketplaceResourceId 
       Meters: MeterValues list }
 
     static member create (identifier: string, [<ParamArray>] vals: MeterValues array) =
-        { InternalResourceId = identifier |> InternalResourceId.fromStr
+        { MarketplaceResourceId = identifier |> MarketplaceResourceId.fromStr
           Meters = vals |> Array.toList }
 
 [<Extension>]
@@ -103,7 +103,7 @@ module MeteringEventHubExtensions =
         meters
         |> Seq.map (fun v -> enforceNonNegativeAndNonInfiniteQuantity v.Quantity; v)
         |> Seq.map(fun v -> 
-            { InternalResourceId = InternalResourceId.fromResourceID resourceId
+            { MarketplaceResourceId = MarketplaceResourceId.fromResourceID resourceId
               Quantity = v.Quantity
               Timestamp = MeteringDateTime.now()
               MeterName = v.Name
@@ -123,7 +123,7 @@ module MeteringEventHubExtensions =
         meters
         |> Seq.map (fun v -> enforceNonNegativeAndNonInfiniteQuantity v.Quantity; v)
         |> Seq.map (fun v -> 
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromResourceID
+            { InternalUsageEvent.MarketplaceResourceId = saasSubscriptionId |> MarketplaceResourceId.fromResourceID
               Quantity = v.Quantity
               Timestamp = MeteringDateTime.now()
               MeterName = v.Name
@@ -137,7 +137,7 @@ module MeteringEventHubExtensions =
     [<CompiledName("SubmitSaaSMeterAsync")>] // Naming these for C# method overloading
     let submitSaaSMeterUIntAsync (eventHubProducerClient: EventHubProducerClient) (saasSubscriptionId: string) (applicationInternalMeterName: string) (quantity: uint) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         [
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromResourceID
+            { InternalUsageEvent.MarketplaceResourceId = saasSubscriptionId |> MarketplaceResourceId.fromResourceID
               Quantity = quantity |> Quantity.create
               Timestamp = MeteringDateTime.now()
               MeterName = applicationInternalMeterName |> ApplicationInternalMeterName.create
@@ -150,7 +150,7 @@ module MeteringEventHubExtensions =
     [<CompiledName("SubmitSaaSMeterAsync")>] // Naming these for C# method overloading
     let submitSaaSMeterFloatAsync (eventHubProducerClient: EventHubProducerClient) (saasSubscriptionId: string) (applicationInternalMeterName: string) (quantity: float) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         [
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromResourceID
+            { InternalUsageEvent.MarketplaceResourceId = saasSubscriptionId |> MarketplaceResourceId.fromResourceID
               Quantity = quantity |> Quantity.create
               Timestamp = MeteringDateTime.now()
               MeterName = applicationInternalMeterName |> ApplicationInternalMeterName.create
@@ -170,8 +170,8 @@ module MeteringEventHubExtensions =
 
     [<Extension>]
     [<CompiledName("SubmitSubscriptionDeletionAsync")>]
-    let SubmitSubscriptionDeletion (eventHubProducerClient: EventHubProducerClient) (resourceId: InternalResourceId) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        SubscriptionDeletion resourceId
+    let SubmitSubscriptionDeletion (eventHubProducerClient: EventHubProducerClient) (marketplaceResourceId: MarketplaceResourceId) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+        SubscriptionDeletion marketplaceResourceId
         |> asListWithSingleElement
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 

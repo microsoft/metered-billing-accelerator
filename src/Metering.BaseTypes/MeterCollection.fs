@@ -7,7 +7,7 @@ open System.Runtime.CompilerServices
 open Metering.BaseTypes.EventHub
 
 type MeterCollection = 
-    { MeterCollection: Map<InternalResourceId, Meter>
+    { MeterCollection: Map<MarketplaceResourceId, Meter>
       //Plans: Plans
       UnprocessableMessages: EventHubEvent<MeteringUpdateEvent> list
       LastUpdate: MessagePosition option }
@@ -33,7 +33,7 @@ type SomeMeterCollection = MeterCollection option
 module MeterCollection =
     let toStrM (pid) (meters: Meter seq) : string =
         meters
-        |> Seq.sortBy  (fun a -> a.Subscription.InternalResourceId)
+        |> Seq.sortBy  (fun a -> a.Subscription.MarketplaceResourceId)
         |> Seq.map (Meter.toStr pid)
         |> String.concat "\n-----------------\n"
     

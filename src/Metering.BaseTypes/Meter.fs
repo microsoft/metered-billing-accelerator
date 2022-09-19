@@ -39,7 +39,7 @@ module Meter =
                 match cq with 
                 | IncludedQuantity _ -> failwith "cannot happen"
                 | ConsumedQuantity q -> 
-                    { ResourceId = state.Subscription.InternalResourceId
+                    { MarketplaceResourceId = state.Subscription.MarketplaceResourceId
                       Quantity = q.Amount
                       PlanId = state.Subscription.Plan.PlanId 
                       DimensionId = dimensionId
@@ -142,7 +142,7 @@ module Meter =
     let toStr (pid: string) (m: Meter) =
         let mStr =
             m.CurrentMeterValues.toStrings
-            |> Seq.map(fun v -> $"{pid} {m.Subscription.InternalResourceId.ToString()}: {v}")
+            |> Seq.map(fun v -> $"{pid} {m.Subscription.MarketplaceResourceId.ToString()}: {v}")
             |> String.concat "\n"
 
         let uStr =

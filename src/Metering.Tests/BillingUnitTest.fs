@@ -30,7 +30,7 @@ let somePlan : Plan =
       BillingDimensions = Map.empty |> BillingDimensions.create }
 
 let someManagedAppId = 
-    InternalResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
+    MarketplaceResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
 
 [<Test>]
 let ``BillingPeriod.createFromIndex`` () =
@@ -173,10 +173,10 @@ let ``Quantity.Math`` () =
     
 [<Test>]
 let ``MeterCollectionLogic.handleMeteringEvent`` () =
-    let sub1 = "saas-guid-1234" |> InternalResourceId.fromStr
-    let sub2 = "saas-guid-5678" |> InternalResourceId.fromStr
+    let sub1 = "saas-guid-1234" |> MarketplaceResourceId.fromStr
+    let sub2 = "saas-guid-5678" |> MarketplaceResourceId.fromStr
     
-    let subCreation subId start = 
+    let subCreation marketplaceResourceId start = 
         {
             SubscriptionCreationInformation.Subscription = {
                 Plan = {
@@ -187,7 +187,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                         |> Map.add ("dimension2" |> DimensionId.create) (Quantity.Infinite)
                         |> BillingDimensions.create
                 }
-                InternalResourceId = subId
+                MarketplaceResourceId = marketplaceResourceId
                 RenewalInterval = Monthly
                 SubscriptionStart = start |> MeteringDateTime.fromStr           
             }
@@ -210,7 +210,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         sub |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent sequenceNr timestamp
     
     let createUsage sub sequenceNr timestamp (amount: uint) dimension =
-        { InternalUsageEvent.InternalResourceId = sub
+        { InternalUsageEvent.MarketplaceResourceId = sub
           Timestamp = timestamp |> MeteringDateTime.fromStr
           MeterName = dimension |> ApplicationInternalMeterName.create
           Quantity = amount |> Quantity.create
@@ -227,11 +227,11 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         f mc
         mc
 
-    let getMeter (mc: MeterCollection) (subId: InternalResourceId) (dimensionId: string) : MeterValue =
+    let getMeter (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : MeterValue =
         let dimensionId = dimensionId |> DimensionId.create
 
         mc.MeterCollection
-        |> Map.find subId
+        |> Map.find marketplaceResourceId
         |> (fun s -> s.CurrentMeterValues.value |> Map.find dimensionId)
 
     let includes (q: Quantity) (mv: MeterValue) : unit =
@@ -247,27 +247,27 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
             Assert.AreEqual(q, cq.Amount)
         | _ -> failwith "Not an ConsumedQuantity"
 
-    let assertUsageReported (subId: InternalResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
+    let assertUsageReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
         let dimension = DimensionId.create dimension
         let timeSlot = MeteringDateTime.fromStr timeSlot
         let quantity = Quantity.create quantity
 
         mc.MeterCollection
-        |> Map.find subId
+        |> Map.find marketplaceResourceId
         |> (fun x -> x.UsageToBeReported)
-        |> List.filter (fun i -> i.DimensionId = dimension && i.EffectiveStartTime = timeSlot && i.ResourceId = subId && i.Quantity = quantity)
+        |> List.filter (fun i -> i.DimensionId = dimension && i.EffectiveStartTime = timeSlot && i.MarketplaceResourceId = marketplaceResourceId && i.Quantity = quantity)
         |> List.length
         |> (fun length -> Assert.AreEqual(1, length))
 
         mc
 
-    let assertOverallUsageToBeReported (subId: InternalResourceId)  (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
+    let assertOverallUsageToBeReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
         let dimension = DimensionId.create dimension
         let overallquantity = Quantity.create overallquantity
 
         let totalToBeSubmitted =
             mc.metersToBeSubmitted
-            |> Seq.filter (fun m -> m.ResourceId = subId && m.DimensionId = dimension)
+            |> Seq.filter (fun m -> m.MarketplaceResourceId = marketplaceResourceId && m.DimensionId = dimension)
             |> Seq.sumBy (fun m -> m.Quantity.AsInt)
             |> Quantity.create
 
@@ -379,7 +379,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 //[<Test>]
 //let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =
 //    { MarketplaceSubmissionResult.Payload =
-//        { ResourceId = InternalResourceId.ManagedApp
+//        { MarketplaceResourceId = MarketplaceResourceId.ManagedApp
 //          Quantity = 2.3m
 //          PlanId = "plan" |> PlanId.create
 //          DimensionId = "dim" |> DimensionId.create
@@ -408,7 +408,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 //                { UsageEventId = "usageEventId 123"
 //                  MessageTime = "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
 //                  Status = "Accepted"
-//                  ResourceId = change.Payload.ResourceId |> InternalResourceId.toStr
+//                  MarketplaceResourceId = change.Payload.ResourceId |> MarketplaceResourceId.toStr
 //                  ResourceURI = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
 //                  Quantity = change.Payload.Quantity |> Quantity.createFloat
 //                  DimensionId = change.Payload.DimensionId

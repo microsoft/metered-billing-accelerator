@@ -110,7 +110,7 @@ module InstanceMetadataClient =
     //        "https://management.azure.com/" // uri
     //
     // //Retrieves the resource group's ResourceGroup.ManagedBy property from Azure Resource Manager.
-    //let retrieveManagedByFromARM (currentId: InternalResourceId) : Task<InternalResourceId> =
+    //let retrieveManagedByFromARM (currentId: MarketplaceResourceId) : Task<MarketplaceResourceId> =
     //    Task.FromResult(currentId)
     //    match currentId with
     //    | SaaSSubscription _ -> currentId |> Task.FromResult
@@ -148,7 +148,7 @@ module InstanceMetadataClient =
     //                return managedBy |> ManagedAppResourceGroupID |> ManagedApplication
     //            }
     //
-    //let retrieveDummyID (dummyValue: string) : Task<InternalResourceId> =
+    //let retrieveDummyID (dummyValue: string) : Task<MarketplaceResourceId> =
     //    match Guid.TryParse(dummyValue) with
     //    | (true, _) -> ResourceURI dummyValue
     //    | (false, _) -> ResourceID dummyValue

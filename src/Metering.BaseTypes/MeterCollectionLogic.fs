@@ -90,20 +90,20 @@ module MeterCollectionLogic =
             { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
 
     let private addUsage (internalUsageEvent: InternalUsageEvent) messagePosition state =
-        let existingSubscription = state.MeterCollection |> Map.containsKey internalUsageEvent.InternalResourceId 
+        let existingSubscription = state.MeterCollection |> Map.containsKey internalUsageEvent.MarketplaceResourceId
         if existingSubscription
         then 
             let newMeterCollection =
                 state.MeterCollection
                 |> Map.change 
-                    internalUsageEvent.InternalResourceId 
+                    internalUsageEvent.MarketplaceResourceId 
                     (Option.bind ((Meter.handleUsageEvent (internalUsageEvent, messagePosition)) >> Some))
 
             { state with MeterCollection = newMeterCollection }
         else
             state |> addUnprocessableMessage (UsageReported internalUsageEvent) messagePosition
 
-    let private applyMeters (handler: Map<InternalResourceId, Meter> -> Map<InternalResourceId, Meter>) (state: MeterCollection)  : MeterCollection =
+    let private applyMeters (handler: Map<MarketplaceResourceId, Meter> -> Map<MarketplaceResourceId, Meter>) (state: MeterCollection)  : MeterCollection =
         let newMeterCollection = state.MeterCollection |> handler
         { state with MeterCollection = newMeterCollection } 
 
@@ -111,10 +111,10 @@ module MeterCollectionLogic =
         let meter = Meter.createNewSubscription subscriptionCreationInformation messagePosition
 
         state 
-        |> applyMeters (handleSubscriptionPurchased subscriptionCreationInformation.Subscription.InternalResourceId meter)
-
-    let private deleteSubscription internalResourceId state = 
-         { state with MeterCollection = state.MeterCollection |> Map.remove internalResourceId }
+        |> applyMeters (handleSubscriptionPurchased subscriptionCreationInformation.Subscription.MarketplaceResourceId meter)
+        
+    let private deleteSubscription marketplaceResourceId state = 
+         { state with MeterCollection = state.MeterCollection |> Map.remove marketplaceResourceId }
 
     let private usageSubmitted submission messagePosition state =
         state
@@ -135,7 +135,7 @@ module MeterCollectionLogic =
         |> enforceStrictSequenceNumbers messagePosition  // This line throws an exception if we're not being fed the right event #
         |> match meteringUpdateEvent with
            | SubscriptionPurchased subscriptionCreationInformation -> addSubscription subscriptionCreationInformation messagePosition
-           | SubscriptionDeletion internalResourceId -> deleteSubscription internalResourceId
+           | SubscriptionDeletion marketplaceResourceId -> deleteSubscription marketplaceResourceId
            | UsageSubmittedToAPI marketplaceResponse -> usageSubmitted marketplaceResponse messagePosition            
            | UsageReported internalUsageEvent -> addUsage internalUsageEvent messagePosition
            | UnprocessableMessage upm -> addUnprocessableMessage (UnprocessableMessage upm) messagePosition

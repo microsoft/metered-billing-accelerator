@@ -8,7 +8,7 @@ type MeteringUpdateEvent =
     /// Event to initialize the aggregator.
     | SubscriptionPurchased of SubscriptionCreationInformation
 
-    | SubscriptionDeletion of InternalResourceId
+    | SubscriptionDeletion of MarketplaceResourceId
 
     /// Event representing usage / consumption. Send from the application to the aggregator.
     | UsageReported of InternalUsageEvent
@@ -25,9 +25,9 @@ type MeteringUpdateEvent =
     member this.partitionKey 
         with get() : string =
             match this with
-            | SubscriptionPurchased x -> x.Subscription.InternalResourceId.ToString()
+            | SubscriptionPurchased x -> x.Subscription.MarketplaceResourceId.ToString()
             | SubscriptionDeletion x -> x.ToString()
-            | UsageReported x -> x.InternalResourceId.ToString()
+            | UsageReported x -> x.MarketplaceResourceId.ToString()
             | UsageSubmittedToAPI x -> (x.Result |> MarketplaceSubmissionResult.resourceId).ToString()
             | UnprocessableMessage _ -> ""
             | RemoveUnprocessedMessages _ -> ""
