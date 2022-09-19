@@ -29,9 +29,12 @@ let somePlan : Plan =
     { PlanId = "PlanId" |> PlanId.create
       BillingDimensions = Map.empty |> BillingDimensions.create }
 
+let someManagedAppId = 
+    InternalResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
+
 [<Test>]
 let ``BillingPeriod.createFromIndex`` () =
-    let sub = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) Monthly (d "2021-05-13T12:00:03") 
+    let sub = Subscription.create somePlan someManagedAppId Monthly (d "2021-05-13T12:00:03") 
 
     Assert.AreEqual(
         (bp "2|2021-07-13T12:00:03|2021-08-12T12:00:02"),
@@ -43,7 +46,7 @@ type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * str
 let ``BillingPeriod.isInBillingPeriod`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan someManagedAppId interval (d purchaseDateStr)
         let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
         let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)

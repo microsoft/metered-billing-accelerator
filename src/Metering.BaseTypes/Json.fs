@@ -204,7 +204,7 @@ module Json =
          
         let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
 
-    module InternalResourceId =        
+    module InternalResourceId =
         let Encoder =
             Encode.string
                    

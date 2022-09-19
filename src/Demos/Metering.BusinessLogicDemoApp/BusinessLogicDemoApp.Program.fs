@@ -272,7 +272,7 @@ let demoStorage (config: MeteringConfigurationProvider) eventsFromEventHub =
 [<EntryPoint>]
 let main argv = 
     let usage : MeteringUpdateEvent = 
-        { InternalResourceId = ManagedApplication ManagedAppIdentity 
+        { InternalResourceId = InternalResourceId.fromStr "/subscriptions/.../resourceGroups/customer-owned-rg/providers/Microsoft.Solutions/applications/myapp123"
           Timestamp = MeteringDateTime.now()
           MeterName = ApplicationInternalMeterName.create "cpu"
           Quantity = Quantity.create 10u

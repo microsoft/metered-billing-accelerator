@@ -3,44 +3,19 @@
 
 namespace Metering.BaseTypes
 
-/// For SaaS offers, the resourceId is the SaaS subscription ID. 
-type SaaSSubscriptionID = 
-    private | Value of string
-
-    member this.value
-        with get() =
-            let v (Value x) = x
-            this |> v
-            
-    static member create (x: string) = (Value x)
-
-type ManagedApp =
-    /// Internally used handle for a managed app
-    | ManagedAppIdentity
-    
-    /// Concrete value of the managed app resource group to report against
-    | ManagedAppResourceGroupID of string // "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+// https://techcommunity.microsoft.com/t5/fasttrack-for-azure/azure-marketplace-metered-billing-picking-the-correct-id-when/ba-p/3542373
 
 /// This is the key by which to aggregate across multiple tenants
 type InternalResourceId =    
-    | ManagedApplication of ManagedApp
-    | SaaSSubscription of SaaSSubscriptionID
+    | ResourceURI of string
+    | ResourceID of string
     
-    static member private ManagedAppMarkerString =
-        "AzureManagedApplication"
-
     override this.ToString() =
         match this with
-        | SaaSSubscription saasId -> saasId.value
-        | ManagedApplication mid -> 
-            match mid with 
-            | ManagedAppResourceGroupID rgid -> rgid
-            | ManagedAppIdentity -> InternalResourceId.ManagedAppMarkerString
+        | ResourceID resourceId -> resourceId
+        | ResourceURI resourceUri -> resourceUri
 
     static member fromStr (s: string) : InternalResourceId =
-        if InternalResourceId.ManagedAppMarkerString.Equals(s)
-        then ManagedAppIdentity |> ManagedApplication
-        else
-            if s.StartsWith("/subscriptions/")
-            then s |> ManagedAppResourceGroupID |> ManagedApplication
-            else s |> SaaSSubscriptionID.create |> SaaSSubscription
+        if s.StartsWith("/subscriptions/")
+        then s |> ResourceURI
+        else s |> ResourceID
