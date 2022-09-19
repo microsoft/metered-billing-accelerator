@@ -138,24 +138,6 @@ module Json =
         
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
-        //module IncludedQuantitySpecification =
-        //    let (monthly, annually) = ("monthly", "annually")
-        //
-        //    let encode (x: IncludedQuantitySpecification) : (string * JsonValue) list =
-        //        match x with
-        //        | { Monthly = None; Annually = None } -> [ ]
-        //        | { Monthly = Some m; Annually = None } -> [ (monthly, m |> Quantity.Encoder) ]
-        //        | { Monthly = None; Annually = Some a} -> [ (annually, a |> Quantity.Encoder) ]
-        //        | { Monthly = Some m; Annually = Some a } -> [ (monthly, m |> Quantity.Encoder); (annually, a |> Quantity.Encoder) ]
-        //  
-        //    let decode (get: Decode.IGetters) : IncludedQuantitySpecification =
-        //        {
-        //            Monthly = get.Optional.Field monthly Quantity.Decoder
-        //            Annually = get.Optional.Field annually Quantity.Decoder
-        //        }
-        //
-        //    let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
         module MeterValue =
             let (consumed, included) = ("consumed", "included")
 
