@@ -20,7 +20,7 @@ module SubmitMeteringAPIUsageEventMock =
         requests
         |> List.map (fun request -> 
             let request = 
-                { request with MarketplaceResourceId = (request.MarketplaceResourceId |> MarketplaceResourceId.addResourceUri resourceUri) }
+                { request with MarketplaceResourceId = (request.MarketplaceResourceId.addResourceUri resourceUri) }
 
             { Headers = headers
               Result = Ok { RequestData = request; Status = { Status = Accepted; MessageTime = messageTime; UsageEventID = newUsageEvent()  } } } 

@@ -264,7 +264,8 @@ module Json =
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
         module Subscription =
-            let (plan, renewalInterval, subscriptionStart) = ("plan", "renewalInterval", "subscriptionStart");
+            let (plan, renewalInterval, subscriptionStart) =
+                ("plan", "renewalInterval", "subscriptionStart");
 
             let encode (x: Subscription) : (string * JsonValue) list =
                 [

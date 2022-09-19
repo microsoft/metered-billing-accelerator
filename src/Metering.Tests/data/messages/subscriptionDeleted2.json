@@ -1,0 +1,6 @@
+﻿{
+  "type": "SubscriptionDeleted",
+  "value": {
+    "resourceUri": "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+  }
+}

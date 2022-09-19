@@ -6,6 +6,18 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="data\messages\subscriptionPurchased.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\subscriptionDeleted3.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\subscriptionDeleted2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\subscriptionDeleted1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="data\messages\usageReported.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

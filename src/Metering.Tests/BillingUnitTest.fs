@@ -485,6 +485,8 @@ let private roundTrip<'T> (filename: string) =
         |> File.ReadAllText
     
     let t1 = json |> Json.fromStr<'T>
+
+    printfn "--------------------------- %s \n%A" filename t1
     
     let t2 = 
         t1
@@ -527,11 +529,17 @@ let ``Json.MarketplaceBatchRequest`` () = roundTrip<MarketplaceBatchRequest> "Ma
 let ``Json.MarketplaceBatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
 
 [<Test>]
-let ``Json.Messages.MeteringUpdateEvent.usageReported`` () = roundTrip<MeteringUpdateEvent> "messages/usageReported.json"
-[<Test>]
-let ``Json.Messages.MeteringUpdateEvent.usageReportedOnlyResourceUri`` () = roundTrip<MeteringUpdateEvent> "messages/usageReportedOnlyResourceUri.json"
-[<Test>]
-let ``Json.Messages.MeteringUpdateEvent.usageReportedOnlyResourceId`` () = roundTrip<MeteringUpdateEvent> "messages/usageReportedOnlyResourceId.json"
+let ``Json.MeteringUpdateEvent`` () = 
+    [
+        "usageReported"
+        "usageReportedOnlyResourceUri"
+        "usageReportedOnlyResourceId"
+        "subscriptionDeleted1"
+        "subscriptionDeleted2"
+        "subscriptionDeleted3"
+        "subscriptionPurchased"
+    ]
+    |> List.iter (fun name -> roundTrip<MeteringUpdateEvent> $"messages/{name}.json")
 
 [<Test>]
 let ``Json.plan`` () = roundTrip<Plan> "plan.json"

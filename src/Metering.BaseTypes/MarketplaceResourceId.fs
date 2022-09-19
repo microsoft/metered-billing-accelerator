@@ -34,9 +34,8 @@ type MarketplaceResourceId =
         then s |> MarketplaceResourceId.fromResourceURI
         else s |> MarketplaceResourceId.fromResourceID
 
-module MarketplaceResourceId =
-    let addResourceId (resourceId: string) (marketplaceResourceId: MarketplaceResourceId) : MarketplaceResourceId =
-        { marketplaceResourceId with ResourceID = Some resourceId }
+    member this.addResourceId (resourceId: string) : MarketplaceResourceId =
+        { this with ResourceID = Some resourceId }
 
-    let addResourceUri (resourceUri: string) (marketplaceResourceId: MarketplaceResourceId) : MarketplaceResourceId =
-        { marketplaceResourceId with ResourceURI = Some resourceUri }
+    member this.addResourceUri (resourceUri: string) : MarketplaceResourceId =
+        { this with ResourceURI = Some resourceUri }
