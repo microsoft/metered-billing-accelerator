@@ -315,7 +315,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> handle (createSubsc (sn()) "2021-11-29T17:04:00Z" (subCreation sub1 "2021-11-29T17:00:00Z"))
     |> ensureSequenceNumberHasBeenApplied 
     // ... all meters should be at their original levels
-    |> check (fun m -> Assert.AreEqual(1, m.MeterCollection.Length))
+    |> check (fun m -> Assert.AreEqual(1, m.Meters.Length))
     |> check (fun m -> Assert.IsTrue(m |> MeterCollection.contains sub1))
     |> assertIncluded      sub1 "dimension1" (Quantity.create 1000u)
     |> assertIncluded      sub1 "dimension2" Quantity.Infinite
@@ -364,7 +364,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> handle (createSubsc (sn()) "2021-11-29T19:04:00Z" (subCreation sub2 "2021-11-29T18:58:00Z"))
     |> ensureSequenceNumberHasBeenApplied 
     // Now we should have 2 subsriptions
-    |> check (fun m -> Assert.AreEqual(2, m.MeterCollection.Length))
+    |> check (fun m -> Assert.AreEqual(2, m.Meters.Length))
     // Submit usage to sub1 and then an hour later to sub2
     |> newusage            sub1 "2021-11-29T21:00:03Z" 1u "d1"
     |> newusage            sub2 "2021-11-29T22:00:03Z" 1u "d1"
@@ -374,7 +374,6 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     //|> Json.toStr(1)
     //|> printfn "%s"
     |> ignore
-
 
 //[<Test>]
 //let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =

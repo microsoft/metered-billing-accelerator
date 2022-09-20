@@ -14,28 +14,28 @@ module MeterCollectionLogic =
         mc |> Option.bind (fun m -> m.LastUpdate)
 
     [<Extension>] 
-    let getEventPosition (someMeters: MeterCollection option) : StartingPosition =
-        match someMeters with
+    let getEventPosition (someMeterCollection: MeterCollection option) : StartingPosition =
+        match someMeterCollection with
         | None -> StartingPosition.Earliest
         | Some meters -> meters.LastUpdate |> StartingPosition.from
 
     [<Extension>]
-    let getLastUpdateAsString (meters: MeterCollection) : string =
-        match meters.LastUpdate with
+    let getLastUpdateAsString (meterCollection: MeterCollection) : string =
+        match meterCollection.LastUpdate with
         | None -> "Earliest"
         | Some p -> $"partition {p.PartitionID.value} / sequence# {p.SequenceNumber}"
 
     [<Extension>]
-    let getLastSequenceNumber (meters: MeterCollection) : SequenceNumber =
-        match meters.LastUpdate with
+    let getLastSequenceNumber (meterCollection: MeterCollection) : SequenceNumber =
+        match meterCollection.LastUpdate with
         | None -> raise (new System.NotSupportedException())
         | Some p -> p.SequenceNumber
 
-    let usagesToBeReported (meters: MeterCollection) : MarketplaceRequest list =
-        if meters.MeterCollection |> Seq.isEmpty 
+    let usagesToBeReported (meterCollection: MeterCollection) : MarketplaceRequest list =
+        if meterCollection.Meters |> Seq.isEmpty 
         then []
         else
-            meters.MeterCollection
+            meterCollection.Meters
             |> Seq.map (fun x -> x.UsageToBeReported)
             |> Seq.concat
             |> List.ofSeq
@@ -86,20 +86,20 @@ module MeterCollectionLogic =
         meters |> List.map (fun meter -> if meter |> Meter.matches marketplaceResourceId then update meter else meter)
 
     let private applyMeters (handler: Meter list -> Meter list) (state: MeterCollection)  : MeterCollection =
-        let newMeterCollection = state.MeterCollection |> handler
-        { state with MeterCollection = newMeterCollection } 
+        let newMeterCollection = state.Meters |> handler
+        { state with Meters = newMeterCollection } 
 
     let private addUsage (internalUsageEvent: InternalUsageEvent) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
-        let existingSubscription = state.MeterCollection |> List.exists (Meter.matches internalUsageEvent.MarketplaceResourceId)
+        let existingSubscription = state.Meters |> List.exists (Meter.matches internalUsageEvent.MarketplaceResourceId)
         if existingSubscription
         then 
             let newMeterCollection =
-                state.MeterCollection
+                state.Meters
                 |> updateMeter 
                     internalUsageEvent.MarketplaceResourceId 
                     (Meter.handleUsageEvent (internalUsageEvent, messagePosition))
 
-            { state with MeterCollection = newMeterCollection }
+            { state with Meters = newMeterCollection }
         else
             state |> addUnprocessableMessage (UsageReported internalUsageEvent) messagePosition
 
@@ -111,8 +111,8 @@ module MeterCollectionLogic =
         |> applyMeters updateList
         
     let private deleteSubscription marketplaceResourceId state = 
-        let metersWithoutTheOne =  state.MeterCollection |> List.filter (fun meter -> not (meter |> Meter.matches marketplaceResourceId))
-        { state with MeterCollection = metersWithoutTheOne }
+        let metersWithoutTheOne =  state.Meters |> List.filter (fun meter -> not (meter |> Meter.matches marketplaceResourceId))
+        { state with Meters = metersWithoutTheOne }
 
     let private usageSubmitted (submission: MarketplaceResponse) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         let marketplaceResourceId = submission.Result |> MarketplaceSubmissionResult.marketplaceResourceId
@@ -124,9 +124,9 @@ module MeterCollectionLogic =
 
     /// Iterate over all current meters, and check if one of the overages can be converted into a metering API event.
     let handleMeteringTimestamp now state =
-        state.MeterCollection
+        state.Meters
         |> List.map (fun meter -> Meter.closePreviousHourIfNeeded now meter)
-        |> (fun updatedMeters -> { state with MeterCollection = updatedMeters })
+        |> (fun updatedMeters -> { state with Meters = updatedMeters })
 
     let private setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }

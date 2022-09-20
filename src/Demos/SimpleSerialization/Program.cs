@@ -3,7 +3,7 @@ using Metering.BaseTypes;
 
 string meterCollectionAsJson = File.ReadAllText(@"..\..\..\..\..\Metering.Tests\data\state.json");
 MeterCollection meterCollection = Json.fromStr<MeterCollection>(meterCollectionAsJson);
-foreach (Meter meter in meterCollection.MeterCollection)
+foreach (Meter meter in meterCollection.Meters)
 {
     MarketplaceResourceId meterResourceId = meter.Subscription.MarketplaceResourceId;
 

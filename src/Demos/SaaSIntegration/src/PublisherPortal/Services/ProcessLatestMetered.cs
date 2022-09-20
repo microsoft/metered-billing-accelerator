@@ -56,7 +56,7 @@ namespace PublisherPortal.Services
             // get Last Process Time
             currentPublisherMeters.lastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString();
 
-            foreach (Meter meter in metercollections.MeterCollection)
+            foreach (Meter meter in metercollections.Meters)
             {
                 MeterSummaryModel currentMeters = new();
                 

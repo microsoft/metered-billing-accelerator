@@ -52,7 +52,7 @@ public class ProcessLatestMetered
             LastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString()
         };
 
-        foreach (Meter meter in metercollections.MeterCollection)
+        foreach (Meter meter in metercollections.Meters)
         {
             if (currentMeters.SubscriptionId == meter.Subscription.MarketplaceResourceId.ResourceId())
             {

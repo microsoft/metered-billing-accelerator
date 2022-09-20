@@ -718,7 +718,7 @@ module Json =
             let encode (x: MeterCollection) : (string * JsonValue) list =
                 [
                     //(meters, x.MeterCollection |> Map.toList |> List.map (fun (marketplaceResourceId, meter) -> (marketplaceResourceId.ToString(), meter |> Meter.Encoder)) |> Encode.object) // serialize as a Dictionary
-                    (meters, x.MeterCollection |> Seq.map(Meter.Encoder) |> Seq.toArray |> Encode.array) // serialize as an array
+                    (meters, x.Meters |> Seq.map(Meter.Encoder) |> Seq.toArray |> Encode.array) // serialize as an array
                     (unprocessable, x.UnprocessableMessages |> List.map EventHubEvent_MeteringUpdateEvent.Encoder |> Encode.list)
                 ]
                 |> (fun l -> 
@@ -731,7 +731,7 @@ module Json =
 
                 {
                     // MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun (r: (string * Meter) list) -> r |> List.map turnKeyIntoSubscriptionType |> Map.ofList |> Decode.succeed))
-                    MeterCollection = get.Required.Field meters (Decode.list Meter.Decoder)
+                    Meters = get.Required.Field meters (Decode.list Meter.Decoder)
                     UnprocessableMessages = get.Required.Field unprocessable (Decode.list EventHubEvent_MeteringUpdateEvent.Decoder)
                     LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder
                 }
