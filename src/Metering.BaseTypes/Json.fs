@@ -202,10 +202,14 @@ module Json =
                     | Some u -> (resourceId, u |> Encode.string) :: l)
         
             let decode (get: Decode.IGetters) : MarketplaceResourceId =
-                {
+                let res = {
                     ResourceID = get.Optional.Field resourceId Decode.string
                     ResourceURI = get.Optional.Field resourceUri Decode.string
                 }
+                
+                match res with
+                | { ResourceID = None; ResourceURI = None } -> failwith $"Missing {resourceId} or {resourceUri} field"
+                | _ -> res
     
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
@@ -221,15 +225,14 @@ module Json =
                     |> List.map (fun (k,v) -> (k, v |> Encode.string))
                     |> Encode.object
 
-                [
+                (x.MarketplaceResourceId |> MarketplaceResourceId.encode)
+                |> List.append [
                     (timestamp, x.Timestamp |> MeteringDateTime.Encoder)
                     (meterName, x.MeterName.value |> Encode.string)
                     (quantity, x.Quantity |> Quantity.Encoder)
                     (properties, x.Properties |> EncodeProperties)
                 ]
-                |> List.append (x.MarketplaceResourceId |> MarketplaceResourceId.encode)
-            
-        
+
             let decode (get: Decode.IGetters) : InternalUsageEvent =
                 let DecodeProperties : Decoder<Map<string,string>> =
                     (Decode.keyValuePairs Decode.string)
@@ -250,12 +253,12 @@ module Json =
                 ("plan", "renewalInterval", "subscriptionStart");
 
             let encode (x: Subscription) : (string * JsonValue) list =
-                [
-                    (plan, x.Plan |> Plan.Encoder)
-                    (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
+                (x.MarketplaceResourceId |> MarketplaceResourceId.encode)
+                |> List.append [
                     (subscriptionStart, x.SubscriptionStart |> MeteringDateTime.Encoder)
+                    (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
+                    (plan, x.Plan |> Plan.Encoder)
                 ]
-                |> List.append (x.MarketplaceResourceId |> MarketplaceResourceId.encode)
         
             let decode (get: Decode.IGetters) : Subscription =
                 {
@@ -711,13 +714,11 @@ module Json =
         module MeterCollection =
             let (meters, unprocessable, lastProcessedMessage, plans) = 
                 ("meters", "unprocessable", "lastProcessedMessage", "plans")
-            
-            let mx (m: Meter) =
-                m.Subscription.MarketplaceResourceId
 
             let encode (x: MeterCollection) : (string * JsonValue) list =
                 [
-                    (meters, x.MeterCollection |> Map.toList |> List.map (fun (marketplaceResourceId, meter) -> (marketplaceResourceId.ToString(), meter |> Meter.Encoder)) |> Encode.object)                
+                    //(meters, x.MeterCollection |> Map.toList |> List.map (fun (marketplaceResourceId, meter) -> (marketplaceResourceId.ToString(), meter |> Meter.Encoder)) |> Encode.object) // serialize as a Dictionary
+                    (meters, x.MeterCollection |> Map.values |> Seq.map(Meter.Encoder) |> Seq.toArray |> Encode.array) // serialize as an array
                     (unprocessable, x.UnprocessableMessages |> List.map EventHubEvent_MeteringUpdateEvent.Encoder |> Encode.list)
                 ]
                 |> (fun l -> 
@@ -726,11 +727,11 @@ module Json =
                     | Some lastUpdate -> (lastProcessedMessage, lastUpdate |> MessagePosition.Encoder) :: l)
         
             let decode (get: Decode.IGetters) : MeterCollection =
-                let turnKeyIntoSubscriptionType (k, v) =
-                    (k |> MarketplaceResourceId.fromStr, v)
+                //let turnKeyIntoSubscriptionType (k, v) = (k |> MarketplaceResourceId.fromStr, v)
 
                 {
-                    MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun (r: (string * Meter) list) -> r |> List.map turnKeyIntoSubscriptionType |> Map.ofList |> Decode.succeed))
+                    // MeterCollection = get.Required.Field meters ((Decode.keyValuePairs Meter.Decoder) |> Decode.andThen (fun (r: (string * Meter) list) -> r |> List.map turnKeyIntoSubscriptionType |> Map.ofList |> Decode.succeed))
+                    MeterCollection = get.Required.Field meters (Decode.list Meter.Decoder) |> Seq.map (fun f -> f.Subscription.MarketplaceResourceId, f) |> Map.ofSeq
                     UnprocessableMessages = get.Required.Field unprocessable (Decode.list EventHubEvent_MeteringUpdateEvent.Decoder)
                     LastUpdate = get.Optional.Field lastProcessedMessage MessagePosition.Decoder
                 }

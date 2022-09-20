@@ -587,5 +587,17 @@ let ``Avro.ParseEventData`` () =
     
     let binaryGarbage = CaptureProcessor.createEventDataFromBytes "1.avro" bytes 13L 100L "0"
     let wrapped = CaptureProcessor.toMeteringUpdateEvent binaryGarbage
-    
+
     ()
+
+[<Test>]
+let ``MarketplaceResourceId.Equal`` () =
+    let i = MarketplaceResourceId.fromResourceID "8151a707-467c-4105-df0b-44c3fca5880d"
+    let u = MarketplaceResourceId.fromResourceURI "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+    let ui = MarketplaceResourceId.from "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription" "8151a707-467c-4105-df0b-44c3fca5880d"
+
+    Assert.IsTrue(ui.Matches(u))
+    Assert.IsTrue(u.Matches(ui))
+    Assert.IsTrue(i.Matches(ui))
+    Assert.IsTrue(ui.Matches(i))
+    Assert.IsFalse(u.Matches(i))

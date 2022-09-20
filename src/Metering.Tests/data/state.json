@@ -4,9 +4,12 @@
     "sequenceNumber": "5",
     "partitionTimestamp": "2022-01-28T15:36:21Z"
   },
-  "meters": {
-    "8151a707-467c-4105-df0b-44c3fca5880d": {
+  "meters": [    
+    {
       "subscription": {
+        "resourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
+        "subscriptionStart": "2021-12-14T18:20:00Z",
+        "renewalInterval": "Monthly",
         "plan": {
           "planId": "free_monthly_yearly",
           "billingDimensions": {
@@ -16,10 +19,7 @@
             "nodecharge": 1000,
             "objectcharge": 1000
           }
-        },
-        "renewalInterval": "Monthly",
-        "subscriptionStart": "2021-12-14T18:20:00Z",
-        "scope": "8151a707-467c-4105-df0b-44c3fca5880d"
+        }
       },
       "metersMapping": {
         "cpu": "cpucharge",
@@ -80,6 +80,6 @@
         "partitionTimestamp": "2022-01-28T15:36:21Z"
       }
     }
-  },
+  ],
   "unprocessable": []
 }

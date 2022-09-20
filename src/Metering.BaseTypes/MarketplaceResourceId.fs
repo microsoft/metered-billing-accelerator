@@ -17,12 +17,21 @@ type MarketplaceResourceIdError =
 
 /// This is the key by which to aggregate across multiple tenants.
 /// When submitting to Azure Marketplace API, the request can contain a resourceId, or a resourceUri, or even both.
-// [<CustomEquality;CustomComparison>]
+
 type MarketplaceResourceId =
     private 
         { ResourceURI: string option
           ResourceID: string option }
     
+    member this.Matches other = 
+        let { ResourceURI = tu; ResourceID = ti } = this
+        let { ResourceURI = ou; ResourceID = ii } = other
+
+        match (tu, ti, ou, ii) with
+        | (Some tu, _, Some ou, _) -> tu = ou // this' and the other's resourceUri are the same
+        | (_, Some ti, _, Some ii) -> ti = ii // this' and the other's resourceId are the same
+        | _ -> false
+
     //interface IEquatable<MarketplaceResourceId> with
     //    member this.Equals other = 
     //        let { ResourceURI = tu; ResourceID = ti } = this
@@ -32,7 +41,7 @@ type MarketplaceResourceId =
     //     match other with
     //     | :? MarketplaceResourceId as p -> (this :> IEquatable<_>).Equals p
     //     | _ -> false
-    //override this.GetHashCode () = 
+    // override this.GetHashCode () = 
     //    (this.ResourceURI, this.ResourceID).GetHashCode()
 
     // This function merges two MarketplaceResourceIds, if possible.
