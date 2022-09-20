@@ -22,7 +22,10 @@ type MarketplaceResourceId =
     private 
         { ResourceURI: string option
           ResourceID: string option }
-    
+
+    member this.ResourceUri() = this.ResourceURI |> Option.defaultWith (fun () -> null)
+    member this.ResourceId() = this.ResourceID |> Option.defaultWith (fun () -> null)
+
     member this.Matches other = 
         let { ResourceURI = tu; ResourceID = ti } = this
         let { ResourceURI = ou; ResourceID = ii } = other

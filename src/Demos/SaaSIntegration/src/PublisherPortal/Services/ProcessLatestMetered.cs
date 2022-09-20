@@ -56,16 +56,15 @@ namespace PublisherPortal.Services
             // get Last Process Time
             currentPublisherMeters.lastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString();
 
-            foreach (KeyValuePair<MarketplaceResourceId, Meter> kvp in metercollections.MeterCollection)
+            foreach (Meter meter in metercollections.MeterCollection)
             {
                 MeterSummaryModel currentMeters = new();
                 
-                Meter meter = kvp.Value;
                 foreach (KeyValuePair<DimensionId, MeterValue> meterKey in meter.CurrentMeterValues.value)
                 {
                     MeterSummaryModel meterSummary = new()
                     {
-                        SubscriptionId = kvp.Key.ToString()
+                        SubscriptionId = meter.Subscription.MarketplaceResourceId.ResourceId()
                     };
                     if (meterKey.Value.IsConsumedQuantity)
                     {

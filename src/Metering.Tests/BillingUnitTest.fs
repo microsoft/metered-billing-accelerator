@@ -230,8 +230,8 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     let getMeter (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : MeterValue =
         let dimensionId = dimensionId |> DimensionId.create
 
-        mc.MeterCollection
-        |> Map.find marketplaceResourceId
+        mc
+        |> MeterCollection.find marketplaceResourceId
         |> (fun s -> s.CurrentMeterValues.value |> Map.find dimensionId)
 
     let includes (q: Quantity) (mv: MeterValue) : unit =
@@ -252,8 +252,8 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         let timeSlot = MeteringDateTime.fromStr timeSlot
         let quantity = Quantity.create quantity
 
-        mc.MeterCollection
-        |> Map.find marketplaceResourceId
+        mc
+        |> MeterCollection.find marketplaceResourceId
         |> (fun x -> x.UsageToBeReported)
         |> List.filter (fun i -> i.DimensionId = dimension && i.EffectiveStartTime = timeSlot && i.MarketplaceResourceId = marketplaceResourceId && i.Quantity = quantity)
         |> List.length
@@ -315,13 +315,13 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> handle (createSubsc (sn()) "2021-11-29T17:04:00Z" (subCreation sub1 "2021-11-29T17:00:00Z"))
     |> ensureSequenceNumberHasBeenApplied 
     // ... all meters should be at their original levels
-    |> check (fun m -> Assert.AreEqual(1, m.MeterCollection.Count))
-    |> check (fun m -> Assert.IsTrue(m.MeterCollection |> Map.containsKey sub1))
+    |> check (fun m -> Assert.AreEqual(1, m.MeterCollection.Length))
+    |> check (fun m -> Assert.IsTrue(m |> MeterCollection.contains sub1))
     |> assertIncluded      sub1 "dimension1" (Quantity.create 1000u)
     |> assertIncluded      sub1 "dimension2" Quantity.Infinite
     |> check (fun m ->
-        m.MeterCollection
-        |> Map.find sub1
+        m
+        |> MeterCollection.find sub1
         |> checkSub (fun m ->  Assert.AreEqual(2, m.CurrentMeterValues.value |> Map.count))
         |> ignore
     )
@@ -364,7 +364,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> handle (createSubsc (sn()) "2021-11-29T19:04:00Z" (subCreation sub2 "2021-11-29T18:58:00Z"))
     |> ensureSequenceNumberHasBeenApplied 
     // Now we should have 2 subsriptions
-    |> check (fun m -> Assert.AreEqual(2, m.MeterCollection.Count))
+    |> check (fun m -> Assert.AreEqual(2, m.MeterCollection.Length))
     // Submit usage to sub1 and then an hour later to sub2
     |> newusage            sub1 "2021-11-29T21:00:03Z" 1u "d1"
     |> newusage            sub2 "2021-11-29T22:00:03Z" 1u "d1"

@@ -122,7 +122,7 @@ type MarketplaceSubmissionResult =
      Result<MarketplaceSuccessResponse, MarketplaceSubmissionError>
 
 module MarketplaceSubmissionResult = 
-    let resourceId (marketplaceSubmissionResult: MarketplaceSubmissionResult) : MarketplaceResourceId =
+    let marketplaceResourceId (marketplaceSubmissionResult: MarketplaceSubmissionResult) : MarketplaceResourceId =
         match marketplaceSubmissionResult with 
         | Ok s -> s.RequestData.MarketplaceResourceId
         | Error e ->

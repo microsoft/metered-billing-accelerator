@@ -19,6 +19,9 @@ module Meter =
     let addUsageToBeReported x this = { this with UsageToBeReported = (x :: this.UsageToBeReported) }
     let addUsagesToBeReported x this = { this with UsageToBeReported = List.concat [ x; this.UsageToBeReported ] }
     
+    let matches (marketplaceResourceId: MarketplaceResourceId) (meter: Meter) : bool =
+        meter.Subscription.MarketplaceResourceId.Matches(marketplaceResourceId)
+
     /// Removes the item from the UsageToBeReported collection
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
 

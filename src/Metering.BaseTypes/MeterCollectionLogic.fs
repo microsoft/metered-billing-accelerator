@@ -36,24 +36,17 @@ module MeterCollectionLogic =
         then []
         else
             meters.MeterCollection
-            |> Seq.map (fun x -> x.Value.UsageToBeReported)
+            |> Seq.map (fun x -> x.UsageToBeReported)
             |> Seq.concat
             |> List.ofSeq
     
-    let private addOnlyIfNotExists<'Key,'T when 'Key: comparison> (key: 'Key) (value: 'T) (table: Map<'Key,'T>) : Map<'Key,'T> =
-        if Map.containsKey key table
+    let private addOnlyIfNotExists (marketplaceResourceId: MarketplaceResourceId) (value: Meter) (table: Meter list) : Meter list =
+        if table |> List.exists (Meter.matches marketplaceResourceId)
         then table
-        else Map.add key value table
+        else value :: table
 
-    let private handleSubscriptionPurchased<'Key,'T when 'Key: comparison> (key: 'Key) (value: 'T) (table: Map<'Key,'T>) : Map<'Key,'T> =
-        let ignoreAdditionalSubscriptionMessages = true
-
-        let handle = 
-            if ignoreAdditionalSubscriptionMessages 
-            then addOnlyIfNotExists 
-            else Map.add
-
-        handle key value table
+    let private handleSubscriptionPurchased (key: MarketplaceResourceId) (value: Meter) (table: Meter list) : Meter list =
+        addOnlyIfNotExists key value table
 
     /// Ensure that we apply the right event at the right time, belonging to the appropriate partition
     let private enforceStrictSequenceNumbers ({ SequenceNumber = concreteSequenceNumber; PartitionID = pidEvent }: MessagePosition)  (state: MeterCollection) : MeterCollection =
@@ -89,42 +82,50 @@ module MeterCollectionLogic =
                                     
             { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
 
-    let private addUsage (internalUsageEvent: InternalUsageEvent) messagePosition state =
-        let existingSubscription = state.MeterCollection |> Map.containsKey internalUsageEvent.MarketplaceResourceId
+    let private updateMeter (marketplaceResourceId: MarketplaceResourceId) (update: Meter -> Meter) (meters: Meter list) : Meter list = 
+        meters |> List.map (fun meter -> if meter |> Meter.matches marketplaceResourceId then update meter else meter)
+
+    let private applyMeters (handler: Meter list -> Meter list) (state: MeterCollection)  : MeterCollection =
+        let newMeterCollection = state.MeterCollection |> handler
+        { state with MeterCollection = newMeterCollection } 
+
+    let private addUsage (internalUsageEvent: InternalUsageEvent) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
+        let existingSubscription = state.MeterCollection |> List.exists (Meter.matches internalUsageEvent.MarketplaceResourceId)
         if existingSubscription
         then 
             let newMeterCollection =
                 state.MeterCollection
-                |> Map.change 
+                |> updateMeter 
                     internalUsageEvent.MarketplaceResourceId 
-                    (Option.bind ((Meter.handleUsageEvent (internalUsageEvent, messagePosition)) >> Some))
+                    (Meter.handleUsageEvent (internalUsageEvent, messagePosition))
 
             { state with MeterCollection = newMeterCollection }
         else
             state |> addUnprocessableMessage (UsageReported internalUsageEvent) messagePosition
 
-    let private applyMeters (handler: Map<MarketplaceResourceId, Meter> -> Map<MarketplaceResourceId, Meter>) (state: MeterCollection)  : MeterCollection =
-        let newMeterCollection = state.MeterCollection |> handler
-        { state with MeterCollection = newMeterCollection } 
-
     let private addSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) messagePosition state =
-        let meter = Meter.createNewSubscription subscriptionCreationInformation messagePosition
+        let meter: Meter = Meter.createNewSubscription subscriptionCreationInformation messagePosition
+        let updateList: Meter list -> Meter list = handleSubscriptionPurchased subscriptionCreationInformation.Subscription.MarketplaceResourceId meter
 
         state 
-        |> applyMeters (handleSubscriptionPurchased subscriptionCreationInformation.Subscription.MarketplaceResourceId meter)
+        |> applyMeters updateList
         
     let private deleteSubscription marketplaceResourceId state = 
-         { state with MeterCollection = state.MeterCollection |> Map.remove marketplaceResourceId }
+        let metersWithoutTheOne =  state.MeterCollection |> List.filter (fun meter -> not (meter |> Meter.matches marketplaceResourceId))
+        { state with MeterCollection = metersWithoutTheOne }
 
-    let private usageSubmitted submission messagePosition state =
+    let private usageSubmitted (submission: MarketplaceResponse) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
+        let marketplaceResourceId = submission.Result |> MarketplaceSubmissionResult.marketplaceResourceId
+        let update: Meter -> Meter = Meter.handleUsageSubmissionToAPI submission messagePosition
+        let updateList: Meter list -> Meter list = updateMeter marketplaceResourceId update
+
         state
-        //|> applyMeters (Map.change submission.Payload.ResourceId (Option.map (Meter.handleUsageSubmissionToAPI config submission)))
-        |> applyMeters (Map.change (submission.Result |> MarketplaceSubmissionResult.resourceId) (Option.bind ((Meter.handleUsageSubmissionToAPI submission messagePosition) >> Some)))
+        |> applyMeters updateList
 
     /// Iterate over all current meters, and check if one of the overages can be converted into a metering API event.
     let handleMeteringTimestamp now state =
         state.MeterCollection
-        |> Map.map (fun _ meter -> Meter.closePreviousHourIfNeeded now meter)
+        |> List.map (fun meter -> Meter.closePreviousHourIfNeeded now meter)
         |> (fun updatedMeters -> { state with MeterCollection = updatedMeters })
 
     let private setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =

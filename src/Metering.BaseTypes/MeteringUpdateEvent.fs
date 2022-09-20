@@ -28,7 +28,7 @@ type MeteringUpdateEvent =
             | SubscriptionPurchased x -> x.Subscription.MarketplaceResourceId.ToString()
             | SubscriptionDeletion x -> x.ToString()
             | UsageReported x -> x.MarketplaceResourceId.ToString()
-            | UsageSubmittedToAPI x -> (x.Result |> MarketplaceSubmissionResult.resourceId).ToString()
+            | UsageSubmittedToAPI x -> (x.Result |> MarketplaceSubmissionResult.marketplaceResourceId).ToString()
             | UnprocessableMessage _ -> ""
             | RemoveUnprocessedMessages _ -> ""
     
