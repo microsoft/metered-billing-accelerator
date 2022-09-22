@@ -9,6 +9,7 @@ open NUnit.Framework
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.EventHub
+open Metering.BaseTypes
 
 [<SetUp>]
 let Setup () = ()

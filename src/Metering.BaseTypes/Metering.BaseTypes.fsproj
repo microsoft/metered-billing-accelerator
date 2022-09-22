@@ -24,9 +24,10 @@
     <Compile Include="MeterValue.fs" />
     <Compile Include="PlanId.fs" />
     <Compile Include="CurrentMeterValues.fs" />
-    <Compile Include="BillingDimension.fs" />
-    <Compile Include="Plan.fs" />
     <Compile Include="ApplicationInternalMeterName.fs" />
+    <Compile Include="BillingDimension.fs" />
+    <Compile Include="SimpleConsumptionBillingDimension.fs" />
+    <Compile Include="Plan.fs" />
     <Compile Include="InternalUsageEvent.fs" />
     <Compile Include="Subscription.fs" />
     <Compile Include="BillingPeriod.fs" />

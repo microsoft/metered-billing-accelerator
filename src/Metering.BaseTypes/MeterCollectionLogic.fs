@@ -82,21 +82,31 @@ module MeterCollectionLogic =
                                     
             { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
 
+    let private mapIf predicate update a =
+        if predicate a 
+        then update a 
+        else a
+
+    let private updateIf predicate update =
+        List.map (mapIf predicate update)
+
     let private updateMeter (marketplaceResourceId: MarketplaceResourceId) (update: Meter -> Meter) (meters: Meter list) : Meter list = 
-        meters |> List.map (fun meter -> if meter |> Meter.matches marketplaceResourceId then update meter else meter)
+        updateIf (Meter.matches marketplaceResourceId) update meters
 
     let private applyMeters (handler: Meter list -> Meter list) (state: MeterCollection)  : MeterCollection =
-        let newMeterCollection = state.Meters |> handler
-        { state with Meters = newMeterCollection } 
+        state.Meters
+        |> handler
+        |> (fun x -> { state with Meters = x })
 
     let private addUsage (internalUsageEvent: InternalUsageEvent) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
-        let existingSubscription = state.Meters |> List.exists (Meter.matches internalUsageEvent.MarketplaceResourceId)
+        let marketplaceResourceId = internalUsageEvent.MarketplaceResourceId
+        let existingSubscription = state.Meters |> List.exists (Meter.matches marketplaceResourceId)
         if existingSubscription
         then 
             let newMeterCollection =
                 state.Meters
                 |> updateMeter 
-                    internalUsageEvent.MarketplaceResourceId 
+                    marketplaceResourceId 
                     (Meter.handleUsageEvent (internalUsageEvent, messagePosition))
 
             { state with Meters = newMeterCollection }
@@ -145,10 +155,7 @@ module MeterCollectionLogic =
         |> setLastProcessed messagePosition 
 
     let handleMeteringEvents (meterCollection: MeterCollection option) (meteringEvents: EventHubEvent<MeteringUpdateEvent> list) : MeterCollection =
-        let meterCollection =
-            match meterCollection with
-            | None -> MeterCollection.Empty
-            | Some meterCollection -> meterCollection
+        let meterCollection = meterCollection |> Option.defaultWith (fun () -> MeterCollection.Empty)
 
         meteringEvents
-        |> List.fold  handleMeteringEvent meterCollection
+        |> List.fold handleMeteringEvent meterCollection

@@ -14,7 +14,7 @@ type Meter =
         
 module Meter =
     let setCurrentMeterValues x this = { this with CurrentMeterValues = x }
-    let applyToCurrentMeterValue f this = { this with CurrentMeterValues = (f this.CurrentMeterValues) }
+    let applyToCurrentMeterValue (f: CurrentMeterValues -> CurrentMeterValues) (this: Meter) : Meter = { this with CurrentMeterValues = (f this.CurrentMeterValues) } // 
     let setLastProcessedMessage x this = { this with LastProcessedMessage = x }
     let addUsageToBeReported x this = { this with UsageToBeReported = (x :: this.UsageToBeReported) }
     let addUsagesToBeReported x this = { this with UsageToBeReported = List.concat [ x; this.UsageToBeReported ] }
@@ -27,7 +27,7 @@ module Meter =
 
     /// This function must be called when 'a new hour' started, i.e. the previous period must be closed.
     let closePreviousMeteringPeriod (state: Meter) : Meter =
-        let isConsumedQuantity = function
+        let isConsumedQuantity : (MeterValue -> bool) = function
             | ConsumedQuantity _ -> true
             | _ -> false
 
