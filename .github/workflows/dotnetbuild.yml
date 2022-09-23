@@ -1,4 +1,4 @@
-name: .NET Dev Build
+name: .NET Build
 on:
   workflow_dispatch:
   push:
@@ -45,5 +45,5 @@ jobs:
     - name: Upload Aggregator Build Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: api.${{env.NBGV_SemVer2}}
+        name: Aggregator.${{env.NBGV_SemVer2}}
         path: src/Aggregator/bin/Debug/net6.0
