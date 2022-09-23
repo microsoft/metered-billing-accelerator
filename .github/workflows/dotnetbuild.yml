@@ -2,8 +2,6 @@ name: .NET Build
 on:
   workflow_dispatch:
   push:
-    branches-ignore:
-      - main
     paths:
       - './src/**'
   pull_request:
