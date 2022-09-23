@@ -1,10 +1,7 @@
 name: .NET Build
-
 on:
   workflow_dispatch:
   push:
-    branches-ignore:
-      - main
     paths:
       - './src/**'
   pull_request:
@@ -17,7 +14,7 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   
 jobs:
-  build:
+   build:
     strategy:
       matrix:
         platform: [ windows-latest, ubuntu-latest ]
@@ -46,5 +43,5 @@ jobs:
     - name: Upload Aggregator Build Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: api.${{env.NBGV_SemVer2}}
+        name: Aggregator.${{env.NBGV_SemVer2}}
         path: src/Aggregator/bin/Debug/net6.0
