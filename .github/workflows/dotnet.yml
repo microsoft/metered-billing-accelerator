@@ -42,6 +42,9 @@ jobs:
     - name: Test
       working-directory: ./src
       run: dotnet test --no-build --verbosity normal
+    - name: Dotnet Pack Aggregator
+      working-directory: src/Aggregator
+        un: dotnet pack -c Release
     - name: Upload Aggregator Build Artifacts
       uses: actions/upload-artifact@v2
       with:
