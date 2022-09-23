@@ -1,6 +1,5 @@
 name: .NET Build
 on:
-  workflow_dispatch:
   push:
     paths:
       - './src/**'
@@ -45,3 +44,12 @@ jobs:
       with:
         name: Aggregator.${{env.NBGV_SemVer2}}
         path: src/Aggregator/bin/Debug/net6.0
+    - name: Create Release
+      uses: actions/create-release@master
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{env.NBGV_SemVer2}}
+        release_name: Release ${{env.NBGV_SemVer2}}
+        draft: false
+        prerelease: true
