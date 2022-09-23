@@ -38,15 +38,12 @@ jobs:
       run: dotnet restore
     - name: Build
       working-directory: ./src
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore --configuration Release
     - name: Test
       working-directory: ./src
       run: dotnet test --no-build --verbosity normal
-    - name: Dotnet Pack Aggregator
-      working-directory: ./src/Aggregator
-      run: dotnet pack -c Release
     - name: Upload Aggregator Build Artifacts
       uses: actions/upload-artifact@v2
       with:
         name: api.${{env.NBGV_SemVer2}}
-        path: ./src/Aggregator/bin/Release/net6.0
+        path: src/Aggregator/bin/Release/net6.0
