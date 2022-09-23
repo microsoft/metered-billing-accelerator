@@ -1,5 +1,4 @@
-name: .NET Build
-
+name: .NET Dev Build
 on:
   workflow_dispatch:
   push:
@@ -17,7 +16,7 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   
 jobs:
-  build:
+   build:
     strategy:
       matrix:
         platform: [ windows-latest, ubuntu-latest ]
