@@ -3,7 +3,8 @@ name: .NET Build
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches-ignore:
+      - main
     paths:
       - './src/**'
   pull_request:
@@ -38,7 +39,7 @@ jobs:
       run: dotnet restore
     - name: Build
       working-directory: ./src
-      run: dotnet build --no-restore --configuration Release
+    run: dotnet build --no-restore
     - name: Test
       working-directory: ./src
       run: dotnet test --no-build --verbosity normal
@@ -46,4 +47,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: api.${{env.NBGV_SemVer2}}
-        path: src/Aggregator/bin/Release/net6.0
+        path: src/Aggregator/bin/Debug/net6.0
