@@ -17,9 +17,9 @@ public class ResourceController : ControllerBase
 {
     private readonly ILogger<ResourceController> _logger;
     private readonly IConfiguration _configuration;
-    private readonly IApplicationService _applicationService;
+    private readonly ApplicationService _applicationService;
 
-    public ResourceController(ILogger<ResourceController> logger, IConfiguration configuration, IApplicationService applicationService)
+    public ResourceController(ILogger<ResourceController> logger, IConfiguration configuration, ApplicationService applicationService)
     {
         _logger = logger;
         _configuration = configuration;
@@ -29,7 +29,7 @@ public class ResourceController : ControllerBase
     [ApiExplorerSettings(IgnoreApi = true)]
     [HttpPost]
     [Route("/resource")]
-    public IActionResult ApplicationNotification(string sig)
+    public async Task<IActionResult> ApplicationNotification(string sig)
     {
         var sec = _configuration["NotificationSecret"];
         if (sig != sec)
@@ -42,23 +42,17 @@ public class ResourceController : ControllerBase
             string json = new StreamReader(this.Request.BodyReader.AsStream()).ReadToEnd();
             var data = json.DeserializeJson<CommonNotificationInformation>();
 
-            _logger.LogDebug(json);
-
             switch (data.ProvisioningState)
             {
-                case (ProvisioningState.Succeeded):
-                    _logger.LogDebug("Succeeded ");
-                    break;
-                case (ProvisioningState.Deleting):
-                    _logger.LogDebug("Deleting");
-                    break;
                 case (ProvisioningState.Deleted):
-                    _applicationService.DeleteApplication(data.ApplicationId);
-                    _logger.LogDebug("Deleted");
+                    await _applicationService.DeleteApplication(data.ApplicationId);
                     break;
+                case (ProvisioningState.Succeeded):
+                case (ProvisioningState.Deleting):
                 default:
                     break;
             }
+            _logger.LogDebug(data.ProvisioningState.ToString());
         }
         catch (Exception e)
         {

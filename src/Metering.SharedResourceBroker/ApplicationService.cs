@@ -15,31 +15,23 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-public interface IApplicationService
-{
-    Task<CreateServicePrincipalInKeyVaultResponse> CreateServicePrincipalInKeyVault(SubscriptionRegistrationRequest subscriptionRegistrationRequest);
-    Task<SubscriptionRegistrationOkResponse> CreateServicePrincipal(SubscriptionRegistrationRequest subscriptionRegistrationRequest);
-    Task DeleteApplication(string managedBy);
-    Task DeleteServicePrincipalSecret(string managedBy);
-}
-
-public class ApplicationService : IApplicationService
+public class ApplicationService
 {
     private readonly ILogger<ApplicationService> _logger;
-    private readonly IOptions<ServicePrincipalCreatorSettings> _appSettings;
+    private readonly ServicePrincipalCreatorSettings _appSettings;
     private readonly SecretClient _keyVaultSecretClient;
 
     public ApplicationService(ILogger<ApplicationService> logger, IOptions<ServicePrincipalCreatorSettings> settingsOptions)
     {
         _logger = logger;
-        _appSettings = settingsOptions;
+        _appSettings = settingsOptions.Value;
 
         _keyVaultSecretClient = new SecretClient(
-            vaultUri: new($"https://{_appSettings.Value.KeyVaultName}.vault.azure.net/"),
+            vaultUri: new($"https://{_appSettings.KeyVaultName}.vault.azure.net/"),
             credential: new DefaultAzureCredential(
                 new DefaultAzureCredentialOptions
                 {
-                    ManagedIdentityClientId = _appSettings.Value.AzureADManagedIdentityClientId
+                    ManagedIdentityClientId = _appSettings.AzureADManagedIdentityClientId
                 }));
     }
 
@@ -53,13 +45,13 @@ public class ApplicationService : IApplicationService
         using var hashAlgo = MD5.Create();
         var hash = hashAlgo.ComputeHash(Encoding.UTF8.GetBytes(managedBy));
         var hashBase32 = Base32.Crockford.Encode(hash);
-        return $"{_appSettings.Value.GeneratedServicePrincipalPrefix}-{hashBase32}"; // The result must have a length of at most 93
+        return $"{_appSettings.GeneratedServicePrincipalPrefix}-{hashBase32}"; // The result must have a length of at most 93
     }
 
     private GraphServiceClient GetGraphServiceClient()
     {
         var credential = new ChainedTokenCredential(
-            new ManagedIdentityCredential(_appSettings.Value.AzureADManagedIdentityClientId.ToString()),
+            new ManagedIdentityCredential(_appSettings.AzureADManagedIdentityClientId.ToString()),
             new EnvironmentCredential()
         );
 
@@ -108,7 +100,7 @@ public class ApplicationService : IApplicationService
         }
     }
 
-    public async Task<SubscriptionRegistrationOkResponse> CreateServicePrincipal(SubscriptionRegistrationRequest subscriptionRegistrationRequest)
+    internal async Task<SubscriptionRegistrationOkResponse> CreateServicePrincipal(SubscriptionRegistrationRequest subscriptionRegistrationRequest)
     {
         subscriptionRegistrationRequest.EnsureValid();
 
@@ -153,7 +145,7 @@ public class ApplicationService : IApplicationService
                 .AddPassword(
                     new PasswordCredential
                     {
-                        DisplayName = $"{_appSettings.Value.GeneratedServicePrincipalPrefix}-rbac",
+                        DisplayName = $"{_appSettings.GeneratedServicePrincipalPrefix}-rbac",
                         EndDateTime = DateTime.Now.AddYears(100),
                     })
                 .Request()
@@ -175,7 +167,7 @@ public class ApplicationService : IApplicationService
                 try
                 {
                     //Add Service principal to the security group, which has permissions the resource(s).
-                    await _graphServiceClient.Groups[_appSettings.Value.SharedResourcesGroup.ToString()].Members.References
+                    await _graphServiceClient.Groups[_appSettings.SharedResourcesGroup.ToString()].Members.References
                          .Request()
                          .AddAsync(new DirectoryObject { Id = spr.Id });
                     _logger.LogTrace($"Service principal added to security group: {spr.Id}");

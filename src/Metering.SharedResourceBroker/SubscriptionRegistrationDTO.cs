@@ -4,7 +4,7 @@ public record SubscriptionRegistrationRequest(string ManagedBy);
 
 public record CreateServicePrincipalInKeyVaultResponse(string SecretName);
 
-public record SubscriptionRegistrationOkResponse(string ClientID, string ClientSecret, string TenantID);
+internal record SubscriptionRegistrationOkResponse(string ClientID, string ClientSecret, string TenantID);
 
 public record SubscriptionRegistrationFailedResponse(string Message);
 

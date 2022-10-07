@@ -21,7 +21,7 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddApplicationInsightsTelemetry(builder.Configuration);
 //builder.Services.AddLogging(c => c.AddApplicationInsights());
 builder.Services.AddTransient<RequestIdentityLoggingMiddleware>();
-builder.Services.AddScoped<IApplicationService, ApplicationService>();
+builder.Services.AddScoped<ApplicationService, ApplicationService>();
 
 var keyVaultName = builder.Configuration
     .GetSection(ServicePrincipalCreatorSettings.Names.SectionName)

@@ -33,9 +33,9 @@ var names = {
 }
 
 var keyVaultRoleID = {
-  'Contributor': 'b24988ac-6180-42a0-ab88-20f7382dd24c'
-  'Owner': '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
-  'Reader': 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
+  Contributor: 'b24988ac-6180-42a0-ab88-20f7382dd24c'
+  Owner: '8e3af657-a8ff-443c-a75c-2fe8c4bcb635'
+  Reader: 'acdd72a7-3385-48ef-bd42-f606fba81ae7'
   'Key Vault Administrator': '00482a5a-887f-4fb3-b363-3b7fe8e74483'
   'Key Vault Certificates Officer': 'a4417e6f-fecd-4de8-b567-7b0420556985'
   'Key Vault Crypto Officer': '14b46e9e-c2b7-41b4-b07b-48a6ebf60603'
@@ -61,8 +61,6 @@ resource publisherKeyVault 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
       bypass: 'AzureServices'
     }
   }
-
- 
 }
 
 resource bootstrapSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
@@ -171,19 +169,19 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
       'ServicePrincipalCreatorSettings:AzureADManagedIdentityClientId': uami.properties.clientId
       //'SCM_DO_BUILD_DURING_DEPLOYMENT': 'true'
       'ApplicationInsights:ConnectionString' : appInsights.properties.ConnectionString
-      'WEBSITE_RUN_FROM_PACKAGE': deploymentZip
+      WEBSITE_RUN_FROM_PACKAGE: deploymentZip
     }
   }
 
-  resource connectionstrings 'config@2021-03-01' = {
-    name: 'connectionstrings'
-    properties: {
-      'APPLICATIONINSIGHTS_CONNECTION_STRING': {
-        type: 'Custom'
-        value: appInsights.properties.ConnectionString
-      }
-    }
-  }
+  // resource connectionstrings 'config@2021-03-01' = {
+  //   name: 'connectionstrings'
+  //   properties: {
+  //     APPLICATIONINSIGHTS_CONNECTION_STRING: {
+  //       type: 'Custom'
+  //       value: appInsights.properties.ConnectionString
+  //     }
+  //   }
+  // }
   
   resource logs 'config@2021-03-01' = {
     name: 'logs'
@@ -203,53 +201,10 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
       detailedErrorMessages: { enabled: true }
     }
   }
-
-  // resource zipDeploy 'extensions@2021-02-01' = {
-  //   name: 'MSDeploy'
-  //   properties: {
-  //     packageUri: 'https://isvreleases.blob.core.windows.net/backendrelease/henrikwh/SharedResourceBroker/Backend/src.zip'
-  //   }
-  // }  
 }
-
-// resource deploymentScript 'Microsoft.Resources/deploymentScripts@2019-10-01-preview' = {
-//   name: 'dc'
-//   location: location
-//   identity: {
-//     type: 'UserAssigned'
-//     userAssignedIdentities: {
-//       '${uami.id}': {}
-//     }
-//   }
-//   kind: 'AzureCLI'
-//   properties: {
-//     azCliVersion: '2.37.0'
-//     timeout: 'PT30M'
-//     retentionInterval: 'P1D'
-//     cleanupPreference: 'OnExpiration'
-//     environmentVariables: [
-//       {
-//         name: 'scmUri'
-//         value: list(resourceId('Microsoft.Web/sites/config', appService.name, 'publishingcredentials'), appService.apiVersion).properties.scmUri
-//       }
-//       {
-//         name: 'zipUrl'
-//         value: 'https://isvreleases.blob.core.windows.net/backendrelease/henrikwh/SharedResourceBroker/Backend/src.zip'
-//       }
-//     ]
-//     scriptContent: '''
-//     curl --silent --request POST --url "${scmUri}/api/publish?type=zip" --header "Content-Type: application/json" --data "$( echo "{}" | jq --arg x "${zipUrl}" '.packageUri=$x' )" | jq
-//     '''
-//   }
-// }
 
 // https://docs.microsoft.com/en-us/azure/app-service/deploy-run-package#run-from-external-url-instead
 
 output managedIdentityPrincipalID string = uami.properties.principalId
 output appServiceName string = names.appService
 output resourceNames object = names
-
-// output scmUri string = '${list(resourceId('Microsoft.Web/sites/config', appService.name, 'publishingcredentials'), appService.apiVersion).properties.scmUri}'
-// output publishingUserName string = '${list(resourceId('Microsoft.Web/sites/config', appService.name, 'publishingcredentials'), appService.apiVersion).properties.publishingUserName}'
-// output publishingPassword string = '${list(resourceId('Microsoft.Web/sites/config', appService.name, 'publishingcredentials'), appService.apiVersion).properties.publishingPassword}'
-

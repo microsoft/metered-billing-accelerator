@@ -66,7 +66,7 @@ json="$( echo "{}" | jq --arg x "${managedBy}" '.managedBy=$x' )"
 response="$( curl \
   --silent \
   --request POST \
-  --url "https://${websiteName}.azurewebsites.net/Subscription" \
+  --url "https://${websiteName}.azurewebsites.net/CreateServicePrincipalInKeyVault" \
   --header "Authorization: ${bootstrapSecret}" \
   --header 'Content-Type: application/json' \
   --data "${json}" \

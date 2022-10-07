@@ -2,12 +2,13 @@
 
 echo "Running az cli $(az version | jq '."azure-cli"' ), should be 2.37.0 or higher"
 
+basedir="$( pwd )"
 basedir="$( dirname "$( readlink -f "$0" )" )"
 
-CONFIG_FILE="${basedir}/../config.json"
+CONFIG_FILE="${basedir}/config.json"
 
 if [ ! -f "$CONFIG_FILE" ]; then
-    cp ../config-template.json "${CONFIG_FILE}"
+    cp ./config-template.json "${CONFIG_FILE}"
     echo "You need to configure deployment settings in ${CONFIG_FILE}" 
     exit 1
 fi
