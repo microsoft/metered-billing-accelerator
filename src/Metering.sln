@@ -69,6 +69,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MeteredPage", "Demos\SaaSIn
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PublisherPortal", "Demos\SaaSIntegration\src\PublisherPortal\PublisherPortal.csproj", "{771977DC-6A25-4DE3-A81C-E6A571BF91E4}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.SharedResourceBroker", "Metering.SharedResourceBroker\Metering.SharedResourceBroker.csproj", "{98F369FC-2F7C-427D-9AF7-37AB2145F372}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -163,6 +165,10 @@ Global
 		{771977DC-6A25-4DE3-A81C-E6A571BF91E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{771977DC-6A25-4DE3-A81C-E6A571BF91E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{771977DC-6A25-4DE3-A81C-E6A571BF91E4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
