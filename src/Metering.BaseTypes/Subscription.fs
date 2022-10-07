@@ -8,7 +8,7 @@ type Subscription =
       Plan: Plan
 
       /// The SaaS subscription ID or managed app ID.
-      InternalResourceId: InternalResourceId
+      MarketplaceResourceId: MarketplaceResourceId
 
       /// Whether this is an annual or a monthly plan.
       RenewalInterval: RenewalInterval 
@@ -16,8 +16,8 @@ type Subscription =
       /// When a certain plan was purchased
       SubscriptionStart: MeteringDateTime }
 
-    static member create plan internalResourceId renewalInterval subscriptionStart =
+    static member create plan marketplaceResourceId renewalInterval subscriptionStart =
         { Plan = plan
-          InternalResourceId = internalResourceId
+          MarketplaceResourceId = marketplaceResourceId
           RenewalInterval = renewalInterval
           SubscriptionStart = subscriptionStart }

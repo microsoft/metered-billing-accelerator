@@ -5,7 +5,7 @@ namespace Metering.BaseTypes
 /// Internal usage event Message, sent from app to aggregator. 
 type InternalUsageEvent =
     { /// The resource ID, i.e. SaaS subscription ID or managed app ID.
-      InternalResourceId: InternalResourceId
+      MarketplaceResourceId: MarketplaceResourceId
       
       /// Timestamp (wallclock) of the sending app. This is only for recording purposes. The business logic uses EventHub timestamps.
       Timestamp: MeteringDateTime
@@ -20,4 +20,4 @@ type InternalUsageEvent =
       Properties: Map<string, string> option}
 
     override this.ToString() =
-        $"{this.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {this.InternalResourceId.ToString()} {this.MeterName.value}={this.Quantity.AsFloat}"
+        $"{this.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {this.MarketplaceResourceId.ToString()} {this.MeterName.value}={this.Quantity.AsFloat}"

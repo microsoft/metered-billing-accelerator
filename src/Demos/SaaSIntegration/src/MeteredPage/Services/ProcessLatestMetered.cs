@@ -52,11 +52,10 @@ public class ProcessLatestMetered
             LastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString()
         };
 
-        foreach (KeyValuePair<InternalResourceId, Meter> kvp in metercollections.MeterCollection)
+        foreach (Meter meter in metercollections.Meters)
         {
-            if (currentMeters.SubscriptionId == kvp.Key.ToString())
+            if (currentMeters.SubscriptionId == meter.Subscription.MarketplaceResourceId.ResourceId())
             {
-                Meter meter = kvp.Value;
                 foreach (KeyValuePair<DimensionId, MeterValue> meterKey in meter.CurrentMeterValues.value)
                 {
                     MeterSummaryModel meterSummary = new();
@@ -81,15 +80,15 @@ public class ProcessLatestMetered
         {
             foreach (var marketplace in metercollections.metersToBeSubmitted)
             {
-                var toBeReported = new ToBeReportedModel();
-                if (currentMeters.SubscriptionId == marketplace.ResourceId.ToString())
+                if (currentMeters.SubscriptionId == marketplace.MarketplaceResourceId.ToString())
                 {
-                    toBeReported.PlanId = marketplace.PlanId.ToString();
-                    toBeReported.DimensionId = marketplace.DimensionId.ToString();
-                    toBeReported.Quantity = marketplace.Quantity.ToString();
-                    toBeReported.EffectiveStartTime = marketplace.EffectiveStartTime.ToString();
-
-                    currentMeters.CurrentToBeReported.Add(toBeReported);
+                    currentMeters.CurrentToBeReported.Add(new ToBeReportedModel()
+                    {
+                        PlanId = marketplace.PlanId.value,
+                        DimensionId = marketplace.DimensionId.value,
+                        Quantity = marketplace.Quantity.ToString(),
+                        EffectiveStartTime = marketplace.EffectiveStartTime.ToString()
+                    });
                 }
             }
         }

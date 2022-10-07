@@ -55,7 +55,7 @@ function createBatchUsage {
 
   echo "{}"                                                                                 | \
     jq --arg x "UsageReported"                       '.Body.type=($x)'                      | \
-    jq --arg x "${saas_subscription_id}"             '.Body.value.internalResourceId=($x)'  | \
+    jq --arg x "${saas_subscription_id}"             '.Body.value.resourceId=($x)'  | \
     jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.Body.value.timestamp=($x)'           | \
     jq --arg x "${meter_name}"                       '.Body.value.meterName=($x)'           | \
     jq --arg x "${consumption}"                      '.Body.value.quantity=($x | fromjson)' | \
@@ -70,7 +70,7 @@ function createUsage {
 
   echo "{}"                                                                            | \
     jq --arg x "UsageReported"                       '.type=($x)'                      | \
-    jq --arg x "${saas_subscription_id}"             '.value.internalResourceId=($x)'  | \
+    jq --arg x "${saas_subscription_id}"             '.value.resourceId=($x)'  | \
     jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.value.timestamp=($x)'           | \
     jq --arg x "${meter_name}"                       '.value.meterName=($x)'           | \
     jq --arg x "${consumption}"                      '.value.quantity=($x | fromjson)' | \

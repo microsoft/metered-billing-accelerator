@@ -9,6 +9,7 @@ open NUnit.Framework
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.EventHub
+open Metering.BaseTypes
 
 [<SetUp>]
 let Setup () = ()
@@ -29,9 +30,12 @@ let somePlan : Plan =
     { PlanId = "PlanId" |> PlanId.create
       BillingDimensions = Map.empty |> BillingDimensions.create }
 
+let someManagedAppId = 
+    MarketplaceResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
+
 [<Test>]
 let ``BillingPeriod.createFromIndex`` () =
-    let sub = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) Monthly (d "2021-05-13T12:00:03") 
+    let sub = Subscription.create somePlan someManagedAppId Monthly (d "2021-05-13T12:00:03") 
 
     Assert.AreEqual(
         (bp "2|2021-07-13T12:00:03|2021-08-12T12:00:02"),
@@ -43,7 +47,7 @@ type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * str
 let ``BillingPeriod.isInBillingPeriod`` () =
     let test (idx, testcase) =
         let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan (ManagedAppIdentity |> ManagedApplication) interval (d purchaseDateStr)
+        let subscription = Subscription.create somePlan someManagedAppId interval (d purchaseDateStr)
         let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
         let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
@@ -170,10 +174,10 @@ let ``Quantity.Math`` () =
     
 [<Test>]
 let ``MeterCollectionLogic.handleMeteringEvent`` () =
-    let sub1 = "saas-guid-1234" |> InternalResourceId.fromStr
-    let sub2 = "saas-guid-5678" |> InternalResourceId.fromStr
+    let sub1 = "saas-guid-1234" |> MarketplaceResourceId.fromStr
+    let sub2 = "saas-guid-5678" |> MarketplaceResourceId.fromStr
     
-    let subCreation subId start = 
+    let subCreation marketplaceResourceId start = 
         {
             SubscriptionCreationInformation.Subscription = {
                 Plan = {
@@ -184,7 +188,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                         |> Map.add ("dimension2" |> DimensionId.create) (Quantity.Infinite)
                         |> BillingDimensions.create
                 }
-                InternalResourceId = subId
+                MarketplaceResourceId = marketplaceResourceId
                 RenewalInterval = Monthly
                 SubscriptionStart = start |> MeteringDateTime.fromStr           
             }
@@ -207,7 +211,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         sub |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent sequenceNr timestamp
     
     let createUsage sub sequenceNr timestamp (amount: uint) dimension =
-        { InternalUsageEvent.InternalResourceId = sub
+        { InternalUsageEvent.MarketplaceResourceId = sub
           Timestamp = timestamp |> MeteringDateTime.fromStr
           MeterName = dimension |> ApplicationInternalMeterName.create
           Quantity = amount |> Quantity.create
@@ -224,11 +228,11 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         f mc
         mc
 
-    let getMeter (mc: MeterCollection) (subId: InternalResourceId) (dimensionId: string) : MeterValue =
+    let getMeter (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : MeterValue =
         let dimensionId = dimensionId |> DimensionId.create
 
-        mc.MeterCollection
-        |> Map.find subId
+        mc
+        |> MeterCollection.find marketplaceResourceId
         |> (fun s -> s.CurrentMeterValues.value |> Map.find dimensionId)
 
     let includes (q: Quantity) (mv: MeterValue) : unit =
@@ -244,27 +248,27 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
             Assert.AreEqual(q, cq.Amount)
         | _ -> failwith "Not an ConsumedQuantity"
 
-    let assertUsageReported (subId: InternalResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
+    let assertUsageReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
         let dimension = DimensionId.create dimension
         let timeSlot = MeteringDateTime.fromStr timeSlot
         let quantity = Quantity.create quantity
 
-        mc.MeterCollection
-        |> Map.find subId
+        mc
+        |> MeterCollection.find marketplaceResourceId
         |> (fun x -> x.UsageToBeReported)
-        |> List.filter (fun i -> i.DimensionId = dimension && i.EffectiveStartTime = timeSlot && i.ResourceId = subId && i.Quantity = quantity)
+        |> List.filter (fun i -> i.DimensionId = dimension && i.EffectiveStartTime = timeSlot && i.MarketplaceResourceId = marketplaceResourceId && i.Quantity = quantity)
         |> List.length
         |> (fun length -> Assert.AreEqual(1, length))
 
         mc
 
-    let assertOverallUsageToBeReported (subId: InternalResourceId)  (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
+    let assertOverallUsageToBeReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
         let dimension = DimensionId.create dimension
         let overallquantity = Quantity.create overallquantity
 
         let totalToBeSubmitted =
             mc.metersToBeSubmitted
-            |> Seq.filter (fun m -> m.ResourceId = subId && m.DimensionId = dimension)
+            |> Seq.filter (fun m -> m.MarketplaceResourceId = marketplaceResourceId && m.DimensionId = dimension)
             |> Seq.sumBy (fun m -> m.Quantity.AsInt)
             |> Quantity.create
 
@@ -312,13 +316,13 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> handle (createSubsc (sn()) "2021-11-29T17:04:00Z" (subCreation sub1 "2021-11-29T17:00:00Z"))
     |> ensureSequenceNumberHasBeenApplied 
     // ... all meters should be at their original levels
-    |> check (fun m -> Assert.AreEqual(1, m.MeterCollection.Count))
-    |> check (fun m -> Assert.IsTrue(m.MeterCollection |> Map.containsKey sub1))
+    |> check (fun m -> Assert.AreEqual(1, m.Meters.Length))
+    |> check (fun m -> Assert.IsTrue(m |> MeterCollection.contains sub1))
     |> assertIncluded      sub1 "dimension1" (Quantity.create 1000u)
     |> assertIncluded      sub1 "dimension2" Quantity.Infinite
     |> check (fun m ->
-        m.MeterCollection
-        |> Map.find sub1
+        m
+        |> MeterCollection.find sub1
         |> checkSub (fun m ->  Assert.AreEqual(2, m.CurrentMeterValues.value |> Map.count))
         |> ignore
     )
@@ -361,7 +365,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> handle (createSubsc (sn()) "2021-11-29T19:04:00Z" (subCreation sub2 "2021-11-29T18:58:00Z"))
     |> ensureSequenceNumberHasBeenApplied 
     // Now we should have 2 subsriptions
-    |> check (fun m -> Assert.AreEqual(2, m.MeterCollection.Count))
+    |> check (fun m -> Assert.AreEqual(2, m.Meters.Length))
     // Submit usage to sub1 and then an hour later to sub2
     |> newusage            sub1 "2021-11-29T21:00:03Z" 1u "d1"
     |> newusage            sub2 "2021-11-29T22:00:03Z" 1u "d1"
@@ -372,11 +376,10 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     //|> printfn "%s"
     |> ignore
 
-
 //[<Test>]
 //let ``JsonRoundtrip.MarketplaceSubmissionResult`` () =
 //    { MarketplaceSubmissionResult.Payload =
-//        { ResourceId = InternalResourceId.ManagedApp
+//        { MarketplaceResourceId = MarketplaceResourceId.ManagedApp
 //          Quantity = 2.3m
 //          PlanId = "plan" |> PlanId.create
 //          DimensionId = "dim" |> DimensionId.create
@@ -405,7 +408,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 //                { UsageEventId = "usageEventId 123"
 //                  MessageTime = "2021-11-05T09:12:30" |> MeteringDateTime.fromStr
 //                  Status = "Accepted"
-//                  ResourceId = change.Payload.ResourceId |> InternalResourceId.toStr
+//                  MarketplaceResourceId = change.Payload.ResourceId |> MarketplaceResourceId.toStr
 //                  ResourceURI = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
 //                  Quantity = change.Payload.Quantity |> Quantity.createFloat
 //                  DimensionId = change.Payload.DimensionId
@@ -482,6 +485,8 @@ let private roundTrip<'T> (filename: string) =
         |> File.ReadAllText
     
     let t1 = json |> Json.fromStr<'T>
+
+    printfn "--------------------------- %s \n%A" filename t1
     
     let t2 = 
         t1
@@ -522,6 +527,19 @@ let ``Json.MarketplaceBatchRequest`` () = roundTrip<MarketplaceBatchRequest> "Ma
 
 [<Test>]
 let ``Json.MarketplaceBatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
+
+[<Test>]
+let ``Json.MeteringUpdateEvent`` () = 
+    [
+        "usageReported"
+        "usageReportedOnlyResourceUri"
+        "usageReportedOnlyResourceId"
+        "subscriptionDeleted1"
+        "subscriptionDeleted2"
+        "subscriptionDeleted3"
+        "subscriptionPurchased"
+    ]
+    |> List.iter (fun name -> roundTrip<MeteringUpdateEvent> $"messages/{name}.json")
 
 [<Test>]
 let ``Json.plan`` () = roundTrip<Plan> "plan.json"
@@ -569,5 +587,17 @@ let ``Avro.ParseEventData`` () =
     
     let binaryGarbage = CaptureProcessor.createEventDataFromBytes "1.avro" bytes 13L 100L "0"
     let wrapped = CaptureProcessor.toMeteringUpdateEvent binaryGarbage
-    
+
     ()
+
+[<Test>]
+let ``MarketplaceResourceId.Equal`` () =
+    let i = MarketplaceResourceId.fromResourceID "8151a707-467c-4105-df0b-44c3fca5880d"
+    let u = MarketplaceResourceId.fromResourceURI "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+    let ui = MarketplaceResourceId.from "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription" "8151a707-467c-4105-df0b-44c3fca5880d"
+
+    Assert.IsTrue(ui.Matches(u))
+    Assert.IsTrue(u.Matches(ui))
+    Assert.IsTrue(i.Matches(ui))
+    Assert.IsTrue(ui.Matches(i))
+    Assert.IsFalse(u.Matches(i))

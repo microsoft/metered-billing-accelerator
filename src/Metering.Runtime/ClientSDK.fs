@@ -15,32 +15,26 @@ open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.Integration
 
-type MeterValues = 
+type MeterValue = 
     { Quantity: Quantity
       Name: ApplicationInternalMeterName }
 
     [<CompiledName("create")>]
     static member createInt (applicationInternalName: string) (quantity: uint) =
-        { MeterValues.Quantity = quantity |> Quantity.create
+        { MeterValue.Quantity = quantity |> Quantity.create
           Name = applicationInternalName |> ApplicationInternalMeterName.create }
 
     [<CompiledName("create")>]
     static member createFloat (applicationInternalName: string) (quantity: float) =
-        { MeterValues.Quantity = quantity |> Quantity.create
+        { MeterValue.Quantity = quantity |> Quantity.create
           Name = applicationInternalName |> ApplicationInternalMeterName.create }        
-
-type ManagedAppConsumption = 
-    private | Meters of MeterValues list
-
-    static member create ([<ParamArray>] vals: MeterValues array) =
-        vals |> Array.toList |> Meters
         
-type SaaSConsumption =
-    { SaaSSubscriptionID: SaaSSubscriptionID 
-      Meters: MeterValues list }
+type Consumption =
+    { MarketplaceResourceId: MarketplaceResourceId 
+      Meters: MeterValue list }
 
-    static member create (saasId: string, [<ParamArray>] vals: MeterValues array) =
-        { SaaSSubscriptionID = saasId |> SaaSSubscriptionID.create
+    static member create (identifier: string, [<ParamArray>] vals: MeterValue array) =
+        { MarketplaceResourceId = identifier |> MarketplaceResourceId.fromStr
           Meters = vals |> Array.toList }
 
 [<Extension>]
@@ -105,31 +99,12 @@ module MeteringEventHubExtensions =
         | Infinite -> raise (new ArgumentException(message = "Not allowed to submit infinite consumption"))
 
     [<Extension>]
-    let SubmitManagedAppMetersAsync (eventHubProducerClient: EventHubProducerClient) (meters: MeterValues seq) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        meters
-        |> Seq.map (fun v -> enforceNonNegativeAndNonInfiniteQuantity v.Quantity; v)
-        |> Seq.map(fun v -> 
-            { InternalResourceId = ManagedApplication ManagedAppIdentity
-              Quantity = v.Quantity
-              Timestamp = MeteringDateTime.now()
-              MeterName = v.Name
-              Properties = None } 
-            |> UsageReported
-        )
-        |> Seq.toList
-        |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
-
-    [<Extension>]
-    let SubmitManagedAppMeterAsync (eventHubProducerClient: EventHubProducerClient) (meter: MeterValues) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =        
-        SubmitManagedAppMetersAsync eventHubProducerClient [| meter |] cancellationToken
-
-    [<Extension>]
-    [<CompiledName("SubmitSaaSMetersAsync")>] // Naming these for C# method overloading
-    let SubmitSaaSMetersAsync (eventHubProducerClient: EventHubProducerClient) (saasSubscriptionId: string)  (meters: MeterValues seq) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    [<CompiledName("SubmitMetersAsync")>] // Naming these for C# method overloading
+    let SubmitMetersAsync (eventHubProducerClient: EventHubProducerClient) (resourceId: string) (meters: MeterValue seq) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         meters
         |> Seq.map (fun v -> enforceNonNegativeAndNonInfiniteQuantity v.Quantity; v)
         |> Seq.map (fun v -> 
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromStr
+            { InternalUsageEvent.MarketplaceResourceId = resourceId |> MarketplaceResourceId.fromResourceID
               Quantity = v.Quantity
               Timestamp = MeteringDateTime.now()
               MeterName = v.Name
@@ -140,10 +115,10 @@ module MeteringEventHubExtensions =
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
         
     [<Extension>]
-    [<CompiledName("SubmitSaaSMeterAsync")>] // Naming these for C# method overloading
-    let submitSaaSMeterUIntAsync (eventHubProducerClient: EventHubProducerClient) (saasSubscriptionId: string) (applicationInternalMeterName: string) (quantity: uint) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    [<CompiledName("SubmitMeterAsync")>] // Naming these for C# method overloading
+    let submitMeterUIntAsync (eventHubProducerClient: EventHubProducerClient) (resourceId: string) (applicationInternalMeterName: string) (quantity: uint) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         [
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromStr
+            { InternalUsageEvent.MarketplaceResourceId = resourceId |> MarketplaceResourceId.fromResourceID
               Quantity = quantity |> Quantity.create
               Timestamp = MeteringDateTime.now()
               MeterName = applicationInternalMeterName |> ApplicationInternalMeterName.create
@@ -153,10 +128,10 @@ module MeteringEventHubExtensions =
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
     [<Extension>]
-    [<CompiledName("SubmitSaaSMeterAsync")>] // Naming these for C# method overloading
-    let submitSaaSMeterFloatAsync (eventHubProducerClient: EventHubProducerClient) (saasSubscriptionId: string) (applicationInternalMeterName: string) (quantity: float) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    [<CompiledName("SubmitMeterAsync")>] // Naming these for C# method overloading
+    let submitMeterFloatAsync (eventHubProducerClient: EventHubProducerClient) (resourceId: string) (applicationInternalMeterName: string) (quantity: float) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         [
-            { InternalUsageEvent.InternalResourceId = saasSubscriptionId |> InternalResourceId.fromStr
+            { InternalUsageEvent.MarketplaceResourceId = resourceId |> MarketplaceResourceId.fromResourceID
               Quantity = quantity |> Quantity.create
               Timestamp = MeteringDateTime.now()
               MeterName = applicationInternalMeterName |> ApplicationInternalMeterName.create
@@ -176,8 +151,8 @@ module MeteringEventHubExtensions =
 
     [<Extension>]
     [<CompiledName("SubmitSubscriptionDeletionAsync")>]
-    let SubmitSubscriptionDeletion (eventHubProducerClient: EventHubProducerClient) (resourceId: InternalResourceId) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
-        SubscriptionDeletion resourceId
+    let SubmitSubscriptionDeletion (eventHubProducerClient: EventHubProducerClient) (marketplaceResourceId: MarketplaceResourceId) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+        SubscriptionDeletion marketplaceResourceId
         |> asListWithSingleElement
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 

@@ -169,7 +169,7 @@ public class HomeController : Controller
     public async Task SendMeteredQty(double qtny)
     {
         // Subscription ID
-        var subscriptionId= _configuration["SaasSubscription"];
+        var resourceId = _configuration["SaasSubscription"];
         string dimensions = _configuration["SaaSDimension"];
 
         // Get Dim
@@ -178,8 +178,8 @@ public class HomeController : Controller
 
         foreach (var dim in meters)
         {
-            await eventHubProducerClient.SubmitSaaSMeterAsync(
-                saasSubscriptionId: subscriptionId,
+            await eventHubProducerClient.SubmitMeterAsync(
+                resourceId: resourceId,
                 applicationInternalMeterName: dim,
                 quantity: qtny);
         }

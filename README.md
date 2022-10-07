@@ -219,7 +219,7 @@ The actual usage / consumption message emitted by the ISV application into Event
 {
     "type": "UsageReported",
     "value": {
-        "internalResourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
+        "resourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
         "timestamp":          "2022-01-27T09:57:29Z",
         "meterName":          "cpu",
         "quantity":           3.1415

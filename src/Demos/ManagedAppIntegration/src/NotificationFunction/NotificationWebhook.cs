@@ -84,7 +84,7 @@ public static class NotificationWebhook
                     internalMetersMapping: await readJson<InternalMetersMapping>(dimPath),
                     subscription: new Subscription(
                         plan: await readJson<Metering.BaseTypes.Plan>(planPath),
-                        internalResourceId: InternalResourceId.fromStr(notificationDefinition.BillingDetails?.ResourceUsageId),
+                        marketplaceResourceId: MarketplaceResourceId.fromStr(notificationDefinition.BillingDetails?.ResourceUsageId),
                         renewalInterval: RenewalInterval.Monthly,
                         subscriptionStart: MeteringDateTimeModule.now()));
 

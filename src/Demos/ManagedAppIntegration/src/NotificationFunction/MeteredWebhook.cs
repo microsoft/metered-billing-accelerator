@@ -76,10 +76,10 @@ public static class BillingMeteredWebhook
             log.LogTrace($"Initiate eventhub client");
 
             log.LogTrace($"Emitting Quantity {meteredUsage.Quantity} of Dim {meteredUsage.Dimension} to ResourceID {meteredUsage.ResourceId}");
-            await eventHubProducerClient.SubmitSaaSMeterAsync(
-                         saasSubscriptionId: meteredUsage.ResourceId,
-                            applicationInternalMeterName: meteredUsage.Dimension,
-                            quantity: meteredUsage.Quantity
+            await eventHubProducerClient.SubmitMeterAsync(
+                resourceId: meteredUsage.ResourceId,
+                applicationInternalMeterName: meteredUsage.Dimension,
+                quantity: meteredUsage.Quantity
                 );
 
             log.LogTrace($"Successfully Subscribed managed app {meteredUsage.ResourceId} with Qty {meteredUsage.Quantity}");

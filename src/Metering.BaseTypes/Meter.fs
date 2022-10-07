@@ -14,17 +14,20 @@ type Meter =
         
 module Meter =
     let setCurrentMeterValues x this = { this with CurrentMeterValues = x }
-    let applyToCurrentMeterValue f this = { this with CurrentMeterValues = (f this.CurrentMeterValues) }
+    let applyToCurrentMeterValue (f: CurrentMeterValues -> CurrentMeterValues) (this: Meter) : Meter = { this with CurrentMeterValues = (f this.CurrentMeterValues) } // 
     let setLastProcessedMessage x this = { this with LastProcessedMessage = x }
     let addUsageToBeReported x this = { this with UsageToBeReported = (x :: this.UsageToBeReported) }
     let addUsagesToBeReported x this = { this with UsageToBeReported = List.concat [ x; this.UsageToBeReported ] }
     
+    let matches (marketplaceResourceId: MarketplaceResourceId) (meter: Meter) : bool =
+        meter.Subscription.MarketplaceResourceId.Matches(marketplaceResourceId)
+
     /// Removes the item from the UsageToBeReported collection
     let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
 
     /// This function must be called when 'a new hour' started, i.e. the previous period must be closed.
     let closePreviousMeteringPeriod (state: Meter) : Meter =
-        let isConsumedQuantity = function
+        let isConsumedQuantity : (MeterValue -> bool) = function
             | ConsumedQuantity _ -> true
             | _ -> false
 
@@ -39,7 +42,7 @@ module Meter =
                 match cq with 
                 | IncludedQuantity _ -> failwith "cannot happen"
                 | ConsumedQuantity q -> 
-                    { ResourceId = state.Subscription.InternalResourceId
+                    { MarketplaceResourceId = state.Subscription.MarketplaceResourceId
                       Quantity = q.Amount
                       PlanId = state.Subscription.Plan.PlanId 
                       DimensionId = dimensionId
@@ -142,7 +145,7 @@ module Meter =
     let toStr (pid: string) (m: Meter) =
         let mStr =
             m.CurrentMeterValues.toStrings
-            |> Seq.map(fun v -> $"{pid} {m.Subscription.InternalResourceId.ToString()}: {v}")
+            |> Seq.map(fun v -> $"{pid} {m.Subscription.MarketplaceResourceId.ToString()}: {v}")
             |> String.concat "\n"
 
         let uStr =
