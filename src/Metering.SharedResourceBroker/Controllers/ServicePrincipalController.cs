@@ -4,8 +4,6 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Metering.SharedResourceBroker;
 using Swashbuckle.AspNetCore.Annotations;
 
@@ -13,19 +11,11 @@ using Swashbuckle.AspNetCore.Annotations;
 [Route("[controller]")]
 public class ServicePrincipalController : ControllerBase
 {
-    private readonly IOptions<ServicePrincipalCreatorSettings> _appSettings;
     private readonly ApplicationService _applicationService;
     private readonly IConfiguration _configuration;
-    private readonly ILogger<ServicePrincipalController> _logger;
 
-    public ServicePrincipalController(
-        ILogger<ServicePrincipalController> logger, 
-        IOptions<ServicePrincipalCreatorSettings> settingsOptions, 
-        ApplicationService applicationService, 
-        IConfiguration configuration)
+    public ServicePrincipalController(ApplicationService applicationService, IConfiguration configuration)
     {
-        _logger = logger;
-        _appSettings = settingsOptions;
         _applicationService = applicationService;
         _configuration = configuration;
     }
