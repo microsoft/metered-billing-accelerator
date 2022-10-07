@@ -6,11 +6,11 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NodaTime" Version="3.1.0" />
+    <PackageReference Include="NodaTime" Version="3.1.3" />
     <PackageReference Include="Thoth.Json.Net" Version="8.0.0" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.5" />
+    <PackageReference Update="FSharp.Core" Version="6.0.6" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.EventHubTypes\Metering.EventHubTypes.fsproj" />

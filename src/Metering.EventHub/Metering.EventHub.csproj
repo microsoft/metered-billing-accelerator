@@ -6,9 +6,9 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Control.AsyncSeq" Version="3.2.1" />
     <PackageReference Include="System.Reactive.Linq" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.1" />
-    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.7.0" />
-    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.7.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.2" />
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.7.2" />
+    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.7.2" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.EventHubTypes\Metering.EventHubTypes.fsproj" />
