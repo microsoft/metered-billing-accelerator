@@ -1,0 +1,14 @@
+{
+  "initConfig": {
+    "subscriptionId": "",
+    "resourceGroupName": "",
+    "location": "westeurope",
+    "suffix": "",
+    "groupName": "SRB.ManagedApp.Deployments",
+    "webappName" : ""
+  },
+    "managedApplication" : {
+      "partnerCenterTrackingId" : "",
+      "managedApplicationZipUrl" :""
+    }
+}
