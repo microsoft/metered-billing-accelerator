@@ -1,0 +1,10 @@
+{
+	"servicePrincipalCreationURL": "https://notifications.demo-chgeuer.azureisv.com",
+	"publisherVault": {
+		"publisherSubscription": "706df49f-998b-40ec-aed3-7f0ce9c67759",
+		"vaultResourceGroupName": "backend-2022-07-15-2",
+		"vaultName": "SRBKVchgp20220715-2",
+		"bootstrapSecretName": "BootstrapSecret"
+	},
+	"amqpEndpoint": "https://metering-20220825.servicebus.windows.net/metering"
+}
