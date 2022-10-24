@@ -5,12 +5,13 @@ This directory contains the code to create a deployment ZIP for an Azure Marketp
 - The ARM templates in the ZIP are created out of Bicep templates.
 - The [`build.sh`](build.sh) script runs the overall build process.
 - **Composability**: the overall managed app will be composed of 3 parts. 
-  - **The actual app:** The actual contents of the managed app are in [`src/managedAppContents.bicep`](managed-app/src/managedAppContents.bicep). 
+  - **The actual app:** The actual contents of the managed app are in [`src/managedAppContents.bicep`](src/managedAppContents.bicep). 
     - This Bicep template contains a demo workload, consisting of a virtual machine and corresponding components.
+    - For demonstration purposes, this deployment makes sure that the VM has all the necessary configuration for Azure Metering submission, as well as a small bash script ([`src/scripts/submit-meter.sh`](src/scripts/submit-meter.sh)) that submits metering usage information to the publisher's EventHub. 
   - **The metered billing dependencies: ** 
     - The [`src/nestedtemplates`](src/nestedtemplates) and [`src/scripts`](src/scripts) directories contain templates and scripts for supporting metered billing. In particular, these pull in service principal credentials from the ISV/publisher, and store them in a KeyVault in the managed resource group.
   - **The main() entry point:** The Bicep template [`src/mainTemplate.bicep`](src/mainTemplate.bicep) is the entry point which composes together the actual app and the metered-billing dependencies.
-    - The [`src/mainTemplate.bicep`](src/mainTemplate.bicep) must pull in all parameters necessary by the inner actual app, and forward them to [`src/managedAppContents.bicep`](managed-app/src/managedAppContents.bicep).
+    - The [`src/mainTemplate.bicep`](src/mainTemplate.bicep) must pull in all parameters necessary by the inner actual app, and forward them to [`src/managedAppContents.bicep`](src/managedAppContents.bicep).
 
 ## Configuring and Building
 
