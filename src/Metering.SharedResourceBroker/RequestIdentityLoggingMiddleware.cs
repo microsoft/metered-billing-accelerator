@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 public class RequestIdentityLoggingMiddleware : IMiddleware
 {
-    public async Task InvokeAsync(HttpContext context, RequestDelegate next)
+    public Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         if (context.User.Identity is { IsAuthenticated: true })
         {
@@ -14,6 +14,6 @@ public class RequestIdentityLoggingMiddleware : IMiddleware
             var identity = context.User.Identity.Name;
             requestTelemetry?.Properties.Add("Identity", identity);
         }
-        await next(context);
+        return next(context);
     }
 }
