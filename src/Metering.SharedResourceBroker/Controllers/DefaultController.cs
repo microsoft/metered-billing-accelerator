@@ -3,7 +3,7 @@
 using Microsoft.AspNetCore.Mvc;
 
 [ApiExplorerSettings(IgnoreApi = true)]
-public class resourceController : Controller
+public class DefaultController : Controller
 {
     [Route("/")]
     [Route("/docs")]
