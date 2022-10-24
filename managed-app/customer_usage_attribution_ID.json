@@ -1,8 +1,5 @@
 {
 	"help": "https://docs.microsoft.com/en-us/azure/marketplace/azure-partner-customer-usage-attribution",
 	"comment": "The 'Customer usage attribution ID' must be something like this: 'pid-GUID-partnercenter'...",
-	"id": "pid-2bed8b3a-df10-4f7d-b3e0-9264d1252055-partnercenter",
-	"id1": "pid-8fa5078c-b33b-4628-92f4-313ce6104edf-partnercenter",
-	"id2": "pid-f66a4300-cb7d-4fd4-8356-518122be0d70-partnercenter",
-	"id3": "pid-2bed8b3a-df10-4f7d-b3e0-9264d1252055-partnercenter"
+	"id": "pid-2bed8b3a-df10-4f7d-b3e0-9264d1252055-partnercenter"
 }
