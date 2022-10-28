@@ -7,8 +7,8 @@ namespace Metering.BaseTypes
 type InternalMetersMapping = 
     private | Value of Map<ApplicationInternalMeterName, DimensionId>
 
-    member this.value
-        with get() =
+    member this.value 
+        with get() : Map<ApplicationInternalMeterName, DimensionId> =
             let v (Value x) = x
             this |> v
 
