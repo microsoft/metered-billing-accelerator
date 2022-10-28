@@ -54,45 +54,50 @@ module Meter =
         |> setCurrentMeterValues (includedValuesWhichDontNeedToBeReported |> CurrentMeterValues.create)
         |> addUsagesToBeReported usagesToBeReported
     
-    let updateConsumption (quantity: Quantity) (timestamp: MeteringDateTime) (someDimension: DimensionId option) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
+    let updateConsumptionForDimensionId (quantity: Quantity) (timestamp: MeteringDateTime) (dimensionId: DimensionId) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues =
+        if currentMeterValues.value |> Map.containsKey dimensionId
+        then
+            // The meter exists (might be included or overage), so handle properly
+            currentMeterValues.value
+            |> Map.change dimensionId (MeterValue.someHandleQuantity timestamp quantity)
+            |> CurrentMeterValues.create
+        else
+            // No existing meter value, i.e. record as overage
+            let newConsumption = ConsumedQuantity (ConsumedQuantity.create timestamp quantity)
+
+            currentMeterValues.value
+            |> Map.add dimensionId newConsumption
+            |> CurrentMeterValues.create
+
+    let updateConsumptionForApplicationInternalMeterName (quantity: Quantity) (timestamp: MeteringDateTime) ((meterName: ApplicationInternalMeterName), (internalMetersMapping: InternalMetersMapping)) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
         match quantity.isAllowedIncomingQuantity with
         | false -> 
             // if the incoming value is not a real (non-negative) number, don't change the meter. 
             currentMeterValues
         | true -> 
-            match someDimension with 
+            let someDimensionId = internalMetersMapping.value |> Map.tryFind meterName
+            match someDimensionId with 
             | None -> 
                 // TODO: Log that an unknown meter was reported
                 currentMeterValues
-            | Some dimension ->
-                if currentMeterValues.value |> Map.containsKey dimension
-                then
-                    // The meter exists (might be included or overage), so handle properly
-                    currentMeterValues.value
-                    |> Map.change dimension (MeterValue.someHandleQuantity timestamp quantity)
-                    |> CurrentMeterValues.create
-                else
-                    // No existing meter value, i.e. record as overage
-                    let newConsumption = ConsumedQuantity (ConsumedQuantity.create timestamp quantity)
+            | Some dimensionId ->
+                currentMeterValues
+                |> updateConsumptionForDimensionId quantity timestamp dimensionId 
 
-                    currentMeterValues.value
-                    |> Map.add dimension newConsumption
-                    |> CurrentMeterValues.create
-
-    let handleUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (state : Meter) : Meter =
-        let someDimension : DimensionId option = 
-            state.InternalMetersMapping.value |> Map.tryFind event.MeterName
-        
+    let handleUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (meter : Meter) : Meter =        
         let closePreviousIntervalIfNeeded : (Meter -> Meter) = 
-            let last = state.LastProcessedMessage.PartitionTimestamp
+            let last = meter.LastProcessedMessage.PartitionTimestamp
             let curr = currentPosition.PartitionTimestamp
             match BillingPeriod.previousBillingIntervalCanBeClosedNewEvent last curr with
             | Close -> closePreviousMeteringPeriod
             | KeepOpen -> id
+            
+        let transformCurrentMeterValues : (CurrentMeterValues -> CurrentMeterValues) = 
+            updateConsumptionForApplicationInternalMeterName  event.Quantity currentPosition.PartitionTimestamp (event.MeterName, meter.InternalMetersMapping)
 
-        state
+        meter
         |> closePreviousIntervalIfNeeded
-        |> applyToCurrentMeterValue (updateConsumption event.Quantity currentPosition.PartitionTimestamp someDimension)
+        |> applyToCurrentMeterValue transformCurrentMeterValues
         |> setLastProcessedMessage currentPosition // Todo: Decide where to update the position
 
     let closePreviousHourIfNeeded (partitionTimestamp: MeteringDateTime) (meter: Meter) : Meter =
@@ -114,9 +119,8 @@ module Meter =
             // Need to ring an alarm that the aggregator must be scheduled more frequently
             // TODO: Submit compensating action for now?
 
-            let someDimension = Some expired.RequestData.DimensionId
             let handleTooLateSubmissionAsIfTheUsageHappenedNow = 
-                updateConsumption expired.RequestData.Quantity messagePosition.PartitionTimestamp someDimension
+                updateConsumptionForDimensionId expired.RequestData.Quantity messagePosition.PartitionTimestamp expired.RequestData.DimensionId
 
             { meter with 
                 CurrentMeterValues = meter.CurrentMeterValues |> handleTooLateSubmissionAsIfTheUsageHappenedNow
