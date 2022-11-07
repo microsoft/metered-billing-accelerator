@@ -23,6 +23,7 @@
     <Compile Include="MarketplaceResourceId.fs" />
     <Compile Include="MeterValue.fs" />
     <Compile Include="PlanId.fs" />
+    <Compile Include="DimensionId.fs" />
     <Compile Include="CurrentMeterValues.fs" />
     <Compile Include="ApplicationInternalMeterName.fs" />
     <Compile Include="BillingDimension.fs" />
