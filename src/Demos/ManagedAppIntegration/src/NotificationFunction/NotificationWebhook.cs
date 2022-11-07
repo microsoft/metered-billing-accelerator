@@ -74,24 +74,20 @@ public static class NotificationWebhook
                 // If provisioning of a marketplace application instance is successful, we persist a billing entry to be picked up by the chron metric emitting job
                 if (notificationDefinition.EventType == "PUT" && notificationDefinition.ProvisioningState == "Succeeded" && notificationDefinition.BillingDetails?.ResourceUsageId != null)
                 {
-                    var planPath = config["LOCAL_PATH"] + "plan.json";
-                    var dimPath = config["LOCAL_PATH"] + "mapping.json";
+                    var planPath = Path.Combine(config["LOCAL_PATH"], "plan.json");
 
                     var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
                     System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
-                    
-                    var sub = new SubscriptionCreationInformation(
-                    internalMetersMapping: await readJson<InternalMetersMapping>(dimPath),
-                    subscription: new Subscription(
-                        plan: await readJson<Metering.BaseTypes.Plan>(planPath),
-                        marketplaceResourceId: MarketplaceResourceId.fromStr(notificationDefinition.BillingDetails?.ResourceUsageId),
-                        renewalInterval: RenewalInterval.Monthly,
-                        subscriptionStart: MeteringDateTimeModule.now()));
 
+                    SubscriptionCreationInformation sub = new(
+                        subscription: new (
+                            plan: await readJson<Metering.BaseTypes.Plan>(planPath),
+                            marketplaceResourceId: MarketplaceResourceId.fromStr(notificationDefinition.BillingDetails?.ResourceUsageId),
+                            renewalInterval: RenewalInterval.Monthly,
+                            subscriptionStart: MeteringDateTimeModule.now()));
 
                     log.LogTrace(Json.toStr(1, sub));
                     await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, cts.Token);
-
 
                     log.LogTrace($"Successfully Subscribed managed app {notificationDefinition.ApplicationId}");
                 }

@@ -1,6 +1,6 @@
 ﻿{
   "planId": "meteredplus",
-  "billingDimensions": {
-    "mem": "0"
-  }
+  "billingDimensions": [
+    { "name": "mem", "type": "simple", "dimension": "mem", "included": 0 }
+  ]
 }

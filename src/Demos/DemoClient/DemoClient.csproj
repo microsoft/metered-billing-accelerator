@@ -12,9 +12,6 @@
     <ProjectReference Include="..\..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="mapping.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="plan.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

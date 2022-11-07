@@ -26,13 +26,12 @@
     <Compile Include="DimensionId.fs" />
     <Compile Include="CurrentMeterValues.fs" />
     <Compile Include="ApplicationInternalMeterName.fs" />
-    <Compile Include="BillingDimension.fs" />
     <Compile Include="SimpleConsumptionBillingDimension.fs" />
+    <Compile Include="BillingDimension.fs" />
     <Compile Include="Plan.fs" />
     <Compile Include="InternalUsageEvent.fs" />
     <Compile Include="Subscription.fs" />
     <Compile Include="BillingPeriod.fs" />
-    <Compile Include="InternalMetersMapping.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
     <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="UnprocessableMessage.fs" />

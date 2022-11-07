@@ -211,8 +211,6 @@ public class HomeController : Controller
         return this.RedirectToAction("Subscription", new { id = subscriptionId });
     }
 
-
-
     /// <summary>
     /// Add Metering Subscription in metered Acceleralator 
     /// </summary>
@@ -225,8 +223,7 @@ public class HomeController : Controller
         var plans = _marketplaceSaaSClient.Fulfillment.ListAvailablePlans((Guid)subscriptionId).Value.Plans;
 
         // Create Key Maps for Meter Accelerator Subscription 
-        var billingDimensionsMap = new FSharpMap <DimensionId, Quantity>(new List<Tuple<DimensionId, Quantity>>());
-        var dimensionsMapping = new FSharpMap<ApplicationInternalMeterName, DimensionId>(new List<Tuple<ApplicationInternalMeterName, DimensionId >> ());
+        var billingDimensionsMap = FSharpList<SimpleConsumptionBillingDimension>.Empty;
 
         // Build Plan now
         foreach (var plan in plans)
@@ -237,10 +234,12 @@ public class HomeController : Controller
                 {
                     foreach (var dim in billing.MeteredQuantityIncluded)
                     {
-                        billingDimensionsMap=billingDimensionsMap.Add(DimensionId.create(dim.DimensionId), Quantity.create(Convert.ToUInt32(dim.Units)));
+                        var d = new SimpleConsumptionBillingDimension(
+                            internalName: ApplicationInternalMeterName.create(dim.DimensionId), 
+                            dimensionId: DimensionId.create(dim.DimensionId), 
+                            includedQuantity: Quantity.create(Convert.ToUInt32(dim.Units)));
 
-                        // add to Dim list
-                        dimensionsMapping=dimensionsMapping.Add(ApplicationInternalMeterName.create(dim.DimensionId), DimensionId.create(dim.DimensionId));
+                        billingDimensionsMap = new(d, billingDimensionsMap);
                     }
                 }
                 break;
@@ -249,17 +248,14 @@ public class HomeController : Controller
 
         // Call metering SDK now
         Metering.BaseTypes.Plan meterplan = new(PlanId.create(planId), BillingDimensions.create(billingDimensionsMap));
-        var meterMapping = InternalMetersMapping.create(dimensionsMapping);
 
-        System.Threading.CancellationTokenSource cts = new System.Threading.CancellationTokenSource();
         var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
         SubscriptionCreationInformation sub = new(
-            internalMetersMapping: meterMapping,
             subscription: new(
                 plan: meterplan,
                 marketplaceResourceId: MarketplaceResourceId.fromStr(subscriptionId.ToString()),
                 renewalInterval: RenewalInterval.Monthly,
                 subscriptionStart: MeteringDateTimeModule.now()));
-        await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, cts.Token);
+        await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub);
     }
 }
