@@ -228,7 +228,7 @@ The JSON file in this section describes the state of partition #3 in EventHub, u
 
 The `subscription/plan` item describes this in detail; having information on when a subscription has been purchased (`subscriptionStart`), alongside with the information on what is included in each dimension of the plan, allows the aggregator to refill the included quantities at  the start of each new billing cycle.
 
-**Internal versus external dimension names:** So the concrete dimension names that must be used externally with the Azure API are `objectcharge`  and the other ones. To avoid that the developers of a solution have to hard-code these  into the actual software implementation, the `metersMapping` table introduces a level of indirection: When reporting usage onto the system, the ISV's software can say that the `obj` meter should be incremented by 3.1415 units. The accelerator understands that the internal `obj` meter actually corresponds to what Azure marketplace knows as `objectcharge`.
+**Internal versus external dimension names:** So the concrete dimension names that must be used externally with the Azure API are `objectcharge` and the other ones. To avoid that the developers of a solution have to hard-code these into the actual software implementation, we support a level of indirection: When reporting usage onto the system, the ISV's software can say that the `obj` meter should be incremented by 3.1415 units. The accelerator understands that the internal `obj` meter actually corresponds to what Azure marketplace knows as `objectcharge`.
 
 ```json
 {
