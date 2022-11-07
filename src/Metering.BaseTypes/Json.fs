@@ -1,4 +1,4 @@
-﻿ // Copyright (c) Microsoft Corporation.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
 namespace Metering.BaseTypes
@@ -307,8 +307,7 @@ module Json =
                 (Decode.keyValuePairs MeterValue.Decoder) |> Decode.andThen  (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> CurrentMeterValues.create |> Decode.succeed)
 
         module SubscriptionCreationInformation =
-            let (subscription, metersMapping) =
-                ("subscription", "metersMapping");
+            let (subscription) = ("subscription");
 
             let encode (x: SubscriptionCreationInformation) : (string * JsonValue) list =
                 [
@@ -596,8 +595,8 @@ module Json =
         module Meter = 
             open Marketplace
 
-            let (subscription, metersMapping, currentMeters, usageToBeReported, lastProcessedMessage) =
-                ("subscription", "metersMapping", "currentMeters", "usageToBeReported", "lastProcessedMessage");
+            let (subscription, currentMeters, usageToBeReported, lastProcessedMessage) =
+                ("subscription", "currentMeters", "usageToBeReported", "lastProcessedMessage");
 
             let encode (x: Meter) : (string * JsonValue) list =
                 [

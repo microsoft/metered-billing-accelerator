@@ -119,15 +119,11 @@ let demoAggregation (config: MeteringConfigurationProvider) =
 		"scope": "11111111-8a88-4a47-a691-1b31c289fb33",
 		"plan": {
 			"planId": "plan2",
-			"billingDimensions": {
-				"MachineLearningJob": "10",
-				"EMailCampaign": "250000"
-			}
+            "billingDimensions": [
+				{ "name": "ml",    "type": "simple", "dimension": "MachineLearningJob", "included": 10 },
+				{ "name": "email", "type": "simple", "dimension": "EMailCampaign",      "included": "250000" }
+			]     
 		}
-	},
-	"metersMapping": {
-		"email": "EMailCampaign",
-		"ml": "MachineLearningJob"
 	}
 }
         """ |> parseSub 1
@@ -141,15 +137,11 @@ let demoAggregation (config: MeteringConfigurationProvider) =
 		"scope": "22222222-8a88-4a47-a691-1b31c289fb33",
 		"plan": {
 			"planId": "plan2",
-			"billingDimensions": {
-				"MachineLearningJob": "10",
-				"EMailCampaign": "250000"
-			}
+			"billingDimensions": [
+				{ "name": "ml",    "type": "simple", "dimension": "MachineLearningJob", "included": 10 },
+				{ "name": "email", "type": "simple", "dimension": "EMailCampaign",      "included": "250000" }
+			]
 		}
-	},
-	"metersMapping": {
-		"email": "EMailCampaign",
-		"ml": "MachineLearningJob"
 	}
 }
         """ |> parseSub 2
@@ -164,21 +156,14 @@ let demoAggregation (config: MeteringConfigurationProvider) =
 		"scope": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
 		"plan": {
 			"planId": "free_monthly_yearly",
-			"billingDimensions": {
-				"nodecharge": "1000",
-				"cpucharge": "1000",
-				"datasourcecharge": "1000",
-				"messagecharge": 1000,
-				"objectcharge": "1000"
-			}
+            "billingDimensions": [
+                { "name": "nde", "type": "simple", "dimension": "nodecharge",       "included": 1000       },
+                { "name": "cpu", "type": "simple", "dimension": "cpucharge",        "included": "1000"},
+                { "name": "dta", "type": "simple", "dimension": "datasourcecharge", "included": 1000       },
+                { "name": "obj", "type": "simple", "dimension": "objectcharge",     "included": 1000      },
+                { "name": "msg", "type": "simple", "dimension": "messagecharge",    "included": "10000"    }
+            ]
 		}
-	},
-	"metersMapping": {
-		"nde": "nodecharge",
-		"cpu": "cpucharge",
-		"dta": "datasourcecharge",
-		"msg": "messagecharge",
-		"obj": "objectcharge"
 	}
 }        
         """ |> parseSub 3
