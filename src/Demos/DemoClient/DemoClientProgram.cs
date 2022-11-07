@@ -51,12 +51,9 @@ static async Task DeleteSubscriptions(EventHubProducerClient eventHubProducerCli
 static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
 #pragma warning restore CS8321 // Local function is declared but never used
 {
-    
     foreach (var subscription in subscriptions)
     {
-
-        var sub = new SubscriptionCreationInformation(
-            internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
+        SubscriptionCreationInformation sub = new(
             subscription: new(
                 plan: await readJson<Plan>("plan.json"),
                 marketplaceResourceId: MarketplaceResourceId.fromStr(subscription.Id),
@@ -67,8 +64,6 @@ static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerCli
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, ct);
 
         await eventHubProducerClient.SubmitSubscriptionDeletionAsync(MarketplaceResourceId.fromStr(subscription.Id), ct);
-
-            
      }
 }
 
@@ -156,7 +151,6 @@ static async Task Interactive(EventHubProducerClient eventHubProducerClient, Can
                 saasId = guidFromStr(subName);
 
                 SubscriptionCreationInformation sci = new(
-                    internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
                     subscription: new(
                         plan: await readJson<Plan>("plan.json"),
                         marketplaceResourceId: MarketplaceResourceId.fromStr(saasId),

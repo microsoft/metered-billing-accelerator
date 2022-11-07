@@ -1,8 +1,7 @@
 ﻿{
   "planId": "privatemeter",
-  "billingDimensions": {
-    "cpu1": "0",
-    "mem1": "0"
-    }
-  
+  "billingDimensions": [
+    { "name": "mem1", "type": "simple", "dimension": "mem1", "included": 0 },
+    { "name": "cpu1", "type": "simple", "dimension": "cpu1", "included": 0 }
+  ]
 }

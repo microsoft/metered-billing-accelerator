@@ -28,7 +28,7 @@ let runTestVectors test testcases = testcases |> List.indexed |> List.map test |
 
 let somePlan : Plan = 
     { PlanId = "PlanId" |> PlanId.create
-      BillingDimensions = Map.empty |> BillingDimensions.create }
+      BillingDimensions = List.empty |> BillingDimensions.create }
 
 let someManagedAppId = 
     MarketplaceResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
@@ -183,20 +183,25 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                 Plan = {
                     PlanId = "plan123" |> PlanId.create
                     BillingDimensions = 
-                        Map.empty
-                        |> Map.add ("dimension1" |> DimensionId.create) (1000u |> Quantity.create)
-                        |> Map.add ("dimension2" |> DimensionId.create) (Quantity.Infinite)
-                        |> BillingDimensions.create
+                        [
+                            { 
+                                InternalName = ("d1" |> ApplicationInternalMeterName.create)
+                                DimensionId = ("dimension1" |> DimensionId.create)
+                                IncludedQuantity = (1000u |> Quantity.create)
+                            }
+                            { 
+                                InternalName = ("freestuff" |> ApplicationInternalMeterName.create)
+                                DimensionId = ("dimension2" |> DimensionId.create)
+                                IncludedQuantity = Quantity.Infinite 
+                            } 
+                        ] |> BillingDimensions.create
+                        
+
                 }
                 MarketplaceResourceId = marketplaceResourceId
                 RenewalInterval = Monthly
                 SubscriptionStart = start |> MeteringDateTime.fromStr           
             }
-            InternalMetersMapping =
-                Map.empty
-                |> Map.add ("d1" |> ApplicationInternalMeterName.create) ("dimension1" |> DimensionId.create)
-                |> Map.add ("freestuff" |> ApplicationInternalMeterName.create) ("dimension2" |> DimensionId.create)
-                |> InternalMetersMapping.create
         }
 
     let createEvent sequenceNr timestamp (evnt: MeteringUpdateEvent) =
@@ -553,18 +558,24 @@ let ``Json.ParsePlan`` () =
         """
         {
           "planId": "the_plan",
-          "billingDimensions": {
-            "literal": 2,
-            "quoted": "1000000",
-            "infinite": "Infinite"
-          }
+          "billingDimensions": [
+            {"name": "literal",  "type": "simple", "dimension": "literal",  "included": 2 },
+            {"name": "quoted",   "type": "simple", "dimension": "quoted",   "included": "1000000" },
+            {"name": "infinite", "type": "simple", "dimension": "infinite", "included": "Infinite" }
+          ]
         }
         """
         |> Json.fromStr<Plan>
     Assert.AreEqual("the_plan", p.PlanId.value)
 
-    let check d v =
-        Assert.AreEqual(v, p.BillingDimensions.value |> Map.find (DimensionId.create d))
+    let check dimensionId expected =
+        let actual = 
+            p.BillingDimensions.value
+            |> List.find (fun x -> x.DimensionId = (DimensionId.create dimensionId))
+            |> (fun x -> x.IncludedQuantity)
+
+        Assert.AreEqual(expected, actual)
+    
     check "infinite" Quantity.Infinite
     check "literal" (Quantity.create 2u)
     check "quoted" (Quantity.create 1000000u)

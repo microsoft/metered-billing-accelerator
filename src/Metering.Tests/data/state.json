@@ -12,21 +12,14 @@
         "renewalInterval": "Monthly",
         "plan": {
           "planId": "free_monthly_yearly",
-          "billingDimensions": {
-            "cpucharge": "Infinite",
-            "datasourcecharge": 1000,
-            "messagecharge": 1000,
-            "nodecharge": 1000,
-            "objectcharge": 1000
-          }
+          "billingDimensions": [
+            { "name": "nde", "type": "simple", "dimension": "nodecharge",       "included": 1000       },
+            { "name": "cpu", "type": "simple", "dimension": "cpucharge",        "included": "Infinite" },
+            { "name": "dta", "type": "simple", "dimension": "datasourcecharge", "included": 1000       },
+            { "name": "obj", "type": "simple", "dimension": "objectcharge",     "included": 0          },
+            { "name": "msg", "type": "simple", "dimension": "messagecharge",    "included": "10000"    }
+          ]
         }
-      },
-      "metersMapping": {
-        "cpu": "cpucharge",
-        "dta": "datasourcecharge",
-        "msg": "messagecharge",
-        "nde": "nodecharge",
-        "obj": "objectcharge"
       },
       "currentMeters": {
         "cpucharge": {

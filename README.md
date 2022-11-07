@@ -175,35 +175,30 @@ This customer purchased a plan called `free_monthly_yearly` in the partner porta
 
 ![2022-01-27--17-29-47](images/partnerportalmeters.png)
 
-In addition, it contains a `metersMapping` table, which translates the application's internal name for a consumption event, such as `'cpu'`, into the dimension name which is officially configured in Azure marketplace, such as `'cpucharge'`.  
+The `billingDimensions` translate the application's internal name for a consumption event, such as `"cpu"`, into the dimension name which is officially configured in Azure marketplace, such as `"cpucharge"`.  
+
+In a `"simple"` billing dimensionDimension entry, the `"included"` property describes how much quantity is included in the monthly or annual price. A value of `0` (or `"0"`) means that all usage will be reported, while the value `"Infinite"` indicated that nothing will be reported to Azure for that dimension.
 
 The concrete JSON message (in EventHub) looks like this
 
 ```json
-{
-  "type":"SubscriptionPurchased",
-  "value":{
-    "subscription":{
-      "scope":"fdc778a6-1281-40e4-cade-4a5fc11f5440",
-      "subscriptionStart":"2021-11-04T16:12:26Z",
-      "renewalInterval":"Monthly",
-      "plan":{
-        "planId":"free_monthly_yearly",
-        "billingDimensions": {
-          "messagecharge":    1000,
-          "cpucharge":        1000,
-          "datasourcecharge": 1000,
-          "nodecharge":       1000,
-          "objectcharge":     1000,
-        }
+{        
+  "type": "SubscriptionPurchased",
+  "value": {
+    "subscription": {
+      "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+      "subscriptionStart": "2021-11-04T16:12:26Z",
+      "renewalInterval": "Monthly",
+      "plan": {
+        "planId": "free_monthly_yearly",
+        "billingDimensions": [
+          { "name": "nde", "type": "simple", "dimension": "nodecharge",       "included": 1000       },
+          { "name": "cpu", "type": "simple", "dimension": "cpucharge",        "included": "Infinite" },
+          { "name": "dta", "type": "simple", "dimension": "datasourcecharge", "included": 1000       },
+          { "name": "obj", "type": "simple", "dimension": "objectcharge",     "included": 0          },
+          { "name": "msg", "type": "simple", "dimension": "messagecharge",    "included": "10000"    }
+        ]
       }
-    },
-    "metersMapping":{
-      "msg": "messagecharge",
-      "cpu": "cpucharge",
-      "dta": "datasourcecharge",
-      "nde": "nodecharge",
-      "obj": "objectcharge"
     }
   }
 }
@@ -239,26 +234,19 @@ The `subscription/plan` item describes this in detail; having information on whe
 {
   "meters": {
     "8151a707-467c-4105-df0b-44c3fca5880d":{
-      "metersMapping": { // maps internally used names to the configured marketplace dimension name. 
-        "msg": "messagecharge",
-        "cpu": "cpucharge",
-        "dta": "datasourcecharge",
-        "nde": "nodecharge",
-        "obj": "objectcharge"
-      },
       "subscription":{
         "scope": "8151a707-467c-4105-df0b-44c3fca5880d",              
         "subscriptionStart": "2021-12-14T18:20:00Z",
         "renewalInterval": "Monthly",
         "plan":{
           "planId": "free_monthly_yearly",
-          "billingDimensions": {
-            "messagecharge":    1000,
-            "cpucharge":        1000,
-            "datasourcecharge": 1000,
-            "nodecharge":       1000,
-            "objectcharge":     1000,
-          }
+          "billingDimensions": [
+            { "name": "nde", "type": "simple", "dimension": "nodecharge",       "included": 1000 },
+            { "name": "cpu", "type": "simple", "dimension": "cpucharge",        "included": 1000 },
+            { "name": "dta", "type": "simple", "dimension": "datasourcecharge", "included": 1000 },
+            { "name": "obj", "type": "simple", "dimension": "objectcharge",     "included": 1000 },
+            { "name": "msg", "type": "simple", "dimension": "messagecharge",    "included": 1000 }
+          ]
         }        
       },
       "currentMeters":{

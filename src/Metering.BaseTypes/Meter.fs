@@ -7,7 +7,6 @@ open Metering.BaseTypes.EventHub
 
 type Meter =
     { Subscription: Subscription // The purchase information of the subscription
-      InternalMetersMapping: InternalMetersMapping // The table mapping app-internal meter names to 'proper' ones for marketplace
       CurrentMeterValues: CurrentMeterValues // The current meter values in the aggregator
       UsageToBeReported: MarketplaceRequest list // a list of usage elements which haven't yet been reported to the metering API
       LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter    
@@ -69,20 +68,20 @@ module Meter =
             |> Map.add dimensionId newConsumption
             |> CurrentMeterValues.create
 
-    let updateConsumptionForApplicationInternalMeterName (quantity: Quantity) (timestamp: MeteringDateTime) ((meterName: ApplicationInternalMeterName), (internalMetersMapping: InternalMetersMapping)) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
+    let updateConsumptionForApplicationInternalMeterName (quantity: Quantity) (timestamp: MeteringDateTime) (meterName: ApplicationInternalMeterName) (billingDimensions: BillingDimensions) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
         match quantity.isAllowedIncomingQuantity with
         | false -> 
             // if the incoming value is not a real (non-negative) number, don't change the meter. 
             currentMeterValues
         | true -> 
-            let someDimensionId = internalMetersMapping.value |> Map.tryFind meterName
-            match someDimensionId with 
+            let someDimension = billingDimensions.value |> List.tryFind (fun x -> x.InternalName = meterName)
+            match someDimension with 
             | None -> 
                 // TODO: Log that an unknown meter was reported
                 currentMeterValues
-            | Some dimensionId ->
+            | Some dimension ->
                 currentMeterValues
-                |> updateConsumptionForDimensionId quantity timestamp dimensionId 
+                |> updateConsumptionForDimensionId quantity timestamp dimension.DimensionId
 
     let handleUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (meter : Meter) : Meter =        
         let closePreviousIntervalIfNeeded : (Meter -> Meter) = 
@@ -91,9 +90,9 @@ module Meter =
             match BillingPeriod.previousBillingIntervalCanBeClosedNewEvent last curr with
             | Close -> closePreviousMeteringPeriod
             | KeepOpen -> id
-            
+        
         let transformCurrentMeterValues : (CurrentMeterValues -> CurrentMeterValues) = 
-            updateConsumptionForApplicationInternalMeterName  event.Quantity currentPosition.PartitionTimestamp (event.MeterName, meter.InternalMetersMapping)
+            updateConsumptionForApplicationInternalMeterName event.Quantity currentPosition.PartitionTimestamp event.MeterName meter.Subscription.Plan.BillingDimensions
 
         meter
         |> closePreviousIntervalIfNeeded
@@ -140,7 +139,6 @@ module Meter =
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : Meter =
         // When we receive the creation of a subscription
         { Subscription = subscriptionCreationInformation.Subscription
-          InternalMetersMapping = subscriptionCreationInformation.InternalMetersMapping
           LastProcessedMessage = messagePosition
           CurrentMeterValues = Map.empty |> CurrentMeterValues.create
           UsageToBeReported = List.empty }
