@@ -60,7 +60,7 @@ let ``BillingPeriod.isInBillingPeriod`` () =
         { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=4u; Candidate="2021-09-13T12:00:00"; Expected=true}
     ] |> runTestVectors test
 
-type MeterValue_subtractQuantityFromMeterValue_Vector = { State: MeterValue; Quantity: Quantity; Expected: MeterValue}
+type MeterValue_subtractQuantityFromMeterValue_Vector = { State: SimpleMeterValue; Quantity: Quantity; Expected: SimpleMeterValue}
 [<Test>]
 let ``MeterValue.subtractQuantity``() =
     let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
@@ -103,7 +103,7 @@ let ``MeterValue.subtractQuantity``() =
         }
     ] |> runTestVectors test
 
-type MeterValue_topupMonthlyCredits_Vector = { Input: MeterValue; Value: uint; Expected: MeterValue}
+type MeterValue_topupMonthlyCredits_Vector = { Input: SimpleMeterValue; Value: uint; Expected: SimpleMeterValue}
 
 [<Test>]
 let ``MeterValue.createIncluded``() =
@@ -112,7 +112,7 @@ let ``MeterValue.createIncluded``() =
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
 
     let test (idx, testcase) =
-        let result = MeterValue.createIncluded now (Quantity.create testcase.Value)
+        let result = SimpleMeterValue.createIncluded now (Quantity.create testcase.Value)
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [
@@ -233,21 +233,21 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         f mc
         mc
 
-    let getMeter (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : MeterValue =
+    let getMeter (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : SimpleMeterValue =
         let dimensionId = dimensionId |> DimensionId.create
 
         mc
         |> MeterCollection.find marketplaceResourceId
         |> (fun s -> s.CurrentMeterValues.value |> Map.find dimensionId)
 
-    let includes (q: Quantity) (mv: MeterValue) : unit =
+    let includes (q: Quantity) (mv: SimpleMeterValue) : unit =
         // Ensures that the given MeterValue is exactly the given quantity
         match mv with
         | IncludedQuantity iq -> 
             Assert.AreEqual(q, iq.Quantity)
         | _ -> failwith "Not an IncludedQuantity"
 
-    let overageOf (q: Quantity) (mv: MeterValue) : unit =
+    let overageOf (q: Quantity) (mv: SimpleMeterValue) : unit =
         match mv with
         | ConsumedQuantity cq -> 
             Assert.AreEqual(q, cq.Amount)

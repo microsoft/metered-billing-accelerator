@@ -138,16 +138,16 @@ module Json =
         
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
-        module MeterValue =
+        module SimpleMeterValue =
             let (consumed, included) = ("consumed", "included")
 
-            let Encoder (x: MeterValue) : JsonValue =
+            let Encoder (x: SimpleMeterValue) : JsonValue =
                 match x with
                     | ConsumedQuantity q -> [ ( consumed, q |> ConsumedQuantity.Encoder ) ] 
                     | IncludedQuantity q -> [ ( included, q |> IncludedQuantity.Encoder ) ]
                 |> Encode.object
 
-            let Decoder : Decoder<MeterValue> =
+            let Decoder : Decoder<SimpleMeterValue> =
                 [
                     Decode.field consumed ConsumedQuantity.Decoder |> Decode.map ConsumedQuantity 
                     Decode.field included IncludedQuantity.Decoder |> Decode.map IncludedQuantity
@@ -300,11 +300,11 @@ module Json =
             let Encoder (x: CurrentMeterValues) = 
                 x.value
                 |> Map.toList
-                |> List.map (fun (d, m) -> (d.value, m |> MeterValue.Encoder))
+                |> List.map (fun (d, m) -> (d.value, m |> SimpleMeterValue.Encoder))
                 |> Encode.object
 
             let Decoder : Decoder<CurrentMeterValues> =
-                (Decode.keyValuePairs MeterValue.Decoder) |> Decode.andThen  (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> CurrentMeterValues.create |> Decode.succeed)
+                (Decode.keyValuePairs SimpleMeterValue.Decoder) |> Decode.andThen  (fun r -> r |> List.map turnKeyIntoDimensionId |> Map.ofList |> CurrentMeterValues.create |> Decode.succeed)
 
         module SubscriptionCreationInformation =
             let (subscription) = ("subscription");
@@ -769,7 +769,7 @@ module Json =
         //|> Extra.withCustom IncludedQuantitySpecification.Encoder IncludedQuantitySpecification.Decoder
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
-        |> Extra.withCustom MeterValue.Encoder MeterValue.Decoder
+        |> Extra.withCustom SimpleMeterValue.Encoder SimpleMeterValue.Decoder
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder

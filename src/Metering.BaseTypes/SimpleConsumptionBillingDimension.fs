@@ -17,7 +17,7 @@ type SimpleConsumptionBillingDimension =
 
 module SimpleConsumptionBillingDimension =
     let createIncludedQuantitiesForNewBillingCycle (now: MeteringDateTime) (simpleConsumptionBillingDimensions: SimpleConsumptionBillingDimension list) : CurrentMeterValues =
-        let toIncluded (quantity: Quantity) : MeterValue = 
+        let toIncluded (quantity: Quantity) : SimpleMeterValue = 
             IncludedQuantity { Quantity = quantity; Created = now; LastUpdate = now }
             
         simpleConsumptionBillingDimensions

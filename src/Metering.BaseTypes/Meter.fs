@@ -26,7 +26,7 @@ module Meter =
 
     /// This function must be called when 'a new hour' started, i.e. the previous period must be closed.
     let closePreviousMeteringPeriod (state: Meter) : Meter =
-        let isConsumedQuantity : (MeterValue -> bool) = function
+        let isConsumedQuantity : (SimpleMeterValue -> bool) = function
             | ConsumedQuantity _ -> true
             | _ -> false
 
@@ -58,7 +58,7 @@ module Meter =
         then
             // The meter exists (might be included or overage), so handle properly
             currentMeterValues.value
-            |> Map.change dimensionId (MeterValue.someHandleQuantity timestamp quantity)
+            |> Map.change dimensionId (SimpleMeterValue.someHandleQuantity timestamp quantity)
             |> CurrentMeterValues.create
         else
             // No existing meter value, i.e. record as overage
