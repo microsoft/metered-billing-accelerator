@@ -21,14 +21,15 @@
     <Compile Include="IncludedQuantity.fs" />
     <Compile Include="RenewalInterval.fs" />
     <Compile Include="MarketplaceResourceId.fs" />
+    <Compile Include="ApplicationInternalMeterName.fs" />
     <Compile Include="PlanId.fs" />
     <Compile Include="DimensionId.fs" />
     <Compile Include="SimpleMeterValue.fs" />
     <Compile Include="WaterfallMeteringValue.fs" />
     <Compile Include="MeteringValue.fs" />
     <Compile Include="CurrentMeterValues.fs" />
-    <Compile Include="ApplicationInternalMeterName.fs" />
     <Compile Include="SimpleConsumptionBillingDimension.fs" />
+    <Compile Include="WaterfallDimension.fs" />
     <Compile Include="BillingDimension.fs" />
     <Compile Include="Plan.fs" />
     <Compile Include="InternalUsageEvent.fs" />

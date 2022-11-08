@@ -1,5 +1,4 @@
-﻿
-// Copyright (c) Microsoft Corporation.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
 namespace Metering.BaseTypes.WaterfallTypes
@@ -35,6 +34,16 @@ type WaterfallMeterValue =
     Total: Quantity
     Consumption: Map<DimensionId, Quantity> }
 
+/// These must be reported
+type ConsumptionReport = 
+  { DimensionId: DimensionId
+    Quantity: Quantity }
+
+type SubtractionAggregation =
+  { CurrentTotal: Quantity 
+    AmountToBeDeducted: Quantity 
+    Consumption: Map<DimensionId, Quantity> }
+    
 module WaterfallModel =
   let expand (model: WaterfallDescription) : WaterfallModel =
     let len = model |> List.length
@@ -77,52 +86,26 @@ module WaterfallModel =
     | FreeIncluded x -> (DimensionId.create "Free", $"[0 <= x <= {x}]")
     | Range x -> (x.DimensionId, $"[{x.LowerIncluding} <= x < {x.UpperExcluding})")
     | Overage x -> (x.DimensionId, $"[{x.LowerIncluding} <= x < Infinity)")
-    
-/// These must be reported
-type ConsumptionReport = 
-  { DimensionId: DimensionId
-    Quantity: Quantity }
 
-type WaterfallMeter =
-  { Model: WaterfallModel 
-    Total: Quantity
-    Consumption: Map<DimensionId, Quantity> }
-
-type SubtractionAggregation =
-  { CurrentTotal: Quantity 
-    AmountToBeDeducted: Quantity 
-    Consumption: Map<DimensionId, Quantity> }
-
-module WaterfallMeter =
-  open WaterfallModel
-
-  let create (description: WaterfallDescription) : WaterfallMeter = 
-     { Model = description |> expand
-       Total = Quantity.Zero
-       Consumption = Map.empty }
-
-  let setTotal (newTotal: Quantity) (meter: WaterfallMeter) : WaterfallMeter = 
-    { meter with Total = newTotal }
-  
-  /// Identify the ranges into which the amount might fit.  
+    /// Identify the ranges into which the amount might fit.  
   let findRange (amount: Quantity) (model: WaterfallModel) : WaterfallModelRow list =
     /// Determine if the current total matches the given row.
     let isNotInRow (currentTotal: Quantity) (row: WaterfallModelRow) : bool =
-      match row with
-      | FreeIncluded x -> currentTotal < x
-      | Range { LowerIncluding = lower; UpperExcluding = upper } -> lower <= currentTotal && currentTotal < upper
-      | Overage { LowerIncluding = lower } -> lower <= currentTotal
-      |> not
+        match row with
+        | FreeIncluded x -> currentTotal < x
+        | Range { LowerIncluding = lower; UpperExcluding = upper } -> lower <= currentTotal && currentTotal < upper
+        | Overage { LowerIncluding = lower } -> lower <= currentTotal
+        |> not
 
     model
-    |> List.skipWhile (isNotInRow amount)
+    |> List.skipWhile (isNotInRow amount)    
 
   let subtract (agg: SubtractionAggregation) (row: WaterfallModelRow) : SubtractionAggregation =
     let add (v: Quantity) = function
         | None -> Some v
         | Some e -> Some (v + e)
 
-    let augment ct a c agg = 
+    let augment (ct: Quantity) (a: Quantity) (c: ConsumptionReport option) (agg: SubtractionAggregation) : SubtractionAggregation= 
       match c with
       | Some c when c.Quantity > Quantity.Zero -> { CurrentTotal = ct; AmountToBeDeducted = a; Consumption = agg.Consumption |> Map.change c.DimensionId (add c.Quantity) }
       | _ -> { CurrentTotal = ct; AmountToBeDeducted = a; Consumption = agg.Consumption } // Do not add empty consumption records
@@ -135,9 +118,23 @@ module WaterfallMeter =
     | Range { UpperExcluding = upper; DimensionId = did } -> agg |> augment upper (newTotal - upper) (Some { DimensionId = did; Quantity = upper - agg.CurrentTotal})
     | Overage { DimensionId = dim } -> agg |> augment newTotal Quantity.Zero (Some { DimensionId = dim; Quantity = agg.AmountToBeDeducted })
 
+type WaterfallMeter =
+  { Model: WaterfallModel 
+    Total: Quantity
+    Consumption: Map<DimensionId, Quantity> }
+
+module WaterfallMeter =
+  let create (description: WaterfallDescription) : WaterfallMeter = 
+     { Model = description |>  WaterfallModel.expand
+       Total = Quantity.Zero
+       Consumption = Map.empty }
+
+  let setTotal (newTotal: Quantity) (meter: WaterfallMeter) : WaterfallMeter = 
+    { meter with Total = newTotal }
+
   let consume (amount: Quantity) (meter: WaterfallMeter) : WaterfallMeter =
-    findRange meter.Total meter.Model
-    |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption } 
+    WaterfallModel.findRange meter.Total meter.Model
+    |> List.fold WaterfallModel.subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption } 
     |> fun agg ->
         { meter with 
             Total = agg.CurrentTotal 
