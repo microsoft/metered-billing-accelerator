@@ -132,9 +132,13 @@ module Meter =
         | Ok success ->  meter |> removeUsageToBeReported success.RequestData 
         | Error error -> meter |> handleUnsuccessfulMeterSubmission error messagePosition
         
-    let topupMonthlyCreditsOnNewSubscription (time: MeteringDateTime) (meter: Meter) : Meter =
-        let currentMeters = meter.Subscription.Plan.BillingDimensions.currentMeterValues time 
-        setCurrentMeterValues currentMeters meter
+    let topupMonthlyCreditsOnNewSubscription (now: MeteringDateTime) (meter: Meter) : Meter =
+        let refreshedStartOfMonthMeters = 
+            meter.Subscription.Plan.BillingDimensions.value
+            |> SimpleConsumptionBillingDimension.createIncludedQuantitiesForNewBillingCycle now 
+
+        meter
+        |> setCurrentMeterValues refreshedStartOfMonthMeters 
 
     let createNewSubscription (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) : Meter =
         // When we receive the creation of a subscription
