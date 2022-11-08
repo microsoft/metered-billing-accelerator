@@ -3,6 +3,8 @@
 
 namespace Metering.BaseTypes
 
+open Metering.BaseTypes.WaterfallTypes
+
 type MeterValue =
-    | SimpleMeterValue
-    | WaterfallMeterValue
+    | SimpleMeterValue of SimpleMeterValue
+    | WaterfallMeterValue of WaterfallMeterValue
