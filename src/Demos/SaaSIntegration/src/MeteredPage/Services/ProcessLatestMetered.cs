@@ -56,7 +56,7 @@ public class ProcessLatestMetered
         {
             if (currentMeters.SubscriptionId == meter.Subscription.MarketplaceResourceId.ResourceId())
             {
-                foreach (KeyValuePair<DimensionId, MeterValue> meterKey in meter.CurrentMeterValues.value)
+                foreach (var meterKey in meter.CurrentMeterValues.value)
                 {
                     MeterSummaryModel meterSummary = new();
                     if (meterKey.Value.IsConsumedQuantity)

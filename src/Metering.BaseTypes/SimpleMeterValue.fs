@@ -3,7 +3,7 @@
 
 namespace Metering.BaseTypes
 
-type MeterValue =
+type SimpleMeterValue =
     | ConsumedQuantity of ConsumedQuantity
     | IncludedQuantity of IncludedQuantity
 
@@ -13,7 +13,7 @@ type MeterValue =
         | IncludedQuantity iq -> iq.ToString()
     
     /// Subtracts the given Quantity from a MeterValue 
-    member this.subtractQuantity (now: MeteringDateTime) (quantity: Quantity) : MeterValue =
+    member this.subtractQuantity (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
         this
         |> function
            | ConsumedQuantity consumedQuantity -> 
@@ -31,11 +31,11 @@ type MeterValue =
                     |> ConsumedQuantity.create now 
                     |> ConsumedQuantity
 
-    static member createIncluded (now: MeteringDateTime) (quantity: Quantity) : MeterValue =
+    static member createIncluded (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
         IncludedQuantity { Quantity = quantity; Created = now; LastUpdate = now }
     
-    static member someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: MeterValue option) : MeterValue option =
-        let subtract quantity (meterValue: MeterValue) = 
+    static member someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: SimpleMeterValue option) : SimpleMeterValue option =
+        let subtract quantity (meterValue: SimpleMeterValue) = 
             meterValue.subtractQuantity currentPosition quantity
         
         current
