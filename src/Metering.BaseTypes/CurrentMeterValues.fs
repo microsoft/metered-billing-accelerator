@@ -3,7 +3,8 @@
 
 namespace Metering.BaseTypes
 
-type CurrentMeterValues = // Collects all meters per internal metering event type
+/// Collects all meters per internal metering event type
+type CurrentMeterValues =
     private | Value of Map<DimensionId, MeterValue> 
 
     member this.value

@@ -17,6 +17,3 @@ type BillingDimensions =
 
     static member create x = (Value x)
 
-    member this.currentMeterValues (now: MeteringDateTime) : CurrentMeterValues = 
-        this.value
-        |> SimpleConsumptionBillingDimension.createIncludedQuantitiesForNewBillingCycle now

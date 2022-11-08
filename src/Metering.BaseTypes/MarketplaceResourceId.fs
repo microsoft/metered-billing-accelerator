@@ -3,8 +3,6 @@
 
 namespace Metering.BaseTypes
 
-open System
-
 // https://techcommunity.microsoft.com/t5/fasttrack-for-azure/azure-marketplace-metered-billing-picking-the-correct-id-when/ba-p/3542373
 
 type MarketplaceResourceIdError =
