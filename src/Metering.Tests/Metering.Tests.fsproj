@@ -27,6 +27,9 @@
     <Content Include="data\messages\usageReportedOnlyResourceId.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Include="data\waterfall.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\state.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

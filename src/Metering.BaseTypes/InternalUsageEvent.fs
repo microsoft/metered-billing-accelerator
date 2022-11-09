@@ -17,7 +17,7 @@ type InternalUsageEvent =
       Quantity: Quantity
 
       /// An optional collection of additional properties.
-      Properties: Map<string, string> option}
+      Properties: Map<string, string> option }
 
     override this.ToString() =
         $"{this.Timestamp |> MeteringDateTime.toStr}: InternalUsageEvent {this.MarketplaceResourceId.ToString()} {this.MeterName.value}={this.Quantity.AsFloat}"

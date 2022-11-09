@@ -6,7 +6,8 @@ namespace Metering.BaseTypes
 open System
 
 // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis
-type MarketplaceRequest = // From aggregator to metering API
+/// From aggregator to metering API
+type MarketplaceRequest = 
     { /// Time in UTC when the usage event occurred, from now and until 24 hours back.
       EffectiveStartTime: MeteringDateTime
       

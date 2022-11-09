@@ -191,6 +191,48 @@ module Json =
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
 
+        module WaterfallDescriptionItem =
+            open Metering.BaseTypes.WaterfallTypes
+
+            let (dimension, threshold) = ("dimension", "threshold");
+
+            let encode (x: WaterfallDescriptionItem) : (string * JsonValue) list =
+                [
+                    (dimension, x.DimensionId.value |> Encode.string)
+                    (threshold, x.Threshold |> Quantity.Encoder)
+                ]
+
+            let decode (get: Decode.IGetters) : WaterfallDescriptionItem =
+                {
+                    DimensionId = (get.Required.Field dimension Decode.string) |> DimensionId.create
+                    Threshold = get.Required.Field threshold Quantity.Decoder
+                }
+
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode     
+
+        module WaterfallDescription =
+            open Metering.BaseTypes.WaterfallTypes
+            let (name, tYpe, tiers) = ("name", "type", "tiers");
+            let simple = "waterfall"
+
+            let encode (x: WaterfallDescription) : (string * JsonValue) list =
+                [
+                    (name, x.InternalName.value |> Encode.string)
+                    (tYpe, simple |> Encode.string)
+                    (tiers, x.Tiers |> List.map (fun x -> x |> WaterfallDescriptionItem.Encoder) |> Encode.list)
+                ]
+            
+            let decode (get: Decode.IGetters) : WaterfallDescription =
+                let turnKeyIntoDimensionId (k, v) =  (k |> DimensionId.create, v)
+
+                {
+                    InternalName = (get.Required.Field name Decode.string) |> ApplicationInternalMeterName.create
+                    // "type": "waterfall"
+                    Tiers = get.Required.Field tiers (Decode.list WaterfallDescriptionItem.Decoder)
+                }
+         
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode      
+
         module Plan =
             let (planId, billingDimensions) = ("planId", "billingDimensions")
 
@@ -770,6 +812,8 @@ module Json =
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
         |> Extra.withCustom SimpleMeterValue.Encoder SimpleMeterValue.Decoder
+        |> Extra.withCustom WaterfallDescriptionItem.Encoder WaterfallDescriptionItem.Decoder
+        |> Extra.withCustom WaterfallDescription.Encoder WaterfallDescription.Decoder
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder
