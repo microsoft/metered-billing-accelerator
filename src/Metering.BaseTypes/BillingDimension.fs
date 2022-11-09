@@ -3,6 +3,12 @@
 
 namespace Metering.BaseTypes
 
+open Metering.BaseTypes.WaterfallTypes
+
+type BillingDimension =
+    | WaterfallBillingDimension of WaterfallBillingDimension
+    | SimpleConsumptionBillingDimension of SimpleConsumptionBillingDimension
+
 // https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
 
 /// Defines a custom unit by which the ISV can emit usage events. 

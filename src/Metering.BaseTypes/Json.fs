@@ -210,19 +210,19 @@ module Json =
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode     
 
-        module WaterfallDescription =
+        module WaterfallBillingDimension =
             open Metering.BaseTypes.WaterfallTypes
             let (name, tYpe, tiers) = ("name", "type", "tiers");
             let simple = "waterfall"
 
-            let encode (x: WaterfallDescription) : (string * JsonValue) list =
+            let encode (x: WaterfallBillingDimension) : (string * JsonValue) list =
                 [
                     (name, x.InternalName.value |> Encode.string)
                     (tYpe, simple |> Encode.string)
                     (tiers, x.Tiers |> List.map (fun x -> x |> WaterfallDescriptionItem.Encoder) |> Encode.list)
                 ]
             
-            let decode (get: Decode.IGetters) : WaterfallDescription =
+            let decode (get: Decode.IGetters) : WaterfallBillingDimension =
                 let turnKeyIntoDimensionId (k, v) =  (k |> DimensionId.create, v)
 
                 {
@@ -813,7 +813,7 @@ module Json =
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
         |> Extra.withCustom SimpleMeterValue.Encoder SimpleMeterValue.Decoder
         |> Extra.withCustom WaterfallDescriptionItem.Encoder WaterfallDescriptionItem.Decoder
-        |> Extra.withCustom WaterfallDescription.Encoder WaterfallDescription.Decoder
+        |> Extra.withCustom WaterfallBillingDimension.Encoder WaterfallBillingDimension.Decoder
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder

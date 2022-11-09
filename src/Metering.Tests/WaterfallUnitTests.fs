@@ -41,7 +41,7 @@ let CreateMeterWithIncludedQuantities () =
             { Threshold = TeraByte 350u; DimensionId = tier5_500100_and_more }
         ]
         |> (fun tiers -> { InternalName = "egress" |> ApplicationInternalMeterName.create; Tiers = tiers })
-        |> WaterfallMeter.create
+        |> createMeterFromDimension
 
     let expected = 
         { Total = Quantity.Zero; Consumption = Map.empty 
@@ -89,7 +89,7 @@ let CreateMeterWithOutIncludedQuantities () =
             { Threshold = TeraByte 350u; DimensionId = tier5_500100_and_more }
         ]
         |> (fun tiers -> { InternalName = "egress" |> ApplicationInternalMeterName.create; Tiers = tiers })
-        |> create
+        |> createMeterFromDimension
 
     let expected = 
         { Total = Quantity.Zero; Consumption = Map.empty 
