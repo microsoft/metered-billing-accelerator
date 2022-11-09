@@ -8,8 +8,8 @@ open System.IO
 open NUnit.Framework
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
+open Metering.BaseTypes.WaterfallTypes
 open Metering.EventHub
-open Metering.BaseTypes
 
 [<SetUp>]
 let Setup () = ()
@@ -526,6 +526,9 @@ let ``Json.MarketplaceSubmissionErrorMarketplaceGenericError`` () = roundTrip<Ma
 
 [<Test>]
 let ``Json.MarketplaceSubmissionResultMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceGenericError.json"
+
+[<Test>]
+let ``Json.WaterfallModel`` () = roundTrip<WaterfallDescription> "waterfall.json"
 
 [<Test>]
 let ``Json.MarketplaceBatchRequest`` () = roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"

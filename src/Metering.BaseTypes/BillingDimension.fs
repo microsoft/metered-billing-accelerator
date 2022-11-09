@@ -16,4 +16,3 @@ type BillingDimensions =
             this |> v
 
     static member create x = (Value x)
-

@@ -5,9 +5,17 @@ namespace Metering.BaseTypes.WaterfallTypes
 
 open Metering.BaseTypes
 
+/// Serialization
 type WaterfallDescriptionItem = 
-    { Begin: Quantity
-      Name: DimensionId }
+    { Threshold: Quantity
+      DimensionId: DimensionId }
+
+type WaterfallDescription =
+    { /// Application-internal name of the meter / billing dimension. 
+      InternalName: ApplicationInternalMeterName
+
+      /// The dimension as Marketplace knows it.
+      Tiers: WaterfallDescriptionItem list}
 
 type Range =
     { DimensionId: DimensionId
@@ -18,13 +26,11 @@ type Overage =
     { DimensionId: DimensionId
       LowerIncluding: Quantity }
 
+/// This is the 'compiled model'
 type WaterfallModelRow =  
   | FreeIncluded of Quantity // For included quantities, no reporting to the metering API
   | Range of Range
   | Overage of Overage
-
-type WaterfallDescription =
-  WaterfallDescriptionItem list
 
 type WaterfallModel = 
   WaterfallModelRow list
@@ -46,36 +52,37 @@ type SubtractionAggregation =
     
 module WaterfallModel =
   let expand (model: WaterfallDescription) : WaterfallModel =
-    let len = model |> List.length
+    let len = model.Tiers |> List.length
+
     let expanded =
       [0 .. len - 1]
       |> List.map (fun i -> 
-        { Begin = 
-            model
+        { Threshold = 
+            model.Tiers
             |> List.take (i + 1)
-            |> List.sumBy (fun x -> x.Begin)
-          Name = 
-            model
+            |> List.sumBy (fun x -> x.Threshold)
+          DimensionId = 
+            model.Tiers
             |> List.skip(i)
             |> List.head
-            |> fun x -> x.Name })
+            |> fun x -> x.DimensionId })
 
     let included =
       expanded
       |> List.head
-      |> fun x -> x.Begin
+      |> fun x -> x.Threshold
       |> FreeIncluded
 
     let ranges =
       expanded |> List.skip 1
       |> List.zip (expanded |> List.take (len - 1))
-      |> List.map (fun (l, r) -> { DimensionId = l.Name; LowerIncluding = l.Begin; UpperExcluding = r.Begin })
+      |> List.map (fun (l, r) -> { DimensionId = l.DimensionId; LowerIncluding = l.Threshold; UpperExcluding = r.Threshold })
       |> List.map Range
 
     let overage =
       expanded
       |> List.last
-      |> fun i -> { DimensionId = i.Name; LowerIncluding = i.Begin }
+      |> fun i -> { DimensionId = i.DimensionId; LowerIncluding = i.Threshold }
       |> Overage
        
     match included with

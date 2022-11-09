@@ -34,12 +34,13 @@ let tier5_500100_and_more = "Overage over 500TB" |> DimensionId.create
 let CreateMeterWithIncludedQuantities () =
     let meter =
         [
-            { Begin = GigaByte 100u; Name = tier1_100_10099 }
-            { Begin = TeraByte  10u; Name = tier2_10100_50099 }
-            { Begin = TeraByte  40u; Name = tier3_50100_150099 }
-            { Begin = TeraByte 100u; Name = tier4_150100_500099 }
-            { Begin = TeraByte 350u; Name = tier5_500100_and_more }
+            { WaterfallDescriptionItem.Threshold = GigaByte 100u; DimensionId = tier1_100_10099 }
+            { Threshold = TeraByte  10u; DimensionId = tier2_10100_50099 }
+            { Threshold = TeraByte  40u; DimensionId = tier3_50100_150099 }
+            { Threshold = TeraByte 100u; DimensionId = tier4_150100_500099 }
+            { Threshold = TeraByte 350u; DimensionId = tier5_500100_and_more }
         ]
+        |> (fun tiers -> { InternalName = "egress" |> ApplicationInternalMeterName.create; Tiers = tiers })
         |> WaterfallMeter.create
 
     let expected = 
@@ -80,13 +81,14 @@ let CreateMeterWithIncludedQuantities () =
 let CreateMeterWithOutIncludedQuantities () =
     let meter =
         [
-            { Begin = GigaByte   0u; Name = tier0_0_99 }
-            { Begin = GigaByte 100u; Name = tier1_100_10099 }
-            { Begin = TeraByte  10u; Name = tier2_10100_50099 }
-            { Begin = TeraByte  40u; Name = tier3_50100_150099 }
-            { Begin = TeraByte 100u; Name = tier4_150100_500099 }
-            { Begin = TeraByte 350u; Name = tier5_500100_and_more }
+            { Threshold = GigaByte   0u; DimensionId = tier0_0_99 }
+            { Threshold = GigaByte 100u; DimensionId = tier1_100_10099 }
+            { Threshold = TeraByte  10u; DimensionId = tier2_10100_50099 }
+            { Threshold = TeraByte  40u; DimensionId = tier3_50100_150099 }
+            { Threshold = TeraByte 100u; DimensionId = tier4_150100_500099 }
+            { Threshold = TeraByte 350u; DimensionId = tier5_500100_and_more }
         ]
+        |> (fun tiers -> { InternalName = "egress" |> ApplicationInternalMeterName.create; Tiers = tiers })
         |> create
 
     let expected = 
