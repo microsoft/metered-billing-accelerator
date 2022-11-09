@@ -22,3 +22,12 @@ type CurrentMeterValues =
                 (k.value)
                 (v.ToString())
         )
+
+    static member createIncludedQuantitiesForNewBillingCycle (now: MeteringDateTime) (simpleConsumptionBillingDimensions: SimpleConsumptionBillingDimension list) : CurrentMeterValues =
+        let toIncluded (quantity: Quantity) : SimpleMeterValue = 
+            IncludedQuantity { Quantity = quantity; Created = now; LastUpdate = now }
+            
+        simpleConsumptionBillingDimensions
+        |> List.map(fun x -> (x.DimensionId, x.IncludedQuantity |> toIncluded))
+        |> Map.ofSeq
+        |> CurrentMeterValues.create
