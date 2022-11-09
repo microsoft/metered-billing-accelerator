@@ -169,11 +169,9 @@ module Json =
         module SimpleConsumptionBillingDimension =
             // { "name": "nde", "type": "simple", "dimension": "nodecharge",       "included": 1000       },
             let (name, tYpe, dimension, included) = ("name", "type", "dimension", "included");
-            let simple = "simple"
             let encode (x: SimpleConsumptionBillingDimension) : (string * JsonValue) list =
                 [
                     (name, x.InternalName.value |> Encode.string)
-                    (tYpe, simple |> Encode.string)
                     (dimension, x.DimensionId.value |> Encode.string)
                 ]
                 |> (fun lisT -> 
@@ -184,7 +182,6 @@ module Json =
             let decode (get: Decode.IGetters) : SimpleConsumptionBillingDimension =
                 {
                     InternalName = (get.Required.Field name Decode.string) |> ApplicationInternalMeterName.create
-                    // "type": "simple"
                     DimensionId = (get.Required.Field dimension Decode.string) |> DimensionId.create
                     IncludedQuantity = get.Optional.Field included Quantity.Decoder |> Option.defaultValue Quantity.Zero
                 }
@@ -212,26 +209,40 @@ module Json =
 
         module WaterfallBillingDimension =
             open Metering.BaseTypes.WaterfallTypes
-            let (name, tYpe, tiers) = ("name", "type", "tiers");
-            let simple = "waterfall"
+            let (name, tiers) = ("name", "tiers")
 
             let encode (x: WaterfallBillingDimension) : (string * JsonValue) list =
                 [
                     (name, x.InternalName.value |> Encode.string)
-                    (tYpe, simple |> Encode.string)
                     (tiers, x.Tiers |> List.map (fun x -> x |> WaterfallDescriptionItem.Encoder) |> Encode.list)
                 ]
             
             let decode (get: Decode.IGetters) : WaterfallBillingDimension =
-                let turnKeyIntoDimensionId (k, v) =  (k |> DimensionId.create, v)
-
                 {
                     InternalName = (get.Required.Field name Decode.string) |> ApplicationInternalMeterName.create
-                    // "type": "waterfall"
                     Tiers = get.Required.Field tiers (Decode.list WaterfallDescriptionItem.Decoder)
                 }
          
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode      
+
+        module BillingDimension =
+            let (tYpe) = ("type")
+            let encode (x: BillingDimension) : (string * JsonValue) list =
+                let setType (t: string) (l: (string * JsonValue) list) : (string * JsonValue) list = 
+                     (tYpe, t |> Encode.string) :: l
+
+                match x with
+                | SimpleConsumptionBillingDimension s -> s |> SimpleConsumptionBillingDimension.encode |> setType "simple"
+                | WaterfallBillingDimension w -> w |> WaterfallBillingDimension.encode |> setType "waterfall"
+            
+            let decode (get: Decode.IGetters) : BillingDimension =
+                let t = get.Required.Field tYpe Decode.string
+                match t with
+                | "waterfall" -> get |> WaterfallBillingDimension.decode |> WaterfallBillingDimension
+                | "simple" -> get |> SimpleConsumptionBillingDimension.decode |> SimpleConsumptionBillingDimension
+                | unknown -> failwith $"Unknown type {unknown}"
+
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode    
 
         module Plan =
             let (planId, billingDimensions) = ("planId", "billingDimensions")
@@ -814,6 +825,7 @@ module Json =
         |> Extra.withCustom SimpleMeterValue.Encoder SimpleMeterValue.Decoder
         |> Extra.withCustom WaterfallDescriptionItem.Encoder WaterfallDescriptionItem.Decoder
         |> Extra.withCustom WaterfallBillingDimension.Encoder WaterfallBillingDimension.Decoder
+        |> Extra.withCustom BillingDimension.Encoder BillingDimension.Decoder
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder

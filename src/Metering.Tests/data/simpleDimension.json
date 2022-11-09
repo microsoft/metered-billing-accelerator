@@ -1,0 +1,6 @@
+﻿{
+  "name": "cpu",
+  "type": "simple",
+  "dimension": "cpucharge",
+  "included": "Infinite"
+}
