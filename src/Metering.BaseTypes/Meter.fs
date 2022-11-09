@@ -135,7 +135,7 @@ module Meter =
     let topupMonthlyCreditsOnNewSubscription (now: MeteringDateTime) (meter: Meter) : Meter =
         let refreshedStartOfMonthMeters = 
             meter.Subscription.Plan.BillingDimensions.value
-            |> SimpleConsumptionBillingDimension.createIncludedQuantitiesForNewBillingCycle now 
+            |> CurrentMeterValues.createIncludedQuantitiesForNewBillingCycle now 
 
         meter
         |> setCurrentMeterValues refreshedStartOfMonthMeters 
