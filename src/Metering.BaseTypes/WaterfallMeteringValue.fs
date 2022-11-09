@@ -10,7 +10,7 @@ type WaterfallDescriptionItem =
     { Threshold: Quantity
       DimensionId: DimensionId }
 
-type WaterfallDescription =
+type WaterfallBillingDimension =
     { /// Application-internal name of the meter / billing dimension. 
       InternalName: ApplicationInternalMeterName
 
@@ -51,18 +51,18 @@ type SubtractionAggregation =
     Consumption: Map<DimensionId, Quantity> }
     
 module WaterfallModel =
-  let expand (model: WaterfallDescription) : WaterfallModel =
-    let len = model.Tiers |> List.length
+  let expandToFullModel (dimension: WaterfallBillingDimension) : WaterfallModel =
+    let len = dimension.Tiers |> List.length
 
     let expanded =
       [0 .. len - 1]
       |> List.map (fun i -> 
         { Threshold = 
-            model.Tiers
+            dimension.Tiers
             |> List.take (i + 1)
             |> List.sumBy (fun x -> x.Threshold)
           DimensionId = 
-            model.Tiers
+            dimension.Tiers
             |> List.skip(i)
             |> List.head
             |> fun x -> x.DimensionId })
@@ -131,8 +131,8 @@ type WaterfallMeter =
     Consumption: Map<DimensionId, Quantity> }
 
 module WaterfallMeter =
-  let create (description: WaterfallDescription) : WaterfallMeter = 
-     { Model = description |>  WaterfallModel.expand
+  let createMeterFromDimension (dimension: WaterfallBillingDimension) : WaterfallMeter = 
+     { Model = dimension |>  WaterfallModel.expandToFullModel
        Total = Quantity.Zero
        Consumption = Map.empty }
 
