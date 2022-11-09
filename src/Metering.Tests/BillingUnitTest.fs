@@ -528,7 +528,10 @@ let ``Json.MarketplaceSubmissionErrorMarketplaceGenericError`` () = roundTrip<Ma
 let ``Json.MarketplaceSubmissionResultMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceGenericError.json"
 
 [<Test>]
-let ``Json.WaterfallModel`` () = roundTrip<WaterfallBillingDimension> "waterfall.json"
+let ``Json.BillingDimensionWaterfall`` () = roundTrip<BillingDimension> "waterfall.json"
+
+[<Test>]
+let ``Json.BillingDimensionSimple`` () = roundTrip<BillingDimension> "simpleDimension.json"
 
 [<Test>]
 let ``Json.MarketplaceBatchRequest`` () = roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
