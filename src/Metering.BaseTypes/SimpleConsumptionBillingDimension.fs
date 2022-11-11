@@ -7,10 +7,11 @@ namespace Metering.BaseTypes
 /// There is a dimension with included quantities, and once the included quantities are consumed, the overage starts counting.
 type SimpleConsumptionBillingDimension = 
     { /// Application-internal name of the meter / billing dimension. 
-      InternalName: ApplicationInternalMeterName
+      ApplicationInternalMeterName: ApplicationInternalMeterName
 
       /// The dimension as Marketplace knows it.
       DimensionId: DimensionId
 
       /// The dimensions configured
       IncludedQuantity: Quantity }
+

@@ -185,18 +185,18 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                     BillingDimensions = 
                         [
                             { 
-                                InternalName = ("d1" |> ApplicationInternalMeterName.create)
+                                ApplicationInternalMeterName = ("d1" |> ApplicationInternalMeterName.create)
                                 DimensionId = ("dimension1" |> DimensionId.create)
                                 IncludedQuantity = (1000u |> Quantity.create)
                             }
                             { 
-                                InternalName = ("freestuff" |> ApplicationInternalMeterName.create)
+                                ApplicationInternalMeterName = ("freestuff" |> ApplicationInternalMeterName.create)
                                 DimensionId = ("dimension2" |> DimensionId.create)
                                 IncludedQuantity = Quantity.Infinite 
                             } 
-                        ] |> BillingDimensions.create
-                        
-
+                        ]
+                        |> List.map (fun bd -> SimpleConsumptionBillingDimension bd)
+                        |> BillingDimensions.create
                 }
                 MarketplaceResourceId = marketplaceResourceId
                 RenewalInterval = Monthly
@@ -233,12 +233,28 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         f mc
         mc
 
-    let getMeter (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : SimpleMeterValue =
-        let dimensionId = dimensionId |> DimensionId.create
+    let getSimpleMeterValue (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : SimpleMeterValue =
+        let dimensionId: DimensionId = dimensionId |> DimensionId.create
 
-        mc
-        |> MeterCollection.find marketplaceResourceId
-        |> (fun s -> s.CurrentMeterValues.value |> Map.find dimensionId)
+        let meter: Meter = mc |> MeterCollection.find marketplaceResourceId
+
+        let billingDimensions: BillingDimensions = meter.Subscription.Plan.BillingDimensions
+
+        let currentSimpleMeterValues : Map<ApplicationInternalMeterName, SimpleMeterValue> = 
+            meter.CurrentMeterValues.value
+            |> Map.toSeq
+            |> Seq.choose (fun (applicationInternalName, meterValue) -> 
+                match meterValue with
+                | SimpleMeterValue s -> Some (applicationInternalName, s)
+                | _ -> None)
+            |> Map.ofSeq
+
+        let theRightDimension : (BillingDimension -> bool) = BillingDimension.hasDimensionId dimensionId
+        match billingDimensions.value |> List.tryFind theRightDimension with
+        | None -> failwith "Could not find?!?"
+        | Some x -> 
+            let applicationInternalMeterName = x |> BillingDimension.applicationInternalMeterName
+            currentSimpleMeterValues |> Map.find applicationInternalMeterName
 
     let includes (q: Quantity) (mv: SimpleMeterValue) : unit =
         // Ensures that the given MeterValue is exactly the given quantity
@@ -293,10 +309,10 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         handle (createUsage sub (sn()) date quantity dimension)
 
     let assertIncluded sub dimension quantity =
-        check (fun m -> getMeter m sub dimension |> includes quantity)
+        check (fun m -> getSimpleMeterValue m sub dimension |> includes quantity)
     
     let assertOverage sub dimension (quantity: uint) =
-        check (fun m -> getMeter m sub dimension |> overageOf (Quantity.create quantity))
+        check (fun m -> getSimpleMeterValue m sub dimension |> overageOf (Quantity.create quantity))
 
     let ensureSequenceNumberHasBeenApplied =
         check (fun m -> 
@@ -577,6 +593,10 @@ let ``Json.ParsePlan`` () =
     let check dimensionId expected =
         let actual = 
             p.BillingDimensions.value
+            |> List.choose 
+               (function
+                | SimpleConsumptionBillingDimension x -> Some x
+                | _ -> None)
             |> List.find (fun x -> x.DimensionId = (DimensionId.create dimensionId))
             |> (fun x -> x.IncludedQuantity)
 

@@ -4,7 +4,6 @@ using Azure.Storage.Blobs;
 using MeteredPage.ViewModels.Meter;
 using Metering.BaseTypes;
 using Microsoft.Extensions.Configuration;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -59,7 +58,7 @@ public class ProcessLatestMetered
                 foreach (var meterKey in meter.CurrentMeterValues.value)
                 {
                     MeterSummaryModel meterSummary = new();
-                    if (meterKey.Value.IsConsumedQuantity)
+                    if (meterKey.Value.IsSimpleMeterValue && ((SimpleMeterValue)meterKey.Value).IsConsumedQuantity)
                     {
                         meterSummary.DimensionName = meterKey.Key.value.ToString();
                         meterSummary.ConsumedDimensionQuantity = meterKey.Value.ToString().Replace(" consumed", "");

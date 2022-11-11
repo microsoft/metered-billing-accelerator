@@ -6,13 +6,13 @@ namespace Metering.BaseTypes.WaterfallTypes
 open Metering.BaseTypes
 
 /// Serialization
-type WaterfallDescriptionItem = 
+type WaterfallBillingDimensionItem = 
     { Threshold: Quantity
       DimensionId: DimensionId }
 
 type WaterfallBillingDimension =
     { /// Application-internal name of the meter / billing dimension. 
-      InternalName: ApplicationInternalMeterName
+      ApplicationInternalMeterName: ApplicationInternalMeterName
 
       /// The dimension as Marketplace knows it.
-      Tiers: WaterfallDescriptionItem list}
+      Tiers: WaterfallBillingDimensionItem list}

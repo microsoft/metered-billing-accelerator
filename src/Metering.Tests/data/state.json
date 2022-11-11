@@ -31,41 +31,12 @@
         }
       },
       "currentMeters": {
-        "cpucharge": {
-          "included": {
-            "quantity": "Infinite",
-            "created": "2022-01-28T15:36:17Z",
-            "lastUpdate": "2022-01-28T15:36:21Z"
-          }
-        },
-        "datasourcecharge": {
-          "included": {
-            "quantity": 999,
-            "created": "2022-01-28T15:36:17Z",
-            "lastUpdate": "2022-01-28T15:36:21Z"
-          }
-        },
-        "messagecharge": {
-          "included": {
-            "quantity": 999.123,
-            "created": "2022-01-28T15:36:17Z",
-            "lastUpdate": "2022-01-28T15:36:21Z"
-          }
-        },
-        "nodecharge": {
-          "included": {
-            "quantity": 999,
-            "created": "2022-01-28T15:36:17Z",
-            "lastUpdate": "2022-01-28T15:36:21Z"
-          }
-        },
-        "objectcharge": {
-          "included": {
-            "quantity": 999,
-            "created": "2022-01-28T15:36:17Z",
-            "lastUpdate": "2022-01-28T15:36:21Z"
-          }
-        }
+        "cpu": { "type": "simple", "included": { "quantity": "Infinite", "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } },
+        "dta": { "type": "simple", "included": { "quantity": 999,        "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } },
+        "msg": { "type": "simple", "included": { "quantity": 999.123,    "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } },
+        "nde": { "type": "simple", "included": { "quantity": 999,        "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } },
+        "obj": { "type": "simple", "included": { "quantity": 999,        "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } }
+        "gigabyte_egress": { "type": "waterfall" }
       },
       "usageToBeReported": [
         {
