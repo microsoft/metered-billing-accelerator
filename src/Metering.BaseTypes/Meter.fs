@@ -12,76 +12,71 @@ type Meter =
       LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter    
         
 module Meter =
+    let matches (marketplaceResourceId: MarketplaceResourceId) (this: Meter) : bool =
+        this.Subscription.MarketplaceResourceId.Matches(marketplaceResourceId)
+
     let setCurrentMeterValues x this = { this with CurrentMeterValues = x }
     let applyToCurrentMeterValue (f: CurrentMeterValues -> CurrentMeterValues) (this: Meter) : Meter = { this with CurrentMeterValues = (f this.CurrentMeterValues) } // 
     let setLastProcessedMessage x this = { this with LastProcessedMessage = x }
-    let addUsageToBeReported x this = { this with UsageToBeReported = (x :: this.UsageToBeReported) }
-    let addUsagesToBeReported x this = { this with UsageToBeReported = List.concat [ x; this.UsageToBeReported ] }
-    
-    let matches (marketplaceResourceId: MarketplaceResourceId) (meter: Meter) : bool =
-        meter.Subscription.MarketplaceResourceId.Matches(marketplaceResourceId)
-
+    let addUsageToBeReported (item: MarketplaceRequest) this = { this with UsageToBeReported = (item :: this.UsageToBeReported) }
+    let addUsagesToBeReported (items: MarketplaceRequest list) this = { this with UsageToBeReported = List.concat [ items; this.UsageToBeReported ] }
     /// Removes the item from the UsageToBeReported collection
-    let removeUsageToBeReported x s = { s with UsageToBeReported = (s.UsageToBeReported |> List.filter (fun e -> e <> x)) }
-
+    let removeUsageToBeReported (item: MarketplaceRequest) this = { this with UsageToBeReported = (this.UsageToBeReported |> List.filter (fun e -> e <> item)) }
+    
     /// This function must be called when 'a new hour' started, i.e. the previous period must be closed.
     let closePreviousMeteringPeriod (state: Meter) : Meter =
-        let isConsumedQuantity : (SimpleMeterValue -> bool) = function
-            | ConsumedQuantity _ -> true
-            | _ -> false
+        let closeHour = MeterValue.closeHour state.Subscription.MarketplaceResourceId state.Subscription.Plan
 
-        // From the state.CurrentMeterValues, remove all those which are about consumption, and turn them into an API call
-        let (consumedValues, includedValuesWhichDontNeedToBeReported) = 
+        let results : (ApplicationInternalMeterName * (MarketplaceRequest list * MeterValue)) seq =
             state.CurrentMeterValues.value
-            |> Map.partition (fun _ -> isConsumedQuantity)
-
-        let usagesToBeReported = 
-            consumedValues
-            |> Map.map (fun dimensionId cq -> 
-                match cq with 
-                | IncludedQuantity _ -> failwith "cannot happen"
-                | ConsumedQuantity q -> 
-                    { MarketplaceResourceId = state.Subscription.MarketplaceResourceId
-                      Quantity = q.Amount
-                      PlanId = state.Subscription.Plan.PlanId 
-                      DimensionId = dimensionId
-                      EffectiveStartTime = state.LastProcessedMessage.PartitionTimestamp |> MeteringDateTime.beginOfTheHour } )
-            |> Map.values
-            |> List.ofSeq
+            |> Map.toSeq
+            |> Seq.map (fun (name, meterValue) -> (name, closeHour name meterValue))
+        
+        let usagesToBeReported = results |> Seq.map (fun (_name,(marketplaceRequests,_newMeter)) -> marketplaceRequests) |> List.concat
+        let newMeters = results |> Seq.map (fun (name,(_marketplaceRequests,newMeter)) -> (name,newMeter)) |> Map.ofSeq |> CurrentMeterValues.create
 
         state
-        |> setCurrentMeterValues (includedValuesWhichDontNeedToBeReported |> CurrentMeterValues.create)
+        |> setCurrentMeterValues newMeters
         |> addUsagesToBeReported usagesToBeReported
     
-    let updateConsumptionForDimensionId (quantity: Quantity) (timestamp: MeteringDateTime) (dimensionId: DimensionId) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues =
-        if currentMeterValues.value |> Map.containsKey dimensionId
-        then
-            // The meter exists (might be included or overage), so handle properly
-            currentMeterValues.value
-            |> Map.change dimensionId (SimpleMeterValue.someHandleQuantity timestamp quantity)
-            |> CurrentMeterValues.create
-        else
-            // No existing meter value, i.e. record as overage
-            let newConsumption = ConsumedQuantity (ConsumedQuantity.create timestamp quantity)
 
-            currentMeterValues.value
-            |> Map.add dimensionId newConsumption
-            |> CurrentMeterValues.create
+    //member static updateConsumptionForDimensionId (quantity: Quantity) (timestamp: MeteringDateTime) (dimensionId: DimensionId) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues =
+    //    if currentMeterValues.value |> Map.containsKey dimensionId
+    //    then
+    //        // The meter exists (might be included or overage), so handle properly
+    //        currentMeterValues.value
+    //        |> Map.change dimensionId (SimpleMeterValue.someHandleQuantity timestamp quantity)
+    //        |> CurrentMeterValues.create
+    //    else
+    //        // No existing meter value, i.e. record as overage
+    //        let newConsumption = ConsumedQuantity (ConsumedQuantity.create timestamp quantity)
+    //    
+    //        currentMeterValues.value
+    //        |> Map.add dimensionId newConsumption
+    //        |> CurrentMeterValues.create
 
-    let updateConsumptionForApplicationInternalMeterName (quantity: Quantity) (timestamp: MeteringDateTime) (meterName: ApplicationInternalMeterName) (billingDimensions: BillingDimensions) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
-        match quantity.isAllowedIncomingQuantity with
-        | false -> 
-            // if the incoming value is not a real (non-negative) number, don't change the meter. 
-            currentMeterValues
-        | true -> 
-            let someDimension = billingDimensions.value |> List.tryFind (fun x -> x.InternalName = meterName)
+
+
+    let updateConsumptionForApplicationInternalMeterName (quantity: Quantity) (timestamp: MeteringDateTime) (applicationInternalMeterName: ApplicationInternalMeterName) (billingDimensions: BillingDimensions) (currentMeterValues: CurrentMeterValues) : CurrentMeterValues = 
+        if not quantity.isAllowedIncomingQuantity 
+        then currentMeterValues // If the incoming value is not a real (non-negative) number, don't change anything.
+        else            
+            let someDimension = billingDimensions.value |> List.tryFind (fun x -> x |> BillingDimension.applicationInternalMeterName = applicationInternalMeterName)
             match someDimension with 
-            | None -> 
-                // TODO: Log that an unknown meter was reported
-                currentMeterValues
-            | Some dimension ->
-                currentMeterValues
-                |> updateConsumptionForDimensionId quantity timestamp dimension.DimensionId
+            | None -> currentMeterValues // TODO: Log that an unknown meter was reported
+            | Some billingDimension ->
+                let createOrUpdate : (MeterValue option -> MeterValue option) = function
+                    | None ->
+                        let (_, newMeterValue) = MeterValue.newBillingCycle timestamp billingDimension
+                        Some newMeterValue
+                    | Some meterValue -> 
+                        meterValue
+                        |> MeterValue.applyConsumption timestamp quantity
+                        |> Some
+                
+                currentMeterValues.value
+                |> Map.change applicationInternalMeterName createOrUpdate
+                |> CurrentMeterValues.create
 
     let handleUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (meter : Meter) : Meter =        
         let closePreviousIntervalIfNeeded : (Meter -> Meter) = 
@@ -118,12 +113,25 @@ module Meter =
             // Need to ring an alarm that the aggregator must be scheduled more frequently
             // TODO: Submit compensating action for now?
 
-            let handleTooLateSubmissionAsIfTheUsageHappenedNow = 
-                updateConsumptionForDimensionId expired.RequestData.Quantity messagePosition.PartitionTimestamp expired.RequestData.DimensionId
+            // Now we need to find the correct meter to re-apply the consumption to.
+            let theRightDimension : (BillingDimension -> bool) = BillingDimension.hasDimensionId expired.RequestData.DimensionId
+            match meter.Subscription.Plan.BillingDimensions.value |> List.tryFind theRightDimension with
+            | None -> 
+                // It seems the dimension in question isn't part of the plan, that is impossible
+                meter
+            | Some x -> 
+                let applicationInternalMeterName = x |> BillingDimension.applicationInternalMeterName
+            
+                let handleTooLateSubmissionAsIfTheUsageHappenedNow =
+                    updateConsumptionForApplicationInternalMeterName 
+                        expired.RequestData.Quantity
+                        messagePosition.PartitionTimestamp
+                        applicationInternalMeterName
+                        meter.Subscription.Plan.BillingDimensions
 
-            { meter with 
-                CurrentMeterValues = meter.CurrentMeterValues |> handleTooLateSubmissionAsIfTheUsageHappenedNow
-                UsageToBeReported = meter.UsageToBeReported |> List.except [ expired.RequestData ] }
+                { meter with 
+                    CurrentMeterValues = meter.CurrentMeterValues |> handleTooLateSubmissionAsIfTheUsageHappenedNow
+                    UsageToBeReported = meter.UsageToBeReported |> List.except [ expired.RequestData ] }
         | Generic _ -> 
             meter
         
@@ -133,8 +141,8 @@ module Meter =
         | Error error -> meter |> handleUnsuccessfulMeterSubmission error messagePosition
         
     let topupMonthlyCreditsOnNewSubscription (now: MeteringDateTime) (meter: Meter) : Meter =
-        let refreshedStartOfMonthMeters = 
-            meter.Subscription.Plan.BillingDimensions.value
+        let refreshedStartOfMonthMeters : CurrentMeterValues = 
+            meter.Subscription.Plan.BillingDimensions
             |> CurrentMeterValues.createIncludedQuantitiesForNewBillingCycle now 
 
         meter

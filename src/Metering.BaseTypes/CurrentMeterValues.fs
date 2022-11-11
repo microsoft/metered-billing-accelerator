@@ -5,7 +5,7 @@ namespace Metering.BaseTypes
 
 /// Collects all meters per internal metering event type
 type CurrentMeterValues =
-    private | Value of Map<DimensionId, SimpleMeterValue> 
+    private | Value of Map<ApplicationInternalMeterName, MeterValue> 
 
     member this.value
         with get() =
@@ -17,17 +17,13 @@ type CurrentMeterValues =
     member internal this.toStrings =
         this.value
         |> Map.toSeq
-        |> Seq.map (fun (k,v) -> 
-            sprintf "%30s: %s" 
-                (k.value)
-                (v.ToString())
-        )
+        |> Seq.map (fun (k,v) -> sprintf "%30s: %s" (k.value) (v.ToString()))
 
-    static member createIncludedQuantitiesForNewBillingCycle (now: MeteringDateTime) (simpleConsumptionBillingDimensions: SimpleConsumptionBillingDimension list) : CurrentMeterValues =
-        let toIncluded (quantity: Quantity) : SimpleMeterValue = 
-            IncludedQuantity { Quantity = quantity; Created = now; LastUpdate = now }
-            
-        simpleConsumptionBillingDimensions
-        |> List.map(fun x -> (x.DimensionId, x.IncludedQuantity |> toIncluded))
-        |> Map.ofSeq
+    static member createIncludedQuantitiesForNewBillingCycle (now: MeteringDateTime) (billingDimensions: BillingDimensions) : CurrentMeterValues =
+        let createNewMeter : (BillingDimension -> ApplicationInternalMeterName * MeterValue) = 
+            MeterValue.newBillingCycle now
+        
+        billingDimensions.value
+        |> List.map createNewMeter
+        |> Map.ofList
         |> CurrentMeterValues.create

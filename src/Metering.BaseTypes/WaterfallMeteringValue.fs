@@ -5,28 +5,29 @@ namespace Metering.BaseTypes.WaterfallTypes
 
 open Metering.BaseTypes
 
-type Range =
+type WaterfallModelRange =
     { DimensionId: DimensionId
       LowerIncluding: Quantity
       UpperExcluding: Quantity }
 
-type Overage =
+type WaterfallOverageOverage =
     { DimensionId: DimensionId
       LowerIncluding: Quantity }
 
 /// This is the 'compiled model'
 type WaterfallModelRow =  
-  | FreeIncluded of Quantity // For included quantities, no reporting to the metering API
-  | Range of Range
-  | Overage of Overage
+    | FreeIncluded of Quantity // For included quantities, no reporting to the metering API
+    | Range of WaterfallModelRange
+    | Overage of WaterfallOverageOverage
 
 type WaterfallModel = 
-  WaterfallModelRow list
+    WaterfallModelRow list
 
 type WaterfallMeterValue =
   { Model: WaterfallModel 
     Total: Quantity
-    Consumption: Map<DimensionId, Quantity> }
+    Consumption: Map<DimensionId, Quantity>
+    LastUpdate: MeteringDateTime }
 
 /// These must be reported
 type ConsumptionReport = 
@@ -113,24 +114,47 @@ module WaterfallModel =
     | Range { UpperExcluding = upper; DimensionId = did } -> agg |> augment upper (newTotal - upper) (Some { DimensionId = did; Quantity = upper - agg.CurrentTotal})
     | Overage { DimensionId = dim } -> agg |> augment newTotal Quantity.Zero (Some { DimensionId = dim; Quantity = agg.AmountToBeDeducted })
 
-type WaterfallMeter =
-  { Model: WaterfallModel 
-    Total: Quantity
-    Consumption: Map<DimensionId, Quantity> }
-
-module WaterfallMeter =
-  let createMeterFromDimension (dimension: WaterfallBillingDimension) : WaterfallMeter = 
-     { Model = dimension |>  WaterfallModel.expandToFullModel
+module WaterfallMeterValue =
+  let createMeterFromDimension (now: MeteringDateTime) (dimension: WaterfallBillingDimension) : WaterfallMeterValue = 
+     { Model = dimension |> WaterfallModel.expandToFullModel
        Total = Quantity.Zero
-       Consumption = Map.empty }
+       Consumption = Map.empty
+       LastUpdate = now }
 
-  let setTotal (newTotal: Quantity) (meter: WaterfallMeter) : WaterfallMeter = 
+  let setTotal (newTotal: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue = 
     { meter with Total = newTotal }
 
-  let consume (amount: Quantity) (meter: WaterfallMeter) : WaterfallMeter =
+  let consume (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
     WaterfallModel.findRange meter.Total meter.Model
     |> List.fold WaterfallModel.subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption } 
     |> fun agg ->
         { meter with 
             Total = agg.CurrentTotal 
-            Consumption = agg.Consumption }
+            Consumption = agg.Consumption
+            LastUpdate = now }
+  
+  let newBillingCycle (now: MeteringDateTime) (x: WaterfallBillingDimension) : (ApplicationInternalMeterName * WaterfallMeterValue) =
+        (x.ApplicationInternalMeterName, failwith "notimplemented")
+
+  let containsReportableQuantities (this: WaterfallMeterValue) : bool =
+    (this.Consumption |> Map.count) > 0
+
+  let closeHour (marketplaceResourceId: MarketplaceResourceId) (plan: Plan) (name: ApplicationInternalMeterName) (this: WaterfallMeterValue): (MarketplaceRequest list * WaterfallMeterValue) =
+    let dimension = plan.BillingDimensions.find name
+    let model =
+        match dimension with
+        | WaterfallBillingDimension wbd -> wbd |> WaterfallModel.expandToFullModel
+        | _ -> failwith "wrong model"
+    let consumption = 
+        this.Consumption
+        |> Map.toSeq
+        |> Seq.map (fun (dimensionId, quantity) -> 
+            { MarketplaceResourceId = marketplaceResourceId
+              PlanId = plan.PlanId
+              DimensionId = dimensionId ; Quantity = quantity
+              EffectiveStartTime = this.LastUpdate |> MeteringDateTime.beginOfTheHour })
+        |> Seq.toList
+    let newMeter = { this with Consumption = Map.empty }
+    (consumption, newMeter)
+        
+    
