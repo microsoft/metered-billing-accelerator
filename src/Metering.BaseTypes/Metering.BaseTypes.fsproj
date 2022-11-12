@@ -26,12 +26,12 @@
     <Compile Include="WaterfallDimension.fs" />
     <Compile Include="BillingDimension.fs" />
     <Compile Include="Plan.fs" />
+    <Compile Include="InternalUsageEvent.fs" />
     <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="SimpleMeterValue.fs" />
     <Compile Include="WaterfallMeteringValue.fs" />
     <Compile Include="MeteringValue.fs" />
     <Compile Include="CurrentMeterValues.fs" />
-    <Compile Include="InternalUsageEvent.fs" />
     <Compile Include="Subscription.fs" />
     <Compile Include="BillingPeriod.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />

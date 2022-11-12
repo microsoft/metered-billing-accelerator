@@ -34,7 +34,7 @@ type ConsumptionReport =
   { DimensionId: DimensionId
     Quantity: Quantity }
 
-type SubtractionAggregation =
+type private SubtractionAggregation =
   { CurrentTotal: Quantity 
     AmountToBeDeducted: Quantity 
     Consumption: Map<DimensionId, Quantity> }
@@ -96,7 +96,7 @@ module WaterfallModel =
     model
     |> List.skipWhile (isNotInRow amount)    
 
-  let subtract (agg: SubtractionAggregation) (row: WaterfallModelRow) : SubtractionAggregation =
+  let private subtract (agg: SubtractionAggregation) (row: WaterfallModelRow) : SubtractionAggregation =
     let add (v: Quantity) = function
         | None -> Some v
         | Some e -> Some (v + e)
