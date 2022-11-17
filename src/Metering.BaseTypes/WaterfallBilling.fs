@@ -24,8 +24,7 @@ type WaterfallModel =
     WaterfallModelRow list
 
 type WaterfallMeterValue =
-  { Model: WaterfallModel 
-    Total: Quantity
+  { Total: Quantity
     Consumption: Map<DimensionId, Quantity>
     LastUpdate: MeteringDateTime }
 
@@ -51,18 +50,18 @@ type WaterfallBillingDimension =
       Meter: WaterfallMeterValue option }
 
 module WaterfallMeterLogic =
-  let expandToFullModel (dimension: WaterfallBillingDimension) : WaterfallModel =
-    let len = dimension.Tiers |> List.length
+  let expandToFullModel (waterfallTiers: WaterfallBillingDimensionItem list) : WaterfallModel =
+    let len = waterfallTiers |> List.length
 
     let expanded =
       [0 .. len - 1]
       |> List.map (fun i -> 
         { Threshold = 
-            dimension.Tiers
+            waterfallTiers
             |> List.take (i + 1)
             |> List.sumBy (fun x -> x.Threshold)
           DimensionId = 
-            dimension.Tiers
+            waterfallTiers
             |> List.skip(i)
             |> List.head
             |> fun x -> x.DimensionId })
@@ -126,16 +125,15 @@ module WaterfallMeterLogic =
     | Overage { DimensionId = dim } -> agg |> augment newTotal Quantity.Zero (Some { DimensionId = dim; Quantity = agg.AmountToBeDeducted })
 
   let createMeterFromDimension (now: MeteringDateTime) (dimension: WaterfallBillingDimension) : WaterfallMeterValue = 
-     { Model = dimension |> expandToFullModel
-       Total = Quantity.Zero
+     { Total = Quantity.Zero
        Consumption = Map.empty
        LastUpdate = now }
 
   let setTotal (newTotal: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue = 
     { meter with Total = newTotal }
 
-  let consume (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
-    findRange meter.Total meter.Model
+  let consume (model: WaterfallModel) (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
+    findRange meter.Total model
     |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption } 
     |> fun agg ->
         { meter with 

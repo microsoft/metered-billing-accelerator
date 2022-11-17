@@ -30,11 +30,7 @@ let tier5_500100_and_more = "Overage over 500TB" |> DimensionId.create
 
 [<Test>]
 let CreateMeterWithIncludedQuantities () =
-    let now = MeteringDateTime.now()
-    let consume = WaterfallMeterLogic.consume now
-    let createMeterFromDimension = WaterfallMeterLogic.createMeterFromDimension now
-    
-    let meter =
+    let model =
         [
             { Threshold = GigaByte 100u; DimensionId = tier1_100_10099 }
             { Threshold = TeraByte  10u; DimensionId = tier2_10100_50099 }
@@ -42,12 +38,10 @@ let CreateMeterWithIncludedQuantities () =
             { Threshold = TeraByte 100u; DimensionId = tier4_150100_500099 }
             { Threshold = TeraByte 350u; DimensionId = tier5_500100_and_more }
         ]
-        |> (fun tiers -> { Tiers = tiers; Meter = None })
-        |> createMeterFromDimension
+        |> WaterfallMeterLogic.expandToFullModel
 
-    let expected = 
-        { Total = Quantity.Zero; Consumption = Map.empty 
-          Model = [
+    let expectedModel = 
+          [
             FreeIncluded               (GigaByte     100u)
             Range {   LowerIncluding = (GigaByte     100u); UpperExcluding = (GigaByte  10_100u); DimensionId = tier1_100_10099 }
             Range {   LowerIncluding = (GigaByte  10_100u); UpperExcluding = (GigaByte  50_100u); DimensionId = tier2_10100_50099 }
@@ -55,10 +49,17 @@ let CreateMeterWithIncludedQuantities () =
             Range {   LowerIncluding = (GigaByte 150_100u); UpperExcluding = (GigaByte 500_100u); DimensionId = tier4_150100_500099 }
             Overage { LowerIncluding = (GigaByte 500_100u);                                       DimensionId = tier5_500100_and_more }
           ]
+        
+    Assert.AreEqual(expectedModel, model)
+
+    let now = MeteringDateTime.now()
+    let consume = WaterfallMeterLogic.consume model now 
+    let meter = 
+        { 
+          Total = Quantity.Zero
+          Consumption = Map.empty 
           LastUpdate = now
         }
-
-    Assert.AreEqual(expected, meter)
 
     let submitDataToMeteringAndEmptyConsumption (x: WaterfallMeterValue) = { x with Consumption = Map.empty }
     
@@ -83,9 +84,7 @@ let CreateMeterWithIncludedQuantities () =
 
 [<Test>]
 let CreateMeterWithOutIncludedQuantities () =
-    let now = MeteringDateTime.now()
-    let createMeterFromDimension = WaterfallMeterLogic.createMeterFromDimension now
-    let meter =
+    let model =
         [
             { Threshold = GigaByte   0u; DimensionId = tier0_0_99 }
             { Threshold = GigaByte 100u; DimensionId = tier1_100_10099 }
@@ -94,12 +93,10 @@ let CreateMeterWithOutIncludedQuantities () =
             { Threshold = TeraByte 100u; DimensionId = tier4_150100_500099 }
             { Threshold = TeraByte 350u; DimensionId = tier5_500100_and_more }
         ]
-        |> (fun tiers -> { Tiers = tiers; Meter = None })
-        |> createMeterFromDimension
+        |> WaterfallMeterLogic.expandToFullModel
 
-    let expected = 
-        { Total = Quantity.Zero; Consumption = Map.empty 
-          Model = [
+    let expectedModel = 
+          [
             Range {   LowerIncluding = (GigaByte       0u); UpperExcluding = (GigaByte     100u); DimensionId = tier0_0_99 }
             Range {   LowerIncluding = (GigaByte     100u); UpperExcluding = (GigaByte  10_100u); DimensionId = tier1_100_10099 }
             Range {   LowerIncluding = (GigaByte  10_100u); UpperExcluding = (GigaByte  50_100u); DimensionId = tier2_10100_50099 }
@@ -107,7 +104,5 @@ let CreateMeterWithOutIncludedQuantities () =
             Range {   LowerIncluding = (GigaByte 150_100u); UpperExcluding = (GigaByte 500_100u); DimensionId = tier4_150100_500099 }
             Overage { LowerIncluding = (GigaByte 500_100u);                                       DimensionId = tier5_500100_and_more }
           ]
-          LastUpdate = now
-        }
-
-    Assert.AreEqual(expected, meter)
+        
+    Assert.AreEqual(expectedModel, model)

@@ -192,16 +192,6 @@ module Json =
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
 
-        module WaterfallModel =
-            let encode (x: WaterfallModel) : (string * JsonValue) list =
-                [
-                ]
-
-            let decode (get: Decode.IGetters) : WaterfallModel =
-                failwith ""
-
-            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
         module WaterfallMeterValue =
             let (total, consumption, model, lastUpdate) = ("total", "consumption", "model", "lastUpdate")
 
@@ -209,7 +199,6 @@ module Json =
                 [
                     (total, x.Total |> Quantity.Encoder)
                     (consumption, x.Consumption |> Map.toList |> List.map (fun (dimensionId, quantity) -> (dimensionId.value, quantity |> Quantity.Encoder)) |> Encode.object) // serialize as a Dictionary
-                    (model, x.Model |> WaterfallModel.Encoder)
                     (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder)
                 ]
 
@@ -219,7 +208,6 @@ module Json =
                 {
                     Total = get.Required.Field total Quantity.Decoder
                     Consumption = get.Required.Field consumption ((Decode.keyValuePairs Quantity.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType |> Map.ofList |> Decode.succeed))
-                    Model = get.Required.Field model WaterfallModel.Decoder
                     LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
                 }
 
@@ -856,15 +844,16 @@ module Json =
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
         |> Extra.withCustom MessagePosition.Encoder MessagePosition.Decoder
-        //|> Extra.withCustom IncludedQuantitySpecification.Encoder IncludedQuantitySpecification.Decoder
+        |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
         |> Extra.withCustom SimpleMeterValue.Encoder SimpleMeterValue.Decoder
+        |> Extra.withCustom SimpleConsumptionBillingDimension.Encoder SimpleConsumptionBillingDimension.Decoder
+        |> Extra.withCustom WaterfallMeterValue.Encoder WaterfallMeterValue.Decoder
         |> Extra.withCustom WaterfallBillingDimensionItem.Encoder WaterfallBillingDimensionItem.Decoder
         |> Extra.withCustom WaterfallBillingDimension.Encoder WaterfallBillingDimension.Decoder
         |> Extra.withCustom BillingDimension.Encoder BillingDimension.Decoder
         |> Extra.withCustom BillingDimensions.Encoder BillingDimensions.Decoder
-        |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder
         |> Extra.withCustom Subscription.Encoder Subscription.Decoder
