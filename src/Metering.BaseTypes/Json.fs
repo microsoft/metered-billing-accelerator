@@ -100,6 +100,19 @@ module Json =
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
+        module RenewalInterval =
+            let Encoder (x: RenewalInterval) =
+                match x with
+                | Monthly -> nameof(Monthly) |> Encode.string
+                | Annually -> nameof(Annually) |> Encode.string
+        
+            let Decoder : Decoder<RenewalInterval> =
+                Decode.string |> Decode.andThen (
+                   function
+                   | nameof(Monthly) -> Decode.succeed Monthly
+                   | nameof(Annually) -> Decode.succeed Annually
+                   | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
+
         module ConsumedQuantity =
             let (consumedQuantity, created, lastUpdate) = 
                 ("consumedQuantity", "created", "lastUpdate")
@@ -154,6 +167,31 @@ module Json =
                     Decode.field included IncludedQuantity.Decoder |> Decode.map IncludedQuantity
                 ] |> Decode.oneOf
 
+        module SimpleConsumptionBillingDimension =
+            // { "name": "nde", "type": "simple", "dimension": "nodecharge", "included": 1000 }
+            let (tYpe, dimension, included, meter) = ("type", "dimension", "included", "meter");
+            let encode (x: SimpleConsumptionBillingDimension) : (string * JsonValue) list =
+                [
+                    (dimension, x.DimensionId.value |> Encode.string)
+                ]
+                |> (fun l -> 
+                    if x.IncludedQuantity = Quantity.Zero 
+                    then l
+                    else  (included, x.IncludedQuantity |> Quantity.Encoder) :: l)
+                |> (fun l -> 
+                    match x.Meter with
+                    | None -> l
+                    | Some m -> (meter, m |> SimpleMeterValue.Encoder) :: l)
+
+            let decode (get: Decode.IGetters) : SimpleConsumptionBillingDimension =
+                {
+                    DimensionId = (get.Required.Field dimension Decode.string) |> DimensionId.create
+                    IncludedQuantity = get.Optional.Field included Quantity.Decoder |> Option.defaultValue Quantity.Zero
+                    Meter = get.Optional.Field meter SimpleMeterValue.Decoder
+                }
+
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
+
         module WaterfallModel =
             let encode (x: WaterfallModel) : (string * JsonValue) list =
                 [
@@ -186,41 +224,7 @@ module Json =
                 }
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
-
-        module RenewalInterval =
-            let Encoder (x: RenewalInterval) =
-                match x with
-                | Monthly -> nameof(Monthly) |> Encode.string
-                | Annually -> nameof(Annually) |> Encode.string
-        
-            let Decoder : Decoder<RenewalInterval> =
-                Decode.string |> Decode.andThen (
-                   function
-                   | nameof(Monthly) -> Decode.succeed Monthly
-                   | nameof(Annually) -> Decode.succeed Annually
-                   | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
-        
-        module SimpleConsumptionBillingDimension =
-            // { "name": "nde", "type": "simple", "dimension": "nodecharge", "included": 1000 }
-            let (name, tYpe, dimension, included) = ("name", "type", "dimension", "included");
-            let encode (x: SimpleConsumptionBillingDimension) : (string * JsonValue) list =
-                [
-                    (dimension, x.DimensionId.value |> Encode.string)
-                ]
-                |> (fun lisT -> 
-                    if x.IncludedQuantity = Quantity.Zero 
-                    then lisT
-                    else  (included, x.IncludedQuantity |> Quantity.Encoder) :: lisT)
-
-            let decode (get: Decode.IGetters) : SimpleConsumptionBillingDimension =
-                {
-                    DimensionId = (get.Required.Field dimension Decode.string) |> DimensionId.create
-                    IncludedQuantity = get.Optional.Field included Quantity.Decoder |> Option.defaultValue Quantity.Zero
-                    Meter = None
-                }
-
-            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
-
+  
         module WaterfallBillingDimensionItem =
             open Metering.BaseTypes.WaterfallTypes
 
@@ -241,18 +245,22 @@ module Json =
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode     
 
         module WaterfallBillingDimension =
-            open Metering.BaseTypes.WaterfallTypes
-            let (name, tiers) = ("name", "tiers")
+            let (meter, tiers) = ("meter", "tiers")
 
             let encode (x: WaterfallBillingDimension) : (string * JsonValue) list =
                 [
                     (tiers, x.Tiers |> List.map (fun x -> x |> WaterfallBillingDimensionItem.Encoder) |> Encode.list)
+                    //(meter, x.Meter )
                 ]
+                |> (fun l -> 
+                    match x.Meter with
+                    | None -> l
+                    | Some m -> (meter, m |> WaterfallMeterValue.Encoder) :: l)
             
             let decode (get: Decode.IGetters) : WaterfallBillingDimension =
                 {
                     Tiers = get.Required.Field tiers (Decode.list WaterfallBillingDimensionItem.Decoder)
-                    Meter = None
+                    Meter = get.Optional.Field meter WaterfallMeterValue.Decoder
                 }
          
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode      

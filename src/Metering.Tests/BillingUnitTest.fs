@@ -8,7 +8,6 @@ open System.IO
 open NUnit.Framework
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
-open Metering.BaseTypes.WaterfallTypes
 open Metering.EventHub
 
 [<SetUp>]
@@ -240,14 +239,19 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         f mc
         mc
 
-    let getSimpleMeterValue (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (appInternalName: string) : SimpleMeterValue =
-        let appInternalName = appInternalName |> ApplicationInternalMeterName.create
+    let getSimpleMeterValue (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : SimpleMeterValue =
+        let dimensionId = dimensionId |> DimensionId.create
 
         let meter: Meter = mc |> MeterCollection.find marketplaceResourceId
         
         let billingDimension =
             meter.Subscription.Plan.BillingDimensions.value
-            |> Map.find appInternalName
+            |> Map.toSeq
+            |> Seq.find (fun (k, v) -> 
+                match v with
+                | SimpleConsumptionBillingDimension x -> x.DimensionId = dimensionId
+                | _ -> false)
+            |> (fun (_, v) -> v)
             
         match billingDimension with
         | SimpleConsumptionBillingDimension x -> 
@@ -283,7 +287,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
         mc
 
-    let assertOverallUsageToBeReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
+    let assertOverallUsageToBeReported (marketplaceResourceId: MarketplaceResourceId) (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
         let dimension = DimensionId.create dimension
         let overallquantity = Quantity.create overallquantity
 
