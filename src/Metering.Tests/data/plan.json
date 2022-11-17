@@ -1,12 +1,12 @@
 ﻿{
   "planId": "free_monthly_yearly",
-  "billingDimensions": [
-    { "name": "nde", "type": "simple", "dimension": "nodecharge",       "included": 1000       },
-    { "name": "cpu", "type": "simple", "dimension": "cpucharge",        "included": "Infinite" },
-    { "name": "dta", "type": "simple", "dimension": "datasourcecharge", "included": 1000       },
-    { "name": "obj", "type": "simple", "dimension": "objectcharge"                             },
-    { "name": "msg", "type": "simple", "dimension": "messagecharge",    "included": "10000"    },
-    { "name": "gigabyte_egress", "type": "waterfall", 
+  "billingDimensions": {
+    "nde": { "type": "simple", "dimension": "nodecharge",       "included": 1000       },
+    "cpu": { "type": "simple", "dimension": "cpucharge",        "included": "Infinite" },
+    "dta": { "type": "simple", "dimension": "datasourcecharge", "included": 1000       },
+    "obj": { "type": "simple", "dimension": "objectcharge"                             },
+    "msg": { "type": "simple", "dimension": "messagecharge",    "included": "10000"    },
+    "gigabyte_egress": { "type": "waterfall", 
       "tiers": [
         { "dimension": "egress_tier_1",  "threshold":    100 },
         { "dimension": "egress_tier_2",  "threshold":  10000 },
@@ -15,5 +15,5 @@
         { "dimension": "egress_overage", "threshold": 350000 }
       ]
     }
-  ]
+  }
 }

@@ -7,11 +7,11 @@ foreach (Meter meter in meterCollection.Meters)
 {
     MarketplaceResourceId meterResourceId = meter.Subscription.MarketplaceResourceId;
 
-    foreach (KeyValuePair<ApplicationInternalMeterName, MeterValue> meterKey in meter.CurrentMeterValues.value)
+    foreach (var kv in meter.Subscription.Plan.BillingDimensions.value)
     {
-        var name = meterKey.Key;
-        var meterValue = meterKey.Value;
+        var name = kv.Key;
+        var dimension = kv.Value;
 
-        Console.WriteLine($"{meterResourceId}: {name} - {meterValue}");
+        Console.WriteLine($"{meterResourceId}: {name} - {dimension}");
     }
 }

@@ -9,6 +9,7 @@ module Json =
     open NodaTime.Text
     open Thoth.Json.Net
     open Metering.BaseTypes.EventHub
+    open Metering.BaseTypes.WaterfallTypes
 
     module JsonInternals =
         module internal JsonUtil =
@@ -153,13 +154,38 @@ module Json =
                     Decode.field included IncludedQuantity.Decoder |> Decode.map IncludedQuantity
                 ] |> Decode.oneOf
 
-        module MeterValue =
-            let Encoder (x: MeterValue) =
-                match x with 
-                | SimpleMeterValue x -> x |> SimpleMeterValue.Encoder
-                | _ -> failwith "notimplemented"
-            let Decoder : Decoder<MeterValue> =
-                failwith "notim"
+        module WaterfallModel =
+            let encode (x: WaterfallModel) : (string * JsonValue) list =
+                [
+                ]
+
+            let decode (get: Decode.IGetters) : WaterfallModel =
+                failwith ""
+
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
+
+        module WaterfallMeterValue =
+            let (total, consumption, model, lastUpdate) = ("total", "consumption", "model", "lastUpdate")
+
+            let encode (x: WaterfallMeterValue) : (string * JsonValue) list =
+                [
+                    (total, x.Total |> Quantity.Encoder)
+                    (consumption, x.Consumption |> Map.toList |> List.map (fun (dimensionId, quantity) -> (dimensionId.value, quantity |> Quantity.Encoder)) |> Encode.object) // serialize as a Dictionary
+                    (model, x.Model |> WaterfallModel.Encoder)
+                    (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder)
+                ]
+
+            let decode (get: Decode.IGetters) : WaterfallMeterValue =
+                let turnKeyIntoSubscriptionType (k, v) = (k |> DimensionId.create, v)
+
+                {
+                    Total = get.Required.Field total Quantity.Decoder
+                    Consumption = get.Required.Field consumption ((Decode.keyValuePairs Quantity.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoSubscriptionType |> Map.ofList |> Decode.succeed))
+                    Model = get.Required.Field model WaterfallModel.Decoder
+                    LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
+                }
+
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
         module RenewalInterval =
             let Encoder (x: RenewalInterval) =
@@ -175,11 +201,10 @@ module Json =
                    | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
         
         module SimpleConsumptionBillingDimension =
-            // { "name": "nde", "type": "simple", "dimension": "nodecharge",       "included": 1000       },
+            // { "name": "nde", "type": "simple", "dimension": "nodecharge", "included": 1000 }
             let (name, tYpe, dimension, included) = ("name", "type", "dimension", "included");
             let encode (x: SimpleConsumptionBillingDimension) : (string * JsonValue) list =
                 [
-                    (name, x.ApplicationInternalMeterName.value |> Encode.string)
                     (dimension, x.DimensionId.value |> Encode.string)
                 ]
                 |> (fun lisT -> 
@@ -189,9 +214,9 @@ module Json =
 
             let decode (get: Decode.IGetters) : SimpleConsumptionBillingDimension =
                 {
-                    ApplicationInternalMeterName = (get.Required.Field name Decode.string) |> ApplicationInternalMeterName.create
                     DimensionId = (get.Required.Field dimension Decode.string) |> DimensionId.create
                     IncludedQuantity = get.Optional.Field included Quantity.Decoder |> Option.defaultValue Quantity.Zero
+                    Meter = None
                 }
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
@@ -221,14 +246,13 @@ module Json =
 
             let encode (x: WaterfallBillingDimension) : (string * JsonValue) list =
                 [
-                    (name, x.ApplicationInternalMeterName.value |> Encode.string)
                     (tiers, x.Tiers |> List.map (fun x -> x |> WaterfallBillingDimensionItem.Encoder) |> Encode.list)
                 ]
             
             let decode (get: Decode.IGetters) : WaterfallBillingDimension =
                 {
-                    ApplicationInternalMeterName = (get.Required.Field name Decode.string) |> ApplicationInternalMeterName.create
                     Tiers = get.Required.Field tiers (Decode.list WaterfallBillingDimensionItem.Decoder)
+                    Meter = None
                 }
          
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode      
@@ -252,13 +276,24 @@ module Json =
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode    
 
+        module BillingDimensions =
+            let Encoder (x: BillingDimensions) = 
+                x.value
+                |> Map.toList
+                |> List.map (fun (d, m) -> (d.value, m |> BillingDimension.Encoder))
+                |> Encode.object
+
+            let Decoder : Decoder<BillingDimensions> =
+                let turnKeyIntoApplicationInternalMeterName (k, v) =  (k |> ApplicationInternalMeterName.create, v)
+                (Decode.keyValuePairs BillingDimension.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoApplicationInternalMeterName |> Map.ofList |> BillingDimensions.create |> Decode.succeed)
+
         module Plan =
             let (planId, billingDimensions) = ("planId", "billingDimensions")
 
             let encode (x: Plan) : (string * JsonValue) list =
                 [
                     (planId, x.PlanId.value |> Encode.string)
-                    (billingDimensions, x.BillingDimensions.value |> List.map (fun x -> x |> BillingDimension.Encoder) |> Encode.list)
+                    (billingDimensions, x.BillingDimensions |> BillingDimensions.Encoder)
                 ]
             
             let decode (get: Decode.IGetters) : Plan =
@@ -266,7 +301,7 @@ module Json =
 
                 {
                     PlanId = (get.Required.Field planId Decode.string) |> PlanId.create
-                    BillingDimensions = get.Required.Field billingDimensions (Decode.list BillingDimension.Decoder) |> BillingDimensions.create
+                    BillingDimensions = get.Required.Field billingDimensions BillingDimensions.Decoder
                 }
          
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
@@ -355,18 +390,6 @@ module Json =
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
         
-        module CurrentMeterValues = 
-            let turnKeyIntoApplicationInternalMeterName (k, v) =  (k |> ApplicationInternalMeterName.create, v)
-
-            let Encoder (x: CurrentMeterValues) = 
-                x.value
-                |> Map.toList
-                |> List.map (fun (d, m) -> (d.value, m |> MeterValue.Encoder))
-                |> Encode.object
-
-            let Decoder : Decoder<CurrentMeterValues> =
-                (Decode.keyValuePairs MeterValue.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoApplicationInternalMeterName |> Map.ofList |> CurrentMeterValues.create |> Decode.succeed)
-
         module SubscriptionCreationInformation =
             let (subscription) = ("subscription");
 
@@ -662,7 +685,6 @@ module Json =
             let encode (x: Meter) : (string * JsonValue) list =
                 [
                     (subscription, x.Subscription |> Subscription.Encoder)
-                    (currentMeters, x.CurrentMeterValues |> CurrentMeterValues.Encoder)
                     (usageToBeReported, x.UsageToBeReported |> List.map MarketplaceRequest.Encoder |> Encode.list)
                     (lastProcessedMessage, x.LastProcessedMessage |> MessagePosition.Encoder)
                 ]
@@ -670,7 +692,6 @@ module Json =
             let decode (get: Decode.IGetters) : Meter =
                 {
                     Subscription = get.Required.Field subscription Subscription.Decoder
-                    CurrentMeterValues = get.Required.Field currentMeters CurrentMeterValues.Decoder
                     UsageToBeReported = get.Required.Field usageToBeReported (Decode.list MarketplaceRequest.Decoder)
                     LastProcessedMessage = get.Required.Field lastProcessedMessage MessagePosition.Decoder
                 }
@@ -834,11 +855,11 @@ module Json =
         |> Extra.withCustom WaterfallBillingDimensionItem.Encoder WaterfallBillingDimensionItem.Decoder
         |> Extra.withCustom WaterfallBillingDimension.Encoder WaterfallBillingDimension.Decoder
         |> Extra.withCustom BillingDimension.Encoder BillingDimension.Decoder
+        |> Extra.withCustom BillingDimensions.Encoder BillingDimensions.Decoder
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom Plan.Encoder Plan.Decoder
         |> Extra.withCustom InternalUsageEvent.Encoder InternalUsageEvent.Decoder
         |> Extra.withCustom Subscription.Encoder Subscription.Decoder
-        |> Extra.withCustom CurrentMeterValues.Encoder CurrentMeterValues.Decoder
         |> Extra.withCustom SubscriptionCreationInformation.Encoder SubscriptionCreationInformation.Decoder
         |> Extra.withCustom Meter.Encoder Meter.Decoder
         |> Extra.withCustom MeteringUpdateEvent.Encoder MeteringUpdateEvent.Decoder

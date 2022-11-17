@@ -31,9 +31,9 @@ let tier5_500100_and_more = "Overage over 500TB" |> DimensionId.create
 [<Test>]
 let CreateMeterWithIncludedQuantities () =
     let now = MeteringDateTime.now()
-    let consume = WaterfallMeterValue.consume now
-    let createMeterFromDimension = WaterfallMeterValue.createMeterFromDimension now
-
+    let consume = WaterfallMeterLogic.consume now
+    let createMeterFromDimension = WaterfallMeterLogic.createMeterFromDimension now
+    
     let meter =
         [
             { Threshold = GigaByte 100u; DimensionId = tier1_100_10099 }
@@ -42,7 +42,7 @@ let CreateMeterWithIncludedQuantities () =
             { Threshold = TeraByte 100u; DimensionId = tier4_150100_500099 }
             { Threshold = TeraByte 350u; DimensionId = tier5_500100_and_more }
         ]
-        |> (fun tiers -> { ApplicationInternalMeterName = "egress" |> ApplicationInternalMeterName.create; Tiers = tiers })
+        |> (fun tiers -> { Tiers = tiers; Meter = None })
         |> createMeterFromDimension
 
     let expected = 
@@ -84,7 +84,7 @@ let CreateMeterWithIncludedQuantities () =
 [<Test>]
 let CreateMeterWithOutIncludedQuantities () =
     let now = MeteringDateTime.now()
-    let createMeterFromDimension = WaterfallMeterValue.createMeterFromDimension now
+    let createMeterFromDimension = WaterfallMeterLogic.createMeterFromDimension now
     let meter =
         [
             { Threshold = GigaByte   0u; DimensionId = tier0_0_99 }
@@ -94,7 +94,7 @@ let CreateMeterWithOutIncludedQuantities () =
             { Threshold = TeraByte 100u; DimensionId = tier4_150100_500099 }
             { Threshold = TeraByte 350u; DimensionId = tier5_500100_and_more }
         ]
-        |> (fun tiers -> { ApplicationInternalMeterName = "egress" |> ApplicationInternalMeterName.create; Tiers = tiers })
+        |> (fun tiers -> { Tiers = tiers; Meter = None })
         |> createMeterFromDimension
 
     let expected = 
