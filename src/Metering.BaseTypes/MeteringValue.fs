@@ -10,28 +10,48 @@ type MeterValue =
     | WaterfallMeterValue of WaterfallMeterValue
 
 module MeterValue =
-    let newBillingCycle (now: MeteringDateTime) (bd: BillingDimension) : (ApplicationInternalMeterName * MeterValue) =
-        match bd with
-        | SimpleConsumptionBillingDimension x -> 
-            x
-            |> SimpleMeterValue.newBillingCycle now
-            |> (fun (a, b) -> (a, SimpleMeterValue b))
-        | WaterfallBillingDimension x ->
-            x
-            |> WaterfallMeterValue.newBillingCycle now
-            |> (fun (a, b) -> (a, WaterfallMeterValue b))
-    
     let containsReportableQuantities (this: MeterValue) : bool =
         match this with
-        | SimpleMeterValue x -> x |> SimpleMeterValue.containsReportableQuantities 
-        | WaterfallMeterValue x -> x |> WaterfallMeterValue.containsReportableQuantities
+        | SimpleMeterValue x -> x |> SimpleMeterLogic.containsReportableQuantities 
+        | WaterfallMeterValue x -> x |> WaterfallMeterLogic.containsReportableQuantities
     
-    let closeHour (marketplaceResourceId: MarketplaceResourceId) (plan: Plan) (name: ApplicationInternalMeterName) (this: MeterValue): (MarketplaceRequest list * MeterValue) =
+    let getFromDimension (billingDimension: BillingDimension) : MeterValue option =
+        match billingDimension with
+        | SimpleConsumptionBillingDimension x -> x.Meter |> Option.map SimpleMeterValue
+        | WaterfallBillingDimension x -> x.Meter |> Option.map WaterfallMeterValue
+    
+    let closeHour (marketplaceResourceId: MarketplaceResourceId) (planId: PlanId) (name: ApplicationInternalMeterName) (this: BillingDimension): (MarketplaceRequest list * BillingDimension) =
         match this with
-        | SimpleMeterValue x ->    x.closeHour                        marketplaceResourceId plan name |> (fun (requests, newVal) -> (requests, SimpleMeterValue newVal))
-        | WaterfallMeterValue x -> x |> WaterfallMeterValue.closeHour marketplaceResourceId plan name |> (fun (requests, newVal) -> (requests, WaterfallMeterValue newVal))
+        | SimpleConsumptionBillingDimension x -> x |> SimpleMeterLogic.closeHour marketplaceResourceId planId |> (fun (requests, newVal) -> (requests, SimpleConsumptionBillingDimension newVal))
+        | WaterfallBillingDimension x -> x |> WaterfallMeterLogic.closeHour marketplaceResourceId planId |> (fun (requests, newVal) -> (requests, WaterfallBillingDimension newVal))
 
-    let applyConsumption (now: MeteringDateTime) (quantity: Quantity) (this: MeterValue) : MeterValue =
-        match this with
-        | SimpleMeterValue x -> SimpleMeterValue (x.subtractQuantity now quantity)
-        | WaterfallMeterValue x -> WaterfallMeterValue (x |> WaterfallMeterValue.consume now quantity)
+    let applyConsumption (now: MeteringDateTime) (quantity: Quantity) (billingDimension: BillingDimension) : BillingDimension =
+        if not quantity.isAllowedIncomingQuantity 
+        then billingDimension // If the incoming value is not a real (non-negative) number, don't change anything.
+        else        
+            match billingDimension with
+            | SimpleConsumptionBillingDimension simpleDimension -> 
+                let meterValue = 
+                    match simpleDimension.Meter with
+                    | None -> 
+                        simpleDimension
+                        |> SimpleMeterLogic.newBillingCycle now        
+                        |> SimpleMeterLogic.subtractQuantity now quantity
+                    | Some meterValue ->
+                        meterValue
+                        |> SimpleMeterLogic.subtractQuantity now quantity
+                    
+                SimpleConsumptionBillingDimension { simpleDimension with Meter = Some meterValue }
+
+            | WaterfallBillingDimension waterfallDimension ->
+                let meterValue =
+                    match waterfallDimension.Meter with
+                    | None ->
+                        waterfallDimension
+                        |> WaterfallMeterLogic.newBillingCycle now
+                        |> WaterfallMeterLogic.consume now quantity
+                    | Some meterValue -> 
+                        meterValue
+                        |> WaterfallMeterLogic.consume now quantity
+
+                WaterfallBillingDimension { waterfallDimension with Meter = Some meterValue}

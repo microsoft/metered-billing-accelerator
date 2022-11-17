@@ -33,9 +33,20 @@ type SimpleMeterValue =
         match this with
         | ConsumedQuantity cq -> cq.ToString()
         | IncludedQuantity iq -> iq.ToString()
-    
+
+/// The 'simple consumption' represents the most simple Azure Marketplace metering model. 
+/// There is a dimension with included quantities, and once the included quantities are consumed, the overage starts counting.
+type SimpleConsumptionBillingDimension = 
+    { DimensionId: DimensionId
+
+      /// The dimensions configured
+      IncludedQuantity: Quantity 
+
+      Meter: SimpleMeterValue option }
+
+module SimpleMeterLogic =    
     /// Subtracts the given Quantity from a MeterValue 
-    member this.subtractQuantity (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
+    let subtractQuantity (now: MeteringDateTime) (quantity: Quantity) (this: SimpleMeterValue) : SimpleMeterValue =
         this
         |> function
            | ConsumedQuantity consumedQuantity -> 
@@ -53,41 +64,41 @@ type SimpleMeterValue =
                     |> ConsumedQuantity.create now 
                     |> ConsumedQuantity
 
-    static member createIncluded (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
+    let createIncluded (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
         IncludedQuantity { Quantity = quantity; Created = now; LastUpdate = now }
     
-    static member someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: SimpleMeterValue option) : SimpleMeterValue option =
+    let someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: SimpleMeterValue option) : SimpleMeterValue option =
         let subtract quantity (meterValue: SimpleMeterValue) = 
-            meterValue.subtractQuantity currentPosition quantity
+            meterValue |> subtractQuantity currentPosition quantity
         
         current
         |> Option.bind ((subtract quantity) >> Some) 
 
-    static member newBillingCycle (now: MeteringDateTime) (x: SimpleConsumptionBillingDimension) : (ApplicationInternalMeterName * SimpleMeterValue) =
-        (x.ApplicationInternalMeterName, IncludedQuantity { Quantity = x.IncludedQuantity; Created = now; LastUpdate = now })
+    let newBillingCycle (now: MeteringDateTime) (x: SimpleConsumptionBillingDimension) : SimpleMeterValue =
+        IncludedQuantity { Quantity = x.IncludedQuantity; Created = now; LastUpdate = now }
     
-    static member containsReportableQuantities (this: SimpleMeterValue) : bool = 
+    let containsReportableQuantities (this: SimpleMeterValue) : bool = 
         match this with
         | ConsumedQuantity _ -> true
         | _ -> false
 
-    member this.closeHour marketplaceResourceId (plan: Plan) (name: ApplicationInternalMeterName) : (MarketplaceRequest list * SimpleMeterValue) = 
-        match this with
-        | IncludedQuantity _ -> (List.empty, this)
-        | ConsumedQuantity q -> 
-            let dimensionId = 
-                match plan.BillingDimensions.find name with 
-                | SimpleConsumptionBillingDimension x -> x.DimensionId
-                | _ -> failwith "bad dimension"
-            
-            let marketplaceRequest =
-                { MarketplaceResourceId = marketplaceResourceId
-                  PlanId = plan.PlanId
-                  DimensionId = dimensionId
-                  Quantity = q.Amount
-                  EffectiveStartTime = q.LastUpdate |> MeteringDateTime.beginOfTheHour }
-            ( [ marketplaceRequest], ConsumedQuantity (ConsumedQuantity.create (MeteringDateTime.now()) Quantity.Zero))
+    let closeHour marketplaceResourceId (planId: PlanId) (this: SimpleConsumptionBillingDimension) : (MarketplaceRequest list * SimpleConsumptionBillingDimension) = 
+        match this.Meter with
+        | None -> (List.empty, this)
+        | Some meter ->
+            match meter with
+            | IncludedQuantity _ -> (List.empty, this)
+            | ConsumedQuantity q -> 
+                let marketplaceRequest =
+                    { MarketplaceResourceId = marketplaceResourceId
+                      PlanId = planId
+                      DimensionId = this.DimensionId
+                      Quantity = q.Amount
+                      EffectiveStartTime = q.LastUpdate |> MeteringDateTime.beginOfTheHour }
 
-    static member createNewMeterValueDuringBillingPeriod (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
+                let newMeterValue = ConsumedQuantity (ConsumedQuantity.create (MeteringDateTime.now()) Quantity.Zero)
+                ( [ marketplaceRequest ], { this with Meter = Some newMeterValue })
+
+    let createNewMeterValueDuringBillingPeriod (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
         ConsumedQuantity.create now quantity
         |> ConsumedQuantity

@@ -12,31 +12,82 @@
         "renewalInterval": "Monthly",
         "plan": {
           "planId": "free_monthly_yearly",
-          "billingDimensions": [
-            { "name": "nde", "type": "simple", "dimension": "nodecharge",       "included": 1000       },
-            { "name": "cpu", "type": "simple", "dimension": "cpucharge",        "included": "Infinite" },
-            { "name": "dta", "type": "simple", "dimension": "datasourcecharge", "included": 1000       },
-            { "name": "obj", "type": "simple", "dimension": "objectcharge",     "included": 0          },
-            { "name": "msg", "type": "simple", "dimension": "messagecharge",    "included": "10000"    },
-            { "name": "gigabyte_egress", "type": "waterfall", 
+          "billingDimensions": {
+            "cpu": { 
+              "type": "simple",
+              "dimension": "cpucharge",
+              "included": "Infinite",
+              "meter": {
+                "included": { 
+                  "quantity": "Infinite", 
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+              }
+            },
+            "dta": {
+              "type": "simple",
+              "dimension": "datasourcecharge",
+              "included": 1000,
+              "meter": {
+                "included": { 
+                  "quantity": 999,        
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+              }
+            },
+            "msg": { 
+              "type": "simple",
+              "dimension": "messagecharge",
+              "included": "10000",
+              "meter": {
+                "included": {
+                  "quantity": 999.123,  
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+               }
+            },
+            "nde": {  
+              "type": "simple",
+              "dimension": "nodecharge",
+              "included": 1000,
+              "meter": {
+                "included": { 
+                  "quantity": 999,        
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+              }
+            },
+            "obj": {  
+              "type": "simple",
+              "dimension": "objectcharge",
+              "included": 0,
+              "meter": {
+                "included": { 
+                  "quantity": 999,        
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+              }
+            },
+            "gigabyte_egress": { 
+              "type": "waterfall", 
               "tiers": [
                 { "dimension": "egress_tier_1",  "threshold":    100 },
                 { "dimension": "egress_tier_2",  "threshold":  10000 },
                 { "dimension": "egress_tier_3",  "threshold":  40000 },
                 { "dimension": "egress_tier_4",  "threshold": 100000 },
                 { "dimension": "egress_overage", "threshold": 350000 }
-              ]
+              ],
+              "meter": {
+                "total":  100000
+              }
             }
-          ]
+          }
         }
-      },
-      "currentMeters": {
-        "cpu": { "type": "simple", "included": { "quantity": "Infinite", "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } },
-        "dta": { "type": "simple", "included": { "quantity": 999,        "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } },
-        "msg": { "type": "simple", "included": { "quantity": 999.123,    "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } },
-        "nde": { "type": "simple", "included": { "quantity": 999,        "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } },
-        "obj": { "type": "simple", "included": { "quantity": 999,        "created": "2022-01-28T15:36:17Z", "lastUpdate": "2022-01-28T15:36:21Z" } }
-        "gigabyte_egress": { "type": "waterfall" }
       },
       "usageToBeReported": [
         {

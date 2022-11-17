@@ -21,3 +21,6 @@ type Subscription =
           MarketplaceResourceId = marketplaceResourceId
           RenewalInterval = renewalInterval
           SubscriptionStart = subscriptionStart }
+    
+    member this.updateBillingDimensions (dimensions: BillingDimensions) : Subscription =
+        { this with Plan = this.Plan |> (Plan.updateBillingDimensions dimensions) }

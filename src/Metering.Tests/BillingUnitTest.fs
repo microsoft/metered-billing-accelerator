@@ -28,7 +28,7 @@ let runTestVectors test testcases = testcases |> List.indexed |> List.map test |
 
 let somePlan : Plan = 
     { PlanId = "PlanId" |> PlanId.create
-      BillingDimensions = List.empty |> BillingDimensions.create }
+      BillingDimensions = Map.empty |> BillingDimensions.create }
 
 let someManagedAppId = 
     MarketplaceResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
@@ -67,9 +67,10 @@ let ``MeterValue.subtractQuantity``() =
     let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let test (idx, testcase) = 
-        let result = testcase.State.subtractQuantity now testcase.Quantity 
+        
+        let result = testcase.State |> SimpleMeterLogic.subtractQuantity now testcase.Quantity 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
-    
+        
     [
         {
             // deduct without overage
@@ -112,7 +113,7 @@ let ``MeterValue.createIncluded``() =
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
 
     let test (idx, testcase) =
-        let result = SimpleMeterValue.createIncluded now (Quantity.create testcase.Value)
+        let result = SimpleMeterLogic.createIncluded now (Quantity.create testcase.Value)
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [
@@ -184,18 +185,24 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                     PlanId = "plan123" |> PlanId.create
                     BillingDimensions = 
                         [
-                            { 
-                                ApplicationInternalMeterName = ("d1" |> ApplicationInternalMeterName.create)
-                                DimensionId = ("dimension1" |> DimensionId.create)
-                                IncludedQuantity = (1000u |> Quantity.create)
-                            }
-                            { 
-                                ApplicationInternalMeterName = ("freestuff" |> ApplicationInternalMeterName.create)
-                                DimensionId = ("dimension2" |> DimensionId.create)
-                                IncludedQuantity = Quantity.Infinite 
-                            } 
+                            (
+                                "d1" |> ApplicationInternalMeterName.create,
+                                { 
+                                    DimensionId = ("dimension1" |> DimensionId.create)
+                                    IncludedQuantity = (1000u |> Quantity.create)
+                                    Meter = None
+                                })
+                            (
+                                "freestuff" |> ApplicationInternalMeterName.create,
+                                {                                 
+                                    DimensionId = ("dimension2" |> DimensionId.create)
+                                    IncludedQuantity = Quantity.Infinite 
+                                    Meter = None
+                                } 
+                            )
                         ]
-                        |> List.map (fun bd -> SimpleConsumptionBillingDimension bd)
+                        |> List.map (fun (name, bd) -> (name, SimpleConsumptionBillingDimension bd))
+                        |> Map.ofList
                         |> BillingDimensions.create
                 }
                 MarketplaceResourceId = marketplaceResourceId
@@ -233,28 +240,21 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         f mc
         mc
 
-    let getSimpleMeterValue (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : SimpleMeterValue =
-        let dimensionId: DimensionId = dimensionId |> DimensionId.create
+    let getSimpleMeterValue (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (appInternalName: string) : SimpleMeterValue =
+        let appInternalName = appInternalName |> ApplicationInternalMeterName.create
 
         let meter: Meter = mc |> MeterCollection.find marketplaceResourceId
-
-        let billingDimensions: BillingDimensions = meter.Subscription.Plan.BillingDimensions
-
-        let currentSimpleMeterValues : Map<ApplicationInternalMeterName, SimpleMeterValue> = 
-            meter.CurrentMeterValues.value
-            |> Map.toSeq
-            |> Seq.choose (fun (applicationInternalName, meterValue) -> 
-                match meterValue with
-                | SimpleMeterValue s -> Some (applicationInternalName, s)
-                | _ -> None)
-            |> Map.ofSeq
-
-        let theRightDimension : (BillingDimension -> bool) = BillingDimension.hasDimensionId dimensionId
-        match billingDimensions.value |> List.tryFind theRightDimension with
-        | None -> failwith "Could not find?!?"
-        | Some x -> 
-            let applicationInternalMeterName = x |> BillingDimension.applicationInternalMeterName
-            currentSimpleMeterValues |> Map.find applicationInternalMeterName
+        
+        let billingDimension =
+            meter.Subscription.Plan.BillingDimensions.value
+            |> Map.find appInternalName
+            
+        match billingDimension with
+        | SimpleConsumptionBillingDimension x -> 
+            match x.Meter with
+            | Some x -> x
+            | _ -> failwith "Value not set"
+        | _ -> failwith $"Not a {nameof SimpleConsumptionBillingDimension}"
 
     let includes (q: Quantity) (mv: SimpleMeterValue) : unit =
         // Ensures that the given MeterValue is exactly the given quantity
@@ -321,7 +321,6 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
             | Some u -> Assert.AreEqual(sequenceNumber, u.SequenceNumber)
         )
 
-
     let inspectJson (header: string) (a: 'a) : 'a =
         let json = a |> Json.toStr 1
         if String.IsNullOrEmpty header 
@@ -341,12 +340,6 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> check (fun m -> Assert.IsTrue(m |> MeterCollection.contains sub1))
     |> assertIncluded      sub1 "dimension1" (Quantity.create 1000u)
     |> assertIncluded      sub1 "dimension2" Quantity.Infinite
-    |> check (fun m ->
-        m
-        |> MeterCollection.find sub1
-        |> checkSub (fun m ->  Assert.AreEqual(2, m.CurrentMeterValues.value |> Map.count))
-        |> ignore
-    )
     // Up until now, there should nothing to be reported.
     |> assertOverallUsageToBeReported sub1 "dimension1" 0u
     // If we consume 999 out of 1000 included, then 1 included should remain
@@ -580,25 +573,23 @@ let ``Json.ParsePlan`` () =
         """
         {
           "planId": "the_plan",
-          "billingDimensions": [
-            {"name": "literal",  "type": "simple", "dimension": "literal",  "included": 2 },
-            {"name": "quoted",   "type": "simple", "dimension": "quoted",   "included": "1000000" },
-            {"name": "infinite", "type": "simple", "dimension": "infinite", "included": "Infinite" }
-          ]
+          "billingDimensions": {
+            "literal":  { "type": "simple", "dimension": "literal", "included": 2 },
+            "quoted":   { "type": "simple", "dimension": "quoted", "included": "1000000" },
+            "infinite": { "type": "simple", "dimension": "cpucharge", "included": "Infinite" }
+          }
         }
         """
         |> Json.fromStr<Plan>
     Assert.AreEqual("the_plan", p.PlanId.value)
 
-    let check dimensionId expected =
+    let check (appInternalName: string) (expected: Quantity) =
         let actual = 
             p.BillingDimensions.value
-            |> List.choose 
-               (function
-                | SimpleConsumptionBillingDimension x -> Some x
-                | _ -> None)
-            |> List.find (fun x -> x.DimensionId = (DimensionId.create dimensionId))
-            |> (fun x -> x.IncludedQuantity)
+            |> Map.find (appInternalName |> ApplicationInternalMeterName.create)
+            |> function
+                | SimpleConsumptionBillingDimension dim -> dim.IncludedQuantity
+                | _ -> failwith $"Should have been a {nameof(SimpleConsumptionBillingDimension)}"
 
         Assert.AreEqual(expected, actual)
     
