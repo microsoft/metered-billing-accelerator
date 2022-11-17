@@ -83,7 +83,11 @@
                 { "dimension": "egress_overage", "threshold": 350000 }
               ],
               "meter": {
-                "total":  100000
+                "total": 100000,
+                "consumption": {
+                  "egress_tier_1":  5000
+                },
+                "lastUpdate": "2022-01-28T15:36:21Z"
               }
             }
           }
