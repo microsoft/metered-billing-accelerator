@@ -44,14 +44,16 @@ module MeterValue =
                 SimpleConsumptionBillingDimension { simpleDimension with Meter = Some meterValue }
 
             | WaterfallBillingDimension waterfallDimension ->
+                let model = waterfallDimension.Tiers |> WaterfallMeterLogic.expandToFullModel
+
                 let meterValue =
                     match waterfallDimension.Meter with
                     | None ->
                         waterfallDimension
                         |> WaterfallMeterLogic.newBillingCycle now
-                        |> WaterfallMeterLogic.consume now quantity
+                        |> WaterfallMeterLogic.consume model now quantity 
                     | Some meterValue -> 
                         meterValue
-                        |> WaterfallMeterLogic.consume now quantity
+                        |> WaterfallMeterLogic.consume model now quantity
 
                 WaterfallBillingDimension { waterfallDimension with Meter = Some meterValue}

@@ -127,7 +127,6 @@ module Meter =
         match item.Result with
         | Ok success ->  meter |> removeUsageToBeReported success.RequestData 
         | Error error -> meter |> handleUnsuccessfulMeterSubmission error messagePosition
-        
 
     /// Applies the updateBillingDimension function to each BillingDimension
     let applyUpdateToBillingDimensionsInMeter (updateBillingDimension: BillingDimension -> BillingDimension) (meter: Meter) : Meter =
