@@ -6,67 +6,67 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="data\WaterfallDimension.json" />
-    <Content Include="data\messages\subscriptionPurchased.json">
+    <Content Include="data\InternalDataStructures\WaterfallDimension.json" />
+    <None Include="data\InternalDataStructures\SimpleMeterValue.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\SimpleConsumptionBillingDimension.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\BillingDimensions.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\simpleDimension.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\WaterfallBillingDimensionList.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\MeterCollection.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\plan.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceMessages\MarketplaceBatchRequest.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceMessages\MarketplaceBatchResponseDTO.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceMessages\MarketplaceErrorDuplicate.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceMessages\MarketplaceGenericError.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceMessages\MarketplaceRequest.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\MarketplaceMessages\MarketplaceSuccessResponse.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <Content Include="data\InternalMessages\subscriptionPurchased.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="data\messages\subscriptionDeleted3.json">
+    <Content Include="data\InternalMessages\subscriptionDeleted3.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="data\messages\subscriptionDeleted2.json">
+    <Content Include="data\InternalMessages\subscriptionDeleted2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="data\messages\subscriptionDeleted1.json">
+    <Content Include="data\InternalMessages\subscriptionDeleted1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="data\messages\usageReported.json">
+    <Content Include="data\InternalMessages\usageReported.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="data\messages\usageReportedOnlyResourceUri.json">
+    <Content Include="data\InternalMessages\usageReportedOnlyResourceUri.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="data\messages\usageReportedOnlyResourceId.json">
+    <Content Include="data\InternalMessages\usageReportedOnlyResourceId.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="data\SimpleMeterValue.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\SimpleConsumptionBillingDimension.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\BillingDimensions.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\simpleDimension.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\WaterfallBillingDimensionList.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\state.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\plan.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceBatchRequest.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceBatchResponseDTO.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceErrorDuplicate.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceGenericError.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceRequest.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceSuccessResponse.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <Compile Include="BillingUnitTest.fs" />
     <Compile Include="WaterfallUnitTests.fs" />
     <Compile Include="JSONUnitTest.fs" />
