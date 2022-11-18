@@ -121,7 +121,7 @@ let ``InternalDataStructures.ParsePlan`` () =
 
     let check (appInternalName: string) (expected: Quantity) =
         let actual = 
-            p.BillingDimensions.value
+            p.BillingDimensions
             |> Map.find (appInternalName |> ApplicationInternalMeterName.create)
             |> function
                 | SimpleBillingDimension dim -> dim.IncludedQuantity

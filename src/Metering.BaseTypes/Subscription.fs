@@ -16,11 +16,15 @@ type Subscription =
       /// When a certain plan was purchased
       SubscriptionStart: MeteringDateTime }
 
+    member this.updateBillingDimensions (dimensions: BillingDimensions) : Subscription =
+        let newPlan = 
+            this.Plan
+            |> Plan.updateBillingDimensions dimensions
+
+        { this with Plan = newPlan }
+
     static member create plan marketplaceResourceId renewalInterval subscriptionStart =
         { Plan = plan
           MarketplaceResourceId = marketplaceResourceId
           RenewalInterval = renewalInterval
           SubscriptionStart = subscriptionStart }
-    
-    member this.updateBillingDimensions (dimensions: BillingDimensions) : Subscription =
-        { this with Plan = this.Plan |> (Plan.updateBillingDimensions dimensions) }

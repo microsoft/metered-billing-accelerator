@@ -26,37 +26,12 @@ let runTestVectors test testcases = testcases |> List.indexed |> List.map test |
 
 let somePlan : Plan = 
     { PlanId = "PlanId" |> PlanId.create
-      BillingDimensions = Map.empty |> BillingDimensions.create }
+      BillingDimensions = Map.empty }
 
 let someManagedAppId = 
     MarketplaceResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
 
-[<Test>]
-let ``BillingPeriod.createFromIndex`` () =
-    let sub = Subscription.create somePlan someManagedAppId Monthly (d "2021-05-13T12:00:03") 
-
-    Assert.AreEqual(
-        (bp "2|2021-07-13T12:00:03|2021-08-12T12:00:02"),
-        (BillingPeriod.createFromIndex sub 2u))
-
 type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * string); BillingPeriodIndex: uint; Candidate: string; Expected: bool}
-
-[<Test>]
-let ``BillingPeriod.isInBillingPeriod`` () =
-    let test (idx, testcase) =
-        let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan someManagedAppId interval (d purchaseDateStr)
-        let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
-        let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
-        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
-
-    [
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-08-13T12:00:00"; Expected=true}
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-08-15T12:00:00"; Expected=true}
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-09-12T11:59:59"; Expected=true}
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-09-13T12:00:00"; Expected=false}
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=4u; Candidate="2021-09-13T12:00:00"; Expected=true}
-    ] |> runTestVectors test
 
 type MeterValue_subtractQuantityFromMeterValue_Vector = { State: SimpleMeterValue; Quantity: Quantity; Expected: SimpleMeterValue}
 [<Test>]
@@ -130,7 +105,7 @@ let ``MeterValue.createIncluded``() =
 [<Test>]
 let ``BillingPeriod.previousBillingIntervalCanBeClosedNewEvent``() =
     let test (idx, (prev, curEv, expected)) =
-        let result : CloseBillingPeriod = 
+        let result = 
             BillingPeriod.previousBillingIntervalCanBeClosedNewEvent
                 (prev |> MeteringDateTime.fromStr)
                 (curEv |> MeteringDateTime.fromStr)
@@ -138,9 +113,9 @@ let ``BillingPeriod.previousBillingIntervalCanBeClosedNewEvent``() =
         Assert.AreEqual(expected, result, sprintf "Failure test case #%d" idx)
 
     [
-        ("2021-01-10T11:59:58", "2021-01-10T11:59:59", KeepOpen) // Even though we're already 10 seconds in the new hour, the given event belongs to the previous hour, so there might be more
-        ("2021-01-10T11:59:58", "2021-01-10T12:00:00", Close) // The event belongs to a new period, so close it        
-        ("2021-01-10T12:00:00", "2021-01-11T12:00:00", Close) // For whatever reason, we've been sleeping for exactly one day
+        ("2021-01-10T11:59:58", "2021-01-10T11:59:59", false) // Even though we're already 10 seconds in the new hour, the given event belongs to the previous hour, so there might be more
+        ("2021-01-10T11:59:58", "2021-01-10T12:00:00", true) // The event belongs to a new period, so close it        
+        ("2021-01-10T12:00:00", "2021-01-11T12:00:00", true) // For whatever reason, we've been sleeping for exactly one day
     ] |> runTestVectors test
 
 [<Test>]
@@ -224,7 +199,6 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                         ]
                         |> List.map (fun (name, bd) -> (name, SimpleBillingDimension bd))
                         |> Map.ofList
-                        |> BillingDimensions.create
                 }
                 MarketplaceResourceId = marketplaceResourceId
                 RenewalInterval = Monthly
@@ -267,7 +241,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         let meter: Meter = mc |> MeterCollection.find marketplaceResourceId
         
         let billingDimension =
-            meter.Subscription.Plan.BillingDimensions.value
+            meter.Subscription.Plan.BillingDimensions
             |> Map.toSeq
             |> Seq.find (fun (k, v) -> 
                 match v with
