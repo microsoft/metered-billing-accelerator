@@ -3,6 +3,7 @@
 
 namespace Metering.BaseTypes
 
+open NodaTime
 open Metering.BaseTypes.EventHub
 
 type Meter =
@@ -13,9 +14,6 @@ type Meter =
 module Meter =
     let matches (marketplaceResourceId: MarketplaceResourceId) (this: Meter) : bool =
         this.Subscription.MarketplaceResourceId.Matches(marketplaceResourceId)
-
-    let billingDimensions (meter: Meter) : BillingDimensions =
-        meter.Subscription.Plan.BillingDimensions
 
     let updateDimensions (billingDimensions: BillingDimensions) (meter: Meter) : Meter =
         { meter with Subscription = (meter.Subscription.updateBillingDimensions billingDimensions) }
@@ -64,11 +62,14 @@ module Meter =
             meter
             |> updateDimensions updatedDimensions
 
+    let previousBillingIntervalCanBeClosedNewEvent (previous: MeteringDateTime) (eventTime: MeteringDateTime) : bool =
+        previous.Hour <> eventTime.Hour || eventTime - previous >= Duration.FromHours(1.0)
+
     let closeAndDebit (quantity: Quantity) (messagePosition: MessagePosition) (applicationInternalMeterName: ApplicationInternalMeterName) (meter: Meter) : Meter =       
         let closePreviousIntervalIfNeeded : (Meter -> Meter) = 
             let last = meter.LastProcessedMessage.PartitionTimestamp
             let curr = messagePosition.PartitionTimestamp
-            if BillingPeriod.previousBillingIntervalCanBeClosedNewEvent last curr
+            if previousBillingIntervalCanBeClosedNewEvent last curr
             then closePreviousMeteringPeriod
             else id
         
@@ -83,7 +84,7 @@ module Meter =
     let closePreviousHourIfNeeded (partitionTimestamp: MeteringDateTime) (meter: Meter) : Meter =
         let previousTimestamp = meter.LastProcessedMessage.PartitionTimestamp
 
-        if BillingPeriod.previousBillingIntervalCanBeClosedNewEvent previousTimestamp partitionTimestamp 
+        if previousBillingIntervalCanBeClosedNewEvent previousTimestamp partitionTimestamp 
         then meter |> closePreviousMeteringPeriod
         else meter
 
@@ -100,7 +101,7 @@ module Meter =
             // TODO: Submit compensating action for now?
 
             // Now we need to find the correct meter to re-apply the consumption to.
-            let theRightDimension (_: ApplicationInternalMeterName, billingDimension: BillingDimension) : bool = 
+            let theRightDimension (_, billingDimension: BillingDimension) : bool = 
                 billingDimension |> BillingDimension.hasDimensionId expired.RequestData.DimensionId
 
             let nameAndDimension = 
@@ -109,15 +110,8 @@ module Meter =
                 |> Seq.tryFind theRightDimension
 
             match nameAndDimension with
-            | None -> 
-                // It seems the dimension in question isn't part of the plan, that is impossible
-                meter
-            | Some (applicationInternalMeterName, billingDimension) -> 
-                let quantity = expired.RequestData.Quantity
-                let now = messagePosition.PartitionTimestamp
-
-                meter
-                |> closeAndDebit quantity messagePosition applicationInternalMeterName
+            | None -> meter // It seems the dimension in question isn't part of the plan, that is impossible
+            | Some (applicationInternalMeterName, _billingDimension) -> meter |> closeAndDebit expired.RequestData.Quantity messagePosition applicationInternalMeterName
         | Generic _ -> 
             meter
         
@@ -127,14 +121,14 @@ module Meter =
         | Error error -> meter |> handleUnsuccessfulMeterSubmission error messagePosition
 
     /// Applies the updateBillingDimension function to each BillingDimension
-    let applyUpdateToBillingDimensionsInMeter (updateBillingDimension: BillingDimension -> BillingDimension) (meter: Meter) : Meter =
-        let updatedDimensions = meter.Subscription.Plan.BillingDimensions |> BillingDimensions.update updateBillingDimension
+    let applyUpdateToBillingDimensionsInMeter (update: BillingDimension -> BillingDimension) (meter: Meter) : Meter =
+        let updatedDimensions = meter.Subscription.Plan.BillingDimensions |> BillingDimensions.update update
 
         meter
         |> updateDimensions updatedDimensions
 
     let topupMonthlyCreditsOnNewSubscription (now: MeteringDateTime) (meter: Meter) : Meter =
-        let topUp = BillingDimension.newBillingCycle now
+        let topUp: (BillingDimension -> BillingDimension) = BillingDimension.newBillingCycle now
         
         meter
         |> applyUpdateToBillingDimensionsInMeter topUp

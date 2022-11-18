@@ -14,14 +14,6 @@ let Setup () = ()
 
 let d = MeteringDateTime.fromStr
 
-let bp (s: string) : BillingPeriod =
-    s.Split([|'|'|], 3)
-    |> Array.toList
-    |> List.map (fun s -> s.Trim())
-    |> function
-        | [indx; startVal; endVal] -> { Start = (d startVal); End = (d endVal); Index = (uint (Int64.Parse(indx))) }
-        | _ -> failwith "parsing error"
-
 let runTestVectors test testcases = testcases |> List.indexed |> List.map test |> ignore
 
 let somePlan : Plan = 
@@ -103,10 +95,10 @@ let ``MeterValue.createIncluded``() =
     ] |> runTestVectors test
 
 [<Test>]
-let ``BillingPeriod.previousBillingIntervalCanBeClosedNewEvent``() =
+let ``Meter.previousBillingIntervalCanBeClosedNewEvent``() =
     let test (idx, (prev, curEv, expected)) =
         let result = 
-            BillingPeriod.previousBillingIntervalCanBeClosedNewEvent
+            Meter.previousBillingIntervalCanBeClosedNewEvent
                 (prev |> MeteringDateTime.fromStr)
                 (curEv |> MeteringDateTime.fromStr)
         

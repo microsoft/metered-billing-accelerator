@@ -28,7 +28,6 @@
     <Compile Include="InternalUsageEvent.fs" />
     <Compile Include="MeteringValue.fs" />
     <Compile Include="Subscription.fs" />
-    <Compile Include="BillingPeriod.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
     <Compile Include="UnprocessableMessage.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />
