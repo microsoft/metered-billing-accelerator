@@ -66,8 +66,9 @@ type MarketplaceResourceId =
 
     override this.ToString() =
         match (this.ResourceURI, this.ResourceID) with
-        | (Some uri, _ )-> uri
-        | (None, Some resourceId) -> resourceId
+        | (Some uri, None)-> $"resourceUri=\"{uri}\""
+        | (Some uri, Some resourceId )-> $"resourceId=\"{resourceId}\" / resourceUri=\"{uri}\""
+        | (None, Some resourceId) -> $"resourceId=\"{resourceId}\""
         | (None, None) -> failwith "Missing id"
  
     static member from resourceUri resourceId = { ResourceURI = Some resourceUri; ResourceID = Some resourceId }
