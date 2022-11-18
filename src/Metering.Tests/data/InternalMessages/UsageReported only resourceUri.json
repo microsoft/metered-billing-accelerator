@@ -4,7 +4,6 @@
     "resourceUri": "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription",
     "timestamp": "2022-09-19T13:26:22Z",
     "meterName": "cpu",
-    "quantity": 1.0,
-    "properties": {}
+    "quantity": 1.0
   }
 }

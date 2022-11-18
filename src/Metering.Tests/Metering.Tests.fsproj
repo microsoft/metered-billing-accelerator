@@ -6,37 +6,73 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="data\InternalDataStructures\MarketplaceResourceIdList.json">
+    <None Include="data\InternalMessages\SubscriptionPurchased.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="data\InternalDataStructures\MeteringDateTimeList.json">
+    <None Include="data\InternalMessages\SubscriptionDeleted.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="data\InternalDataStructures\QuantityList.json">
+    <None Include="data\InternalMessages\SubscriptionDeleted only resourceUri.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalMessages\SubscriptionDeleted only resourceId.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalMessages\UsageReported.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalMessages\UsageReported only resourceUri.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalMessages\UsageReported only resourceId.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\MeteringDateTime list.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\Quantity list.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\MessagePosition.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\ConsumedQuantity.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\IncludedQuantity.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\SimpleMeterValue list.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\SimpleConsumptionBillingDimension list.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\WaterfallMeterValue.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\InternalDataStructures\WaterfallDimension.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="data\InternalDataStructures\SimpleMeterValue.json">
+    <None Include="data\InternalDataStructures\WaterfallBillingDimension list.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="data\InternalDataStructures\SimpleConsumptionBillingDimension.json">
+    <None Include="data\InternalDataStructures\MarketplaceResourceId list.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\InternalUsageEvent list.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\SimpleDimension.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\InternalDataStructures\BillingDimensions.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="data\InternalDataStructures\simpleDimension.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\WaterfallBillingDimensionList.json">
+    <None Include="data\InternalDataStructures\Plan.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\InternalDataStructures\MeterCollection.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\plan.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\MarketplaceMessages\MarketplaceBatchRequest.json">
@@ -57,30 +93,9 @@
     <None Include="data\MarketplaceMessages\MarketplaceSuccessResponse.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="data\InternalMessages\subscriptionPurchased.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\subscriptionDeleted3.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\subscriptionDeleted2.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\subscriptionDeleted1.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\usageReported.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\usageReportedOnlyResourceUri.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\usageReportedOnlyResourceId.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <Compile Include="BillingUnitTest.fs" />
     <Compile Include="WaterfallUnitTests.fs" />
-    <Compile Include="JSONUnitTest.fs" />
+    <Compile Include="SerializationUnitTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

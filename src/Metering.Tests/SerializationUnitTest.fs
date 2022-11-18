@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-module Metering.NUnitTests.JSON
+module Metering.NUnitTests.Serialization
 
 open System.IO
 open NUnit.Framework
 open Metering.BaseTypes
+open Metering.BaseTypes.EventHub
 open Metering.BaseTypes.WaterfallTypes
 
 [<SetUp>]
@@ -28,31 +29,67 @@ let private roundTrip<'T> (filename: string) =
     Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
 
 [<Test>]
-let ``InternalDataStructures.MeteringDateTime list`` () = roundTrip<MeteringDateTime list> "InternalDataStructures/MeteringDateTimeList.json"
+let ``InternalMessages.UsageReported`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/UsageReported.json"
 
 [<Test>]
-let ``InternalDataStructures.MarketplaceResourceIdList list`` () = roundTrip<MarketplaceResourceId list> "InternalDataStructures/MarketplaceResourceIdList.json"
+let ``InternalMessages.UsageReported only resourceUri`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/UsageReported only resourceUri.json"
 
 [<Test>]
-let ``InternalDataStructures.BillingDimension`` () = roundTrip<BillingDimension> "InternalDataStructures/simpleDimension.json"
+let ``InternalMessages.UsageReported only resourceId`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/UsageReported only resourceId.json"
+
+[<Test>]
+let ``InternalMessages.SubscriptionDeleted`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionDeleted.json"
+
+[<Test>]
+let ``InternalMessages.SubscriptionDeleted only resourceUri`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionDeleted only resourceUri.json"
+
+[<Test>]
+let ``InternalMessages.SubscriptionDeleted only resourceId`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionDeleted only resourceId.json"
+
+[<Test>]
+let ``InternalMessages.SubscriptionPurchased`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionPurchased.json"
+
+[<Test>]
+let ``InternalDataStructures.MeteringDateTime list`` () = roundTrip<MeteringDateTime list> "InternalDataStructures/MeteringDateTime list.json"
+
+[<Test>]
+let ``InternalDataStructures.Quantity list`` () = roundTrip<Quantity list> "InternalDataStructures/Quantity list.json"
+
+[<Test>]
+let ``InternalDataStructures.MessagePosition`` () = roundTrip<MessagePosition> "InternalDataStructures/MessagePosition.json"
+
+[<Test>]
+let ``InternalDataStructures.ConsumedQuantity`` () = roundTrip<ConsumedQuantity> "InternalDataStructures/ConsumedQuantity.json"
+
+[<Test>]
+let ``InternalDataStructures.IncludedQuantity`` () = roundTrip<IncludedQuantity> "InternalDataStructures/IncludedQuantity.json"
+
+[<Test>]
+let ``InternalDataStructures.SimpleMeterValue list`` () = roundTrip<SimpleMeterValue list> "InternalDataStructures/SimpleMeterValue list.json"
+
+[<Test>]
+let ``InternalDataStructures.SimpleConsumptionBillingDimension list`` () = roundTrip<SimpleConsumptionBillingDimension list> "InternalDataStructures/SimpleConsumptionBillingDimension list.json"
+
+[<Test>]
+let ``InternalDataStructures.WaterfallMeterValue`` () = roundTrip<WaterfallMeterValue> "InternalDataStructures/WaterfallMeterValue.json"
+
+[<Test>]
+let ``InternalDataStructures.WaterfallBillingDimension List`` () = roundTrip<WaterfallBillingDimension list> "InternalDataStructures/WaterfallBillingDimension list.json"
+
+[<Test>]
+let ``InternalDataStructures.MarketplaceResourceIdList list`` () = roundTrip<MarketplaceResourceId list> "InternalDataStructures/MarketplaceResourceId list.json"
+
+[<Test>]
+let ``InternalDataStructures.InternalUsageEvent list`` () = roundTrip<InternalUsageEvent list> "InternalDataStructures/InternalUsageEvent list.json"
+
+[<Test>]
+let ``InternalDataStructures.BillingDimension`` () = roundTrip<BillingDimension> "InternalDataStructures/SimpleDimension.json"
 
 [<Test>]
 let ``InternalDataStructures.BillingDimensions`` () = roundTrip<BillingDimensions> "InternalDataStructures/BillingDimensions.json"
 
 [<Test>]
-let ``InternalDataStructures.SimpleConsumptionBillingDimension list`` () = roundTrip<SimpleConsumptionBillingDimension list> "InternalDataStructures/SimpleConsumptionBillingDimension.json"
-
-[<Test>]
-let ``InternalDataStructures.SimpleMeterValue list`` () = roundTrip<SimpleMeterValue list> "InternalDataStructures/SimpleMeterValue.json"
-
-[<Test>]
-let ``InternalDataStructures.WaterfallBillingDimension List`` () = roundTrip<WaterfallBillingDimension list> "InternalDataStructures/WaterfallBillingDimensionList.json"
-
-[<Test>]
-let ``InternalDataStructures.Plan`` () = roundTrip<Plan> "InternalDataStructures/plan.json"
-
-[<Test>]
-let ``InternalDataStructures.MeterCollection`` () = roundTrip<MeterCollection> "InternalDataStructures/MeterCollection.json"
+let ``InternalDataStructures.Plan`` () = roundTrip<Plan> "InternalDataStructures/Plan.json"
 
 [<Test>]
 let ``InternalDataStructures.ParsePlan`` () =
@@ -83,6 +120,9 @@ let ``InternalDataStructures.ParsePlan`` () =
     check "infinite" Quantity.Infinite
     check "literal" (Quantity.create 2u)
     check "quoted" (Quantity.create 1000000u)
+
+[<Test>]
+let ``InternalDataStructures.MeterCollection`` () = roundTrip<MeterCollection> "InternalDataStructures/MeterCollection.json"
 
 [<Test>]
 let ``Marketplace.Request`` () = roundTrip<MarketplaceRequest> "MarketplaceMessages/MarketplaceRequest.json"
@@ -117,15 +157,3 @@ let ``Marketplace.BatchRequest`` () = roundTrip<MarketplaceBatchRequest> "Market
 [<Test>]
 let ``Marketplace.BatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceMessages/MarketplaceBatchResponseDTO.json"
 
-[<Test>]
-let ``InternalMessages.MeteringUpdateEvent`` () = 
-    [
-        "usageReported"
-        "usageReportedOnlyResourceUri"
-        "usageReportedOnlyResourceId"
-        "subscriptionDeleted1"
-        "subscriptionDeleted2"
-        "subscriptionDeleted3"
-        "subscriptionPurchased"
-    ]
-    |> List.iter (fun name -> roundTrip<MeteringUpdateEvent> $"InternalMessages/{name}.json")

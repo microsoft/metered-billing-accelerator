@@ -334,32 +334,42 @@ module Json =
                 ("timestamp", "meterName", "quantity", "properties");
 
             let encode (x: InternalUsageEvent) : (string * JsonValue) list =
-                let EncodeProperties (x: (Map<string, string> option)) = 
-                    x
-                    |> Option.defaultWith (fun () -> Map.empty)
-                    |> Map.toSeq |> Seq.toList<string * string>
-                    |> List.map (fun (k,v) -> (k, v |> Encode.string))
-                    |> Encode.object
-
                 (x.MarketplaceResourceId |> MarketplaceResourceId.encode)
                 |> List.append [
                     (timestamp, x.Timestamp |> MeteringDateTime.Encoder)
                     (meterName, x.MeterName.value |> Encode.string)
                     (quantity, x.Quantity |> Quantity.Encoder)
-                    (properties, x.Properties |> EncodeProperties)
                 ]
+                |> (fun l -> 
+                    match x.Properties with
+                    | Some props when props.Count > 0 -> 
+                        (
+                            properties, 
+                            props
+                            |> Map.toSeq
+                            |> Seq.toList<string * string>
+                            |> List.map (fun (k,v) -> (k, v |> Encode.string))
+                            |> Encode.object
+                        ) :: l
+                    | _ -> l
+                )
 
             let decode (get: Decode.IGetters) : InternalUsageEvent =
                 let DecodeProperties : Decoder<Map<string,string>> =
                     (Decode.keyValuePairs Decode.string)
                     |> Decode.andThen (Map.ofList >> Decode.succeed)
 
+                let properties =
+                    match get.Optional.Field properties DecodeProperties with
+                    | Some props when props.Count > 0 -> Some props
+                    | _ -> None
+
                 {
                     MarketplaceResourceId = get |> MarketplaceResourceId.decode 
                     Timestamp = get.Required.Field timestamp MeteringDateTime.Decoder
                     MeterName = (get.Required.Field meterName Decode.string) |> ApplicationInternalMeterName.create
                     Quantity = get.Required.Field quantity Quantity.Decoder
-                    Properties = get.Optional.Field properties DecodeProperties
+                    Properties = properties
                 }
         
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
@@ -774,7 +784,7 @@ module Json =
                 | "UsageSubmittedToAPI" -> (get.Required.Field value MarketplaceResponse.Decoder) |> UsageSubmittedToAPI
                 | "UnprocessableMessage" -> (get.Required.Field value UnprocessableMessage.Decoder) |> UnprocessableMessage
                 | "RemoveUnprocessedMessages" -> (get.Required.Field value RemoveUnprocessedMessages.Decoder) |> RemoveUnprocessedMessages
-                | _ -> failwith "bad"
+                | unknownEventName -> failwith $"Cannot handle unknown {nameof MeteringUpdateEvent} of type {typeid}=\"{unknownEventName}\""
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
