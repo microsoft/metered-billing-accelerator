@@ -66,8 +66,13 @@ let CreateMeterWithIncludedQuantities () =
         
     Assert.AreEqual(expectedModel, model)
 
+    let dimension = 
+        { Tiers = incrementalDescription
+          Meter = None 
+          Model = Some model }
+    
     let now = MeteringDateTime.now()
-    let consume = WaterfallMeterLogic.consume model now 
+    let consume = WaterfallMeterLogic.consume dimension now 
     let meter = 
         { 
           Total = Quantity.Zero
