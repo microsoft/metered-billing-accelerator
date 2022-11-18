@@ -222,7 +222,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                                 } 
                             )
                         ]
-                        |> List.map (fun (name, bd) -> (name, SimpleConsumptionBillingDimension bd))
+                        |> List.map (fun (name, bd) -> (name, SimpleBillingDimension bd))
                         |> Map.ofList
                         |> BillingDimensions.create
                 }
@@ -271,16 +271,16 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
             |> Map.toSeq
             |> Seq.find (fun (k, v) -> 
                 match v with
-                | SimpleConsumptionBillingDimension x -> x.DimensionId = dimensionId
+                | SimpleBillingDimension x -> x.DimensionId = dimensionId
                 | _ -> false)
             |> (fun (_, v) -> v)
             
         match billingDimension with
-        | SimpleConsumptionBillingDimension x -> 
+        | SimpleBillingDimension x -> 
             match x.Meter with
             | Some x -> x
             | _ -> failwith "Value not set"
-        | _ -> failwith $"Not a {nameof SimpleConsumptionBillingDimension}"
+        | _ -> failwith $"Not a {nameof SimpleBillingDimension}"
 
     let includes (q: Quantity) (mv: SimpleMeterValue) : unit =
         // Ensures that the given MeterValue is exactly the given quantity

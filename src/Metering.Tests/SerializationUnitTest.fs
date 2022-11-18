@@ -77,7 +77,7 @@ let ``InternalDataStructures.IncludedQuantity`` () = roundTrip<IncludedQuantity>
 let ``InternalDataStructures.SimpleMeterValue list`` () = roundTrip<SimpleMeterValue list> "InternalDataStructures/SimpleMeterValue list.json"
 
 [<Test>]
-let ``InternalDataStructures.SimpleConsumptionBillingDimension list`` () = roundTrip<SimpleConsumptionBillingDimension list> "InternalDataStructures/SimpleConsumptionBillingDimension list.json"
+let ``InternalDataStructures.SimpleBillingDimension list`` () = roundTrip<SimpleBillingDimension list> "InternalDataStructures/SimpleBillingDimension list.json"
 
 [<Test>]
 let ``InternalDataStructures.WaterfallMeterValue`` () = roundTrip<WaterfallMeterValue> "InternalDataStructures/WaterfallMeterValue.json"
@@ -124,8 +124,8 @@ let ``InternalDataStructures.ParsePlan`` () =
             p.BillingDimensions.value
             |> Map.find (appInternalName |> ApplicationInternalMeterName.create)
             |> function
-                | SimpleConsumptionBillingDimension dim -> dim.IncludedQuantity
-                | _ -> failwith $"Should have been a {nameof(SimpleConsumptionBillingDimension)}"
+                | SimpleBillingDimension dim -> dim.IncludedQuantity
+                | _ -> failwith $"Should have been a {nameof(SimpleBillingDimension)}"
 
         Assert.AreEqual(expected, actual)
     
