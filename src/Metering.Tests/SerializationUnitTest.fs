@@ -29,6 +29,9 @@ let private roundTrip<'T> (filename: string) =
     Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
 
 [<Test>]
+let ``InternalMessages.SubscriptionPurchased`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionPurchased.json"
+
+[<Test>]
 let ``InternalMessages.UsageReported`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/UsageReported.json"
 
 [<Test>]
@@ -47,7 +50,10 @@ let ``InternalMessages.SubscriptionDeleted only resourceUri`` () = roundTrip<Met
 let ``InternalMessages.SubscriptionDeleted only resourceId`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionDeleted only resourceId.json"
 
 [<Test>]
-let ``InternalMessages.SubscriptionPurchased`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionPurchased.json"
+let ``InternalMessages.RemoveUnprocessedMessages beforeIncluding`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/RemoveUnprocessedMessages beforeIncluding.json"
+
+[<Test>]
+let ``InternalMessages.RemoveUnprocessedMessages exactly`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/RemoveUnprocessedMessages exactly.json"
 
 [<Test>]
 let ``InternalDataStructures.MeteringDateTime list`` () = roundTrip<MeteringDateTime list> "InternalDataStructures/MeteringDateTime list.json"
@@ -87,6 +93,9 @@ let ``InternalDataStructures.BillingDimension`` () = roundTrip<BillingDimension>
 
 [<Test>]
 let ``InternalDataStructures.BillingDimensions`` () = roundTrip<BillingDimensions> "InternalDataStructures/BillingDimensions.json"
+
+[<Test>]
+let ``InternalDataStructures.Subscription list`` () = roundTrip<Subscription list> "InternalDataStructures/Subscription list.json"
 
 [<Test>]
 let ``InternalDataStructures.Plan`` () = roundTrip<Plan> "InternalDataStructures/Plan.json"
