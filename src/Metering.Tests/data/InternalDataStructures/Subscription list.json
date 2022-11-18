@@ -1,0 +1,34 @@
+[
+  {
+    "resourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
+    "subscriptionStart": "2021-12-14T18:20:00Z",
+    "renewalInterval": "Monthly",
+    "plan": {
+      "planId": "free_monthly_yearly",
+      "billingDimensions": {
+        "cpu": { "type": "simple", "dimension": "cpucharge", "included": "Infinite" },
+        "gigabyte_egress": { "type": "waterfall", "tiers": [
+            { "dimension": "egress_tier_1", "threshold": 100 },
+            { "dimension": "egress_tier_2", "threshold": 10000 }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "resourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
+    "resourceUri": "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription",
+    "subscriptionStart": "2021-12-14T18:20:00Z",
+    "renewalInterval": "Monthly",
+    "plan": {
+      "planId": "free_monthly_yearly_simple",
+      "billingDimensions": {
+        "cpu": {
+          "type": "simple",
+          "dimension": "cpucharge",
+          "included": "Infinite"
+        }
+      }
+    }
+  }
+]

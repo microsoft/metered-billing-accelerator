@@ -27,6 +27,12 @@
     <None Include="data\InternalMessages\UsageReported only resourceId.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="data\InternalMessages\RemoveUnprocessedMessages beforeIncluding.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalMessages\RemoveUnprocessedMessages exactly.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\InternalDataStructures\MeteringDateTime list.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -67,6 +73,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\InternalDataStructures\BillingDimensions.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\Subscription list.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\InternalDataStructures\Plan.json">
