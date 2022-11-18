@@ -48,6 +48,8 @@ type WaterfallIncrementalDescription =
 
 type WaterfallBillingDimension =
     { Tiers: WaterfallIncrementalDescription
+      
+      Model: WaterfallExpandedModel option
 
       Meter: WaterfallMeterValue option }
 
@@ -134,8 +136,15 @@ module WaterfallMeterLogic =
   let setTotal (newTotal: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue = 
     { meter with Total = newTotal }
 
-  let consume (model: WaterfallExpandedModel) (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
-    findRange meter.Total model
+  let getModel (waterfallDimension: WaterfallBillingDimension) : WaterfallExpandedModel =
+    match waterfallDimension.Model with
+    | None -> waterfallDimension.Tiers |> expandToFullModel
+    | Some model -> model
+
+  let consume (waterfallDimension: WaterfallBillingDimension) (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
+    waterfallDimension
+    |> getModel
+    |> findRange meter.Total
     |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption } 
     |> fun agg ->
         { meter with 
@@ -164,3 +173,8 @@ module WaterfallMeterLogic =
             |> Seq.toList
         let newMeter =  { meter with Consumption = Map.empty }
         (consumption, { this with Meter = Some newMeter })
+
+  let createBillingDimension (tiers: WaterfallIncrementalDescription) meter : WaterfallBillingDimension =
+    { Tiers = tiers
+      Model = tiers |> expandToFullModel |> Some
+      Meter = meter }

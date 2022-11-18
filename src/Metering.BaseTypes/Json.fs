@@ -238,7 +238,6 @@ module Json =
             let encode (x: WaterfallBillingDimension) : (string * JsonValue) list =
                 [
                     (tiers, x.Tiers |> List.map (fun x -> x |> WaterfallBillingDimensionItem.Encoder) |> Encode.list)
-                    //(meter, x.Meter )
                 ]
                 |> (fun l -> 
                     match x.Meter with
@@ -246,10 +245,9 @@ module Json =
                     | Some m -> (meter, m |> WaterfallMeterValue.Encoder) :: l)
             
             let decode (get: Decode.IGetters) : WaterfallBillingDimension =
-                {
-                    Tiers = get.Required.Field tiers (Decode.list WaterfallBillingDimensionItem.Decoder)
-                    Meter = get.Optional.Field meter WaterfallMeterValue.Decoder
-                }
+                WaterfallMeterLogic.createBillingDimension 
+                     (get.Required.Field tiers (Decode.list WaterfallBillingDimensionItem.Decoder))
+                     (get.Optional.Field meter WaterfallMeterValue.Decoder)
          
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode      
 
