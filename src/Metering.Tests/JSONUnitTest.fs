@@ -31,6 +31,9 @@ let private roundTrip<'T> (filename: string) =
 let ``InternalDataStructures.BillingDimension`` () = roundTrip<BillingDimension> "InternalDataStructures/simpleDimension.json"
 
 [<Test>]
+let ``InternalDataStructures.Quantity list`` () = roundTrip<Quantity list> "InternalDataStructures/QuantityList.json"
+
+[<Test>]
 let ``InternalDataStructures.BillingDimensions`` () = roundTrip<BillingDimensions> "InternalDataStructures/BillingDimensions.json"
 
 [<Test>]
