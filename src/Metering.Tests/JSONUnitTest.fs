@@ -28,74 +28,28 @@ let private roundTrip<'T> (filename: string) =
     Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
 
 [<Test>]
-let ``Json.MarketplaceRequest`` () = roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
+let ``InternalDataStructures.BillingDimension`` () = roundTrip<BillingDimension> "InternalDataStructures/simpleDimension.json"
 
 [<Test>]
-let ``Json.MarketplaceSuccessResponseMarketplaceSuccessResponse`` () = roundTrip<MarketplaceSuccessResponse> "MarketplaceSuccessResponse.json"
+let ``InternalDataStructures.BillingDimensions`` () = roundTrip<BillingDimensions> "InternalDataStructures/BillingDimensions.json"
 
 [<Test>]
-let ``Json.MarketplaceSubmissionResultMarketplaceSuccessResponse`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceSuccessResponse.json"
+let ``InternalDataStructures.SimpleConsumptionBillingDimension list`` () = roundTrip<SimpleConsumptionBillingDimension list> "InternalDataStructures/SimpleConsumptionBillingDimension.json"
 
 [<Test>]
-let ``Json.MarketplaceErrorDuplicateMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceErrorDuplicate> "MarketplaceErrorDuplicate.json"
+let ``InternalDataStructures.SimpleMeterValue list`` () = roundTrip<SimpleMeterValue list> "InternalDataStructures/SimpleMeterValue.json"
 
 [<Test>]
-let ``Json.MarketplaceGenericErrorMarketplaceGenericError`` () = roundTrip<MarketplaceGenericError> "MarketplaceGenericError.json"
+let ``InternalDataStructures.WaterfallBillingDimension List`` () = roundTrip<WaterfallBillingDimension list> "InternalDataStructures/WaterfallBillingDimensionList.json"
 
 [<Test>]
-let ``Json.MarketplaceSubmissionErrorMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceSubmissionError> "MarketplaceErrorDuplicate.json"
+let ``InternalDataStructures.Plan`` () = roundTrip<Plan> "InternalDataStructures/plan.json"
 
 [<Test>]
-let ``Json.MarketplaceSubmissionResultMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceErrorDuplicate.json"
+let ``InternalDataStructures.MeterCollection`` () = roundTrip<MeterCollection> "InternalDataStructures/MeterCollection.json"
 
 [<Test>]
-let ``Json.MarketplaceSubmissionErrorMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionError> "MarketplaceGenericError.json"
-
-[<Test>]
-let ``Json.MarketplaceSubmissionResultMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceGenericError.json"
-
-[<Test>]
-let ``Json.BillingDimensionSimple`` () = roundTrip<BillingDimension> "simpleDimension.json"
-
-[<Test>]
-let ``Json.MarketplaceBatchRequest`` () = roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
-
-[<Test>]
-let ``Json.MarketplaceBatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
-
-[<Test>]
-let ``Json.BillingDimensionsDTO`` () = roundTrip<BillingDimensions> "BillingDimensions.json"
-
-[<Test>]
-let ``Json.SimpleConsumptionBillingDimension`` () = roundTrip<SimpleConsumptionBillingDimension list> "SimpleConsumptionBillingDimension.json"
-
-[<Test>]
-let ``Json.SimpleMeterValueList`` () = roundTrip<SimpleMeterValue list> "SimpleMeterValue.json"
-
-[<Test>]
-let ``Json.WaterfallBillingDimensionList`` () = roundTrip<WaterfallBillingDimension list> "WaterfallBillingDimensionList.json"
-
-[<Test>]
-let ``Json.MeteringUpdateEvent`` () = 
-    [
-        "usageReported"
-        "usageReportedOnlyResourceUri"
-        "usageReportedOnlyResourceId"
-        "subscriptionDeleted1"
-        "subscriptionDeleted2"
-        "subscriptionDeleted3"
-        "subscriptionPurchased"
-    ]
-    |> List.iter (fun name -> roundTrip<MeteringUpdateEvent> $"messages/{name}.json")
-
-[<Test>]
-let ``Json.plan`` () = roundTrip<Plan> "plan.json"
-
-[<Test>]
-let ``Json.state`` () = roundTrip<MeterCollection> "state.json"
-
-[<Test>]
-let ``Json.ParsePlan`` () =
+let ``InternalDataStructures.ParsePlan`` () =
     let p =
         """
         {
@@ -124,3 +78,48 @@ let ``Json.ParsePlan`` () =
     check "literal" (Quantity.create 2u)
     check "quoted" (Quantity.create 1000000u)
 
+[<Test>]
+let ``Marketplace.Request`` () = roundTrip<MarketplaceRequest> "MarketplaceMessages/MarketplaceRequest.json"
+
+[<Test>]
+let ``Marketplace.SuccessResponseMarketplaceSuccessResponse`` () = roundTrip<MarketplaceSuccessResponse> "MarketplaceMessages/MarketplaceSuccessResponse.json"
+
+[<Test>]
+let ``Marketplace.SubmissionResultMarketplaceSuccessResponse`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceMessages/MarketplaceSuccessResponse.json"
+
+[<Test>]
+let ``Marketplace.ErrorDuplicateMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceErrorDuplicate> "MarketplaceMessages/MarketplaceErrorDuplicate.json"
+
+[<Test>]
+let ``Marketplace.GenericErrorMarketplaceGenericError`` () = roundTrip<MarketplaceGenericError> "MarketplaceMessages/MarketplaceGenericError.json"
+
+[<Test>]
+let ``Marketplace.SubmissionErrorMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceSubmissionError> "MarketplaceMessages/MarketplaceErrorDuplicate.json"
+
+[<Test>]
+let ``Marketplace.SubmissionResultMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceMessages/MarketplaceErrorDuplicate.json"
+
+[<Test>]
+let ``Marketplace.SubmissionErrorMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionError> "MarketplaceMessages/MarketplaceGenericError.json"
+
+[<Test>]
+let ``Marketplace.SubmissionResultMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceMessages/MarketplaceGenericError.json"
+
+[<Test>]
+let ``Marketplace.BatchRequest`` () = roundTrip<MarketplaceBatchRequest> "MarketplaceMessages/MarketplaceBatchRequest.json"
+
+[<Test>]
+let ``Marketplace.BatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceMessages/MarketplaceBatchResponseDTO.json"
+
+[<Test>]
+let ``InternalMessages.MeteringUpdateEvent`` () = 
+    [
+        "usageReported"
+        "usageReportedOnlyResourceUri"
+        "usageReportedOnlyResourceId"
+        "subscriptionDeleted1"
+        "subscriptionDeleted2"
+        "subscriptionDeleted3"
+        "subscriptionPurchased"
+    ]
+    |> List.iter (fun name -> roundTrip<MeteringUpdateEvent> $"InternalMessages/{name}.json")
