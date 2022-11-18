@@ -19,9 +19,7 @@
     <Compile Include="Quantity.fs" />
     <Compile Include="RenewalInterval.fs" />
     <Compile Include="MarketplaceResourceId.fs" />
-    <Compile Include="PlanId.fs" />
-    <Compile Include="DimensionId.fs" />
-    <Compile Include="ApplicationInternalMeterName.fs" />
+    <Compile Include="StringTypes.fs" />
     <Compile Include="MarketplaceStructures.fs" />
     <Compile Include="SimpleBilling.fs" />
     <Compile Include="WaterfallBilling.fs" />
