@@ -37,7 +37,7 @@
     <None Include="data\InternalDataStructures\ConsumedQuantity.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\IncludedQuantity.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\SimpleMeterValue list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
-    <None Include="data\InternalDataStructures\SimpleConsumptionBillingDimension list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\SimpleBillingDimension list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\WaterfallMeterValue.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\WaterfallDimension.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\WaterfallBillingDimension list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
