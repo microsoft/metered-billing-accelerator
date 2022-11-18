@@ -1,112 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <IsPackable>false</IsPackable>
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
-  <ItemGroup>
-    <None Include="data\InternalMessages\SubscriptionPurchased.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\SubscriptionDeleted.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\SubscriptionDeleted only resourceUri.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\SubscriptionDeleted only resourceId.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\UsageReported.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\UsageReported only resourceUri.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\UsageReported only resourceId.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\RemoveUnprocessedMessages beforeIncluding.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalMessages\RemoveUnprocessedMessages exactly.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\MeteringDateTime list.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\Quantity list.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\MessagePosition.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\ConsumedQuantity.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\IncludedQuantity.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\SimpleMeterValue list.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\SimpleConsumptionBillingDimension list.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\WaterfallMeterValue.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\WaterfallDimension.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\WaterfallBillingDimension list.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\MarketplaceResourceId list.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\InternalUsageEvent list.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\SimpleDimension.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\BillingDimensions.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\Subscription list.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\Plan.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\InternalDataStructures\MeterCollection.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceMessages\MarketplaceBatchRequest.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceMessages\MarketplaceBatchResponseDTO.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceMessages\MarketplaceErrorDuplicate.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceMessages\MarketplaceGenericError.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceMessages\MarketplaceRequest.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="data\MarketplaceMessages\MarketplaceSuccessResponse.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <Compile Include="BillingUnitTest.fs" />
-    <Compile Include="WaterfallUnitTests.fs" />
-    <Compile Include="SerializationUnitTest.fs" />
-    <Compile Include="Program.fs" />
-  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
     <PackageReference Include="NUnit" Version="3.13.3" />
@@ -117,9 +15,48 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="7.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="7.0.0" />
+    <None Include="data\InternalMessages\SubscriptionPurchased.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\SubscriptionDeleted.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\SubscriptionDeleted only resourceUri.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\SubscriptionDeleted only resourceId.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\UsageReported.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\UsageReported only resourceUri.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\UsageReported only resourceId.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\RemoveUnprocessedMessages beforeIncluding.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\RemoveUnprocessedMessages exactly.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\MeteringDateTime list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\Quantity list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\RenewalInterval list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\MessagePosition.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\ConsumedQuantity.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\IncludedQuantity.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\SimpleMeterValue list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\SimpleConsumptionBillingDimension list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\WaterfallMeterValue.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\WaterfallDimension.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\WaterfallBillingDimension list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\MarketplaceResourceId list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\InternalUsageEvent list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\SimpleDimension.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\BillingDimensions.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\Subscription list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\Plan.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalDataStructures\MeterCollection.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\MarketplaceMessages\MarketplaceRequest.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\MarketplaceMessages\MarketplaceBatchRequest.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\MarketplaceMessages\MarketplaceSuccessResponse.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\MarketplaceMessages\MarketplaceErrorDuplicate.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\MarketplaceMessages\MarketplaceGenericError.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\MarketplaceMessages\MarketplaceBatchResponseDTO.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <Compile Include="BillingUnitTest.fs" />
+    <Compile Include="WaterfallUnitTests.fs" />
+    <Compile Include="SerializationUnitTest.fs" />
+    <Compile Include="Program.fs" />
   </ItemGroup>
 </Project>
