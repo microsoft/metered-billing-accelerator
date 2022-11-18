@@ -20,7 +20,7 @@ type WaterfallModelRow =
     | Range of WaterfallModelRange
     | Overage of WaterfallOverageOverage
 
-type WaterfallModel = 
+type WaterfallExpandedModel = 
     WaterfallModelRow list
 
 type WaterfallMeterValue =
@@ -43,14 +43,16 @@ type WaterfallBillingDimensionItem =
     { Threshold: Quantity
       DimensionId: DimensionId }
 
+type WaterfallIncrementalDescription =
+    WaterfallBillingDimensionItem list
+
 type WaterfallBillingDimension =
-    { /// The dimension as Marketplace knows it.
-      Tiers: WaterfallBillingDimensionItem list 
+    { Tiers: WaterfallIncrementalDescription
 
       Meter: WaterfallMeterValue option }
 
 module WaterfallMeterLogic =
-  let expandToFullModel (waterfallTiers: WaterfallBillingDimensionItem list) : WaterfallModel =
+  let expandToFullModel (waterfallTiers: WaterfallIncrementalDescription) : WaterfallExpandedModel =
     let len = waterfallTiers |> List.length
 
     let expanded =
@@ -94,7 +96,7 @@ module WaterfallMeterLogic =
     | Overage x -> (x.DimensionId, $"[{x.LowerIncluding} <= x < Infinity)")
 
     /// Identify the ranges into which the amount might fit.  
-  let findRange (amount: Quantity) (model: WaterfallModel) : WaterfallModelRow list =
+  let findRange (amount: Quantity) (model: WaterfallExpandedModel) : WaterfallModelRow list =
     /// Determine if the current total matches the given row.
     let isNotInRow (currentTotal: Quantity) (row: WaterfallModelRow) : bool =
         match row with
@@ -132,7 +134,7 @@ module WaterfallMeterLogic =
   let setTotal (newTotal: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue = 
     { meter with Total = newTotal }
 
-  let consume (model: WaterfallModel) (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
+  let consume (model: WaterfallExpandedModel) (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
     findRange meter.Total model
     |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption } 
     |> fun agg ->

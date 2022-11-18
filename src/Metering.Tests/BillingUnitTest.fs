@@ -4,7 +4,6 @@
 module Metering.NUnitTests.Billing
 
 open System
-open System.IO
 open NUnit.Framework
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
@@ -143,6 +142,29 @@ let ``BillingPeriod.previousBillingIntervalCanBeClosedNewEvent``() =
         ("2021-01-10T11:59:58", "2021-01-10T12:00:00", Close) // The event belongs to a new period, so close it        
         ("2021-01-10T12:00:00", "2021-01-11T12:00:00", Close) // For whatever reason, we've been sleeping for exactly one day
     ] |> runTestVectors test
+
+[<Test>]
+let ``MarketplaceResourceId.equality``() =
+    let resourceIdStr1 = "8151a707-467c-4105-df0b-44c3fca5880d"
+    let resourceUriStr1 = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+
+    Assert.AreNotEqual(
+        MarketplaceResourceId.fromResourceID resourceIdStr1,
+        MarketplaceResourceId.fromResourceURI resourceUriStr1)
+
+    Assert.AreEqual(
+        MarketplaceResourceId.fromResourceID resourceIdStr1,
+        MarketplaceResourceId.fromStr resourceIdStr1)
+
+    Assert.AreEqual(
+        MarketplaceResourceId.fromResourceURI resourceUriStr1,
+        MarketplaceResourceId.fromStr resourceUriStr1)
+
+    let x1 = MarketplaceResourceId.fromResourceURI resourceUriStr1
+    let x2 = x1.addResourceId resourceIdStr1
+    
+    Assert.IsTrue(x1.Matches(x2))
+    Assert.IsTrue(x2.Matches(x1))
 
 [<Test>]
 let ``Quantity.Serialization`` () =
