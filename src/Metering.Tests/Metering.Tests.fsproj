@@ -6,6 +6,7 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="data\WaterfallDimension.json" />
     <Content Include="data\messages\subscriptionPurchased.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -27,10 +28,19 @@
     <Content Include="data\messages\usageReportedOnlyResourceId.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Include="data\SimpleMeterValue.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\SimpleConsumptionBillingDimension.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BillingDimensions.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\simpleDimension.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="data\waterfall.json">
+    <None Include="data\WaterfallBillingDimensionList.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\state.json">
@@ -57,8 +67,9 @@
     <None Include="data\MarketplaceSuccessResponse.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Compile Include="WaterfallUnitTests.fs" />
     <Compile Include="BillingUnitTest.fs" />
+    <Compile Include="WaterfallUnitTests.fs" />
+    <Compile Include="JSONUnitTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

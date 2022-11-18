@@ -1,0 +1,6 @@
+﻿[
+  { "type": "simple", "dimension": "objectcharge"                             },
+  { "type": "simple", "dimension": "cpucharge",        "included": "Infinite" },
+  { "type": "simple", "dimension": "nodecharge",       "included": 1000       },
+  { "type": "simple", "dimension": "messagecharge",    "included": "10000"    }
+]
