@@ -17,12 +17,12 @@ module MeterValue =
     
     let getFromDimension (billingDimension: BillingDimension) : MeterValue option =
         match billingDimension with
-        | SimpleConsumptionBillingDimension x -> x.Meter |> Option.map SimpleMeterValue
+        | SimpleBillingDimension x -> x.Meter |> Option.map SimpleMeterValue
         | WaterfallBillingDimension x -> x.Meter |> Option.map WaterfallMeterValue
     
     let closeHour (marketplaceResourceId: MarketplaceResourceId) (planId: PlanId) (name: ApplicationInternalMeterName) (this: BillingDimension): (MarketplaceRequest list * BillingDimension) =
         match this with
-        | SimpleConsumptionBillingDimension x -> x |> SimpleMeterLogic.closeHour marketplaceResourceId planId |> (fun (requests, newVal) -> (requests, SimpleConsumptionBillingDimension newVal))
+        | SimpleBillingDimension x -> x |> SimpleMeterLogic.closeHour marketplaceResourceId planId |> (fun (requests, newVal) -> (requests, SimpleBillingDimension newVal))
         | WaterfallBillingDimension x -> x |> WaterfallMeterLogic.closeHour marketplaceResourceId planId |> (fun (requests, newVal) -> (requests, WaterfallBillingDimension newVal))
 
     let applyConsumption (now: MeteringDateTime) (quantity: Quantity) (billingDimension: BillingDimension) : BillingDimension =
@@ -30,7 +30,7 @@ module MeterValue =
         then billingDimension // If the incoming value is not a real (non-negative) number, don't change anything.
         else        
             match billingDimension with
-            | SimpleConsumptionBillingDimension simpleDimension -> 
+            | SimpleBillingDimension simpleDimension -> 
                 let meterValue = 
                     match simpleDimension.Meter with
                     | None -> 
@@ -41,7 +41,7 @@ module MeterValue =
                         meterValue
                         |> SimpleMeterLogic.subtractQuantity now quantity
                     
-                SimpleConsumptionBillingDimension { simpleDimension with Meter = Some meterValue }
+                SimpleBillingDimension { simpleDimension with Meter = Some meterValue }
 
             | WaterfallBillingDimension waterfallDimension ->
                 let model = waterfallDimension.Tiers |> WaterfallMeterLogic.expandToFullModel

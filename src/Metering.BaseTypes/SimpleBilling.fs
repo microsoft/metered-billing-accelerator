@@ -36,7 +36,7 @@ type SimpleMeterValue =
 
 /// The 'simple consumption' represents the most simple Azure Marketplace metering model. 
 /// There is a dimension with included quantities, and once the included quantities are consumed, the overage starts counting.
-type SimpleConsumptionBillingDimension = 
+type SimpleBillingDimension = 
     { DimensionId: DimensionId
 
       /// The dimensions configured
@@ -74,7 +74,7 @@ module SimpleMeterLogic =
         current
         |> Option.bind ((subtract quantity) >> Some) 
 
-    let newBillingCycle (now: MeteringDateTime) (x: SimpleConsumptionBillingDimension) : SimpleMeterValue =
+    let newBillingCycle (now: MeteringDateTime) (x: SimpleBillingDimension) : SimpleMeterValue =
         IncludedQuantity { Quantity = x.IncludedQuantity; Created = now; LastUpdate = now }
     
     let containsReportableQuantities (this: SimpleMeterValue) : bool = 
@@ -82,7 +82,7 @@ module SimpleMeterLogic =
         | ConsumedQuantity _ -> true
         | _ -> false
 
-    let closeHour marketplaceResourceId (planId: PlanId) (this: SimpleConsumptionBillingDimension) : (MarketplaceRequest list * SimpleConsumptionBillingDimension) = 
+    let closeHour marketplaceResourceId (planId: PlanId) (this: SimpleBillingDimension) : (MarketplaceRequest list * SimpleBillingDimension) = 
         match this.Meter with
         | None -> (List.empty, this)
         | Some meter ->

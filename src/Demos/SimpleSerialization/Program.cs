@@ -7,7 +7,7 @@ foreach (Meter meter in meterCollection.Meters)
 {
     MarketplaceResourceId meterResourceId = meter.Subscription.MarketplaceResourceId;
 
-    foreach (var kv in meter.Subscription.Plan.BillingDimensions.value)
+    foreach (var kv in meter.Subscription.Plan.BillingDimensions)
     {
         var name = kv.Key;
         var dimension = kv.Value;

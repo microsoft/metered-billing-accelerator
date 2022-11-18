@@ -55,10 +55,10 @@ public class ProcessLatestMetered
         {
             if (currentMeters.SubscriptionId == meter.Subscription.MarketplaceResourceId.ResourceId())
             {
-                foreach (var meterKey in meter.CurrentMeterValues.value)
+                foreach (var meterKey in meter.Subscription.Plan.BillingDimensions.value)
                 {
                     MeterSummaryModel meterSummary = new();
-                    if (meterKey.Value.IsSimpleMeterValue && ((SimpleMeterValue)meterKey.Value).IsConsumedQuantity)
+                    if (meterKey.Value.IsSimpleConsumptionBillingDimension && ((SimpleConsumptionBillingDimension)meterKey).Meter.Value.IsConsumedQuantity)
                     {
                         meterSummary.DimensionName = meterKey.Key.value.ToString();
                         meterSummary.ConsumedDimensionQuantity = meterKey.Value.ToString().Replace(" consumed", "");

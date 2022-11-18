@@ -167,10 +167,10 @@ module Json =
                     Decode.field included IncludedQuantity.Decoder |> Decode.map IncludedQuantity
                 ] |> Decode.oneOf
 
-        module SimpleConsumptionBillingDimension =
+        module SimpleBillingDimension =
             // { "name": "nde", "type": "simple", "dimension": "nodecharge", "included": 1000 }
             let (tYpe, dimension, included, meter) = ("type", "dimension", "included", "meter");
-            let encode (x: SimpleConsumptionBillingDimension) : (string * JsonValue) list =
+            let encode (x: SimpleBillingDimension) : (string * JsonValue) list =
                 [
                     (dimension, x.DimensionId.value |> Encode.string)
                 ]
@@ -183,7 +183,7 @@ module Json =
                     | None -> l
                     | Some m -> (meter, m |> SimpleMeterValue.Encoder) :: l)
 
-            let decode (get: Decode.IGetters) : SimpleConsumptionBillingDimension =
+            let decode (get: Decode.IGetters) : SimpleBillingDimension =
                 {
                     DimensionId = (get.Required.Field dimension Decode.string) |> DimensionId.create
                     IncludedQuantity = get.Optional.Field included Quantity.Decoder |> Option.defaultValue Quantity.Zero
@@ -260,28 +260,28 @@ module Json =
                      (tYpe, t |> Encode.string) :: l
 
                 match x with
-                | SimpleConsumptionBillingDimension s -> s |> SimpleConsumptionBillingDimension.encode |> setType "simple"
+                | SimpleBillingDimension s -> s |> SimpleBillingDimension.encode |> setType "simple"
                 | WaterfallBillingDimension w -> w |> WaterfallBillingDimension.encode |> setType "waterfall"
             
             let decode (get: Decode.IGetters) : BillingDimension =
                 let t = get.Required.Field tYpe Decode.string
                 match t with
                 | "waterfall" -> get |> WaterfallBillingDimension.decode |> WaterfallBillingDimension
-                | "simple" -> get |> SimpleConsumptionBillingDimension.decode |> SimpleConsumptionBillingDimension
+                | "simple" -> get |> SimpleBillingDimension.decode |> SimpleBillingDimension
                 | unknown -> failwith $"Unknown type {unknown}"
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode    
 
         module BillingDimensions =
             let Encoder (x: BillingDimensions) = 
-                x.value
+                x
                 |> Map.toList
                 |> List.map (fun (d, m) -> (d.value, m |> BillingDimension.Encoder))
                 |> Encode.object
 
             let Decoder : Decoder<BillingDimensions> =
                 let turnKeyIntoApplicationInternalMeterName (k, v) =  (k |> ApplicationInternalMeterName.create, v)
-                (Decode.keyValuePairs BillingDimension.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoApplicationInternalMeterName |> Map.ofList |> BillingDimensions.create |> Decode.succeed)
+                (Decode.keyValuePairs BillingDimension.Decoder) |> Decode.andThen (fun r -> r |> List.map turnKeyIntoApplicationInternalMeterName |> Map.ofList |> Decode.succeed)
 
         module Plan =
             let (planId, billingDimensions) = ("planId", "billingDimensions")
@@ -849,7 +849,6 @@ module Json =
         |> JsonUtil.withCustom Marketplace.MarketplaceGenericError.encode Marketplace.MarketplaceGenericError.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceSubmissionError.encode Marketplace.MarketplaceSubmissionError.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceBatchResponseDTO.encode Marketplace.MarketplaceBatchResponseDTO.decode
-        |> JsonUtil.withCustom SimpleConsumptionBillingDimension.encode SimpleConsumptionBillingDimension.decode
         |> Extra.withCustom Marketplace.MarketplaceSubmissionResult.Encoder Marketplace.MarketplaceSubmissionResult.Decoder
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
@@ -859,7 +858,7 @@ module Json =
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder
         |> Extra.withCustom SimpleMeterValue.Encoder SimpleMeterValue.Decoder
-        |> Extra.withCustom SimpleConsumptionBillingDimension.Encoder SimpleConsumptionBillingDimension.Decoder
+        |> Extra.withCustom SimpleBillingDimension.Encoder SimpleBillingDimension.Decoder
         |> Extra.withCustom WaterfallMeterValue.Encoder WaterfallMeterValue.Decoder
         |> Extra.withCustom WaterfallBillingDimensionItem.Encoder WaterfallBillingDimensionItem.Decoder
         |> Extra.withCustom WaterfallBillingDimension.Encoder WaterfallBillingDimension.Decoder

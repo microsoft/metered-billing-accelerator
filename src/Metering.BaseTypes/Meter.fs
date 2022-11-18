@@ -32,7 +32,7 @@ module Meter =
         let closeHour = MeterValue.closeHour state.Subscription.MarketplaceResourceId state.Subscription.Plan.PlanId
 
         let results : (ApplicationInternalMeterName * (MarketplaceRequest list * BillingDimension)) seq =
-            state.Subscription.Plan.BillingDimensions.value
+            state.Subscription.Plan.BillingDimensions
             |> Map.toSeq
             |> Seq.map (fun (name, billingDimension) -> (name, closeHour name billingDimension))
         
@@ -40,7 +40,6 @@ module Meter =
             results
             |> Seq.map (fun (name,(_marketplaceRequests, newMeter)) -> (name, newMeter))
             |> Map.ofSeq
-            |> BillingDimensions.create
 
         let usagesToBeReported =
             results
@@ -59,9 +58,8 @@ module Meter =
                 MeterValue.applyConsumption timestamp quantity
             
             let updatedDimensions =
-                meter.Subscription.Plan.BillingDimensions.value
+                meter.Subscription.Plan.BillingDimensions
                 |> Map.change applicationInternalMeterName (Option.map update)
-                |> BillingDimensions.create
                 
             meter
             |> updateDimensions updatedDimensions
@@ -70,9 +68,9 @@ module Meter =
         let closePreviousIntervalIfNeeded : (Meter -> Meter) = 
             let last = meter.LastProcessedMessage.PartitionTimestamp
             let curr = messagePosition.PartitionTimestamp
-            match BillingPeriod.previousBillingIntervalCanBeClosedNewEvent last curr with
-            | Close -> closePreviousMeteringPeriod
-            | KeepOpen -> id
+            if BillingPeriod.previousBillingIntervalCanBeClosedNewEvent last curr
+            then closePreviousMeteringPeriod
+            else id
         
         meter
         |> closePreviousIntervalIfNeeded
@@ -85,9 +83,9 @@ module Meter =
     let closePreviousHourIfNeeded (partitionTimestamp: MeteringDateTime) (meter: Meter) : Meter =
         let previousTimestamp = meter.LastProcessedMessage.PartitionTimestamp
 
-        match BillingPeriod.previousBillingIntervalCanBeClosedNewEvent previousTimestamp partitionTimestamp with
-        | Close -> meter |> closePreviousMeteringPeriod
-        | KeepOpen -> meter
+        if BillingPeriod.previousBillingIntervalCanBeClosedNewEvent previousTimestamp partitionTimestamp 
+        then meter |> closePreviousMeteringPeriod
+        else meter
 
     let handleUnsuccessfulMeterSubmission (error: MarketplaceSubmissionError) (messagePosition: MessagePosition) (meter: Meter) : Meter =
         match error with
@@ -106,7 +104,7 @@ module Meter =
                 billingDimension |> BillingDimension.hasDimensionId expired.RequestData.DimensionId
 
             let nameAndDimension = 
-                meter.Subscription.Plan.BillingDimensions.value
+                meter.Subscription.Plan.BillingDimensions
                 |> Map.toSeq
                 |> Seq.tryFind theRightDimension
 
@@ -130,7 +128,7 @@ module Meter =
 
     /// Applies the updateBillingDimension function to each BillingDimension
     let applyUpdateToBillingDimensionsInMeter (updateBillingDimension: BillingDimension -> BillingDimension) (meter: Meter) : Meter =
-        let updatedDimensions = meter.Subscription.Plan.BillingDimensions.update updateBillingDimension
+        let updatedDimensions = meter.Subscription.Plan.BillingDimensions |> BillingDimensions.update updateBillingDimension
 
         meter
         |> updateDimensions updatedDimensions
@@ -150,7 +148,7 @@ module Meter =
 
     let toStr (pid: string) (m: Meter) =
         let mStr =
-            m.Subscription.Plan.BillingDimensions.value
+            m.Subscription.Plan.BillingDimensions
             |> Map.toSeq
             |> Seq.map (fun (k,v) -> v)
             |> Seq.map (sprintf "%A")
