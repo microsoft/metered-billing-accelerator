@@ -62,6 +62,9 @@ let ``InternalDataStructures.MeteringDateTime list`` () = roundTrip<MeteringDate
 let ``InternalDataStructures.Quantity list`` () = roundTrip<Quantity list> "InternalDataStructures/Quantity list.json"
 
 [<Test>]
+let ``InternalDataStructures.RenewalInterval list`` () = roundTrip<RenewalInterval list> "InternalDataStructures/RenewalInterval list.json"
+
+[<Test>]
 let ``InternalDataStructures.MessagePosition`` () = roundTrip<MessagePosition> "InternalDataStructures/MessagePosition.json"
 
 [<Test>]
