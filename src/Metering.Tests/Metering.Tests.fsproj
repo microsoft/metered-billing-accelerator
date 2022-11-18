@@ -6,7 +6,12 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
-    <Content Include="data\InternalDataStructures\WaterfallDimension.json" />
+    <None Include="data\InternalDataStructures\QuantityList.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\WaterfallDimension.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\InternalDataStructures\SimpleMeterValue.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -46,27 +51,27 @@
     <None Include="data\MarketplaceMessages\MarketplaceSuccessResponse.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Content Include="data\InternalMessages\subscriptionPurchased.json">
+    <None Include="data\InternalMessages\subscriptionPurchased.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="data\InternalMessages\subscriptionDeleted3.json">
+    </None>
+    <None Include="data\InternalMessages\subscriptionDeleted3.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="data\InternalMessages\subscriptionDeleted2.json">
+    </None>
+    <None Include="data\InternalMessages\subscriptionDeleted2.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="data\InternalMessages\subscriptionDeleted1.json">
+    </None>
+    <None Include="data\InternalMessages\subscriptionDeleted1.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="data\InternalMessages\usageReported.json">
+    </None>
+    <None Include="data\InternalMessages\usageReported.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="data\InternalMessages\usageReportedOnlyResourceUri.json">
+    </None>
+    <None Include="data\InternalMessages\usageReportedOnlyResourceUri.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="data\InternalMessages\usageReportedOnlyResourceId.json">
+    </None>
+    <None Include="data\InternalMessages\usageReportedOnlyResourceId.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    </None>
     <Compile Include="BillingUnitTest.fs" />
     <Compile Include="WaterfallUnitTests.fs" />
     <Compile Include="JSONUnitTest.fs" />
