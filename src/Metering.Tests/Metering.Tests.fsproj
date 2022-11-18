@@ -6,6 +6,12 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="data\InternalDataStructures\MarketplaceResourceIdList.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\InternalDataStructures\MeteringDateTimeList.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\InternalDataStructures\QuantityList.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

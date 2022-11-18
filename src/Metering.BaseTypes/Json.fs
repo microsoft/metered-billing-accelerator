@@ -844,6 +844,7 @@ module Json =
         |> Extra.withCustom Quantity.Encoder Quantity.Decoder
         |> Extra.withCustom MeteringDateTime.Encoder MeteringDateTime.Decoder
         |> Extra.withCustom MessagePosition.Encoder MessagePosition.Decoder
+        |> Extra.withCustom MarketplaceResourceId.Encoder MarketplaceResourceId.Decoder
         |> Extra.withCustom RenewalInterval.Encoder RenewalInterval.Decoder
         |> Extra.withCustom ConsumedQuantity.Encoder ConsumedQuantity.Decoder
         |> Extra.withCustom IncludedQuantity.Encoder IncludedQuantity.Decoder

@@ -28,10 +28,13 @@ let private roundTrip<'T> (filename: string) =
     Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
 
 [<Test>]
-let ``InternalDataStructures.BillingDimension`` () = roundTrip<BillingDimension> "InternalDataStructures/simpleDimension.json"
+let ``InternalDataStructures.MeteringDateTime list`` () = roundTrip<MeteringDateTime list> "InternalDataStructures/MeteringDateTimeList.json"
 
 [<Test>]
-let ``InternalDataStructures.Quantity list`` () = roundTrip<Quantity list> "InternalDataStructures/QuantityList.json"
+let ``InternalDataStructures.MarketplaceResourceIdList list`` () = roundTrip<MarketplaceResourceId list> "InternalDataStructures/MarketplaceResourceIdList.json"
+
+[<Test>]
+let ``InternalDataStructures.BillingDimension`` () = roundTrip<BillingDimension> "InternalDataStructures/simpleDimension.json"
 
 [<Test>]
 let ``InternalDataStructures.BillingDimensions`` () = roundTrip<BillingDimensions> "InternalDataStructures/BillingDimensions.json"
