@@ -8,8 +8,6 @@ open Metering.BaseTypes.EventHub
 
 [<Extension>]
 module MeterCollectionLogic =
-    open MeterCollection
-
     let lastUpdate (mc: MeterCollection option) : MessagePosition option = 
         mc |> Option.bind (fun m -> m.LastUpdate)
 
@@ -53,7 +51,7 @@ module MeterCollectionLogic =
         match state.LastUpdate with 
         | Some { SequenceNumber = lastUpdateSequenceNumber; PartitionID = pidState } -> 
             //if pidState <> pidEvent
-            //then failwith $"Seems your are reading the wrong event stream. The state belongs to partition {pidState |> PartitionID.value}, but the event belongs to {pidEvent |> PartitionID.value}"
+            //then failwith $"Seems your are reading the wrong event stream. The state belongs to partition {pidState.value}, but the event belongs to {pidEvent.value}"
             //else ()
 
             if lastUpdateSequenceNumber + 1L <> concreteSequenceNumber 
