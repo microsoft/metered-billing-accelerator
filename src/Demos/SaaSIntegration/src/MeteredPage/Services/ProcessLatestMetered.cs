@@ -29,11 +29,11 @@ public class ProcessLatestMetered
         // TODO There is a hard-coded partition ID
         int hardCodedPartitionIdMustBeChanged = 0;
         string latest =  $"{eventHubNameSpace}.servicebus.windows.net/{eventHubName}/{hardCodedPartitionIdMustBeChanged}/latest.json.gz";
-        BlobServiceClient blobServiceClient = new(storageConnectionString);
-        BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient("snapshots");
+        BlobServiceClient blobServiceClient = new(connectionString: storageConnectionString);
+        BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(blobContainerName: "snapshots");
         BlobClient blobClient = containerClient.GetBlobClient(latest);
-        string downloadFilePath = downloadlocation+"latest.json.gz";
-        string DecompressedFileName = downloadlocation + "latest.json";
+        string downloadFilePath = $"{downloadlocation}latest.json.gz";
+        string DecompressedFileName = $"{downloadlocation}latest.json";
         await blobClient.DownloadToAsync(downloadFilePath);
 
         using FileStream compressedFileStream = File.Open(downloadFilePath, FileMode.Open);
