@@ -115,10 +115,10 @@ resource managedIdentityCanReadNotificationSecret 'Microsoft.Authorization/roleA
 }
 
 resource applianceResourceProviderCanReadBootstrapSecret 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
-  name: guid(keyVaultRoleID['Contributor'], 'Appliance Resource Provider', applianceResourceProviderObjectID, publisherKeyVault.id)
+  name: guid(keyVaultRoleID.Contributor, 'Appliance Resource Provider', applianceResourceProviderObjectID, publisherKeyVault.id)
   scope: publisherKeyVault
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultRoleID['Contributor'])
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultRoleID.Contributor)
     principalId: applianceResourceProviderObjectID
     principalType: 'ServicePrincipal'
   }

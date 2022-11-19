@@ -23,8 +23,6 @@ param eventHubSku string = 'Standard'
 param skuCapacity int = 1
 param consumerGroupName string = 'consumerGroupName'
 
-
-
 //Container App params 
 param minReplicas int = 1
 
@@ -42,10 +40,8 @@ param ADApplicationSecret string
 param tenantID string
 param AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT string ='{Namespace}/{EventHub}/p={PartitionId}/y={Year}/m={Month}/d={Day}/h={Hour}/mm={Minute}/{Second}' //Do not change this if you want to use the analytics queries
 
-
-
 // Storage Account
-module storage './modules/storage.bicep' = {
+module storage 'modules/storage.bicep' = {
   name: '${appNamePrefix}-storage'
   params: {
     appNamePrefix: appNamePrefix
@@ -55,7 +51,7 @@ module storage './modules/storage.bicep' = {
 }
 
 //Event Hubs
-module eventhub './modules/eventhub.bicep' = {
+module eventhub 'modules/eventhub.bicep' = {
   name: '${appNamePrefix}-eventhub'
   params: {
     appNamePrefix: appNamePrefix

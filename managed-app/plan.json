@@ -2,24 +2,27 @@
   "type":"SubscriptionPurchased",
   "value":{
     "subscription":{
-      "scope":"...",
+      "resourceUri":"...",
       "subscriptionStart":"...",
       "renewalInterval":"Monthly",
       "plan": {
-        "planId":"free_monthly_yearly",
+        "planId":"plan1",
         "billingDimensions": {
-          "dimension-payg": 0,
-          "dimension-included": 10000,
-          "dimension-infinity": "Infinite"
+          "dimension-payg": { "type": "simple", "dimension": "dimension-payg" },
+          "dimension-included": { "type": "simple", "dimension": "dimension-included", "included": 10000 },
+          "dimension-infinity": { "type": "simple", "dimension": "dimension-infinity", "included": "Infinite" },
+          "bandwidth": { 
+            "type": "waterfall", 
+            "tiers": [
+              { "dimension": "bandwidth-tier-a", "threshold":    100 },
+              { "dimension": "bandwidth-tier-b", "threshold":  10000 },
+              { "dimension": "bandwidth-tier-c", "threshold":  40000 },
+              { "dimension": "bandwidth-tier-d", "threshold": 100000 },
+              { "dimension": "bandwidth-tier-e", "threshold": 350000 }
+            ]
+          }
         }
       }
-    },
-    "metersMapping":{
-    "msg": "messagecharge",
-    "cpu": "cpucharge",
-    "dta": "datasourcecharge",
-    "nde": "nodecharge",
-    "obj": "objectcharge"
     }
   }
 }

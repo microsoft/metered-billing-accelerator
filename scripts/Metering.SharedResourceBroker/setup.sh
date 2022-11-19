@@ -4,11 +4,12 @@ echo "Running az cli $(az version | jq '."azure-cli"' ), should be 2.37.0 or hig
 
 basedir="$( pwd )"
 basedir="$( dirname "$( readlink -f "$0" )" )"
+# basedir="/mnt/c/github/microsoft/metered-billing-accelerator/scripts/Metering.SharedResourceBroker"
 
 CONFIG_FILE="${basedir}/config.json"
 
 if [ ! -f "$CONFIG_FILE" ]; then
-    cp ./config-template.json "${CONFIG_FILE}"
+    cp "${basedir}/config-template.json" "${CONFIG_FILE}"
     echo "You need to configure deployment settings in ${CONFIG_FILE}" 
     exit 1
 fi
@@ -119,16 +120,6 @@ then
 fi
 echo "Appliance Resource Provider ID: ${applianceResourceProviderObjectID}"
 
-#
-# Determine the software version to be deployed within the ARM script
-#
-commitId="$( git log --format='%H' -n 1 )"
-put-value '.deployment.commitId' "${commitId}"
-
-zipUrl="https://isvreleases.blob.core.windows.net/backendrelease/henrikwh/SharedResourceBroker/Backend/Publish/Backend-Debug-${commitId}.zip"
-
-put-value '.deployment.zipUrl' "${zipUrl}"
-
 msgraph="$( az ad sp show --id 00000003-0000-0000-c000-000000000000 | jq . )"
 put-value '.aad.msgraph.resourceId' "$( echo "${msgraph}" | jq -r .id )"
 put-value '.aad.msgraph.appRoleId'  "$( echo "${msgraph}" | jq -r '.appRoles[] | select(.value | contains("Application.ReadWrite.OwnedBy")) | .id' )"
@@ -137,6 +128,19 @@ account="$( az account show | jq .)"
 put-value '.deployment.subscriptionId'   "$( echo "${account}" | jq -r '.id' )"
 put-value '.deployment.subscriptionName' "$( echo "${account}" | jq -r '.name' )"
 put-value '.aad.tenantId'                "$( echo "${account}" | jq -r '.tenantId' )"
+
+#
+# Determine the software version to be deployed within the ARM script
+#
+commitId="$( git log --format='%H' -n 1 )"
+put-value '.deployment.commitId' "${commitId}"
+zipUrl="https://isvreleases.blob.core.windows.net/backendrelease/henrikwh/SharedResourceBroker/Backend/Publish/Backend-Debug-${commitId}.zip"
+put-value '.deployment.zipUrl' "${zipUrl}"
+
+
+
+
+notificationSecret="$( openssl rand 128 | base32 --wrap=0  )"
 
 # 
 # Perform the ARM deployment
@@ -147,7 +151,7 @@ deploymentResultJSON="$( az deployment group create \
     --parameters \
        suffix="${suffix}" \
        bootstrapSecretValue="$(    openssl rand 128 | base32 --wrap=0 )" \
-       notificationSecretValue="$( openssl rand 128 | base32 --wrap=0 )" \
+       notificationSecretValue="${notificationSecret}" \
        applianceResourceProviderObjectID="${applianceResourceProviderObjectID}" \
        securityGroupForServicePrincipal="${groupId}" \
        deploymentZip="${zipUrl}" \
@@ -159,6 +163,8 @@ echo "${deploymentResultJSON}" > results.json
 
 put-json-value '.names'                          "$(echo "${deploymentResultJSON}" | jq    '.properties.outputs.resourceNames.value' )" 
 put-value      '.aad.managedIdentityPrincipalID' "$(echo "${deploymentResultJSON}" | jq -r '.properties.outputs.managedIdentityPrincipalID.value' )" 
+
+put-value '.managedApp.notificationUrl' "https://$( get-value '.names.appService' ).azurewebsites.net/?sig=${notificationSecret}"
 
 managedIdentityPrincipalID="$( get-value '.aad.managedIdentityPrincipalID' )"
 graphResourceId="$( get-value '.aad.msgraph.resourceId')"
@@ -181,4 +187,15 @@ az rest \
                | jq --arg x "${appRoleId}"                  '.appRoleId=$x' \
              )"
 
+put-json-value ".managedApp.meteringConfiguration" "$( echo "{}" \
+  | jq --arg x "https://$( get-value '.names.appService' ).azurewebsites.net" '.servicePrincipalCreationURL=$x' \
+  | jq --arg x "$( get-value '.initConfig.subscriptionId' )"                  '.publisherVault.publisherSubscription=$x' \
+  | jq --arg x "$( get-value '.initConfig.resourceGroupName' )"               '.publisherVault.vaultResourceGroupName=$x' \
+  | jq --arg x "$( get-value '.names.publisherKeyVault' )"                    '.publisherVault.vaultName=$x' \
+  | jq --arg x "$( get-value '.names.secrets.bootstrapSecret' )"              '.publisherVault.bootstrapSecretName=$x' \
+  | jq --arg x "https://meter20221119.servicebus.windows.net/meter20221119"   '.amqpEndpoint=$x' )"
+
 echo "Finished setup..."
+
+
+  
