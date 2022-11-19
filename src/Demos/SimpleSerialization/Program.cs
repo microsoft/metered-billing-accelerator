@@ -1,5 +1,4 @@
-﻿
-using Metering.BaseTypes;
+﻿using Metering.BaseTypes;
 
 string meterCollectionAsJson = File.ReadAllText(@"..\..\..\..\..\Metering.Tests\data\InternalDataStructures\MeterCollection.json");
 MeterCollection meterCollection = Json.fromStr<MeterCollection>(meterCollectionAsJson);
