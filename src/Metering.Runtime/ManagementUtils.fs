@@ -50,3 +50,33 @@ module ManagementUtils =
                 | None -> Seq.empty            
 
         }
+
+    [<Extension>]
+    let getPartitionCount (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) : Task<string seq> = 
+        task {
+            let! props = config.MeteringConnections.createEventHubConsumerClient().GetEventHubPropertiesAsync(CancellationToken.None)
+            return props.PartitionIds |> Array.toSeq
+        }
+
+    let getConfigurations (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) =
+        let aMap f x = async {
+            let! a = x
+            return f a }
+
+        task {
+            let! partitionIDs = getPartitionCount config cancellationToken
+
+            let fetchTasks = 
+                partitionIDs
+                |> Seq.map PartitionID.create
+                |> Seq.map (fun partitionId -> MeterCollectionStore.loadLastState config partitionId cancellationToken)
+                |> Seq.toArray
+
+            let! x = Task.WhenAll<MeterCollection option>(fetchTasks)
+
+            return
+                x
+                |> Array.choose id
+                |> Array.map (fun x -> (x.LastUpdate.Value.PartitionID, x))
+                |> Map.ofArray
+        }
