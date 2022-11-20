@@ -17,7 +17,6 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-03
   })
 }
 
-
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: appInsightsName
   location: location
@@ -42,7 +41,6 @@ resource environment 'Microsoft.App/managedEnvironments@2022-01-01-preview' = {
     }
   }
 }
-
 
 output location string = location
 output environmentId string = environment.id

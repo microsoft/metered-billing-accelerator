@@ -3,10 +3,11 @@
 @description('Prefix for created resources.')
 param appNamePrefix string
 
+@description('Location for all resources.')
 param location string = resourceGroup().location
 
-//Storage Account params
-param isHnsEnabled bool = true //Must be true if you want to use the analytics queries
+@description('Must be true if you want to use the analytics queries')
+param isHnsEnabled bool = true
 
 //Eventhub params
 @allowed([
@@ -31,13 +32,16 @@ param isPrivateRegistry bool = false
 
 param containerRegistry string  = 'ghcr.io'
 param containerRegistryUsername string = ''
+
 @secure()
 param registryPassword string = ''
 
 //App params
 param ADApplicationID string
+
+@secure()
 param ADApplicationSecret string 
-param tenantID string
+
 param AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT string ='{Namespace}/{EventHub}/p={PartitionId}/y={Year}/m={Month}/d={Day}/h={Hour}/mm={Minute}/{Second}' //Do not change this if you want to use the analytics queries
 
 // Storage Account
@@ -79,9 +83,6 @@ module environment './modules/environment.bicep' = {
 
 module marketplaceMeteringAggregatorApp './modules/container-app.bicep' = {
   name: '${appNamePrefix}-container-app'
-  dependsOn: [
-    environment
-  ]
   params: {
     enableIngress: false
     isExternalIngress: false
@@ -96,42 +97,15 @@ module marketplaceMeteringAggregatorApp './modules/container-app.bicep' = {
     containerRegistryUsername: containerRegistryUsername
     containerPort: 80
     env: [
-      {
-        name: 'AZURE_METERING_MARKETPLACE_CLIENT_ID'
-        value: ADApplicationID
-      }
-      {
-        name: 'AZURE_METERING_MARKETPLACE_CLIENT_SECRET'
-        value: ADApplicationSecret
-      }
-      {
-        name: 'AZURE_METERING_MARKETPLACE_TENANT_ID'
-        value: tenantID
-      }
-      {
-        name: 'AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME'
-        value: eventhub.outputs.eventHubNamespaceName
-      }
-      {
-        name: 'AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME'
-        value: eventhub.outputs.eventHubInstanceName
-      }
-      {
-        name: 'AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER'
-        value: storage.outputs.checkpointBlobEndpoint
-      }
-      {
-        name: 'AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER'
-        value: storage.outputs.snapshotsBlobEndpoint
-      }
-      {
-        name: 'AZURE_METERING_INFRA_CAPTURE_CONTAINER'
-        value: storage.outputs.captureBlobEndpoint
-      }
-      {
-        name: 'AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT'
-        value: AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT
-      }
+      { name: 'AZURE_METERING_MARKETPLACE_TENANT_ID',         value: subscription().tenantId }
+      { name: 'AZURE_METERING_MARKETPLACE_CLIENT_ID',         value: ADApplicationID }
+      { name: 'AZURE_METERING_MARKETPLACE_CLIENT_SECRET',     value: ADApplicationSecret }
+      { name: 'AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME',  value: eventhub.outputs.eventHubNamespaceName }
+      { name: 'AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME',   value: eventhub.outputs.eventHubInstanceName }
+      { name: 'AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER',     value: storage.outputs.snapshotsBlobEndpoint }
+      { name: 'AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER',   value: storage.outputs.checkpointBlobEndpoint }
+      { name: 'AZURE_METERING_INFRA_CAPTURE_CONTAINER',       value: storage.outputs.captureBlobEndpoint }
+      { name: 'AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT', value: AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT }
     ]
   }
 }
@@ -148,4 +122,3 @@ module rbac './modules/role-assignments.bicep' = {
 
 output eventHubConnectionString string = eventhub.outputs.eventHubNamespaceConnectionString
 output eventHubName string = eventhub.outputs.eventHubInstanceName
-

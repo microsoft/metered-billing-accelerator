@@ -27,21 +27,20 @@ resource eh_namespace 'Microsoft.EventHub/namespaces@2021-11-01' = {
   }
 }
 
-
 resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2021-11-01' = {
   name: '${eh_namespace.name}/${appNamePrefix}-eh'
   properties: {
     captureDescription: {
+      enabled: true
+      encoding: 'Avro'
       destination: {
         name: 'EventHubArchive.AzureBlockBlob'
         properties: {
+          storageAccountResourceId: storageAccountId
           archiveNameFormat: archiveNameFormat
           blobContainer: captureContainerName
-          storageAccountResourceId: storageAccountId
         }
       }
-      enabled: true
-      encoding: 'Avro'
       intervalInSeconds: 300
       sizeLimitInBytes: 314572800
       skipEmptyArchives: true
