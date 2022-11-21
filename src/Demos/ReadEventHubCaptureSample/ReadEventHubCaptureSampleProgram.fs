@@ -141,7 +141,7 @@ match initialState with
 
     File.WriteAllText("latest.json", x |> Json.toStr 1)
 
-    (MeterCollectionStore.storeLastState config x CancellationToken.None).Wait()
+    (MeterCollectionStore.storeLastState config.MeteringConnections x CancellationToken.None).Wait()
 
     let x =
         File.ReadAllText("latest.json")

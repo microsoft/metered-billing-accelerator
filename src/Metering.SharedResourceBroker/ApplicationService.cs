@@ -42,8 +42,7 @@ public class ApplicationService
         //var (subscriptionId, managedAppResourceGroup, managedAppName) = (parts[1], parts[3], parts[7]);
         //return $"{_appSettings.Value.GeneratedServicePrincipalPrefix}-{subscriptionId}-{managedAppResourceGroup}-{managedAppName}";
 
-        using var hashAlgo = MD5.Create();
-        var hash = hashAlgo.ComputeHash(Encoding.UTF8.GetBytes(managedBy));
+        var hash = MD5.HashData(Encoding.UTF8.GetBytes(managedBy));
         var hashBase32 = Base32.Crockford.Encode(hash);
         return $"{_appSettings.GeneratedServicePrincipalPrefix}-{hashBase32}"; // The result must have a length of at most 93
     }
