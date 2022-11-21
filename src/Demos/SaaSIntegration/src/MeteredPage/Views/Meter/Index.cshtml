@@ -1,4 +1,4 @@
-﻿@model CustomerMetersModel
+﻿@model MeteredPage.ViewModels.CustomerMetersModel
 @{
     ViewData["Title"] = "Contoso Offer Meter Page";
 }
@@ -9,43 +9,26 @@
 }
 else
 {
-<div class="modal-body" >
-    <table>
-        <thead>
-            <tr>
-                <td>Subscription</td>
-                <td>Last Metered Processing Time</td>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>@Model.SubscriptionId</td>
-                <td>@Model.LastProcessedMessage</td>
-            </tr>
-        </tbody>
-    </table>
-    <br/>
-</div>
-
-<div class="modal-body" >
-    <span><b>Current Metered Usage</b></span>
+    <div class="modal-body">
+        <span><b>Current Metered Usage for @Model.SubscriptionId</b></span>
         <table>
-            <thead><tr><td>Dimension</td><td>Consumed</td> <td>Remaining</td></tr></thead>
+            <thead><tr><td>Name</td><td>Last Update</td><td>Consumed Total</td> <td>Remaining</td></tr></thead>
             <tbody>
                 @foreach (var meter in Model.CurrentMeterSummary)
                 {
-                <tr>
-                    <td>@meter.DimensionName</td>
-                    <td>@meter.ConsumedDimensionQuantity</td>
-                    <td>@meter.IncludedDimensionQuantity</td>
-                </tr>
+                    <tr>
+                        <td>@meter.Name</td>
+                        <td>@meter.LastUpdate</td>
+                        <td>@meter.ConsumedDimensionQuantity</td>
+                        <td>@meter.IncludedDimensionQuantity</td>
+                    </tr>
                 }
-        </tbody>
-    </table>
-    <br/>
-</div>
+            </tbody>
+        </table>
+        <br />
+    </div>
 
-<div class="modal-body" >
+    @*<div class="modal-body" >
     <span><b>Usage To Be Reported</b></span>
         <table>
         <thead>
@@ -67,4 +50,6 @@ else
     </tbody>
     </table>
 </div>
+*@
+
 }

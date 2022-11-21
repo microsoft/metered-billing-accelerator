@@ -2,22 +2,19 @@
 
 using System.Collections.Generic;
 
-public record CustomerMetersModel(
-    string SubscriptionId,
-    string LastProcessedMessage,
-    List<ToBeReportedModel> CurrentToBeReported,
-    List<MeterSummaryModel> CurrentMeterSummary);
-
-public record ToBeReportedModel(
-    string SubscriptionId,
-    string Quantity,
-    string PlanId,
-    string DimensionId,
-    string EffectiveStartTime);
-
+//public record ToBeReportedModel(
+//    string SubscriptionId,
+//    string Quantity,
+//    string PlanId,
+//    string DimensionId,
+//    string EffectiveStartTime);
 
 public record MeterSummaryModel(
-    string SubscriptionId,
-    string DimensionName,
+    string Name,
+    string LastUpdate,
     string ConsumedDimensionQuantity,
-    string IncludedDimensionQuantity);
+    string IncludedDimensionQuantity); 
+
+public record CustomerMetersModel(
+    string SubscriptionId,
+    List<MeterSummaryModel> CurrentMeterSummary);
