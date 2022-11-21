@@ -18,7 +18,7 @@ param applianceResourceProviderObjectID string
 @description('The ID of the security group where new service principals should be added to')
 param securityGroupForServicePrincipal string 
 
-param deploymentZip string = 'https://isvreleases.blob.core.windows.net/backendrelease/henrikwh/SharedResourceBroker/Backend/Publish/Backend-Debug-ea838823b7bbe587bfa659f45c9e0e0fac51327a.zip'
+param deploymentZip string = 'https://github.com/microsoft/metered-billing-accelerator/releases/download/1.0.3-beta/Aggregator.windows-latest.1.0.3-beta.zip'
 
 var names = {
   secrets: {

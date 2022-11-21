@@ -6,6 +6,8 @@ basedir="$( pwd )"
 basedir="$( dirname "$( readlink -f "$0" )" )"
 # basedir="/mnt/c/github/microsoft/metered-billing-accelerator/scripts/Metering.SharedResourceBroker"
 
+echo "Working in directory ${basedir}"
+
 CONFIG_FILE="${basedir}/config.json"
 
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -109,7 +111,6 @@ jsonpath='.aad.applianceResourceProviderObjectID'
 applianceResourceProviderObjectID="$( get-value "${jsonpath}" )"
 if [ -z "${applianceResourceProviderObjectID}" ] || [ "${applianceResourceProviderObjectID}" == "null" ]
 then
-
     az provider register --namespace "Microsoft.Solutions"
     
     # az provider show -n Microsoft.Solutions
@@ -132,16 +133,17 @@ put-value '.aad.tenantId'                "$( echo "${account}" | jq -r '.tenantI
 #
 # Determine the software version to be deployed within the ARM script
 #
-commitId="$( git log --format='%H' -n 1 )"
-put-value '.deployment.commitId' "${commitId}"
-zipUrl="https://isvreleases.blob.core.windows.net/backendrelease/henrikwh/SharedResourceBroker/Backend/Publish/Backend-Debug-${commitId}.zip"
+
+# commitId="$( git log --format='%H' -n 1 )"
+aggregatorVersion="$( jq -r '.version' < "${basedir}/../../version.json" )"
+aggregatorVersion="1.0.3-beta"
+put-value '.deployment.aggregatorVersion' "${aggregatorVersion}"
+
+zipUrl="https://github.com/microsoft/metered-billing-accelerator/releases/download/${aggregatorVersion}/Aggregator.windows-latest.${aggregatorVersion}.zip"
 put-value '.deployment.zipUrl' "${zipUrl}"
 
-
-
-
 notificationSecret="$( openssl rand 128 | base32 --wrap=0  )"
-
+put-value '.managedApp.notificationSecret' "${notificationSecret}"
 # 
 # Perform the ARM deployment
 #
@@ -187,7 +189,7 @@ az rest \
                | jq --arg x "${appRoleId}"                  '.appRoleId=$x' \
              )"
 
-put-json-value ".managedApp.meteringConfiguration" "$( echo "{}" \
+put-json-value '.managedApp.meteringConfiguration' "$( echo "{}" \
   | jq --arg x "https://$( get-value '.names.appService' ).azurewebsites.net" '.servicePrincipalCreationURL=$x' \
   | jq --arg x "$( get-value '.initConfig.subscriptionId' )"                  '.publisherVault.publisherSubscription=$x' \
   | jq --arg x "$( get-value '.initConfig.resourceGroupName' )"               '.publisherVault.vaultResourceGroupName=$x' \
@@ -195,7 +197,23 @@ put-json-value ".managedApp.meteringConfiguration" "$( echo "{}" \
   | jq --arg x "$( get-value '.names.secrets.bootstrapSecret' )"              '.publisherVault.bootstrapSecretName=$x' \
   | jq --arg x "https://meter20221119.servicebus.windows.net/meter20221119"   '.amqpEndpoint=$x' )"
 
+echo -n "$( get-value '.managedApp.meteringConfiguration' )" >  "${basedir}/../../managed-app/meteringConfiguration.json"
+
+archiveNameFormat='{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}'
+put-value '.eventHub.capture.archiveNameFormat' "${archiveNameFormat}"
+
+dataDeploymentResult="$( az deployment group create \
+    --resource-group "${resourceGroupName}" \
+    --template-file "../../deploy/modules/data.bicep" \
+    --parameters \
+       appNamePrefix="${suffix}" \
+       archiveNameFormat="$( get-value '.eventHub.capture.archiveNameFormat' )" \
+       partitionCount="13" \
+    --output json )"
+
+echo "${dataDeploymentResult}" > data-deployment-results.json
+
+echo "Data Backend Deployment: $( echo "${dataDeploymentResult}" | jq -r .properties.provisioningState )"
+
+
 echo "Finished setup..."
-
-
-  
