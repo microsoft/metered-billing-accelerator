@@ -62,14 +62,18 @@ jobs:
       - name: Archive windows build
         id: windows_build_archive
         run: |
-          zip -r Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}.zip Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}
+          cd Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}
+          zip -r ../Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}.zip .
+          cd ..
           archive_path=Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}.zip
           echo "archive_path=$archive_path" >> $GITHUB_OUTPUT
           ls -R
       - name: Archive ubuntu build
         id: ubuntu_build_archive
         run: |
-          zip -r Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}
+          cd Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}
+          zip -r ../Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip .
+          cd ..
           archive_path=Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip
           echo "archive_path=$archive_path" >> $GITHUB_OUTPUT
           ls -R
