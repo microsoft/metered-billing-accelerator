@@ -119,14 +119,14 @@ module Json =
         
             let encode (x: ConsumedQuantity) : (string * JsonValue) list =
                 [
-                    (consumedQuantity, x.Amount |> Quantity.Encoder)
+                    (consumedQuantity, x.CurrentHour |> Quantity.Encoder)
                     (created, x.Created |> MeteringDateTime.Encoder)
                     (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder)
                 ]
 
             let decode (get: Decode.IGetters) : ConsumedQuantity =
                 {
-                    Amount = get.Required.Field consumedQuantity Quantity.Decoder
+                    CurrentHour = get.Required.Field consumedQuantity Quantity.Decoder
                     Created = get.Required.Field created MeteringDateTime.Decoder
                     LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
                 }
