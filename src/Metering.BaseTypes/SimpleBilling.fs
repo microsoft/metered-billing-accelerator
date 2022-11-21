@@ -4,15 +4,15 @@
 namespace Metering.BaseTypes
 
 type ConsumedQuantity = 
-    { Amount: Quantity
+    { CurrentHour: Quantity
       Created: MeteringDateTime 
       LastUpdate: MeteringDateTime }
     
-    override this.ToString() = sprintf "%s consumed"  (this.Amount.ToString())
+    override this.ToString() = sprintf "%s consumed"  (this.CurrentHour.ToString())
 
-    member this.increaseConsumption now amount = { this with Amount = this.Amount + amount ; LastUpdate = now }
+    member this.increaseConsumption now amount = { this with CurrentHour = this.CurrentHour + amount ; LastUpdate = now }
 
-    static member create now amount = { Amount = amount; Created = now ; LastUpdate = now }
+    static member create now currentHourAmount = { CurrentHour = currentHourAmount; Created = now ; LastUpdate = now }
 
 type IncludedQuantity = 
     { Quantity: Quantity
@@ -93,7 +93,7 @@ module SimpleMeterLogic =
                     { MarketplaceResourceId = marketplaceResourceId
                       PlanId = planId
                       DimensionId = this.DimensionId
-                      Quantity = q.Amount
+                      Quantity = q.CurrentHour
                       EffectiveStartTime = q.LastUpdate |> MeteringDateTime.beginOfTheHour }
 
                 let newMeterValue = ConsumedQuantity (ConsumedQuantity.create (MeteringDateTime.now()) Quantity.Zero)

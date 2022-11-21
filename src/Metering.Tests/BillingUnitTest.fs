@@ -53,13 +53,13 @@ let ``MeterValue.subtractQuantity``() =
             // If there's nothing, it costs money
             State = IncludedQuantity { Quantity = Quantity.Zero; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { Amount = Quantity.create 2u; Created = created; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; Created = created; LastUpdate = now }
         }
         {
             // Going further into the overage
-            State = ConsumedQuantity { Amount = Quantity.create 10u; Created = created; LastUpdate = lastUpdate }
+            State = ConsumedQuantity { CurrentHour = Quantity.create 10u; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { Amount = Quantity.create 12u; Created = created; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 12u; Created = created; LastUpdate = now }
         }
         {
             // If there's infinite, it never gets depleted
@@ -88,7 +88,7 @@ let ``MeterValue.createIncluded``() =
             Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
         }
         {
-            Input = ConsumedQuantity { Amount = Quantity.create 100_000u; Created = created; LastUpdate = lastUpdate }
+            Input = ConsumedQuantity { CurrentHour = Quantity.create 100_000u; Created = created; LastUpdate = lastUpdate }
             Value = 9u
             Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
         }
@@ -258,7 +258,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     let overageOf (q: Quantity) (mv: SimpleMeterValue) : unit =
         match mv with
         | ConsumedQuantity cq -> 
-            Assert.AreEqual(q, cq.Amount)
+            Assert.AreEqual(q, cq.CurrentHour)
         | _ -> failwith "Not an ConsumedQuantity"
 
     let assertUsageReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
