@@ -66,10 +66,11 @@
               "dimension": "objectcharge",
               "included": 0,
               "meter": {
-                "included": { 
-                  "quantity": 999,        
-                  "created": "2022-01-28T15:36:17Z", 
-                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                "consumed": {
+                  "consumedQuantity": 1.0,
+                  "total": 20,
+                  "created": "2022-01-28T15:36:17Z",
+                  "lastUpdate": "2022-01-28T15:36:21Z"
                 }
               }
             },

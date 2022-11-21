@@ -53,13 +53,13 @@ let ``MeterValue.subtractQuantity``() =
             // If there's nothing, it costs money
             State = IncludedQuantity { Quantity = Quantity.Zero; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; Created = created; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; BillingPeriodTotal = Quantity.create 2u; Created = created; LastUpdate = now }
         }
         {
             // Going further into the overage
-            State = ConsumedQuantity { CurrentHour = Quantity.create 10u; Created = created; LastUpdate = lastUpdate }
+            State = ConsumedQuantity { CurrentHour = Quantity.create 10u; BillingPeriodTotal = Quantity.create 200u; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { CurrentHour = Quantity.create 12u; Created = created; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 12u; BillingPeriodTotal = Quantity.create 202u; Created = created; LastUpdate = now }
         }
         {
             // If there's infinite, it never gets depleted
@@ -69,12 +69,11 @@ let ``MeterValue.subtractQuantity``() =
         }
     ] |> runTestVectors test
 
-type MeterValue_topupMonthlyCredits_Vector = { Input: SimpleMeterValue; Value: uint; Expected: SimpleMeterValue}
+type MeterValue_topupMonthlyCredits_Vector = { Value: uint; Expected: SimpleMeterValue}
 
 [<Test>]
 let ``MeterValue.createIncluded``() =
     let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
-    let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
 
     let test (idx, testcase) =
@@ -83,12 +82,6 @@ let ``MeterValue.createIncluded``() =
     
     [
         {
-            Input = IncludedQuantity { Quantity = Quantity.create 1u; Created = created; LastUpdate = lastUpdate } 
-            Value = 9u
-            Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
-        }
-        {
-            Input = ConsumedQuantity { CurrentHour = Quantity.create 100_000u; Created = created; LastUpdate = lastUpdate }
             Value = 9u
             Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
         }
