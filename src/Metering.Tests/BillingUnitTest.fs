@@ -39,19 +39,19 @@ let ``MeterValue.subtractQuantity``() =
     [
         {
             // deduct without overage
-            State = IncludedQuantity { Quantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
+            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
             Quantity = Quantity.create 13u
-            Expected = IncludedQuantity { Quantity = Quantity.create 17u; Created = created; LastUpdate = now}
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 17u; Created = created; LastUpdate = now}
         }
         {
             // deplete completely
-            State = IncludedQuantity { Quantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
+            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
             Quantity = Quantity.create 30u
-            Expected = IncludedQuantity { Quantity = Quantity.Zero; Created = created; LastUpdate = now}
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.Zero; Created = created; LastUpdate = now}
         }
         {
             // If there's nothing, it costs money
-            State = IncludedQuantity { Quantity = Quantity.Zero; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { RemainingQuantity = Quantity.Zero; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
             Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; BillingPeriodTotal = Quantity.create 2u; Created = created; LastUpdate = now }
         }
@@ -63,9 +63,9 @@ let ``MeterValue.subtractQuantity``() =
         }
         {
             // If there's infinite, it never gets depleted
-            State = IncludedQuantity { Quantity = Quantity.Infinite; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { RemainingQuantity = Quantity.Infinite; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 200000u
-            Expected = IncludedQuantity { Quantity = Quantity.Infinite; Created = created; LastUpdate = now }
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.Infinite; Created = created; LastUpdate = now }
         }
     ] |> runTestVectors test
 
@@ -83,7 +83,7 @@ let ``MeterValue.createIncluded``() =
     [
         {
             Value = 9u
-            Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 9u; Created = created; LastUpdate = now } 
         }
     ] |> runTestVectors test
 
@@ -245,7 +245,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         // Ensures that the given MeterValue is exactly the given quantity
         match mv with
         | IncludedQuantity iq -> 
-            Assert.AreEqual(q, iq.Quantity)
+            Assert.AreEqual(q, iq.RemainingQuantity)
         | _ -> failwith "Not an IncludedQuantity"
 
     let overageOf (q: Quantity) (mv: SimpleMeterValue) : unit =

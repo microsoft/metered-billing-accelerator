@@ -4,12 +4,15 @@
 namespace Metering.BaseTypes
 
 type ConsumedQuantity = 
-    { CurrentHour: Quantity
+    { /// The consumed quantity in the current hour.
+      CurrentHour: Quantity
+
+      /// The consumed total quantity in the current billing period.
       BillingPeriodTotal: Quantity
       Created: MeteringDateTime 
       LastUpdate: MeteringDateTime }
     
-    override this.ToString() = sprintf "%s consumed"  (this.CurrentHour.ToString())
+    override this.ToString() = sprintf "%s consumed this hour, %s in total" (this.CurrentHour.ToString()) (this.BillingPeriodTotal.ToString())
 
     member this.increaseConsumption now amount = { this with CurrentHour = this.CurrentHour + amount; BillingPeriodTotal = this.BillingPeriodTotal + amount; LastUpdate = now }
 
@@ -18,15 +21,15 @@ type ConsumedQuantity =
     static member createNew now currentHourAmount = { CurrentHour = currentHourAmount; BillingPeriodTotal = currentHourAmount; Created = now ; LastUpdate = now }
 
 type IncludedQuantity = 
-    { Quantity: Quantity
+    { RemainingQuantity: Quantity
       Created: MeteringDateTime 
       LastUpdate: MeteringDateTime }
 
-    override this.ToString() = sprintf "Remaining %s" (this.Quantity.ToString())
+    override this.ToString() = sprintf "Remaining %s" (this.RemainingQuantity.ToString())
 
-    member this.set now quantity = { this with Quantity = quantity ; LastUpdate = now }
+    member this.set now quantity = { this with RemainingQuantity = quantity ; LastUpdate = now }
 
-    member this.decrease now quantity = { this with Quantity = this.Quantity - quantity ; LastUpdate = now }
+    member this.decrease now quantity = { this with RemainingQuantity = this.RemainingQuantity - quantity ; LastUpdate = now }
 
 type SimpleMeterValue =
     | ConsumedQuantity of ConsumedQuantity
@@ -56,7 +59,7 @@ module SimpleMeterLogic =
                 consumedQuantity.increaseConsumption now quantity
                 |> ConsumedQuantity
            | IncludedQuantity iq ->
-                let remaining = iq.Quantity
+                let remaining = iq.RemainingQuantity
                 
                 if remaining >= quantity
                 then 
@@ -68,7 +71,7 @@ module SimpleMeterLogic =
                     |> ConsumedQuantity
 
     let createIncluded (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
-        IncludedQuantity { Quantity = quantity; Created = now; LastUpdate = now }
+        IncludedQuantity { RemainingQuantity = quantity; Created = now; LastUpdate = now }
     
     let someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: SimpleMeterValue option) : SimpleMeterValue option =
         let subtract quantity (meterValue: SimpleMeterValue) = 
@@ -78,7 +81,7 @@ module SimpleMeterLogic =
         |> Option.bind ((subtract quantity) >> Some) 
 
     let newBillingCycle (now: MeteringDateTime) (x: SimpleBillingDimension) : SimpleMeterValue =
-        IncludedQuantity { Quantity = x.IncludedQuantity; Created = now; LastUpdate = now }
+        IncludedQuantity { RemainingQuantity = x.IncludedQuantity; Created = now; LastUpdate = now }
     
     let containsReportableQuantities (this: SimpleMeterValue) : bool = 
         match this with
