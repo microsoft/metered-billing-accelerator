@@ -1,0 +1,85 @@
+name: .NET Build
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - './src/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - './src/**'
+  
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  
+jobs:
+   build:
+    strategy:
+      matrix:
+        platform: [ windows-latest, ubuntu-latest ]
+    runs-on: ${{ matrix.platform }}
+    outputs:
+      tagVersion: ${{ steps.nbgv.outputs.SemVer2 }}
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: 6.0.300
+    - name: Setup Semantic version
+      id: nbgv
+      uses: dotnet/nbgv@v0.4.0
+      with:
+        setAllVars: true
+    - name: Restore dependencies
+      working-directory: ./src
+      run: dotnet restore
+    - name: Build
+      working-directory: ./src
+      run: dotnet build --no-restore
+    - name: Test
+      working-directory: ./src
+      run: dotnet test --no-build --verbosity normal
+    - name: Upload Aggregator Build Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: Aggregator.${{ matrix.platform }}.${{env.NBGV_SemVer2}}
+        path: src/Aggregator/bin/Debug/net6.0
+   release:
+    name: Release Build
+    runs-on: [ubuntu-latest]
+    needs: build
+    steps:
+      - uses: actions/download-artifact@v3
+      - name: Display structure of downloaded files
+        run: | 
+            ls -R 
+            echo '${{toJSON(job)}}'
+            echo '${{ toJSON(steps) }}'
+      - name: Archive windows build
+        id: windows_build_archive
+        run: |
+          zip -r Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}.zip Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}
+          archive_path=Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}.zip
+          echo "archive_path=$archive_path" >> $GITHUB_OUTPUT
+          ls -R
+      - name: Archive ubuntu build
+        id: ubuntu_build_archive
+        run: |
+          zip -r Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}
+          archive_path=Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip
+          echo "archive_path=$archive_path" >> $GITHUB_OUTPUT
+          ls -R
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Aggregator.${{needs.build.outputs.tagVersion}}
+          tag_name: ${{needs.build.outputs.tagVersion}} 
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          files: |
+            ${{ steps.windows_build_archive.outputs.archive_path }}
+            ${{ steps.ubuntu_build_archive.outputs.archive_path }}
