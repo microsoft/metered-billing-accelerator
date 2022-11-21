@@ -91,8 +91,8 @@ let inspecto (header: string) (a: 'a) : 'a =
     
     a
 
-let demoAggregation (config: MeteringConfigurationProvider) =
-    let parseSub  sequence json = 
+let demoAggregation =
+    let parseSub sequence json = 
         json
         |> Json.fromStr<SubscriptionCreationInformation> 
         |> SubscriptionPurchased
@@ -231,7 +231,7 @@ let demoAggregation (config: MeteringConfigurationProvider) =
 //    |> inspecto ""
 //    |> ignore
 
-let demoStorage (config: MeteringConfigurationProvider) eventsFromEventHub =
+let demoStorage (meteringConnections: MeteringConnections) eventsFromEventHub =
     let events = 
         eventsFromEventHub
         |> MeterCollectionLogic.handleMeteringEvents MeterCollection.Uninitialized // We start completely uninitialized
@@ -239,14 +239,14 @@ let demoStorage (config: MeteringConfigurationProvider) eventsFromEventHub =
         |> Json.fromStr<MeterCollection>              // |> inspect "newBalance"
         
     (task {
-        let! () = MeterCollectionStore.storeLastState config events CancellationToken.None 
+        let! () = MeterCollectionStore.storeLastState meteringConnections events CancellationToken.None 
 
         let partitionId = 
             Some events
             |> MeterCollectionLogic.lastUpdate
             |> (fun x -> x.Value.PartitionID)
 
-        let! meters = MeterCollectionStore.loadLastState config partitionId CancellationToken.None
+        let! meters = MeterCollectionStore.loadLastState meteringConnections partitionId CancellationToken.None
 
         match meters with
         | Some meter -> 
@@ -275,16 +275,10 @@ let main argv =
     |> (fun x -> printfn "%A" x; x)
     |> ignore
 
-     
-
-    let config = 
-        MeteringConfigurationProvider.create 
-            (MeteringConnections.getFromEnvironment()) 
-            (MarketplaceClient.SubmitUsage)
-
+    
     //demoUsageSubmission config
 
-    demoAggregation config
+    demoAggregation 
     |> Json.toStr 1
     |> (fun x -> printfn "%A" x)
     //demoStorage config eventsFromEventHub

@@ -1,8 +1,10 @@
 ﻿namespace MeteredPage.Services;
 
 using Azure.Storage.Blobs;
-using MeteredPage.ViewModels.Meter;
+using MeteredPage.ViewModels;
 using Metering.BaseTypes;
+using Metering.Integration;
+using Metering.Utils;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.IO.Compression;
@@ -26,6 +28,9 @@ public class ProcessLatestMetered
 
     public async Task<CustomerMetersModel> GetLatestMetered(string subscriptionId)
     {
+        var config = MeteringConnections.getFromEnvironment();
+        var result = await ManagementUtils.getMetersForSubscription(config, MarketplaceResourceId.fromStr(subscriptionId));
+        s
         // TODO There is a hard-coded partition ID
         int hardCodedPartitionIdMustBeChanged = 0;
         string latest =  $"{eventHubNameSpace}.servicebus.windows.net/{eventHubName}/{hardCodedPartitionIdMustBeChanged}/latest.json.gz";
@@ -45,11 +50,11 @@ public class ProcessLatestMetered
         string jsonString = await File.ReadAllTextAsync(DecompressedFileName);
         var metercollections = Json.fromStr<MeterCollection>(jsonString);
 
-        CustomerMetersModel currentMeters = new()
-        {
-            SubscriptionId = subscriptionId,
-            LastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString()
-        };
+        CustomerMetersModel currentMeters = new(
+            subscriptionId, 
+            metercollections.LastUpdate.Value.PartitionTimestamp.ToString(),
+            CurrentToBeReported: new(), 
+            CurrentMeterSummary: new());
 
         foreach (Meter meter in metercollections.Meters)
         {
@@ -57,7 +62,7 @@ public class ProcessLatestMetered
             {
                 foreach (var meterKey in meter.Subscription.Plan.BillingDimensions.value)
                 {
-                    MeterSummaryModel meterSummary = new();
+                    MeterModels meterSummary = new();
                     if (meterKey.Value.IsSimpleConsumptionBillingDimension && ((SimpleConsumptionBillingDimension)meterKey).Meter.Value.IsConsumedQuantity)
                     {
                         meterSummary.DimensionName = meterKey.Key.value.ToString();

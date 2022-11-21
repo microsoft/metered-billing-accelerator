@@ -1,43 +1,37 @@
-﻿@model MeteredPage.ViewModels.Meter.CustomerMetersModel
+﻿@model CustomerMetersModel
 @{
     ViewData["Title"] = "Contoso Offer Meter Page";
 }
 
 @if (ViewBag.Message != null)
 {
-
     <h2>@ViewBag.Message</h2>
 }
 else
-{       <div class="modal-body" >
-            <table>
-                <thead>
-                <tr>
-                    <td>Subscription</td>
-                    <td>Last Metered Processing Time</td>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>@Model.SubscriptionId</td>
-                    <td>@Model.LastProcessedMessage</td>
-                </tr>
-                </tbody>
-            </table>
-            <br/>
-        </div>
+{
+<div class="modal-body" >
+    <table>
+        <thead>
+            <tr>
+                <td>Subscription</td>
+                <td>Last Metered Processing Time</td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>@Model.SubscriptionId</td>
+                <td>@Model.LastProcessedMessage</td>
+            </tr>
+        </tbody>
+    </table>
+    <br/>
+</div>
 
-        <div class="modal-body" >
-            <span><b>Current Metered Usage</b></span>
-             <table>
-                <thead>
-                    <tr>
-                    <td>Dimension</td>
-                    <td>Consumed</td>
-                    <td>Remaining</td>
-                    </tr>
-                </thead>
-                <tbody>
+<div class="modal-body" >
+    <span><b>Current Metered Usage</b></span>
+        <table>
+            <thead><tr><td>Dimension</td><td>Consumed</td> <td>Remaining</td></tr></thead>
+            <tbody>
                 @foreach (var meter in Model.CurrentMeterSummary)
                 {
                 <tr>
@@ -46,35 +40,31 @@ else
                     <td>@meter.IncludedDimensionQuantity</td>
                 </tr>
                 }
-            </tbody>
-            </table>
-            <br/>
-        </div>
+        </tbody>
+    </table>
+    <br/>
+</div>
 
-        <div class="modal-body" >
-            <span><b>Usage To Be Reported</b></span>
-             <table>
-                <thead>
-                    <tr>
-                    <td>Dimension</td>
-                    <td>Quantity</td>
-                    <td>Effective Start Date</td>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var meter in Model.CurrentToBeReported)
-                {
-                <tr>
-                    <td>@meter.DimensionId</td>
-                    <td>@meter.Quantity</td>
-                    <td>@meter.EffectiveStartTime</td>
-                </tr>
-                }
-            </tbody>
-            </table>
-            </div>
-        
-
-
-  
+<div class="modal-body" >
+    <span><b>Usage To Be Reported</b></span>
+        <table>
+        <thead>
+            <tr>
+            <td>Dimension</td>
+            <td>Quantity</td>
+            <td>Effective Start Date</td>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var meter in Model.CurrentToBeReported)
+        {
+        <tr>
+            <td>@meter.DimensionId</td>
+            <td>@meter.Quantity</td>
+            <td>@meter.EffectiveStartTime</td>
+        </tr>
+        }
+    </tbody>
+    </table>
+</div>
 }

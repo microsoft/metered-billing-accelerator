@@ -105,7 +105,7 @@ public class AggregatorFunction
 
         if (meterCollection.getLastSequenceNumber() % 500 == 0)
         {
-            MeterCollectionStore.storeLastState(config, meterCollection: meterCollection).Wait();
+            MeterCollectionStore.storeLastState(config.MeteringConnections, meterCollection: meterCollection).Wait();
             _logger.LogInformation($"{prefix()} Saved state {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
         }
     }
@@ -130,7 +130,7 @@ public class AggregatorFunction
                 createEventHubEventFromEventData: EventHubIntegration.CreateEventHubEventFromEventData,
                 readAllEvents: config.MeteringConnections.ReadAllEvents,
                 readEventsFromPosition: config.MeteringConnections.ReadEventsFromPosition,
-                loadLastState: config.loadLastState,
+                loadLastState: config.MeteringConnections.loadLastState,
                 determinePosition: MeterCollectionLogic.getEventPosition,
                 cancellationToken: stoppingToken)
             .Subscribe(
