@@ -13,6 +13,7 @@ open Metering.Integration
 
 type ReportingOverview =
     { ApplicationInternalName: string 
+      LastUpdate: MeteringDateTime
       RemainingIncluded: Quantity 
       TotalConsumed: Quantity }
 
@@ -32,12 +33,14 @@ module ReportingOverview =
                                 ApplicationInternalName = appInternalName.value
                                 TotalConsumed = Quantity.Zero
                                 RemainingIncluded = q.RemainingQuantity
+                                LastUpdate = q.LastUpdate
                             } |> Some
                         | ConsumedQuantity q ->
                             { 
                                 ApplicationInternalName = appInternalName.value
                                 TotalConsumed = q.BillingPeriodTotal
                                 RemainingIncluded = Quantity.Zero
+                                LastUpdate = q.LastUpdate
                             } |> Some
                 | WaterfallBillingDimension d -> 
                     match d.Meter with
@@ -47,6 +50,7 @@ module ReportingOverview =
                             ApplicationInternalName = appInternalName.value
                             TotalConsumed = m.Total
                             RemainingIncluded = Quantity.Zero
+                            LastUpdate = m.LastUpdate
                         } |> Some
             )
             |> Seq.choose id
@@ -123,8 +127,6 @@ module ManagementUtils =
         }
 
     let getMetersForSubscription  (connections: MeteringConnections) (resourceId: MarketplaceResourceId) (cancellationToken: CancellationToken) : Task<ReportingOverview list> =
-        
-        
         task {
             let! allMeterCollections = getConfigurations connections cancellationToken
 
