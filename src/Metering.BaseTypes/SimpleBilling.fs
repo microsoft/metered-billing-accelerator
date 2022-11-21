@@ -5,14 +5,17 @@ namespace Metering.BaseTypes
 
 type ConsumedQuantity = 
     { CurrentHour: Quantity
+      BillingPeriodTotal: Quantity
       Created: MeteringDateTime 
       LastUpdate: MeteringDateTime }
     
     override this.ToString() = sprintf "%s consumed"  (this.CurrentHour.ToString())
 
-    member this.increaseConsumption now amount = { this with CurrentHour = this.CurrentHour + amount ; LastUpdate = now }
+    member this.increaseConsumption now amount = { this with CurrentHour = this.CurrentHour + amount; BillingPeriodTotal = this.BillingPeriodTotal + amount; LastUpdate = now }
 
-    static member create now currentHourAmount = { CurrentHour = currentHourAmount; Created = now ; LastUpdate = now }
+    member this.resetHourCounter now = { this with CurrentHour = Quantity.Zero ; LastUpdate = now }
+
+    static member createNew now currentHourAmount = { CurrentHour = currentHourAmount; BillingPeriodTotal = currentHourAmount; Created = now ; LastUpdate = now }
 
 type IncludedQuantity = 
     { Quantity: Quantity
@@ -61,7 +64,7 @@ module SimpleMeterLogic =
                     |> IncludedQuantity
                 else 
                     quantity - remaining
-                    |> ConsumedQuantity.create now 
+                    |> ConsumedQuantity.createNew now
                     |> ConsumedQuantity
 
     let createIncluded (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
@@ -96,9 +99,9 @@ module SimpleMeterLogic =
                       Quantity = q.CurrentHour
                       EffectiveStartTime = q.LastUpdate |> MeteringDateTime.beginOfTheHour }
 
-                let newMeterValue = ConsumedQuantity (ConsumedQuantity.create (MeteringDateTime.now()) Quantity.Zero)
+                let newMeterValue = q.resetHourCounter (MeteringDateTime.now()) |> ConsumedQuantity
                 ( [ marketplaceRequest ], { this with Meter = Some newMeterValue })
 
-    let createNewMeterValueDuringBillingPeriod (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
-        ConsumedQuantity.create now quantity
-        |> ConsumedQuantity
+    //let createNewMeterValueDuringBillingPeriod (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
+    //    ConsumedQuantity.create now quantity
+    //    |> ConsumedQuantity

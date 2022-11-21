@@ -114,12 +114,13 @@ module Json =
                    | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
 
         module ConsumedQuantity =
-            let (consumedQuantity, created, lastUpdate) = 
-                ("consumedQuantity", "created", "lastUpdate")
+            let (consumedQuantity, total, created, lastUpdate) = 
+                ("consumedQuantity", "total", "created", "lastUpdate")
         
             let encode (x: ConsumedQuantity) : (string * JsonValue) list =
                 [
                     (consumedQuantity, x.CurrentHour |> Quantity.Encoder)
+                    (total, x.BillingPeriodTotal |> Quantity.Encoder)
                     (created, x.Created |> MeteringDateTime.Encoder)
                     (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder)
                 ]
@@ -127,6 +128,7 @@ module Json =
             let decode (get: Decode.IGetters) : ConsumedQuantity =
                 {
                     CurrentHour = get.Required.Field consumedQuantity Quantity.Decoder
+                    BillingPeriodTotal = get.Required.Field total Quantity.Decoder
                     Created = get.Required.Field created MeteringDateTime.Decoder
                     LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
                 }
