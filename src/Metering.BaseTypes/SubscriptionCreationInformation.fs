@@ -9,4 +9,4 @@ type SubscriptionCreationInformation =
       InternalMetersMapping: InternalMetersMapping } // The table mapping app-internal meter names to 'proper' ones for marketplace
 
     override this.ToString() =
-        $"{this.Subscription.SubscriptionStart |> MeteringDateTime.toStr}: SubscriptionCreation ID={this.Subscription.InternalResourceId.ToString()} {this.Subscription.RenewalInterval}"
+        $"{this.Subscription.SubscriptionStart |> MeteringDateTime.toStr}: SubscriptionCreation ID={this.Subscription.MarketplaceResourceId.ToString()} {this.Subscription.RenewalInterval}"

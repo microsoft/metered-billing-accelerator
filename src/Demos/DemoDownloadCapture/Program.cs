@@ -19,10 +19,10 @@ await foreach (MeteringUpdateEvent e in x)
 { 
     (e switch
     {
-        SubscriptionPurchased sp => $"Sub purchased {sp.Item.Subscription.InternalResourceId.ToString()}",
+        SubscriptionPurchased sp => $"Sub purchased {sp.Item.Subscription.MarketplaceResourceId.ToString()}",
         MeteringUpdateEvent.UnprocessableMessage um => $"Unprocessable message {um.Item.ToString()}",
         SubscriptionDeletion d => $"Deleted {d.Item.ToString()}",
-        UsageReported u => $"Usage {u.Item.Timestamp} {u.Item.InternalResourceId} {u.Item.Quantity}",
+        UsageReported u => $"Usage {u.Item.Timestamp} {u.Item.MarketplaceResourceId} {u.Item.Quantity}",
         UsageSubmittedToAPI u => $"Reported: {u.Item.Result.ToString()}",
         _ => $"Something else"
     })

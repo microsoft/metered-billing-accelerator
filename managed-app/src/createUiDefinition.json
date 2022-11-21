@@ -1,0 +1,89 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+  "handler": "Microsoft.Azure.CreateUIDef",
+  "version": "0.1.2-preview",
+  "parameters": {
+    "basics": [
+      {
+        "name": "sshUsername",
+        "type": "Microsoft.Compute.UserNameTextBox",
+        "label": "Username",
+        "defaultValue": "",
+        "toolTip": "Specify a user for accessing the virtual machines within your cluster. Must be a valid Ubuntu username.",
+        "constraints": {
+          "required": true,
+          "regex": "^(?!(?:adm|admin|audio|backup|bin|cdrom|crontab|daemon|dialout|dip|disk|fax|floppy|fuse|games|gnats|irc|kmem|landscape|libuuid|list|lp|mail|man|messagebus|mlocate|netdev|news|nobody|nogroup|operator|plugdev|proxy|root|sasl|shadow|src|ssh|sshd|staff|sudo|sync|sys|syslog|tape|tty|users|utmp|uucp|video|voice|whoopsie|www\\-data)$)\\w+$",
+          "validationMessage": "Username must not be a reserved Ubuntu username"
+        },
+        "osPlatform": "Linux"
+      },
+      {
+        "name": "credential",
+        "type": "Microsoft.Compute.CredentialsCombo",
+        "label": {
+          "authenticationType": "Authentication type",
+          "password": "Password",
+          "confirmPassword": "Confirm password",
+          "sshPublicKey": "SSH public key"
+        },
+        "toolTip": {
+          "authenticationType": "Password or SSH-based authN",
+          "password": "Linux password",
+          "sshPublicKey": "SSH public key (for ~/.ssh/authorized_keys file)"
+        },
+        "constraints": {
+          "required": true,
+          "customPasswordRegex": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{12,}$",
+          "customValidationMessage": "The password must be alphanumeric, contain at least 12 characters, and have at least 1 letter and 1 number."
+        },
+        "options": {
+          "hideConfirmation": false,
+          "hidePassword": false
+        },
+        "osPlatform": "Linux",
+        "visible": true
+      },
+      {
+        "name": "dnsPrefix",
+        "type": "Microsoft.Common.TextBox",
+        "label": "DNS prefix",
+        "defaultValue": "",
+        "toolTip": "Use only allowed characters",
+        "constraints": {
+          "required": true,
+          "regex": "^[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9]{3, 10}$",
+          "validationMessage": "Only alphanumeric characters are allowed, and the value must be 6-30 characters long."
+        },
+        "visible": true
+      },
+      {
+        "name": "vmSize",
+        "type": "Microsoft.Compute.SizeSelector",
+        "label": "VM Size",
+        "toolTip": "Select a VM instance size",
+        "recommendedSizes": [
+          "Standard_D2_v5"
+        ],
+        "osPlatform": "Linux",
+        "imageReference": {
+          "publisher": "canonical",
+          "offer": "0001-com-ubuntu-server-focal",
+          "sku": "20_04-lts-gen2"
+        },
+        "visible": true
+      }
+    ],
+    "steps": [
+    ],
+    "outputs": {
+      "vmSize": "[basics('vmSize')]",
+      "sshUsername": "[basics('sshUsername')]",
+      "authenticationType": "[basics('credential').authenticationType]",
+      "sshPassword": "[basics('credential').password]",
+      "sshPublicKey": "[basics('credential').sshPublicKey]",
+      "dnsLabelPrefix": "[basics('dnsPrefix')]",
+      "location": "[location()]",
+      "managedIdentity": { "Type": "SystemAssigned" }
+    }
+  }
+}

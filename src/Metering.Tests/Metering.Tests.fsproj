@@ -6,6 +6,27 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="data\messages\subscriptionPurchased.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\subscriptionDeleted3.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\subscriptionDeleted2.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\subscriptionDeleted1.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\usageReported.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\usageReportedOnlyResourceUri.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="data\messages\usageReportedOnlyResourceId.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <None Include="data\state.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -33,8 +54,9 @@
     <Compile Include="BillingUnitTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.2.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
     <PackageReference Include="NUnit" Version="3.13.3" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />
     <PackageReference Include="coverlet.collector" Version="3.1.2">
@@ -46,6 +68,6 @@
     <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.5" />
+    <PackageReference Update="FSharp.Core" Version="6.0.6" />
   </ItemGroup>
 </Project>

@@ -6,9 +6,23 @@ using System.Text;
 using Azure.Messaging.EventHubs.Producer;
 using Metering.BaseTypes;
 using Metering.ClientSDK;
+using MeterValue = Metering.ClientSDK.MeterValue;
 using Metering.Integration;
 
 Console.Title = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+
+//Console.WriteLine(Json.toStr(0, UsageReported.NewUsageReported(
+//    new Metering.BaseTypes.InternalUsageEvent(
+//        Metering.BaseTypes.MarketplaceResourceId.fromResourceID("nin"),
+//        new ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc),
+//        ApplicationInternalMeterName.create("cpu"),
+//        Metering.BaseTypes.Quantity.create(1.0),
+//        null))));
+
+//Console.WriteLine(Json.toStr(0, UsageReported.NewSubscriptionDeletion(
+//    Metering.BaseTypes.MarketplaceResourceId.from("nin", "/subscription/123"))));
+//return;
+
 
 var eventHubProducerClient = MeteringConnections.createEventHubProducerClientForClientSDK();
 
@@ -31,7 +45,7 @@ static async Task DeleteSubscriptions(EventHubProducerClient eventHubProducerCli
 {
     foreach (var subscription in subscriptions)
     {
-        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
+        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(MarketplaceResourceId.fromStr(subscription.Id), ct);
     }
 }
 static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerClient, SubSum[] subscriptions, CancellationToken ct)
@@ -45,14 +59,14 @@ static async Task CreateSubscriptions(EventHubProducerClient eventHubProducerCli
             internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
             subscription: new(
                 plan: await readJson<Plan>("plan.json"),
-                internalResourceId: InternalResourceId.fromStr(subscription.Id),
+                marketplaceResourceId: MarketplaceResourceId.fromStr(subscription.Id),
                 renewalInterval: RenewalInterval.Monthly,
                 subscriptionStart: MeteringDateTimeModule.fromStr(subscription.Established)));
 
         await Console.Out.WriteLineAsync(Json.toStr(1, sub));
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, ct);
 
-        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(InternalResourceId.fromStr(subscription.Id), ct);
+        await eventHubProducerClient.SubmitSubscriptionDeletionAsync(MarketplaceResourceId.fromStr(subscription.Id), ct);
 
             
      }
@@ -69,8 +83,8 @@ static async Task ConsumeIncludedAtOnce(EventHubProducerClient eventHubProducerC
     {
         foreach (var meter in new[] { "cpu1", "mem1" })
         {
-            await eventHubProducerClient.SubmitSaaSMeterAsync(
-                saasSubscriptionId: sub.Id,
+            await eventHubProducerClient.SubmitMeterAsync(
+                resourceId: sub.Id,
                 applicationInternalMeterName: meter,
                 quantity: 999,
                 cancellationToken: ct);
@@ -111,12 +125,12 @@ static async Task BatchRandomId(EventHubProducerClient eventHubProducerClient, s
     while (true)
     {
         var meters = new[] { "cpu1", "mem1" }
-                   .Select(x => MeterValues.create(x, 0.1))
+                   .Select(x => MeterValue.create(x, 0.1))
                    .ToArray();
 
         if (i++ % 10 == 0) { Console.Write("."); }
 
-        await eventHubProducerClient.SubmitSaaSMetersAsync(saasId, meters, ct);
+        await eventHubProducerClient.SubmitMetersAsync(saasId, meters, ct);
         await Task.Delay(TimeSpan.FromSeconds(5), ct);
     }
 }
@@ -145,7 +159,7 @@ static async Task Interactive(EventHubProducerClient eventHubProducerClient, Can
                     internalMetersMapping: await readJson<InternalMetersMapping>("mapping.json"),
                     subscription: new(
                         plan: await readJson<Plan>("plan.json"),
-                        internalResourceId: InternalResourceId.fromStr(saasId),
+                        marketplaceResourceId: MarketplaceResourceId.fromStr(saasId),
                         renewalInterval: RenewalInterval.Monthly,
                         subscriptionStart: MeteringDateTimeModule.now()));
 
@@ -159,21 +173,21 @@ static async Task Interactive(EventHubProducerClient eventHubProducerClient, Can
                 var count = GetQuantity(command);
 
                 var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                    .Select(x => MeterValues.create(x, count))
+                    .Select(x => MeterValue.create(x, count))
                     .ToArray();
 
                 await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
-                await eventHubProducerClient.SubmitSaaSMetersAsync(saasId, meters, ct);
+                await eventHubProducerClient.SubmitMetersAsync(saasId, meters, ct);
             }
             else
             {
                 await Console.Out.WriteLineAsync($"Emitting to {subName} ({saasId})");
                 var meters = new[] { "nde", "cpu", "dta", "msg", "obj" }
-                    .Select(x => MeterValues.create(x, 1.0))
+                    .Select(x => MeterValue.create(x, 1.0))
                     .ToArray();
 
                 await Console.Out.WriteLineAsync($"Emitting to name={subName} (partitionKey={saasId})");
-                await eventHubProducerClient.SubmitSaaSMetersAsync(saasId, meters, ct);
+                await eventHubProducerClient.SubmitMetersAsync(saasId, meters, ct);
             }
         }
     }

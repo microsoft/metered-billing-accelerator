@@ -1,0 +1,28 @@
+﻿{
+  "type": "SubscriptionPurchased",
+  "value": {
+    "subscription": {
+      "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+      "resourceUri": "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription",
+      "subscriptionStart": "2021-11-04T16:12:26Z",
+      "renewalInterval": "Monthly",
+      "plan": {
+        "planId": "free_monthly_yearly",
+        "billingDimensions": {
+          "messagecharge": 1000,
+          "cpucharge": 1000,
+          "datasourcecharge": 1000,
+          "nodecharge": 1000,
+          "objectcharge": 1000
+        }
+      }
+    },
+    "metersMapping": {
+      "msg": "messagecharge",
+      "cpu": "cpucharge",
+      "dta": "datasourcecharge",
+      "nde": "nodecharge",
+      "obj": "objectcharge"
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "type":"SubscriptionPurchased",
+  "value":{
+    "subscription":{
+      "scope":"...",
+      "subscriptionStart":"...",
+      "renewalInterval":"Monthly",
+      "plan": {
+        "planId":"free_monthly_yearly",
+        "billingDimensions": {
+          "dimension-payg": 0,
+          "dimension-included": 10000,
+          "dimension-infinity": "Infinite"
+        }
+      }
+    },
+    "metersMapping":{
+    "msg": "messagecharge",
+    "cpu": "cpucharge",
+    "dta": "datasourcecharge",
+    "nde": "nodecharge",
+    "obj": "objectcharge"
+    }
+  }
+}

@@ -354,3 +354,4 @@ MigrationBackup/
 **/obj
 .vscode
 launchSettings.json
+.idea

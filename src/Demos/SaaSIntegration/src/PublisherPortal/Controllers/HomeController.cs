@@ -257,7 +257,7 @@ public class HomeController : Controller
             internalMetersMapping: meterMapping,
             subscription: new(
                 plan: meterplan,
-                internalResourceId: InternalResourceId.fromStr(subscriptionId.ToString()),
+                marketplaceResourceId: MarketplaceResourceId.fromStr(subscriptionId.ToString()),
                 renewalInterval: RenewalInterval.Monthly,
                 subscriptionStart: MeteringDateTimeModule.now()));
         await eventHubProducerClient.SubmitSubscriptionCreationAsync(sub, cts.Token);

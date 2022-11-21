@@ -1,0 +1,10 @@
+﻿{
+  "type": "UsageReported",
+  "value": {
+    "resourceId": "a7911127-216b-4f7b-a1fc-ad13baaf7dcc",
+    "timestamp": "2022-09-19T13:26:22Z",
+    "meterName": "cpu",
+    "quantity": 1.0,
+    "properties": {}
+  }
+}

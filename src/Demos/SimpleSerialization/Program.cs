@@ -3,10 +3,9 @@ using Metering.BaseTypes;
 
 string meterCollectionAsJson = File.ReadAllText(@"..\..\..\..\..\Metering.Tests\data\state.json");
 MeterCollection meterCollection = Json.fromStr<MeterCollection>(meterCollectionAsJson);
-foreach (KeyValuePair<InternalResourceId, Meter> kvp in meterCollection.MeterCollection)
+foreach (Meter meter in meterCollection.Meters)
 {
-    InternalResourceId meterResourceId = kvp.Key;
-    Meter meter = kvp.Value;
+    MarketplaceResourceId meterResourceId = meter.Subscription.MarketplaceResourceId;
 
     foreach (KeyValuePair<DimensionId, MeterValue> meterKey in meter.CurrentMeterValues.value)
     {
