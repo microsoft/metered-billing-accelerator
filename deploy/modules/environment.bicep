@@ -1,19 +1,17 @@
+@description('Provide a location for the registry.')
+param location string = resourceGroup().location
+
 param environmentName string
 param logAnalyticsWorkspaceName string
 param appInsightsName string
-param location string
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2020-03-01-preview' = {
   name: logAnalyticsWorkspaceName
   location: location
   properties: any({
     retentionInDays: 30
-    features: {
-      searchVersion: 1
-    }
-    sku: {
-      name: 'PerGB2018'
-    }
+    features: { searchVersion: 1 }
+    sku: { name: 'PerGB2018' }
   })
 }
 
@@ -42,5 +40,4 @@ resource environment 'Microsoft.App/managedEnvironments@2022-01-01-preview' = {
   }
 }
 
-output location string = location
 output environmentId string = environment.id
