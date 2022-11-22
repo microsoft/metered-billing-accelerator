@@ -4,7 +4,7 @@
     "resourceGroupName": "",
     "location": "westeurope",
     "suffix": "",
-    "groupName": "SRB.ManagedApp.Deployments",
+    "groupName": "managed-app-service-principals-xyz",
     "webappName" : ""
   },
   "managedApplication" : {
