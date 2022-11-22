@@ -14,10 +14,12 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   
 jobs:
-   build:
+  example_matrix:
     strategy:
       matrix:
-        application: [ Aggregator, Metering.SharedResourceBroker ]
+        application: [ Aggregator, Metering.SharedResourceBroker ] 
+  build:
+    name: Build
     runs-on: ubuntu-latest
     outputs:
       tagVersion: ${{ steps.nbgv.outputs.SemVer2 }}
@@ -48,8 +50,8 @@ jobs:
       with:
         name: ${{ matrix.application }}.${{env.NBGV_SemVer2}}
         path: src/${{ matrix.application }}/bin/Debug/net6.0
-   release:
-    name: Release Build
+  release:
+    name: Release
     runs-on: ubuntu-latest
     needs: build
     steps:
