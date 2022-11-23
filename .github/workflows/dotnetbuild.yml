@@ -48,7 +48,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ${{ matrix.application }}.${{ matrix.platform }}.${{env.NBGV_SemVer2}}
-        path: src/${{ matrix.application }}/bin/Debug/net6.0
+        path: src/${{ matrix.application }}/bin/Debug/net7.0
    release:
     name: Release Build
     runs-on: [ubuntu-latest]
