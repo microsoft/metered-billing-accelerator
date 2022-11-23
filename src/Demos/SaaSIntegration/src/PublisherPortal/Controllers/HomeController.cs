@@ -235,7 +235,7 @@ public class HomeController : Controller
                     foreach (var dim in billing.MeteredQuantityIncluded)
                     {
                         var d = new SimpleConsumptionBillingDimension(
-                            internalName: ApplicationInternalMeterName.create(dim.DimensionId), 
+                            applicationInternalMeterName: ApplicationInternalMeterName.create(dim.DimensionId), 
                             dimensionId: DimensionId.create(dim.DimensionId), 
                             includedQuantity: Quantity.create(Convert.ToUInt32(dim.Units)));
 

@@ -8,11 +8,15 @@ param containerRegistry string
 param containerRegistryUsername string
 param isPrivateRegistry bool
 param enableIngress bool 
+
+@secure()
 param registryPassword string
+
 param minReplicas int = 0
 param secrets array = []
 param env array = []
 
+param infrastructureManagedIdentityId string
 
 resource environment 'Microsoft.App/managedEnvironments@2022-01-01-preview' existing = {
   name: environmentName
@@ -21,6 +25,12 @@ resource environment 'Microsoft.App/managedEnvironments@2022-01-01-preview' exis
 resource containerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
   name: containerAppName
   location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${infrastructureManagedIdentityId}': {}
+    }
+  }
   properties: {
     managedEnvironmentId: environment.id
     configuration: {
@@ -57,10 +67,7 @@ resource containerApp 'Microsoft.App/containerApps@2022-01-01-preview' = {
       }
     }
   }
-  identity: {
-    type: 'SystemAssigned'
-  }
 }
 
 output fqdn string = enableIngress ? containerApp.properties.configuration.ingress.fqdn : 'Ingress not enabled'
-output principalId string = containerApp.identity.principalId
+

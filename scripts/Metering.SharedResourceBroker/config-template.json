@@ -4,11 +4,7 @@
     "resourceGroupName": "",
     "location": "westeurope",
     "suffix": "",
-    "groupName": "SRB.ManagedApp.Deployments",
+    "aadDesiredGroupName": "managed-app-service-principals-xyz",
     "webappName" : ""
-  },
-    "managedApplication" : {
-      "partnerCenterTrackingId" : "",
-      "managedApplicationZipUrl" :""
-    }
+  }
 }

@@ -4,61 +4,26 @@
 module Metering.NUnitTests.Billing
 
 open System
-open System.IO
 open NUnit.Framework
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.EventHub
-open Metering.BaseTypes
 
 [<SetUp>]
 let Setup () = ()
 
 let d = MeteringDateTime.fromStr
 
-let bp (s: string) : BillingPeriod =
-    s.Split([|'|'|], 3)
-    |> Array.toList
-    |> List.map (fun s -> s.Trim())
-    |> function
-        | [indx; startVal; endVal] -> { Start = (d startVal); End = (d endVal); Index = (uint (Int64.Parse(indx))) }
-        | _ -> failwith "parsing error"
-
 let runTestVectors test testcases = testcases |> List.indexed |> List.map test |> ignore
 
 let somePlan : Plan = 
     { PlanId = "PlanId" |> PlanId.create
-      BillingDimensions = List.empty |> BillingDimensions.create }
+      BillingDimensions = Map.empty }
 
 let someManagedAppId = 
     MarketplaceResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
 
-[<Test>]
-let ``BillingPeriod.createFromIndex`` () =
-    let sub = Subscription.create somePlan someManagedAppId Monthly (d "2021-05-13T12:00:03") 
-
-    Assert.AreEqual(
-        (bp "2|2021-07-13T12:00:03|2021-08-12T12:00:02"),
-        (BillingPeriod.createFromIndex sub 2u))
-
 type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * string); BillingPeriodIndex: uint; Candidate: string; Expected: bool}
-
-[<Test>]
-let ``BillingPeriod.isInBillingPeriod`` () =
-    let test (idx, testcase) =
-        let (interval, purchaseDateStr) = testcase.Purchase
-        let subscription = Subscription.create somePlan someManagedAppId interval (d purchaseDateStr)
-        let billingPeriod = testcase.BillingPeriodIndex |> BillingPeriod.createFromIndex subscription 
-        let result = (d testcase.Candidate) |> BillingPeriod.isInBillingPeriod billingPeriod 
-        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
-
-    [
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-08-13T12:00:00"; Expected=true}
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-08-15T12:00:00"; Expected=true}
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-09-12T11:59:59"; Expected=true}
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=3u; Candidate="2021-09-13T12:00:00"; Expected=false}
-        { Purchase=(Monthly, "2021-05-13T12:00:00"); BillingPeriodIndex=4u; Candidate="2021-09-13T12:00:00"; Expected=true}
-    ] |> runTestVectors test
 
 type MeterValue_subtractQuantityFromMeterValue_Vector = { State: SimpleMeterValue; Quantity: Quantity; Expected: SimpleMeterValue}
 [<Test>]
@@ -67,82 +32,99 @@ let ``MeterValue.subtractQuantity``() =
     let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let test (idx, testcase) = 
-        let result = testcase.State.subtractQuantity now testcase.Quantity 
+        
+        let result = testcase.State |> SimpleMeterLogic.subtractQuantity now testcase.Quantity 
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
-    
+        
     [
         {
             // deduct without overage
-            State = IncludedQuantity { Quantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
+            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
             Quantity = Quantity.create 13u
-            Expected = IncludedQuantity { Quantity = Quantity.create 17u; Created = created; LastUpdate = now}
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 17u; Created = created; LastUpdate = now}
         }
         {
             // deplete completely
-            State = IncludedQuantity { Quantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
+            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
             Quantity = Quantity.create 30u
-            Expected = IncludedQuantity { Quantity = Quantity.Zero; Created = created; LastUpdate = now}
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.Zero; Created = created; LastUpdate = now}
         }
         {
             // If there's nothing, it costs money
-            State = IncludedQuantity { Quantity = Quantity.Zero; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { RemainingQuantity = Quantity.Zero; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { Amount = Quantity.create 2u; Created = created; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; BillingPeriodTotal = Quantity.create 2u; Created = created; LastUpdate = now }
         }
         {
             // Going further into the overage
-            State = ConsumedQuantity { Amount = Quantity.create 10u; Created = created; LastUpdate = lastUpdate }
+            State = ConsumedQuantity { CurrentHour = Quantity.create 10u; BillingPeriodTotal = Quantity.create 200u; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { Amount = Quantity.create 12u; Created = created; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 12u; BillingPeriodTotal = Quantity.create 202u; Created = created; LastUpdate = now }
         }
         {
             // If there's infinite, it never gets depleted
-            State = IncludedQuantity { Quantity = Quantity.Infinite; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { RemainingQuantity = Quantity.Infinite; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 200000u
-            Expected = IncludedQuantity { Quantity = Quantity.Infinite; Created = created; LastUpdate = now }
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.Infinite; Created = created; LastUpdate = now }
         }
     ] |> runTestVectors test
 
-type MeterValue_topupMonthlyCredits_Vector = { Input: SimpleMeterValue; Value: uint; Expected: SimpleMeterValue}
+type MeterValue_topupMonthlyCredits_Vector = { Value: uint; Expected: SimpleMeterValue}
 
 [<Test>]
 let ``MeterValue.createIncluded``() =
     let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
-    let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
 
     let test (idx, testcase) =
-        let result = SimpleMeterValue.createIncluded now (Quantity.create testcase.Value)
+        let result = SimpleMeterLogic.createIncluded now (Quantity.create testcase.Value)
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
     
     [
         {
-            Input = IncludedQuantity { Quantity = Quantity.create 1u; Created = created; LastUpdate = lastUpdate } 
             Value = 9u
-            Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
-        }
-        {
-            Input = ConsumedQuantity { Amount = Quantity.create 100_000u; Created = created; LastUpdate = lastUpdate }
-            Value = 9u
-            Expected = IncludedQuantity { Quantity = Quantity.create 9u; Created = created; LastUpdate = now } 
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 9u; Created = created; LastUpdate = now } 
         }
     ] |> runTestVectors test
 
 [<Test>]
-let ``BillingPeriod.previousBillingIntervalCanBeClosedNewEvent``() =
+let ``Meter.previousBillingIntervalCanBeClosedNewEvent``() =
     let test (idx, (prev, curEv, expected)) =
-        let result : CloseBillingPeriod = 
-            BillingPeriod.previousBillingIntervalCanBeClosedNewEvent
+        let result = 
+            Meter.previousBillingIntervalCanBeClosedNewEvent
                 (prev |> MeteringDateTime.fromStr)
                 (curEv |> MeteringDateTime.fromStr)
         
         Assert.AreEqual(expected, result, sprintf "Failure test case #%d" idx)
 
     [
-        ("2021-01-10T11:59:58", "2021-01-10T11:59:59", KeepOpen) // Even though we're already 10 seconds in the new hour, the given event belongs to the previous hour, so there might be more
-        ("2021-01-10T11:59:58", "2021-01-10T12:00:00", Close) // The event belongs to a new period, so close it        
-        ("2021-01-10T12:00:00", "2021-01-11T12:00:00", Close) // For whatever reason, we've been sleeping for exactly one day
+        ("2021-01-10T11:59:58", "2021-01-10T11:59:59", false) // Even though we're already 10 seconds in the new hour, the given event belongs to the previous hour, so there might be more
+        ("2021-01-10T11:59:58", "2021-01-10T12:00:00", true) // The event belongs to a new period, so close it        
+        ("2021-01-10T12:00:00", "2021-01-11T12:00:00", true) // For whatever reason, we've been sleeping for exactly one day
     ] |> runTestVectors test
+
+[<Test>]
+let ``MarketplaceResourceId.equality``() =
+    let resourceIdStr1 = "8151a707-467c-4105-df0b-44c3fca5880d"
+    let resourceUriStr1 = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+
+    Assert.AreNotEqual(
+        MarketplaceResourceId.fromResourceID resourceIdStr1,
+        MarketplaceResourceId.fromResourceURI resourceUriStr1)
+
+    Assert.AreEqual(
+        MarketplaceResourceId.fromResourceID resourceIdStr1,
+        MarketplaceResourceId.fromStr resourceIdStr1)
+
+    Assert.AreEqual(
+        MarketplaceResourceId.fromResourceURI resourceUriStr1,
+        MarketplaceResourceId.fromStr resourceUriStr1)
+
+    let x1 = MarketplaceResourceId.fromResourceURI resourceUriStr1
+    let x2 = x1.addResourceId resourceIdStr1
+    
+    Assert.IsTrue(x1.Matches(x2))
+    Assert.IsTrue(x2.Matches(x1))
 
 [<Test>]
 let ``Quantity.Serialization`` () =
@@ -184,19 +166,24 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
                     PlanId = "plan123" |> PlanId.create
                     BillingDimensions = 
                         [
-                            { 
-                                InternalName = ("d1" |> ApplicationInternalMeterName.create)
-                                DimensionId = ("dimension1" |> DimensionId.create)
-                                IncludedQuantity = (1000u |> Quantity.create)
-                            }
-                            { 
-                                InternalName = ("freestuff" |> ApplicationInternalMeterName.create)
-                                DimensionId = ("dimension2" |> DimensionId.create)
-                                IncludedQuantity = Quantity.Infinite 
-                            } 
-                        ] |> BillingDimensions.create
-                        
-
+                            (
+                                "d1" |> ApplicationInternalMeterName.create,
+                                { 
+                                    DimensionId = ("dimension1" |> DimensionId.create)
+                                    IncludedQuantity = (1000u |> Quantity.create)
+                                    Meter = None
+                                })
+                            (
+                                "freestuff" |> ApplicationInternalMeterName.create,
+                                {                                 
+                                    DimensionId = ("dimension2" |> DimensionId.create)
+                                    IncludedQuantity = Quantity.Infinite 
+                                    Meter = None
+                                } 
+                            )
+                        ]
+                        |> List.map (fun (name, bd) -> (name, SimpleBillingDimension bd))
+                        |> Map.ofList
                 }
                 MarketplaceResourceId = marketplaceResourceId
                 RenewalInterval = Monthly
@@ -233,24 +220,38 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         f mc
         mc
 
-    let getMeter (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : SimpleMeterValue =
+    let getSimpleMeterValue (mc: MeterCollection) (marketplaceResourceId: MarketplaceResourceId) (dimensionId: string) : SimpleMeterValue =
         let dimensionId = dimensionId |> DimensionId.create
 
-        mc
-        |> MeterCollection.find marketplaceResourceId
-        |> (fun s -> s.CurrentMeterValues.value |> Map.find dimensionId)
+        let meter: Meter = mc |> MeterCollection.find marketplaceResourceId
+        
+        let billingDimension =
+            meter.Subscription.Plan.BillingDimensions
+            |> Map.toSeq
+            |> Seq.find (fun (k, v) -> 
+                match v with
+                | SimpleBillingDimension x -> x.DimensionId = dimensionId
+                | _ -> false)
+            |> (fun (_, v) -> v)
+            
+        match billingDimension with
+        | SimpleBillingDimension x -> 
+            match x.Meter with
+            | Some x -> x
+            | _ -> failwith "Value not set"
+        | _ -> failwith $"Not a {nameof SimpleBillingDimension}"
 
     let includes (q: Quantity) (mv: SimpleMeterValue) : unit =
         // Ensures that the given MeterValue is exactly the given quantity
         match mv with
         | IncludedQuantity iq -> 
-            Assert.AreEqual(q, iq.Quantity)
+            Assert.AreEqual(q, iq.RemainingQuantity)
         | _ -> failwith "Not an IncludedQuantity"
 
     let overageOf (q: Quantity) (mv: SimpleMeterValue) : unit =
         match mv with
         | ConsumedQuantity cq -> 
-            Assert.AreEqual(q, cq.Amount)
+            Assert.AreEqual(q, cq.CurrentHour)
         | _ -> failwith "Not an ConsumedQuantity"
 
     let assertUsageReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
@@ -267,7 +268,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
         mc
 
-    let assertOverallUsageToBeReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
+    let assertOverallUsageToBeReported (marketplaceResourceId: MarketplaceResourceId) (dimension: string) (overallquantity: uint) (mc: MeterCollection) : MeterCollection =
         let dimension = DimensionId.create dimension
         let overallquantity = Quantity.create overallquantity
 
@@ -293,10 +294,10 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         handle (createUsage sub (sn()) date quantity dimension)
 
     let assertIncluded sub dimension quantity =
-        check (fun m -> getMeter m sub dimension |> includes quantity)
+        check (fun m -> getSimpleMeterValue m sub dimension |> includes quantity)
     
     let assertOverage sub dimension (quantity: uint) =
-        check (fun m -> getMeter m sub dimension |> overageOf (Quantity.create quantity))
+        check (fun m -> getSimpleMeterValue m sub dimension |> overageOf (Quantity.create quantity))
 
     let ensureSequenceNumberHasBeenApplied =
         check (fun m -> 
@@ -304,7 +305,6 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
             | None -> Assert.Fail "missing LastUpdate"
             | Some u -> Assert.AreEqual(sequenceNumber, u.SequenceNumber)
         )
-
 
     let inspectJson (header: string) (a: 'a) : 'a =
         let json = a |> Json.toStr 1
@@ -325,12 +325,6 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> check (fun m -> Assert.IsTrue(m |> MeterCollection.contains sub1))
     |> assertIncluded      sub1 "dimension1" (Quantity.create 1000u)
     |> assertIncluded      sub1 "dimension2" Quantity.Infinite
-    |> check (fun m ->
-        m
-        |> MeterCollection.find sub1
-        |> checkSub (fun m ->  Assert.AreEqual(2, m.CurrentMeterValues.value |> Map.count))
-        |> ignore
-    )
     // Up until now, there should nothing to be reported.
     |> assertOverallUsageToBeReported sub1 "dimension1" 0u
     // If we consume 999 out of 1000 included, then 1 included should remain
@@ -483,102 +477,6 @@ let ``CaptureProcessor.getPrefixForRelevantBlobs`` () =
     Assert.AreEqual(
         "meteringhack-standard/hub2/p0--", 
         CaptureProcessor.getPrefixForRelevantBlobs "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}" ehContext)
-
-let private roundTrip<'T> (filename: string) =
-    let json =
-        $"data/{filename}"
-        |> File.ReadAllText
-    
-    let t1 = json |> Json.fromStr<'T>
-
-    printfn "--------------------------- %s \n%A" filename t1
-    
-    let t2 = 
-        t1
-        |> Json.toStr 0
-        |> Json.fromStr<'T>
-
-    Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
-
-[<Test>]
-let ``Json.MarketplaceRequest`` () = roundTrip<MarketplaceRequest> "MarketplaceRequest.json"
-
-[<Test>]
-let ``Json.MarketplaceSuccessResponseMarketplaceSuccessResponse`` () = roundTrip<MarketplaceSuccessResponse> "MarketplaceSuccessResponse.json"
-
-[<Test>]
-let ``Json.MarketplaceSubmissionResultMarketplaceSuccessResponse`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceSuccessResponse.json"
-
-[<Test>]
-let ``Json.MarketplaceErrorDuplicateMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceErrorDuplicate> "MarketplaceErrorDuplicate.json"
-
-[<Test>]
-let ``Json.MarketplaceGenericErrorMarketplaceGenericError`` () = roundTrip<MarketplaceGenericError> "MarketplaceGenericError.json"
-
-[<Test>]
-let ``Json.MarketplaceSubmissionErrorMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceSubmissionError> "MarketplaceErrorDuplicate.json"
-
-[<Test>]
-let ``Json.MarketplaceSubmissionResultMarketplaceErrorDuplicate`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceErrorDuplicate.json"
-
-[<Test>]
-let ``Json.MarketplaceSubmissionErrorMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionError> "MarketplaceGenericError.json"
-
-[<Test>]
-let ``Json.MarketplaceSubmissionResultMarketplaceGenericError`` () = roundTrip<MarketplaceSubmissionResult> "MarketplaceGenericError.json"
-
-[<Test>]
-let ``Json.MarketplaceBatchRequest`` () = roundTrip<MarketplaceBatchRequest> "MarketplaceBatchRequest.json"
-
-[<Test>]
-let ``Json.MarketplaceBatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceBatchResponseDTO.json"
-
-[<Test>]
-let ``Json.MeteringUpdateEvent`` () = 
-    [
-        "usageReported"
-        "usageReportedOnlyResourceUri"
-        "usageReportedOnlyResourceId"
-        "subscriptionDeleted1"
-        "subscriptionDeleted2"
-        "subscriptionDeleted3"
-        "subscriptionPurchased"
-    ]
-    |> List.iter (fun name -> roundTrip<MeteringUpdateEvent> $"messages/{name}.json")
-
-[<Test>]
-let ``Json.plan`` () = roundTrip<Plan> "plan.json"
-
-[<Test>]
-let ``Json.state`` () = roundTrip<MeterCollection> "state.json"
-
-[<Test>]
-let ``Json.ParsePlan`` () =
-    let p =
-        """
-        {
-          "planId": "the_plan",
-          "billingDimensions": [
-            {"name": "literal",  "type": "simple", "dimension": "literal",  "included": 2 },
-            {"name": "quoted",   "type": "simple", "dimension": "quoted",   "included": "1000000" },
-            {"name": "infinite", "type": "simple", "dimension": "infinite", "included": "Infinite" }
-          ]
-        }
-        """
-        |> Json.fromStr<Plan>
-    Assert.AreEqual("the_plan", p.PlanId.value)
-
-    let check dimensionId expected =
-        let actual = 
-            p.BillingDimensions.value
-            |> List.find (fun x -> x.DimensionId = (DimensionId.create dimensionId))
-            |> (fun x -> x.IncludedQuantity)
-
-        Assert.AreEqual(expected, actual)
-    
-    check "infinite" Quantity.Infinite
-    check "literal" (Quantity.create 2u)
-    check "quoted" (Quantity.create 1000000u)
 
 module E =
     open System.Collections.Generic

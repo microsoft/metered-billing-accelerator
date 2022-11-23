@@ -8,50 +8,32 @@ using Azure.Storage.Blobs.Models;
 using System.IO.Compression;
 using Metering.BaseTypes;
 using PublisherPortal.ViewModels.Meter;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Metering.Integration;
+using Metering.Utils;
+using System.Threading;
 
 namespace PublisherPortal.Services
 {
     public class ProcessLatestMetered
     {
-        private string eventHubNameSpace;
-        private string eventHubName;
-        private string downloadlocation;
-        private string storageConnectionString;
+        private readonly MeteringConnections connections;
 
-
-        public ProcessLatestMetered (IConfiguration configuration)
+        public ProcessLatestMetered(IConfiguration configuration)
         {
-            this.eventHubNameSpace = configuration["AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME"];
-            this.eventHubName = configuration["AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME"];
-            this.downloadlocation = configuration["Downloadlocation"];
-            this.storageConnectionString = configuration["StorageConnectionString"];
+            this.connections = MeteringConnections.getFromEnvironment();
         }
 
-        public async Task<PublisherMetersModel> GetLatestMetered(string subscriptionId)
+        public async Task<PublisherMetersModel> GetLatestMetered(string )
         {
+            var reportingOverviews = await ManagementUtils.getMetersForSubscription(
+               connections,
+               MarketplaceResourceId.fromStr(subscriptionId),
+               cancellationToken: CancellationToken.None);
+
             PublisherMetersModel currentPublisherMeters = new();
 
-            string latest = eventHubNameSpace + ".servicebus.windows.net/" + eventHubName + "/0/latest.json.gz";
-            BlobServiceClient blobServiceClient = new BlobServiceClient(storageConnectionString);
-            BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient("snapshots");
-            BlobClient blobClient = containerClient.GetBlobClient(latest);
-            string downloadFilePath = downloadlocation+"latest.json.gz";
-            string DecompressedFileName = downloadlocation + "latest.json";
-            await blobClient.DownloadToAsync(downloadFilePath);
-
-            using FileStream compressedFileStream = File.Open(downloadFilePath, FileMode.Open);
-            using FileStream outputFileStream = File.Create(DecompressedFileName);
-            using var decompressor = new GZipStream(compressedFileStream, CompressionMode.Decompress);
-            decompressor.CopyTo(outputFileStream);
-            outputFileStream.Close();
-
-            //sync version
-            string jsonString = File.ReadAllText(DecompressedFileName);
-
-            var metercollections = Json.fromStr<MeterCollection>(jsonString);
 
             // get Last Process Time
             currentPublisherMeters.lastProcessedMessage = metercollections.LastUpdate.Value.PartitionTimestamp.ToString();
@@ -62,10 +44,7 @@ namespace PublisherPortal.Services
                 
                 foreach (var meterKey in meter.CurrentMeterValues.value)
                 {
-                    MeterSummaryModel meterSummary = new()
-                    {
-                        SubscriptionId = meter.Subscription.MarketplaceResourceId.ResourceId()
-                    };
+
                     if (meterKey.Value.IsConsumedQuantity)
                     {
                         meterSummary.DimensionName = meterKey.Key.value.ToString();
@@ -78,6 +57,8 @@ namespace PublisherPortal.Services
 
                     }
                     currentPublisherMeters.CurrentMeterSummary.Add(meterSummary);
+
+                    MeterSummaryModel meterSummary = new(subscriptionId,)
                 }
             }
 

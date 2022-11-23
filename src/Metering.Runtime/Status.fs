@@ -42,24 +42,24 @@ module Status =
             return partitionProperties |> Seq.toArray |> Map.ofArray
         }
 
-    let private getMessagePositions (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) : Task<Map<PartitionID, MessagePosition option>> =
-        let getState (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) (partitionId: PartitionID) =
+    let private getMessagePositions (connections: MeteringConnections) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) : Task<Map<PartitionID, MessagePosition option>> =
+        let getState (connections: MeteringConnections) (cancellationToken: CancellationToken) (partitionId: PartitionID) =
             task {
-                let! state = MeterCollectionStore.loadLastState config partitionId cancellationToken
+                let! state = MeterCollectionStore.loadLastState connections partitionId cancellationToken
                 let pos = state |> Option.bind (fun m -> m.LastUpdate)
                 return (partitionId, pos)
             }
 
         task {
-            let! storedStates = partitionIds |> Seq.map (getState config cancellationToken) |> Task.WhenAll
+            let! storedStates = partitionIds |> Seq.map (getState connections cancellationToken) |> Task.WhenAll
             return storedStates |> Map.ofSeq
         }
 
     /// Download all snapshots for the given partition IDs.
-    let private getStates (config: MeteringConfigurationProvider) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) : Task<Map<PartitionID, MeterCollection option>> =
+    let private getStates (connections: MeteringConnections) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) : Task<Map<PartitionID, MeterCollection option>> =
         let getState partitionId =
             task {
-                let! state = MeterCollectionStore.loadLastState config partitionId cancellationToken
+                let! state = MeterCollectionStore.loadLastState connections partitionId cancellationToken
                 return (partitionId, state)
             }
 
@@ -75,7 +75,7 @@ module Status =
             let! partitionIds = getPartitionIDs client cancellationToken
 
             let! partitionProperties = partitionIds |> getPartitionProperties client cancellationToken           
-            let! storedStates = partitionIds |> getMessagePositions config cancellationToken
+            let! storedStates = partitionIds |> getMessagePositions config.MeteringConnections cancellationToken
 
             let diff (partitionId:PartitionID, lastEnqueuedSequenceNumber:int64, lastEnqueuedTime:MeteringDateTime, lastOffset:int64) (mp: MessagePosition) =
                 { LastSequenceNumber = lastEnqueuedSequenceNumber
@@ -110,7 +110,7 @@ module Status =
         task {
             let client = config.MeteringConnections.createEventHubConsumerClient()
             let! partitionIds = getPartitionIDs client cancellationToken
-            let! storedStates = partitionIds |> getStates config cancellationToken
+            let! storedStates = partitionIds |> getStates config.MeteringConnections cancellationToken
 
             return storedStates
         }

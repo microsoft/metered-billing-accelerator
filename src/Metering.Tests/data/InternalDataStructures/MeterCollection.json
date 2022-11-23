@@ -1,0 +1,114 @@
+{
+  "lastProcessedMessage": {
+    "partitionId": "3",
+    "sequenceNumber": "5",
+    "partitionTimestamp": "2022-01-28T15:36:21Z"
+  },
+  "meters": [    
+    {
+      "subscription": {
+        "resourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
+        "subscriptionStart": "2021-12-14T18:20:00Z",
+        "renewalInterval": "Monthly",
+        "plan": {
+          "planId": "free_monthly_yearly",
+          "billingDimensions": {
+            "cpu": { 
+              "type": "simple",
+              "dimension": "cpucharge",
+              "included": "Infinite",
+              "meter": {
+                "included": { 
+                  "quantity": "Infinite", 
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+              }
+            },
+            "dta": {
+              "type": "simple",
+              "dimension": "datasourcecharge",
+              "included": 1000,
+              "meter": {
+                "included": { 
+                  "quantity": 999,        
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+              }
+            },
+            "msg": { 
+              "type": "simple",
+              "dimension": "messagecharge",
+              "included": "10000",
+              "meter": {
+                "included": {
+                  "quantity": 999.123,  
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+               }
+            },
+            "nde": {  
+              "type": "simple",
+              "dimension": "nodecharge",
+              "included": 1000,
+              "meter": {
+                "included": { 
+                  "quantity": 999,        
+                  "created": "2022-01-28T15:36:17Z", 
+                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                }
+              }
+            },
+            "obj": {  
+              "type": "simple",
+              "dimension": "objectcharge",
+              "included": 0,
+              "meter": {
+                "consumed": {
+                  "consumedQuantity": 1.0,
+                  "total": 20,
+                  "created": "2022-01-28T15:36:17Z",
+                  "lastUpdate": "2022-01-28T15:36:21Z"
+                }
+              }
+            },
+            "gigabyte_egress": { 
+              "type": "waterfall", 
+              "tiers": [
+                { "dimension": "egress_tier_1",  "threshold":    100 },
+                { "dimension": "egress_tier_2",  "threshold":  10000 },
+                { "dimension": "egress_tier_3",  "threshold":  40000 },
+                { "dimension": "egress_tier_4",  "threshold": 100000 },
+                { "dimension": "egress_overage", "threshold": 350000 }
+              ],
+              "meter": {
+                "total": 100000,
+                "consumption": {
+                  "egress_tier_1":  5000
+                },
+                "lastUpdate": "2022-01-28T15:36:21Z"
+              }
+            }
+          }
+        }
+      },
+      "usageToBeReported": [
+        {
+          "planId": "free_monthly_yearly",
+          "dimension": "nodecharge",
+          "resourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
+          "quantity": 5.0,
+          "effectiveStartTime": "2021-12-22T09:00:00Z"
+        }
+      ],
+      "lastProcessedMessage": {
+        "partitionId": "3",
+        "sequenceNumber": "5",
+        "partitionTimestamp": "2022-01-28T15:36:21Z"
+      }
+    }
+  ],
+  "unprocessable": []
+}

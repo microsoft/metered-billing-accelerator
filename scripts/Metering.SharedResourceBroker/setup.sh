@@ -1,14 +1,20 @@
 #!/bin/bash
 
+trap "exit 1" TERM
+export TOP_PID=$$
+
 echo "Running az cli $(az version | jq '."azure-cli"' ), should be 2.37.0 or higher"
 
 basedir="$( pwd )"
 basedir="$( dirname "$( readlink -f "$0" )" )"
+# basedir="/mnt/c/github/microsoft/metered-billing-accelerator/scripts/Metering.SharedResourceBroker"
+
+echo "Working in directory ${basedir}"
 
 CONFIG_FILE="${basedir}/config.json"
 
 if [ ! -f "$CONFIG_FILE" ]; then
-    cp ./config-template.json "${CONFIG_FILE}"
+    cp "${basedir}/config-template.json" "${CONFIG_FILE}"
     echo "You need to configure deployment settings in ${CONFIG_FILE}" 
     exit 1
 fi
@@ -19,6 +25,17 @@ function get-value {
     
     json="$( cat "${CONFIG_FILE}" )" ;
     echo "${json}" | jq -r "${key}"
+}
+
+function get-value-or-fail {
+   local json_path="$1";
+   local value;
+
+   value="$( get-value "${json_path}" )"
+
+   [[ -z "${value}"  ]] \
+   && { echo "Please configure ${json_path} in file ${CONFIG_FILE}" > /dev/tty ; kill -s TERM $TOP_PID; }
+   echo "$value"
 }
 
 function put-value { 
@@ -41,25 +58,11 @@ function put-json-value {
        > "${CONFIG_FILE}"
 }
 
-jsonpath=".initConfig.subscriptionId"
-subscriptionId="$( get-value "${jsonpath}" )"
-[ "${subscriptionId}" == "" ] && { echo "Please configure ${jsonpath} in file ${CONFIG_FILE}" ; exit 1 ; }
-
-jsonpath=".initConfig.resourceGroupName"
-resourceGroupName="$( get-value  "${jsonpath}" )"
-[ "${resourceGroupName}" == "" ] && { echo "Please configure ${jsonpath} in file ${CONFIG_FILE}" ; exit 1 ; }
-
-jsonpath=".initConfig.location"
-location="$( get-value  "${jsonpath}" )"
-[ "${location}" == "" ] && { echo "Please configure ${jsonpath} in file ${CONFIG_FILE}" ; exit 1 ; }
-
-jsonpath=".initConfig.suffix"
-suffix="$( get-value  "${jsonpath}" )"
-[ "${suffix}" == "" ] && { echo "Please configure ${jsonpath} in file ${CONFIG_FILE}" ; exit 1 ; }
-
-jsonpath=".initConfig.groupName"
-groupName="$( get-value  "${jsonpath}" )"
-[ "${groupName}" == "" ] && { echo "Please configure ${jsonpath} in file ${CONFIG_FILE}" ; exit 1 ; }
+subscriptionId="$(    get-value-or-fail '.initConfig.subscriptionId' )"
+resourceGroupName="$( get-value-or-fail '.initConfig.resourceGroupName' )"
+location="$(          get-value-or-fail '.initConfig.location' )"
+suffix="$(            get-value-or-fail '.initConfig.suffix' )"
+groupName="$(         get-value-or-fail '.initConfig.aadDesiredGroupName' )"
 
 # echo "subscriptionId    ${subscriptionId}"
 # echo "resourceGroupName ${resourceGroupName}"
@@ -80,14 +83,14 @@ groupId="$( get-value "${jsonpath}" )"
 if [ -z "${groupId}" ] || [ "${groupId}" == "null" ]
 then
     groupId="$( az ad group create \
-        --display-name  "$( get-value '.initConfig.groupName' )" \
-        --mail-nickname "$( get-value '.initConfig.groupName' )" \
+        --display-name  "$( get-value '.initConfig.aadDesiredGroupName' )" \
+        --mail-nickname "$( get-value '.initConfig.aadDesiredGroupName' )" \
         | jq -r .id )"
 
     put-value "${jsonpath}" "${groupId}"
-    echo "Created group $( get-value '.initConfig.groupName' ). Group ID is ${groupId}"
+    echo "Created group $( get-value '.initConfig.aadDesiredGroupName' ). Group ID is ${groupId}"
 else
-    echo "Group $( get-value  '.initConfig.groupName' ) with ID ${groupId} existed"
+    echo "Group $( get-value '.initConfig.aadDesiredGroupName' ) with ID ${groupId} existed"
 fi
 
 #
@@ -108,7 +111,6 @@ jsonpath='.aad.applianceResourceProviderObjectID'
 applianceResourceProviderObjectID="$( get-value "${jsonpath}" )"
 if [ -z "${applianceResourceProviderObjectID}" ] || [ "${applianceResourceProviderObjectID}" == "null" ]
 then
-
     az provider register --namespace "Microsoft.Solutions"
     
     # az provider show -n Microsoft.Solutions
@@ -119,17 +121,7 @@ then
 fi
 echo "Appliance Resource Provider ID: ${applianceResourceProviderObjectID}"
 
-#
-# Determine the software version to be deployed within the ARM script
-#
-commitId="$( git log --format='%H' -n 1 )"
-put-value '.deployment.commitId' "${commitId}"
-
-zipUrl="https://isvreleases.blob.core.windows.net/backendrelease/henrikwh/SharedResourceBroker/Backend/Publish/Backend-Debug-${commitId}.zip"
-
-put-value '.deployment.zipUrl' "${zipUrl}"
-
-msgraph="$( az ad sp show --id 00000003-0000-0000-c000-000000000000 | jq . )"
+msgraph="$( az ad sp show --id 00000003-0000-0000-c000-000000000000 | jq . )" # WARNING: Unable to encode the output with cp1252 encoding. Unsupported characters are discarded.
 put-value '.aad.msgraph.resourceId' "$( echo "${msgraph}" | jq -r .id )"
 put-value '.aad.msgraph.appRoleId'  "$( echo "${msgraph}" | jq -r '.appRoles[] | select(.value | contains("Application.ReadWrite.OwnedBy")) | .id' )"
 
@@ -138,6 +130,22 @@ put-value '.deployment.subscriptionId'   "$( echo "${account}" | jq -r '.id' )"
 put-value '.deployment.subscriptionName' "$( echo "${account}" | jq -r '.name' )"
 put-value '.aad.tenantId'                "$( echo "${account}" | jq -r '.tenantId' )"
 
+#
+# Determine the software version to be deployed within the ARM script
+#
+
+# commitId="$( git log --format='%H' -n 1 )"
+webAppVersion="$( jq -r '.version' < "${basedir}/../../version.json" )"
+webAppVersion="1.0.15-beta"
+put-value '.deployment.webAppVersion' "${webAppVersion}"
+
+# https://github.com/microsoft/metered-billing-accelerator/releases/download//Metering.SharedResourceBroker.windows-latest.1.0.15-beta.zip
+
+zipUrl="https://github.com/microsoft/metered-billing-accelerator/releases/download/${webAppVersion}/Metering.SharedResourceBroker.windows-latest.${webAppVersion}.zip"
+put-value '.deployment.zipUrl' "${zipUrl}"
+
+notificationSecret="$( openssl rand 128 | base32 --wrap=0  )"
+put-value '.managedApp.notificationSecret' "${notificationSecret}"
 # 
 # Perform the ARM deployment
 #
@@ -147,38 +155,92 @@ deploymentResultJSON="$( az deployment group create \
     --parameters \
        suffix="${suffix}" \
        bootstrapSecretValue="$(    openssl rand 128 | base32 --wrap=0 )" \
-       notificationSecretValue="$( openssl rand 128 | base32 --wrap=0 )" \
+       notificationSecretValue="${notificationSecret}" \
        applianceResourceProviderObjectID="${applianceResourceProviderObjectID}" \
        securityGroupForServicePrincipal="${groupId}" \
        deploymentZip="${zipUrl}" \
     --output json )"
-
+ 
 echo "ARM Deployment: $( echo "${deploymentResultJSON}" | jq -r .properties.provisioningState )"
 
-echo "${deploymentResultJSON}" > results.json
+echo "${deploymentResultJSON}" | jq . > results.json
 
-put-json-value '.names'                          "$(echo "${deploymentResultJSON}" | jq    '.properties.outputs.resourceNames.value' )" 
-put-value      '.aad.managedIdentityPrincipalID' "$(echo "${deploymentResultJSON}" | jq -r '.properties.outputs.managedIdentityPrincipalID.value' )" 
+put-json-value '.names' "$(echo "${deploymentResultJSON}" | jq '.properties.outputs.resourceNames.value' )" 
 
-managedIdentityPrincipalID="$( get-value '.aad.managedIdentityPrincipalID' )"
-graphResourceId="$( get-value '.aad.msgraph.resourceId')"
-appRoleId="$( get-value '.aad.msgraph.appRoleId')"
+
+az webapp config appsettings set \
+   --name "$( get-value '.names.appService' )" \
+   --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
+   --settings WEBSITE_RUN_FROM_PACKAGE="${zipUrl}"
+
+az webapp config appsettings set \
+   --name "$( get-value '.names.appService' )" \
+   --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
+   --settings WEBSITE_RUN_FROM_PACKAGE="https://typora.blob.core.windows.net/typoraimages/2022/11/23/19/31/publish----BVVN5EEDHRBBQ9EHRK582268CC.zip"
+   
+# Check if the metadata has been set properly, want to see
+#
+# {
+#   "id": "/subscriptions/../resourceGroups/../providers/Microsoft.Web/sites/../config/metadata",
+#   "location": "West Europe",
+#   "name": "metadata",
+#   "properties": {
+#     "CURRENT_STACK": "dotnetcore"
+#   },
+#   "type": "Microsoft.Web/sites/config"
+# }
+# Show metadata
+az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/metadata/list?api-version=2022-03-01"
+# Show appsettings
+az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/appsettings/list?api-version=2022-03-01"
+
+
+put-value '.aad.managedIdentityPrincipalID' "$(echo "${deploymentResultJSON}" | jq -r '.properties.outputs.managedIdentityPrincipalID.value' )" 
+put-value '.managedApp.notificationUrl' "https://$( get-value '.names.appService' ).azurewebsites.net/?sig=${notificationSecret}"
 
 #
 # Make the managed identity the owner of the security group
 #
+echo "Set principal $( get-value '.aad.managedIdentityPrincipalID' ) to be owner of group ${groupName}"
 az ad group owner add \
     --group           "${groupName}" \
-    --owner-object-id "${managedIdentityPrincipalID}" 
+    --owner-object-id "$( get-value '.aad.managedIdentityPrincipalID' )" 
 
 az rest \
     --method POST \
-    --uri "https://graph.microsoft.com/v1.0/servicePrincipals/${managedIdentityPrincipalID}/appRoleAssignments" \
+    --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$( get-value '.aad.managedIdentityPrincipalID' )/appRoleAssignments" \
     --headers "{'Content-Type': 'application/json'}" \
     --body "$( echo "{}" \
-               | jq --arg x "${managedIdentityPrincipalID}" '.principalId=$x' \
-               | jq --arg x "${graphResourceId}"            '.resourceId=$x' \
-               | jq --arg x "${appRoleId}"                  '.appRoleId=$x' \
+               | jq --arg x "$( get-value '.aad.managedIdentityPrincipalID' )" '.principalId=$x' \
+               | jq --arg x "$( get-value '.aad.msgraph.resourceId')"          '.resourceId=$x' \
+               | jq --arg x "$( get-value '.aad.msgraph.appRoleId')"           '.appRoleId=$x' \
              )"
+
+put-json-value '.managedApp.meteringConfiguration' "$( echo "{}" \
+  | jq --arg x "https://$( get-value '.names.appService' ).azurewebsites.net" '.servicePrincipalCreationURL=$x' \
+  | jq --arg x "$( get-value '.initConfig.subscriptionId' )"                  '.publisherVault.publisherSubscription=$x' \
+  | jq --arg x "$( get-value '.initConfig.resourceGroupName' )"               '.publisherVault.vaultResourceGroupName=$x' \
+  | jq --arg x "$( get-value '.names.publisherKeyVault' )"                    '.publisherVault.vaultName=$x' \
+  | jq --arg x "$( get-value '.names.secrets.bootstrapSecret' )"              '.publisherVault.bootstrapSecretName=$x' \
+  | jq --arg x "https://meter20221119.servicebus.windows.net/meter20221119"   '.amqpEndpoint=$x' )"
+
+echo -n "$( get-value '.managedApp.meteringConfiguration' )" >  "${basedir}/../../managed-app/meteringConfiguration.json"
+
+archiveNameFormat='{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}'
+put-value '.eventHub.capture.archiveNameFormat' "${archiveNameFormat}"
+
+dataDeploymentResult="$( az deployment group create \
+    --resource-group "${resourceGroupName}" \
+    --template-file "../../deploy/modules/data.bicep" \
+    --parameters \
+       appNamePrefix="${suffix}" \
+       archiveNameFormat="$( get-value '.eventHub.capture.archiveNameFormat' )" \
+       partitionCount="13" \
+    --output json )"
+
+echo "${dataDeploymentResult}" > data-deployment-results.json
+
+echo "Data Backend Deployment: $( echo "${dataDeploymentResult}" | jq -r .properties.provisioningState )"
+
 
 echo "Finished setup..."

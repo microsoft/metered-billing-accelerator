@@ -1,26 +1,5 @@
 {
-    "idToken": [
-        {
-            "name": "groups",
-            "source": null,
-            "essential": false,
-            "additionalProperties": []
-        }
-    ],
-    "accessToken": [
-        {
-            "name": "groups",
-            "source": null,
-            "essential": false,
-            "additionalProperties": []
-        }
-    ],
-    "saml2Token": [
-        {
-            "name": "groups",
-            "source": null,
-            "essential": false,
-            "additionalProperties": []
-        }
-    ]
+    "idToken": [ { "name": "groups", "source": null, "essential": false, "additionalProperties": [] } ],
+    "accessToken": [ { "name": "groups", "source": null, "essential": false, "additionalProperties": [] } ],
+    "saml2Token": [ { "name": "groups", "source": null, "essential": false, "additionalProperties": [] } ]
 }

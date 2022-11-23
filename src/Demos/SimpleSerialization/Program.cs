@@ -1,17 +1,16 @@
-﻿
-using Metering.BaseTypes;
+﻿using Metering.BaseTypes;
 
-string meterCollectionAsJson = File.ReadAllText(@"..\..\..\..\..\Metering.Tests\data\state.json");
+string meterCollectionAsJson = File.ReadAllText(@"..\..\..\..\..\Metering.Tests\data\InternalDataStructures\MeterCollection.json");
 MeterCollection meterCollection = Json.fromStr<MeterCollection>(meterCollectionAsJson);
 foreach (Meter meter in meterCollection.Meters)
 {
     MarketplaceResourceId meterResourceId = meter.Subscription.MarketplaceResourceId;
 
-    foreach (KeyValuePair<DimensionId, SimpleMeterValue> meterKey in meter.CurrentMeterValues.value)
+    foreach (var kv in meter.Subscription.Plan.BillingDimensions)
     {
-        var dimensionId = meterKey.Key;
-        var meterValue = meterKey.Value;
+        var name = kv.Key;
+        var dimension = kv.Value;
 
-        Console.WriteLine($"{meterResourceId}: {dimensionId} - {meterValue}");
+        Console.WriteLine($"{meterResourceId}: {name} - {dimension}");
     }
 }

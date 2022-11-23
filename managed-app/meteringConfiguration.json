@@ -1,10 +1,10 @@
 {
-	"servicePrincipalCreationURL": "https://notifications.demo-chgeuer.azureisv.com",
-	"publisherVault": {
-		"publisherSubscription": "706df49f-998b-40ec-aed3-7f0ce9c67759",
-		"vaultResourceGroupName": "backend-2022-07-15-2",
-		"vaultName": "SRBKVchgp20220715-2",
-		"bootstrapSecretName": "BootstrapSecret"
-	},
-	"amqpEndpoint": "https://metering-20220825.servicebus.windows.net/metering"
+  "servicePrincipalCreationURL": "https://sptmcv3sn3uyaeq.azurewebsites.net",
+  "publisherVault": {
+    "publisherSubscription": "706df49f-998b-40ec-aed3-7f0ce9c67759",
+    "vaultResourceGroupName": "metered-billing-2022-11",
+    "vaultName": "sptmcv3sn3uyaeq",
+    "bootstrapSecretName": "BootstrapSecret"
+  },
+  "amqpEndpoint": "https://meter20221119.servicebus.windows.net/meter20221119"
 }

@@ -7,6 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		1.sh = 1.sh
+		Dockerfile = Dockerfile
 		global.json = global.json
 		..\docs\MarketplaceDataStructures.md = ..\docs\MarketplaceDataStructures.md
 		..\NOTICE.md = ..\NOTICE.md
@@ -66,8 +67,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LandingPage", "Demos\SaaSIntegration\src\LandingPage\LandingPage.csproj", "{6BF359A0-CF94-4A06-8A81-8CFCCEA99EE9}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MeteredPage", "Demos\SaaSIntegration\src\MeteredPage\MeteredPage.csproj", "{B2563E68-CBE6-4E71-A3BC-6CA978254535}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PublisherPortal", "Demos\SaaSIntegration\src\PublisherPortal\PublisherPortal.csproj", "{771977DC-6A25-4DE3-A81C-E6A571BF91E4}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.SharedResourceBroker", "Metering.SharedResourceBroker\Metering.SharedResourceBroker.csproj", "{98F369FC-2F7C-427D-9AF7-37AB2145F372}"
 EndProject
@@ -161,10 +160,6 @@ Global
 		{B2563E68-CBE6-4E71-A3BC-6CA978254535}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B2563E68-CBE6-4E71-A3BC-6CA978254535}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B2563E68-CBE6-4E71-A3BC-6CA978254535}.Release|Any CPU.Build.0 = Release|Any CPU
-		{771977DC-6A25-4DE3-A81C-E6A571BF91E4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{771977DC-6A25-4DE3-A81C-E6A571BF91E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{771977DC-6A25-4DE3-A81C-E6A571BF91E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{771977DC-6A25-4DE3-A81C-E6A571BF91E4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -187,7 +182,6 @@ Global
 		{CCAB4FC0-8900-4126-8389-5C52062DBAE5} = {21099251-12F2-48DF-8704-058CD6A7C8E8}
 		{6BF359A0-CF94-4A06-8A81-8CFCCEA99EE9} = {0FC868E2-1262-421D-9F92-7425F224A428}
 		{B2563E68-CBE6-4E71-A3BC-6CA978254535} = {0FC868E2-1262-421D-9F92-7425F224A428}
-		{771977DC-6A25-4DE3-A81C-E6A571BF91E4} = {0FC868E2-1262-421D-9F92-7425F224A428}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D3FA63C3-048D-4660-A9A0-7299AF2C0417}

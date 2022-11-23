@@ -110,11 +110,11 @@ module MeterCollectionStore =
 
         let private regexPattern = "(?<ns>[^\.]+?)\.servicebus\.windows\.net/(?<hub>[^\/]+?)/(?<partitionid>[^\/]+?)/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})--(?<hour>\d{2})-(?<minute>\d{2})-(?<second>\d{2})---sequencenr-(?<sequencenr>\d+)\.json\.gz" // " // (?<year>\d{4})
     
-        let internal latestName (config: MeteringConfigurationProvider) (partitionId: PartitionID) =
-            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{partitionId.value}/latest.json.gz"
+        let internal latestName (meteringConnections: MeteringConnections) (partitionId: PartitionID) =
+            $"{meteringConnections.EventHubConfig.EventHubName |> prefix}/{partitionId.value}/latest.json.gz"
     
-        let internal currentName (config: MeteringConfigurationProvider) (lastUpdate: MessagePosition) =
-            $"{config.MeteringConnections.EventHubConfig.EventHubName |> prefix}/{lastUpdate.PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
+        let internal currentName (meteringConnections: MeteringConnections) (lastUpdate: MessagePosition) =
+            $"{meteringConnections.EventHubConfig.EventHubName |> prefix}/{lastUpdate.PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
     
         let blobnameToPosition config blobName = 
             let i32 (m: Match) (name: string) = 
@@ -152,13 +152,13 @@ module MeterCollectionStore =
 
     [<Extension>]
     let loadStateFromFilename
-        (config: MeteringConfigurationProvider)
+        (meteringConnections: MeteringConnections)
         (partitionID: PartitionID)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         (name: string)
         : Task<MeterCollection option> =
         task {
-            let blob = config.MeteringConnections.SnapshotStorage.GetBlobClient(name)
+            let blob = meteringConnections.SnapshotStorage.GetBlobClient(name)
     
             try
                 let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
@@ -179,15 +179,15 @@ module MeterCollectionStore =
         |> loadStateFromFilename config partitionID cancellationToken
 
     [<Extension>]
-    let loadLastState config partitionID cancellationToken =
-        Naming.latestName config partitionID
-        |> loadStateFromFilename config partitionID cancellationToken
+    let loadLastState (connections: MeteringConnections) partitionID cancellationToken =
+        Naming.latestName connections partitionID
+        |> loadStateFromFilename connections partitionID cancellationToken
     
     //let loadStateBySequenceNumber config partitionID cancellationToken (sequenceNumber: SequenceNumber) =
     //    let blobNames = CaptureProcessor.getCaptureBlobs 
 
     let storeLastState
-        (config: MeteringConfigurationProvider)
+        (connections: MeteringConnections)
         (meterCollection: MeterCollection)
         ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken)
         : Task =
@@ -195,12 +195,12 @@ module MeterCollectionStore =
         match meterCollection |> Some |> lastUpdate with
         | None -> Task.FromResult "Empty collection, skipped saving"
         | Some lastUpdate ->
-            let name = meterCollection |> getLastUpdateAsString
-            let current = Naming.currentName config lastUpdate
-            let latest = Naming.latestName config lastUpdate.PartitionID
+            // let name = meterCollection |> getLastUpdateAsString
+            let current = Naming.currentName connections lastUpdate
+            let latest = Naming.latestName connections lastUpdate.PartitionID
 
             task {
-                let blobDate = config.MeteringConnections.SnapshotStorage.GetBlobClient(current)
+                let blobDate = connections.SnapshotStorage.GetBlobClient(current)
                 
                 //let! exists = blobDate.ExistsAsync(cancellationToken = cancellationToken)
 
@@ -217,7 +217,7 @@ module MeterCollectionStore =
 
                 try
                     ignore <| stream.Seek(offset = 0L, origin = SeekOrigin.Begin)
-                    let latestBlob = config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
+                    let latestBlob = connections.SnapshotStorage.GetBlobClient(latest)
                     let! s = latestBlob.UploadAsync(content = stream, overwrite = true, cancellationToken = cancellationToken)
                     ()
                 with
@@ -226,7 +226,7 @@ module MeterCollectionStore =
 
                 //try
                 //    let latestBlob =
-                //        config.MeteringConnections.SnapshotStorage.GetBlobClient(latest)
+                //        connections.SnapshotStorage.GetBlobClient(latest)
                 //    let! _ = latestBlob.DeleteAsync(cancellationToken = cancellationToken)
                 //    let! _ = CopyBlobAsync blobDate latestBlob cancellationToken
                 //with
