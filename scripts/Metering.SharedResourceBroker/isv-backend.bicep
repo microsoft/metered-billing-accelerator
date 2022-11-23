@@ -20,16 +20,19 @@ param securityGroupForServicePrincipal string
 
 param deploymentZip string = 'https://github.com/microsoft/metered-billing-accelerator/releases/download/1.0.3-beta/Aggregator.windows-latest.1.0.3-beta.zip'
 
+var prefix = toLower('sp${uniqueString(suffix)}')
+
+// The ARM [`substring`](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions-string#substring) function is difficult to use. `substring('Hallo', 0, 10)` currently throws the error `The index and length parameters must refer to a location within the string.`. In languages such as C# etc., the length parameter is treated as a maximum, not an absolute. If the provided input string is shorter than the length, the function should just return the original input string. Workaround is writing something like `substring('Hallo', 0, min(10, length('Hallo')))`, which is cumbersome.
 var names = {
+  uami: '${prefix}-service-principal-generator'
+  appInsights: prefix
+  appServicePlan: prefix
+  appService: substring(prefix, 0, min(40, length(prefix)))
+  publisherKeyVault: substring(prefix, 0, min(24, length(prefix)))
   secrets: {
     bootstrapSecret: 'BootstrapSecret'
     notificationSecret: 'NotificationSecret'
   }
-  publisherKeyVault: 'SRBKV${suffix}'
-  uami: 'SRBIdentity${suffix}'
-  appInsights: 'SRBAppInsights${suffix}'
-  appServicePlan: 'SRBServicePlan${suffix}'
-  appService: 'SRBWebapp${suffix}'
 }
 
 var keyVaultRoleID = {
@@ -49,6 +52,9 @@ var keyVaultRoleID = {
 resource publisherKeyVault 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   name: names.publisherKeyVault
   location: location
+  tags: {
+    suffix: suffix
+  }
   properties: {
     enabledForDeployment: false
     enabledForDiskEncryption: false
@@ -82,6 +88,9 @@ resource notificationSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-previe
 resource uami 'Microsoft.ManagedIdentity/userAssignedIdentities@2021-09-30-preview' = {
   name: names.uami
   location: location
+  tags: {
+    suffix: suffix
+  }
 }
 
 resource managedIdentityCanEnumerateSecrets 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
@@ -127,6 +136,9 @@ resource applianceResourceProviderCanReadBootstrapSecret 'Microsoft.Authorizatio
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: names.appInsights
   location: location
+  tags: {
+    suffix: suffix
+  }
   kind: 'web'
   properties: {
     Application_Type: 'web'
@@ -136,12 +148,18 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
 resource appServicePlan 'Microsoft.Web/serverfarms@2020-06-01' = {
   name: names.appServicePlan
   location: location
+  tags: {
+    suffix: suffix
+  }
   sku: { name: 'D1', capacity: 1 }
 }
 
 resource appService 'Microsoft.Web/sites@2021-03-01' = {
   name: names.appService
   location: location
+  tags: {
+    suffix: suffix
+  }
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: { '${uami.id}': {} }
@@ -153,14 +171,19 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
     clientAffinityEnabled: false
     siteConfig: {
       minTlsVersion: '1.2'
-      use32BitWorkerProcess: true
-      netFrameworkVersion: 'v6.0'
+    }
+  }
+
+  resource metadata 'config@2021-03-01' = {
+    name: 'metadata'
+    properties: {
+      CURRENT_STACK: 'dotnetcore'
     }
   }
 
   resource settings 'config@2021-03-01' = {
     name: 'appsettings'
-    dependsOn: [ uami ]
+    dependsOn: [ metadata ]
     properties: {
       // On Windows, separate with ':', on Linux with '__'
       'ServicePrincipalCreatorSettings:GeneratedServicePrincipalPrefix': 'ManagedProductServicePrincipal'
