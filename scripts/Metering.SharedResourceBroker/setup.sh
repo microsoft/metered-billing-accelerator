@@ -7,12 +7,10 @@ echo "Running az cli $(az version | jq '."azure-cli"' ), should be 2.37.0 or hig
 
 basedir="$( pwd )"
 basedir="$( dirname "$( readlink -f "$0" )" )"
-# basedir="/mnt/c/github/microsoft/metered-billing-accelerator/scripts/Metering.SharedResourceBroker"
-
+# basedir="/mnt/c/github/chgeuer/metered-billing-accelerator/scripts/Metering.SharedResourceBroker"
 echo "Working in directory ${basedir}"
 
 CONFIG_FILE="${basedir}/config.json"
-
 if [ ! -f "$CONFIG_FILE" ]; then
     cp "${basedir}/config-template.json" "${CONFIG_FILE}"
     echo "You need to configure deployment settings in ${CONFIG_FILE}" 
@@ -59,11 +57,11 @@ function put-json-value {
 }
 
 subscriptionId="$(    get-value-or-fail '.initConfig.subscriptionId' )"
-resourceGroupName="$( get-value-or-fail '.initConfig.resourceGroupName' )"
 location="$(          get-value-or-fail '.initConfig.location' )"
+resourceGroupName="$( get-value-or-fail '.initConfig.resourceGroupName' )"
 suffix="$(            get-value-or-fail '.initConfig.suffix' )"
 groupName="$(         get-value-or-fail '.initConfig.aadDesiredGroupName' )"
-
+useAppInsights="$(    get-value-or-fail '.initConfig.useAppInsights' )"
 # echo "subscriptionId    ${subscriptionId}"
 # echo "resourceGroupName ${resourceGroupName}"
 # echo "location          ${location}"
@@ -121,12 +119,13 @@ then
 fi
 echo "Appliance Resource Provider ID: ${applianceResourceProviderObjectID}"
 
-msgraph="$( az ad sp show --id 00000003-0000-0000-c000-000000000000 | jq . )" # WARNING: Unable to encode the output with cp1252 encoding. Unsupported characters are discarded.
+msgraph="$( az ad sp show --id 00000003-0000-0000-c000-000000000000 | jq . )"
+# echo "${msgraph}" | jq .
 put-value '.aad.msgraph.resourceId' "$( echo "${msgraph}" | jq -r .id )"
 put-value '.aad.msgraph.appRoleId'  "$( echo "${msgraph}" | jq -r '.appRoles[] | select(.value | contains("Application.ReadWrite.OwnedBy")) | .id' )"
 
 account="$( az account show | jq .)"
-put-value '.deployment.subscriptionId'   "$( echo "${account}" | jq -r '.id' )"
+# put-value '.deployment.subscriptionId'   "$( echo "${account}" | jq -r '.id' )"
 put-value '.deployment.subscriptionName' "$( echo "${account}" | jq -r '.name' )"
 put-value '.aad.tenantId'                "$( echo "${account}" | jq -r '.tenantId' )"
 
@@ -136,29 +135,30 @@ put-value '.aad.tenantId'                "$( echo "${account}" | jq -r '.tenantI
 
 # commitId="$( git log --format='%H' -n 1 )"
 webAppVersion="$( jq -r '.version' < "${basedir}/../../version.json" )"
-webAppVersion="1.0.15-beta"
+webAppVersion="1.0.69-beta"
 put-value '.deployment.webAppVersion' "${webAppVersion}"
 
-# https://github.com/microsoft/metered-billing-accelerator/releases/download//Metering.SharedResourceBroker.windows-latest.1.0.15-beta.zip
-
-zipUrl="https://github.com/microsoft/metered-billing-accelerator/releases/download/${webAppVersion}/Metering.SharedResourceBroker.windows-latest.${webAppVersion}.zip"
+# zipUrl="https://github.com/microsoft/metered-billing-accelerator/releases/download/${webAppVersion}/Metering.SharedResourceBroker.windows-latest.${webAppVersion}.zip"
+zipUrl="https://typora.blob.core.windows.net/typoraimages/2022/11/24/15/42/publish----BGRP8HCW5VZQF0H96MMNP0XNQ0.zip"
 put-value '.deployment.zipUrl' "${zipUrl}"
 
 notificationSecret="$( openssl rand 128 | base32 --wrap=0  )"
 put-value '.managedApp.notificationSecret' "${notificationSecret}"
+
 # 
 # Perform the ARM deployment
 #
 deploymentResultJSON="$( az deployment group create \
     --resource-group "${resourceGroupName}" \
-    --template-file "isv-backend.bicep" \
+    --template-file "${basedir}/isv-backend.bicep" \
     --parameters \
        suffix="${suffix}" \
-       bootstrapSecretValue="$(    openssl rand 128 | base32 --wrap=0 )" \
+       bootstrapSecretValue="$( openssl rand 128 | base32 --wrap=0 )" \
        notificationSecretValue="${notificationSecret}" \
        applianceResourceProviderObjectID="${applianceResourceProviderObjectID}" \
        securityGroupForServicePrincipal="${groupId}" \
        deploymentZip="${zipUrl}" \
+       useAppInsights="${useAppInsights}" \
     --output json )"
  
 echo "ARM Deployment: $( echo "${deploymentResultJSON}" | jq -r .properties.provisioningState )"
@@ -167,17 +167,16 @@ echo "${deploymentResultJSON}" | jq . > results.json
 
 put-json-value '.names' "$(echo "${deploymentResultJSON}" | jq '.properties.outputs.resourceNames.value' )" 
 
+# az webapp config appsettings set \
+#    --name "$( get-value '.names.appService' )" \
+#    --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
+#    --settings WEBSITE_RUN_FROM_PACKAGE="${zipUrl}"
+# 
+# az webapp config appsettings set \
+#    --name "$( get-value '.names.appService' )" \
+#    --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
+#    --settings WEBSITE_RUN_FROM_PACKAGE="https://typora.blob.core.windows.net/typoraimages/2022/11/24/10/00/publish----XFVSD918H1798DRNJ1D45HAH40.zip"
 
-az webapp config appsettings set \
-   --name "$( get-value '.names.appService' )" \
-   --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
-   --settings WEBSITE_RUN_FROM_PACKAGE="${zipUrl}"
-
-az webapp config appsettings set \
-   --name "$( get-value '.names.appService' )" \
-   --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
-   --settings WEBSITE_RUN_FROM_PACKAGE="https://typora.blob.core.windows.net/typoraimages/2022/11/23/19/31/publish----BVVN5EEDHRBBQ9EHRK582268CC.zip"
-   
 # Check if the metadata has been set properly, want to see
 #
 # {
@@ -190,10 +189,9 @@ az webapp config appsettings set \
 #   "type": "Microsoft.Web/sites/config"
 # }
 # Show metadata
-az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/metadata/list?api-version=2022-03-01"
+az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/metadata/list?api-version=2022-03-01" | jq .properties
 # Show appsettings
-az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/appsettings/list?api-version=2022-03-01"
-
+az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/appsettings/list?api-version=2022-03-01" | jq .properties
 
 put-value '.aad.managedIdentityPrincipalID' "$(echo "${deploymentResultJSON}" | jq -r '.properties.outputs.managedIdentityPrincipalID.value' )" 
 put-value '.managedApp.notificationUrl' "https://$( get-value '.names.appService' ).azurewebsites.net/?sig=${notificationSecret}"
@@ -226,21 +224,20 @@ put-json-value '.managedApp.meteringConfiguration' "$( echo "{}" \
 
 echo -n "$( get-value '.managedApp.meteringConfiguration' )" >  "${basedir}/../../managed-app/meteringConfiguration.json"
 
-archiveNameFormat='{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}'
-put-value '.eventHub.capture.archiveNameFormat' "${archiveNameFormat}"
-
-dataDeploymentResult="$( az deployment group create \
-    --resource-group "${resourceGroupName}" \
-    --template-file "../../deploy/modules/data.bicep" \
-    --parameters \
-       appNamePrefix="${suffix}" \
-       archiveNameFormat="$( get-value '.eventHub.capture.archiveNameFormat' )" \
-       partitionCount="13" \
-    --output json )"
-
-echo "${dataDeploymentResult}" > data-deployment-results.json
-
-echo "Data Backend Deployment: $( echo "${dataDeploymentResult}" | jq -r .properties.provisioningState )"
-
-
+# archiveNameFormat='{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}'
+# put-value '.eventHub.capture.archiveNameFormat' "${archiveNameFormat}"
+# 
+# dataDeploymentResult="$( az deployment group create \
+#     --resource-group "${resourceGroupName}" \
+#     --template-file "../../deploy/modules/data.bicep" \
+#     --parameters \
+#        appNamePrefix="${suffix}" \
+#        archiveNameFormat="$( get-value '.eventHub.capture.archiveNameFormat' )" \
+#        partitionCount="13" \
+#     --output json )"
+# 
+# echo "${dataDeploymentResult}" > data-deployment-results.json
+# 
+# echo "Data Backend Deployment: $( echo "${dataDeploymentResult}" | jq -r .properties.provisioningState )"
+# 
 echo "Finished setup..."

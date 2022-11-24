@@ -1,6 +1,6 @@
 # `README.md`: The metering-billing-accelerator
 
-[![.NET Build](https://github.com/microsoft/metered-billing-accelerator/actions/workflows/dotnet.yml/badge.svg)](https://github.com/microsoft/metered-billing-accelerator/actions/workflows/dotnet.yml)
+[![.NET Build](https://github.com/microsoft/metered-billing-accelerator/actions/workflows/dotnetbuild.yml/badge.svg)](https://github.com/microsoft/metered-billing-accelerator/actions/workflows/dotnetbuild.yml)
 
 ## tl;dr
 

@@ -1,10 +1,11 @@
 {
   "initConfig": {
     "subscriptionId": "",
-    "resourceGroupName": "",
     "location": "westeurope",
-    "suffix": "",
-    "aadDesiredGroupName": "managed-app-service-principals-xyz",
-    "webappName" : ""
+    "resourceGroupName": "meter20221124-1",
+    "suffix": "meter20221124-1",
+    "aadDesiredGroupName": "managed-app-service-principals-meter20221124-1",
+    "webappName" : "meter20221124-1",
+    "useAppInsights": false
   }
 }
