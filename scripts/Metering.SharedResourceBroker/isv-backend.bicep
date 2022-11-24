@@ -20,6 +20,8 @@ param securityGroupForServicePrincipal string
 
 param deploymentZip string = 'https://github.com/microsoft/metered-billing-accelerator/releases/download/1.0.3-beta/Aggregator.windows-latest.1.0.3-beta.zip'
 
+param useAppInsights bool = true
+
 var prefix = toLower('sp${uniqueString(suffix)}')
 
 // The ARM [`substring`](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions-string#substring) function is difficult to use. `substring('Hallo', 0, 10)` currently throws the error `The index and length parameters must refer to a location within the string.`. In languages such as C# etc., the length parameter is treated as a maximum, not an absolute. If the provided input string is shorter than the length, the function should just return the original input string. Workaround is writing something like `substring('Hallo', 0, min(10, length('Hallo')))`, which is cumbersome.
@@ -133,7 +135,7 @@ resource applianceResourceProviderCanReadBootstrapSecret 'Microsoft.Authorizatio
   }
 }
 
-resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
+resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (useAppInsights) {
   name: names.appInsights
   location: location
   tags: {
@@ -145,13 +147,13 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource appServicePlan 'Microsoft.Web/serverfarms@2020-06-01' = {
+resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: names.appServicePlan
   location: location
   tags: {
     suffix: suffix
   }
-  sku: { name: 'D1', capacity: 1 }
+  sku: { name: 'F1', capacity: 1 }
 }
 
 resource appService 'Microsoft.Web/sites@2021-03-01' = {
@@ -162,22 +164,25 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
   }
   identity: {
     type: 'UserAssigned'
-    userAssignedIdentities: { '${uami.id}': {} }
+    userAssignedIdentities: { 
+      '${uami.id}': {}
+    }
   }
-  dependsOn: [ appInsights ]
   properties: {
     serverFarmId: appServicePlan.id
     httpsOnly: true
     clientAffinityEnabled: false
     siteConfig: {
       minTlsVersion: '1.2'
+      // linuxFxVersion: 'DOTNETCORE|7.0' // This is only for Linux *containers*
+      // windowsFxVersion: 'dotnet:7'     // This is for Windows *containers* (code-name Xenon)
     }
   }
 
   resource metadata 'config@2021-03-01' = {
     name: 'metadata'
     properties: {
-      CURRENT_STACK: 'dotnetcore'
+      CURRENT_STACK: 'dotnet' // This should be 'dotnetcore' only for .NET Core 3.x..
     }
   }
 
@@ -186,12 +191,12 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
     dependsOn: [ metadata ]
     properties: {
       // On Windows, separate with ':', on Linux with '__'
+      'ApplicationInsights:ConnectionString': useAppInsights ? appInsights.properties.ConnectionString : ''
       'ServicePrincipalCreatorSettings:GeneratedServicePrincipalPrefix': 'ManagedProductServicePrincipal'
       'ServicePrincipalCreatorSettings:SharedResourcesGroup': securityGroupForServicePrincipal
       'ServicePrincipalCreatorSettings:KeyVaultName': publisherKeyVault.name
       'ServicePrincipalCreatorSettings:AzureADManagedIdentityClientId': uami.properties.clientId
       //'SCM_DO_BUILD_DURING_DEPLOYMENT': 'true'
-      'ApplicationInsights:ConnectionString' : appInsights.properties.ConnectionString
       WEBSITE_RUN_FROM_PACKAGE: deploymentZip
     }
   }
@@ -206,7 +211,7 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
   //   }
   // }
   
-  resource logs 'config@2021-03-01' = {
+  resource logs 'config@2021-03-01' = if (useAppInsights) {
     name: 'logs'
     properties: {
       applicationLogs: {
