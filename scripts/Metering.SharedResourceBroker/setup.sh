@@ -155,6 +155,8 @@ put-value '.managedApp.notificationSecret' "${notificationSecret}"
 # 
 # Perform the ARM deployment
 #
+# The bootstrap secret (which is needed to create service principals) is directly injected into KeyVault, we don't store it locally.
+# The notification secret is needed for the Azure Marketplace setup, we we store it.
 deploymentResultJSON="$( az deployment group create \
     --resource-group "${resourceGroupName}" \
     --template-file "${basedir}/isv-backend.bicep" \
