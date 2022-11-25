@@ -188,7 +188,7 @@ az ad group owner add \
     --owner-object-id "$( get-value '.aad.managedIdentityPrincipalID' )" 
 
 # Allow the managed identity to create service principals
-appRole="$( az rest \
+az rest \
     --method POST \
     --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$( get-value '.aad.managedIdentityPrincipalID' )/appRoleAssignments" \
     --headers "{'Content-Type': 'application/json'}" \
@@ -197,7 +197,7 @@ appRole="$( az rest \
                | jq --arg x "$( get-value '.aad.msgraph.resourceId')"          '.resourceId=$x' \
                | jq --arg x "$( get-value '.aad.msgraph.appRoleId')"           '.appRoleId=$x' \
              )" \
-    )"
+    > /dev/null 2>&1
 
 put-json-value '.managedApp.meteringConfiguration' "$( echo "{}" \
   | jq --arg x "https://$( get-value '.names.appService' ).azurewebsites.net" '.servicePrincipalCreationURL=$x' \
@@ -205,7 +205,7 @@ put-json-value '.managedApp.meteringConfiguration' "$( echo "{}" \
   | jq --arg x "$( get-value '.initConfig.resourceGroupName' )"               '.publisherVault.vaultResourceGroupName=$x' \
   | jq --arg x "$( get-value '.names.publisherKeyVault' )"                    '.publisherVault.vaultName=$x' \
   | jq --arg x "$( get-value '.names.secrets.bootstrapSecret' )"              '.publisherVault.bootstrapSecretName=$x' \
-  | jq --arg x "https://meter20221119.servicebus.windows.net/meter20221119"   '.amqpEndpoint=$x' )"
+  | jq --arg x "https://....servicebus.windows.net/..."                       '.amqpEndpoint=$x' )"
 
 #
 # Deploy EventHubs and the storage account
@@ -226,17 +226,21 @@ dataDeploymentResult="$( az deployment group create \
 echo "${dataDeploymentResult}" > "${basedir}/data.deployment-result.json"
 echo "Data Backend Deployment: $( deploymentStatus "${dataDeploymentResult}" )"
 
-put-value \
-   '.eventHub.capture.eventHubNamespaceName' \
-   "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubNamespaceName.value' )" 
+put-value '.eventHub.capture.eventHubNamespaceName'         "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubNamespaceName.value' )" 
+put-value '.eventHub.capture.eventHubName'                  "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubName.value' )" 
+put-value '.managedApp.meteringConfiguration.amqpEndpoint'  "https://$( get-value '.eventHub.capture.eventHubNamespaceName' ).servicebus.windows.net/$( get-value '.eventHub.capture.eventHubName' )"
 
-put-value \
-   '.eventHub.capture.eventHubName' \
-   "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubName.value' )" 
-
-put-value \
-   '.managedApp.meteringConfiguration.amqpEndpoint' \
-   "https://$( get-value '.eventHub.capture.eventHubNamespaceName' ).servicebus.windows.net/$( get-value '.eventHub.capture.eventHubName' )"
+#
+# Aggregator configuration
+#
+put-value '.aggregator.AZURE_METERING_INFRA_CAPTURE_CONTAINER'       "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.captureBlobEndpoint.value' )" 
+put-value '.aggregator.AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER'   "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.checkpointBlobEndpoint.value' )" 
+put-value '.aggregator.AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER'     "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.snapshotsBlobEndpoint.value' )" 
+put-value '.aggregator.AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME'  "$( get-value '.eventHub.capture.eventHubNamespaceName' )" 
+put-value '.aggregator.AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME'   "$( get-value '.eventHub.capture.eventHubName' )" 
+put-value '.aggregator.AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT' "$( get-value '.eventHub.capture.archiveNameFormat' )" 
+put-value '.aggregator.AZURE_METERING_INFRA_TENANT_ID'               "$( get-value '.aad.tenantId' )" 
+put-value '.aggregator.AZURE_METERING_MARKETPLACE_TENANT_ID'         "$( get-value '.aad.tenantId' )" 
 
 echo "EventHub deployed to $( get-value '.managedApp.meteringConfiguration.amqpEndpoint' )"
 marketplaceConfigFile="${basedir}/../../managed-app/meteringConfiguration.json"
