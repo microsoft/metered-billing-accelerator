@@ -1,2 +1,5 @@
 config.json
 results.json
+/data-deployment-results.json
+/data.deployment-result.json
+/isv-backend.deloyment-result.json

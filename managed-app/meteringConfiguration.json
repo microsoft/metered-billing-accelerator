@@ -1,10 +1,10 @@
 {
-  "servicePrincipalCreationURL": "https://sprg4vp5bn3tpro.azurewebsites.net",
+  "servicePrincipalCreationURL": "https://spxotgyem2w4r5w.azurewebsites.net",
   "publisherVault": {
     "publisherSubscription": "706df49f-998b-40ec-aed3-7f0ce9c67759",
-    "vaultResourceGroupName": "meter20221124-10",
-    "vaultName": "sprg4vp5bn3tpro",
+    "vaultResourceGroupName": "meter20221125-c",
+    "vaultName": "spxotgyem2w4r5w",
     "bootstrapSecretName": "BootstrapSecret"
   },
-  "amqpEndpoint": "https://meter20221119.servicebus.windows.net/meter20221119"
+  "amqpEndpoint": "https://spxotgyem2w4r5w.servicebus.windows.net/spxotgyem2w4r5w"
 }

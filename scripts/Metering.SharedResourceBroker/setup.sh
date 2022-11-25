@@ -172,7 +172,7 @@ deploymentResultJSON="$( az deployment group create \
 
 echo "ARM Deployment: $( deploymentStatus "${deploymentResultJSON}" )"
 
-echo "${deploymentResultJSON}" | jq . > results.json
+echo "${deploymentResultJSON}" | jq . > "${basedir}/isv-backend.deloyment-result.json"
 
 put-json-value '.names' "$(echo "${deploymentResultJSON}" | jq '.properties.outputs.resourceNames.value' )" 
 
@@ -213,7 +213,8 @@ az ad group owner add \
     --group           "${groupName}" \
     --owner-object-id "$( get-value '.aad.managedIdentityPrincipalID' )" 
 
-az rest \
+# Allow the managed identity to create service principals
+appRole="$( az rest \
     --method POST \
     --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$( get-value '.aad.managedIdentityPrincipalID' )/appRoleAssignments" \
     --headers "{'Content-Type': 'application/json'}" \
@@ -221,7 +222,8 @@ az rest \
                | jq --arg x "$( get-value '.aad.managedIdentityPrincipalID' )" '.principalId=$x' \
                | jq --arg x "$( get-value '.aad.msgraph.resourceId')"          '.resourceId=$x' \
                | jq --arg x "$( get-value '.aad.msgraph.appRoleId')"           '.appRoleId=$x' \
-             )"
+             )" \
+    )"
 
 put-json-value '.managedApp.meteringConfiguration' "$( echo "{}" \
   | jq --arg x "https://$( get-value '.names.appService' ).azurewebsites.net" '.servicePrincipalCreationURL=$x' \
@@ -231,22 +233,40 @@ put-json-value '.managedApp.meteringConfiguration' "$( echo "{}" \
   | jq --arg x "$( get-value '.names.secrets.bootstrapSecret' )"              '.publisherVault.bootstrapSecretName=$x' \
   | jq --arg x "https://meter20221119.servicebus.windows.net/meter20221119"   '.amqpEndpoint=$x' )"
 
-echo -n "$( get-value '.managedApp.meteringConfiguration' )" >  "${basedir}/../../managed-app/meteringConfiguration.json"
+#
+# Deploy EventHubs and the storage account
+#
+put-value \
+   '.eventHub.capture.archiveNameFormat' \
+   '{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}'
 
-# archiveNameFormat='{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}'
-# put-value '.eventHub.capture.archiveNameFormat' "${archiveNameFormat}"
-# 
-# dataDeploymentResult="$( az deployment group create \
-#     --resource-group "${resourceGroupName}" \
-#     --template-file "../../deploy/modules/data.bicep" \
-#     --parameters \
-#        appNamePrefix="${suffix}" \
-#        archiveNameFormat="$( get-value '.eventHub.capture.archiveNameFormat' )" \
-#        partitionCount="13" \
-#     --output json )"
-# 
-# echo "${dataDeploymentResult}" > data-deployment-results.json
-# 
-# echo "Data Backend Deployment: $( echo "${dataDeploymentResult}" | jq -r .properties.provisioningState )"
-# 
+dataDeploymentResult="$( az deployment group create \
+    --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
+    --template-file "${basedir}/../../deploy/modules/data.bicep" \
+    --parameters \
+       appNamePrefix="$( get-value '.names.appService' )" \
+       archiveNameFormat="$( get-value '.eventHub.capture.archiveNameFormat' )" \
+       partitionCount="13" \
+    --output json )"
+
+echo "${dataDeploymentResult}" > "${basedir}/data.deployment-result.json"
+echo "Data Backend Deployment: $( deploymentStatus "${dataDeploymentResult}" )"
+
+put-value \
+   '.eventHub.capture.eventHubNamespaceName'
+   "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubNamespaceName.value' )" 
+
+put-value \
+   '.eventHub.capture.eventHubName'
+   "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubName.value' )" 
+
+put-value \
+   '.managedApp.meteringConfiguration.amqpEndpoint' \
+   "https://$( get-value '.eventHub.capture.eventHubNamespaceName' ).servicebus.windows.net/$( get-value '.eventHub.capture.eventHubName' )"
+
+echo "EventHub deployed to $( get-value '.managedApp.meteringConfiguration.amqpEndpoint' )"
+marketplaceConfigFile="${basedir}/../../managed-app/meteringConfiguration.json"
+echo -n "$( get-value '.managedApp.meteringConfiguration' )" > "${marketplaceConfigFile}"
+echo "Wrote configuration for Azure Marketplace and the managed app to ${marketplaceConfigFile}"
+
 echo "Finished setup..."
