@@ -59,9 +59,10 @@ bootstrapSecret=$(az keyvault secret show \
    --vault-name "${vaultName}" \
    | jq -r '.value' )
 
-managedBy="/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourceGroups/managed-app-resourcegroup/providers/Microsoft.Solutions/applications/chga1"
-
+managedBy="/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/managed-app-resourcegroup/providers/Microsoft.Solutions/applications/demo$( TZ=GMT date '+%Y-%m-%d--%H-%M-%S' )"
 json="$( echo "{}" | jq --arg x "${managedBy}" '.managedBy=$x' )"
+
+echo "Simulating that the managed app ${managedBy} requests service principal creation"
 
 response="$( curl \
   --silent \
@@ -74,7 +75,7 @@ response="$( curl \
 
 # The response from the service principal creation process only contains a name of the secret...
 secretName="$(     echo "${response}" | jq -r '.secretName' )"
-echo "Service principal credential is stored in KeyVault secret ${secretName}"
+echo "🔑 Service principal credential is stored in KeyVault secret ${secretName}"
 
 servicePrincipalSecret=$(az keyvault secret show \
    --name "${secretName}" \
@@ -84,29 +85,42 @@ clientId="$(     echo "${servicePrincipalSecret}" | jq -r '.ClientID' )"
 clientSecret="$( echo "${servicePrincipalSecret}" | jq -r '.ClientSecret' )"
 tenantID="$(     echo "${servicePrincipalSecret}" | jq -r '.TenantID' )"
 
-echo "Created clientId \"${clientId}\" with secret \"${clientSecret}\" in tenant \"${tenantID}\""
+echo "🔑 Created clientId=\"${clientId}\" with clientSecret=\"${clientSecret}\" in tenant \"${tenantID}\""
+
+waitTimeForServicePrincipalToPropagate="15"
+echo "Waiting for a ${waitTimeForServicePrincipalToPropagate} seconds before using the service principal"
+sleep $waitTimeForServicePrincipalToPropagate
 
 #
 # Demo that we can request a token for the given service principal, and that our group is in the groups list
 #
 resource="https://storage.azure.com/.default"
-access_token="$( curl \
+token_response="$( curl \
     --silent \
     --request POST \
+    --url "https://login.microsoftonline.com/${tenantID}/oauth2/v2.0/token" \
     --data-urlencode "response_type=token" \
     --data-urlencode "grant_type=client_credentials" \
     --data-urlencode "client_id=${clientId}" \
     --data-urlencode "client_secret=${clientSecret}" \
-    --data-urlencode "scope=${resource}" \
-    "https://login.microsoftonline.com/${tenantID}/oauth2/v2.0/token" | \
-        jq -r ".access_token")"
-claims="$( jq -R 'split(".") | .[1] | @base64d | fromjson' <<< "${access_token}" )"
+    --data-urlencode "scope=${resource}" )"
+
+echo "Fetched an access token"
+echo "Token response: "
+echo "${token_response}" | jq .
+
+claims="$( echo "${token_response}" | jq '.access_token | split(".") | .[1] | @base64d | fromjson' )"
+
+echo "${claims}" | jq .
+
 echo "The groups should contain $( get-value .aad.groupId ): "
 echo "${claims}" | jq .groups
+
 
 #
 # And now call the delete hook with the marketplace notification secret, i.e. we pretend that the customer deleted the managed app
 #
+echo "Fetching notification secret to emulate the deletion of the managed app in our backend"
 notificationSecret=$( az keyvault secret show \
    --name "${notificationSecretName}" \
    --vault-name "${vaultName}" \
@@ -114,8 +128,11 @@ notificationSecret=$( az keyvault secret show \
 
 echo "notificationSecret: ${notificationSecret}"
 
-curl \
+echo "POST'ing to https://${websiteName}.azurewebsites.net/resource?sig=${notificationSecret}: "
+
+status="$( curl \
   --request POST \
+  --silent \
   --url "https://${websiteName}.azurewebsites.net/resource?sig=${notificationSecret}" \
   --header 'Content-Type: application/json' \
   --data "$( echo "{}" \
@@ -123,4 +140,12 @@ curl \
      | jq --arg x "Deleted"                                '.provisioningState=$x' \
      | jq --arg x "$( TZ=GMT date +'%Y-%m-%dT%H:%M:%SZ' )" '.eventTime=$x' \
      | jq --arg x "${managedBy}"                           '.applicationId=$x' \
-     )"
+     )" \
+  --write-out '%{http_code}' )"
+
+if [ "${status}" == "200" ]
+then
+   echo "✅ service principal deletion success (HTTP ${status})"
+else
+   echo "⛔ service principal deletion failure (HTTP ${status})"
+fi

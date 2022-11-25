@@ -1,11 +1,15 @@
 {
   "initConfig": {
-    "subscriptionId": "",
+    "subscriptionId": "your-azure-subscription-id",
     "location": "westeurope",
-    "resourceGroupName": "meter20221124-1",
-    "suffix": "meter20221124-1",
-    "aadDesiredGroupName": "managed-app-service-principals-meter20221124-1",
-    "webappName" : "meter20221124-1",
+    "resourceGroupName": "the-resource-group-in-which-the-isv-resources-will-be-placed",
+    "suffix": "some-unique-name-which-will-be-used-to-derive-resource-names",
+    "aadDesiredGroupName": "the-name-of-the-azure-ad-group-in-which-the-service-principals-will-be-placed",
     "useAppInsights": false
+  },
+  "eventHub": {
+    "capture": {
+      "archiveNameFormat": "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}"
+    }
   }
 }

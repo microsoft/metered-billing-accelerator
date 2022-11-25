@@ -9,9 +9,13 @@ param isHnsEnabled bool = false
 // EventHub
 @allowed([ 'Standard', 'Basic' ])
 param eventHubSku string = 'Standard'
+
 param skuCapacity int = 1
+
 param archiveNameFormat string = '{Namespace}/{EventHub}/p={PartitionId}/y={Year}/m={Month}/d={Day}/h={Hour}/mm={Minute}/{Second}'
+
 param messageRetentionInDays int = 3
+
 param partitionCount int = 5
 
 var config = {
@@ -29,14 +33,16 @@ var config = {
 }
 
 var names = {
-  identity: 'meteringAccelerator'
+  identity: '${appNamePrefix}-metered-billing-accelerator'
+  storage: appNamePrefix
   containers: {
     capture: '${appNamePrefix}-capture'
     snapshots: '${appNamePrefix}-snapshots'
     checkpoint: '${appNamePrefix}-checkpoint'
   }
   eventHub: {
-    namespaceName: '${appNamePrefix}-eh-namespace'
+    namespaceName: appNamePrefix
+    hubName: 'metering'
   }
   roleDefinitions: {
     evntHub: {
@@ -51,7 +57,7 @@ var names = {
 }
 
 resource captureAndStateStorageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
-  name: '${appNamePrefix}storage'
+  name: names.storage
   location: location
   kind: 'StorageV2'
   sku: { name: 'Standard_RAGRS' }
@@ -95,7 +101,7 @@ resource eh_namespace 'Microsoft.EventHub/namespaces@2021-11-01' = {
 }
 
 resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2021-11-01' = {
-  name: '${eh_namespace.name}/${appNamePrefix}'
+  name: '${eh_namespace.name}/${names.eventHub.hubName}'
   properties: {
     partitionCount: config.eventHub.partitionCount
     messageRetentionInDays: config.eventHub.messageRetentionInDays
@@ -151,5 +157,5 @@ output captureBlobEndpoint string = 'https://${captureAndStateStorageAccount.nam
 output snapshotsBlobEndpoint string = 'https://${captureAndStateStorageAccount.name}.blob.${environment().suffixes.storage}/${snapshotsContainer.name}'
 output checkpointBlobEndpoint string = 'https://${captureAndStateStorageAccount.name}.blob.${environment().suffixes.storage}/${checkpointContainer.name}'
 output aggregatorInfrastructureIdentityId string = aggregatorInfrastructureIdentity.id
-output eventHubNamespaceName string = eh_namespace.name
-output eventHubName string = eventHub.name
+output eventHubNamespaceName string = names.eventHub.namespaceName
+output eventHubName string = names.eventHub.hubName

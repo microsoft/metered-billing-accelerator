@@ -133,8 +133,9 @@ public class ApplicationService
                 {
                     DisplayName = appName,
                     SignInAudience = "AzureADMyOrg",
-                    Description = $"ManagedBy: {subscriptionRegistrationRequest.ManagedBy}",
+                    Description = $"This application belongs to a customer-purchased managed application deployment from Azure Marketplace. The managedBy is the application \"{subscriptionRegistrationRequest.ManagedBy}\"",
                     Notes = $"ManagedBy: {subscriptionRegistrationRequest.ManagedBy}",
+                    ServiceManagementReference = subscriptionRegistrationRequest.ManagedBy,
                 });
 
             _logger.LogTrace($"AAD app created: {app.DisplayName}");
@@ -157,6 +158,7 @@ public class ApplicationService
                 .AddAsync(new ServicePrincipal
                 {
                     AppId = app.AppId,
+                    Notes = app.Notes,
                 });
             _logger.LogTrace($"Service principal created: {spr.Id}");
 
