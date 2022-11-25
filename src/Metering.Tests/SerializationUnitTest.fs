@@ -19,7 +19,7 @@ let private roundTrip<'T> (filename: string) =
     
     let t1 = json |> Json.fromStr<'T>
 
-    printfn "--------------------------- %s \n%A" filename t1
+    // printfn "--------------------------- %s \n%A" filename t1
     
     let t2 = 
         t1
