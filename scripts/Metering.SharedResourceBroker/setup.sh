@@ -13,7 +13,7 @@ echo "Working in directory ${basedir}"
 CONFIG_FILE="${basedir}/config.json"
 if [ ! -f "$CONFIG_FILE" ]; then
     cp "${basedir}/config-template.json" "${CONFIG_FILE}"
-    echo "You need to configure deployment settings in ${CONFIG_FILE}" 
+    echo "✏️ You need to configure deployment settings in ${CONFIG_FILE}" 
     exit 1
 fi
 
@@ -32,7 +32,7 @@ function get-value-or-fail {
    value="$( get-value "${json_path}" )"
 
    [[ -z "${value}"  ]] \
-   && { echo "Please configure ${json_path} in file ${CONFIG_FILE}" > /dev/tty ; kill -s TERM $TOP_PID; }
+   && { echo "✏️ Please configure ${json_path} in file ${CONFIG_FILE}" > /dev/tty ; kill -s TERM $TOP_PID; }
    echo "$value"
 }
 
@@ -56,19 +56,31 @@ function put-json-value {
        > "${CONFIG_FILE}"
 }
 
+function deploymentStatus {
+    local json="$1"
+    local status
+    status="$( echo "${json}" | jq -r '.properties.provisioningState | ascii_downcase' )"
+    
+    if [ "${status}" == "succeeded" ]
+    then
+        echo "✅ Succeeded"
+    else
+        echo "⛔ Failed"
+    fi
+}
+
 subscriptionId="$(    get-value-or-fail '.initConfig.subscriptionId' )"
 location="$(          get-value-or-fail '.initConfig.location' )"
 resourceGroupName="$( get-value-or-fail '.initConfig.resourceGroupName' )"
 suffix="$(            get-value-or-fail '.initConfig.suffix' )"
 groupName="$(         get-value-or-fail '.initConfig.aadDesiredGroupName' )"
 useAppInsights="$(    get-value-or-fail '.initConfig.useAppInsights' )"
-# echo "subscriptionId    ${subscriptionId}"
-# echo "resourceGroupName ${resourceGroupName}"
-# echo "location          ${location}"
-# echo "suffix            ${suffix}"
-# echo "groupName         ${groupName}"
 
 az account set --subscription "${subscriptionId}"
+account="$( az account show | jq .)"
+# put-value '.deployment.subscriptionId'   "$( echo "${account}" | jq -r '.id' )"
+put-value '.deployment.subscriptionName' "$( echo "${account}" | jq -r '.name' )"
+put-value '.aad.tenantId'                "$( echo "${account}" | jq -r '.tenantId' )"
 
 echo "Running in subscription $( az account show | jq -r '.id') / $( az account show | jq -r '.name'), AAD Tenant $( az account show | jq -r '.tenantId')"
 
@@ -86,9 +98,9 @@ then
         | jq -r .id )"
 
     put-value "${jsonpath}" "${groupId}"
-    echo "Created group $( get-value '.initConfig.aadDesiredGroupName' ). Group ID is ${groupId}"
+    echo "🟩 Created group $( get-value '.initConfig.aadDesiredGroupName' ). Group ID is ${groupId}"
 else
-    echo "Group $( get-value '.initConfig.aadDesiredGroupName' ) with ID ${groupId} existed"
+    echo "💾 Group $( get-value '.initConfig.aadDesiredGroupName' ) with ID ${groupId} existed"
 fi
 
 #
@@ -98,7 +110,7 @@ json="$( az group create \
     --location "${location}" \
     --name "${resourceGroupName}" )"
 
-echo "Creation of resource group \"${resourceGroupName}\" status: $( echo "${json}" | jq -r .properties.provisioningState )"
+echo "Creation of resource group \"${resourceGroupName}\" status: $( deploymentStatus "${json}" )"
 
 #
 # It could happen that the subscription doesn't have the resource provider Microsoft.Solutions registered.
@@ -117,17 +129,12 @@ then
 
     put-value "${jsonpath}" "${applianceResourceProviderObjectID}"
 fi
-echo "Appliance Resource Provider ID: ${applianceResourceProviderObjectID}"
+echo "🔑 Appliance Resource Provider ID: ${applianceResourceProviderObjectID}"
 
 msgraph="$( az ad sp show --id 00000003-0000-0000-c000-000000000000 | jq . )"
 # echo "${msgraph}" | jq .
 put-value '.aad.msgraph.resourceId' "$( echo "${msgraph}" | jq -r .id )"
 put-value '.aad.msgraph.appRoleId'  "$( echo "${msgraph}" | jq -r '.appRoles[] | select(.value | contains("Application.ReadWrite.OwnedBy")) | .id' )"
-
-account="$( az account show | jq .)"
-# put-value '.deployment.subscriptionId'   "$( echo "${account}" | jq -r '.id' )"
-put-value '.deployment.subscriptionName' "$( echo "${account}" | jq -r '.name' )"
-put-value '.aad.tenantId'                "$( echo "${account}" | jq -r '.tenantId' )"
 
 #
 # Determine the software version to be deployed within the ARM script
@@ -148,6 +155,8 @@ put-value '.managedApp.notificationSecret' "${notificationSecret}"
 # 
 # Perform the ARM deployment
 #
+# The bootstrap secret (which is needed to create service principals) is directly injected into KeyVault, we don't store it locally.
+# The notification secret is needed for the Azure Marketplace setup, we we store it.
 deploymentResultJSON="$( az deployment group create \
     --resource-group "${resourceGroupName}" \
     --template-file "${basedir}/isv-backend.bicep" \
@@ -160,8 +169,8 @@ deploymentResultJSON="$( az deployment group create \
        deploymentZip="${zipUrl}" \
        useAppInsights="${useAppInsights}" \
     --output json )"
- 
-echo "ARM Deployment: $( echo "${deploymentResultJSON}" | jq -r .properties.provisioningState )"
+
+echo "ARM Deployment: $( deploymentStatus "${deploymentResultJSON}" )"
 
 echo "${deploymentResultJSON}" | jq . > results.json
 
@@ -189,9 +198,9 @@ put-json-value '.names' "$(echo "${deploymentResultJSON}" | jq '.properties.outp
 #   "type": "Microsoft.Web/sites/config"
 # }
 # Show metadata
-az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/metadata/list?api-version=2022-03-01" | jq .properties
+# az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/metadata/list?api-version=2022-03-01" | jq .properties
 # Show appsettings
-az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/appsettings/list?api-version=2022-03-01" | jq .properties
+# az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/appsettings/list?api-version=2022-03-01" | jq .properties
 
 put-value '.aad.managedIdentityPrincipalID' "$(echo "${deploymentResultJSON}" | jq -r '.properties.outputs.managedIdentityPrincipalID.value' )" 
 put-value '.managedApp.notificationUrl' "https://$( get-value '.names.appService' ).azurewebsites.net/?sig=${notificationSecret}"
@@ -199,7 +208,7 @@ put-value '.managedApp.notificationUrl' "https://$( get-value '.names.appService
 #
 # Make the managed identity the owner of the security group
 #
-echo "Set principal $( get-value '.aad.managedIdentityPrincipalID' ) to be owner of group ${groupName}"
+echo "🔑 Set principal $( get-value '.aad.managedIdentityPrincipalID' ) to be owner of group ${groupName}"
 az ad group owner add \
     --group           "${groupName}" \
     --owner-object-id "$( get-value '.aad.managedIdentityPrincipalID' )" 

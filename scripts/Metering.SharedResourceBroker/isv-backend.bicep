@@ -105,27 +105,30 @@ resource managedIdentityCanEnumerateSecrets 'Microsoft.Authorization/roleAssignm
   }
 }
 
-resource managedIdentityCanReadBootstrapSecret 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
-  name: guid(keyVaultRoleID['Key Vault Secrets User'], uami.id, bootstrapSecret.id)
-  scope: bootstrapSecret
+resource managedIdentityIsSecretsOfficer 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
+  // The UAMI must be a secrets officer, as it not only reads the Bootstrap and Notification secret, but also stores service principal secrets in there.
+  name: guid(keyVaultRoleID['Key Vault Secrets Officer'], uami.id, publisherKeyVault.id)
+  scope: publisherKeyVault
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultRoleID['Key Vault Secrets User'])
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultRoleID['Key Vault Secrets Officer'])
     principalId: uami.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-resource managedIdentityCanReadNotificationSecret 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
-  name: guid(keyVaultRoleID['Key Vault Secrets User'], uami.id, notificationSecret.id)
-  scope: notificationSecret
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultRoleID['Key Vault Secrets User'])
-    principalId: uami.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// resource managedIdentityCanReadNotificationSecret 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
+//   name: guid(keyVaultRoleID['Key Vault Secrets User'], uami.id, notificationSecret.id)
+//   scope: notificationSecret
+//   properties: {
+//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultRoleID['Key Vault Secrets User'])
+//     principalId: uami.properties.principalId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
 
-resource applianceResourceProviderCanReadBootstrapSecret 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
+resource applianceResourceProviderCanReadSecrets 'Microsoft.Authorization/roleAssignments@2020-10-01-preview' = {
+  // The 'Appliance Resource Provider' is the identity under which the ARM deployment in the managed resource group runs.
+  // Therefore, it must both be able to read the BootstrapSecret, but also the service principal secret for the current managed app deployment.
   name: guid(keyVaultRoleID.Contributor, 'Appliance Resource Provider', applianceResourceProviderObjectID, publisherKeyVault.id)
   scope: publisherKeyVault
   properties: {

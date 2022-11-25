@@ -4,7 +4,7 @@
 # For testing purposes, add an RBAC assignment here
 
 basedir="$( dirname "$( readlink -f "$0" )" )"
-
+# basedir="/mnt/c/github/chgeuer/metered-billing-accelerator/scripts/Metering.SharedResourceBroker"
 CONFIG_FILE="${basedir}/config.json"
 
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -59,7 +59,7 @@ bootstrapSecret=$(az keyvault secret show \
    --vault-name "${vaultName}" \
    | jq -r '.value' )
 
-managedBy="/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourceGroups/managed-app-resourcegroup/providers/Microsoft.Solutions/applications/chga123"
+managedBy="/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourceGroups/managed-app-resourcegroup/providers/Microsoft.Solutions/applications/chga1"
 
 json="$( echo "{}" | jq --arg x "${managedBy}" '.managedBy=$x' )"
 
@@ -72,10 +72,17 @@ response="$( curl \
   --data "${json}" \
   | jq . )"
 
-echo "${response}" | jq
-clientId="$(     echo "${response}" | jq -r '.clientId' )"
-clientSecret="$( echo "${response}" | jq -r '.clientSecret' )"
-tenantID="$(     echo "${response}" | jq -r '.tenantID' )"
+# The response from the service principal creation process only contains a name of the secret...
+secretName="$(     echo "${response}" | jq -r '.secretName' )"
+echo "Service principal credential is stored in KeyVault secret ${secretName}"
+
+servicePrincipalSecret=$(az keyvault secret show \
+   --name "${secretName}" \
+   --vault-name "${vaultName}" \
+   | jq -r '.value' ) 
+clientId="$(     echo "${servicePrincipalSecret}" | jq -r '.ClientID' )"
+clientSecret="$( echo "${servicePrincipalSecret}" | jq -r '.ClientSecret' )"
+tenantID="$(     echo "${servicePrincipalSecret}" | jq -r '.TenantID' )"
 
 echo "Created clientId \"${clientId}\" with secret \"${clientSecret}\" in tenant \"${tenantID}\""
 
@@ -98,7 +105,7 @@ echo "The groups should contain $( get-value .aad.groupId ): "
 echo "${claims}" | jq .groups
 
 #
-# And now call the delete hook
+# And now call the delete hook with the marketplace notification secret, i.e. we pretend that the customer deleted the managed app
 #
 notificationSecret=$( az keyvault secret show \
    --name "${notificationSecretName}" \
@@ -112,9 +119,8 @@ curl \
   --url "https://${websiteName}.azurewebsites.net/resource?sig=${notificationSecret}" \
   --header 'Content-Type: application/json' \
   --data "$( echo "{}" \
-     | jq --arg x "DELETE"                          '.eventType=$x' \
-     | jq --arg x "Deleted"                         '.provisioningState=$x' \
-     | jq --arg x "2022-06-01T13:11:16.5893216Z"    '.eventTime=$x' \
-     | jq --arg x "/subscriptions/${simulatedSubscriptionId}/resourceGroups/${simulatedManagedResourceGroup}/providers/Microsoft.Solutions/applicationDefinitions/NoResource"    '.applicationDefinitionId=$x' \
-     | jq --arg x "/subscriptions/${simulatedSubscriptionId}/resourceGroups/${simulatedManagedResourceGroup}/providers/Microsoft.Solutions/applications/hhmmjj"                  '.applicationId=$x' \
+     | jq --arg x "DELETE"                                 '.eventType=$x' \
+     | jq --arg x "Deleted"                                '.provisioningState=$x' \
+     | jq --arg x "$( TZ=GMT date +'%Y-%m-%dT%H:%M:%SZ' )" '.eventTime=$x' \
+     | jq --arg x "${managedBy}"                           '.applicationId=$x' \
      )"
