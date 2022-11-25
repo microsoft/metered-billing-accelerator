@@ -44,7 +44,9 @@ param ADApplicationSecret string
 @description('Do not change this if you want to use the analytics queries')
 param AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT string ='{Namespace}/{EventHub}/p={PartitionId}/y={Year}/m={Month}/d={Day}/h={Hour}/mm={Minute}/{Second}'
 
-// Storage Account
+param deployAppInsights bool = false
+
+// EventHub and Storage Account
 module data 'modules/data.bicep' = {
   name: '${appNamePrefix}-data'
   params: {
@@ -90,7 +92,7 @@ module marketplaceMeteringAggregatorApp './modules/container-app.bicep' = {
 }
 
 // Container Apps 
-module environment './modules/environment.bicep' = {
+module environment './modules/environment.bicep' = if (deployAppInsights) {
   name: '${appNamePrefix}-environment'
   params: {
     environmentName: '${appNamePrefix}-env'

@@ -69,6 +69,7 @@ function deploymentStatus {
     fi
 }
 
+# We need a few settings to run properly
 subscriptionId="$(    get-value-or-fail '.initConfig.subscriptionId' )"
 location="$(          get-value-or-fail '.initConfig.location' )"
 resourceGroupName="$( get-value-or-fail '.initConfig.resourceGroupName' )"
@@ -78,7 +79,6 @@ useAppInsights="$(    get-value-or-fail '.initConfig.useAppInsights' )"
 
 az account set --subscription "${subscriptionId}"
 account="$( az account show | jq .)"
-# put-value '.deployment.subscriptionId'   "$( echo "${account}" | jq -r '.id' )"
 put-value '.deployment.subscriptionName' "$( echo "${account}" | jq -r '.name' )"
 put-value '.aad.tenantId'                "$( echo "${account}" | jq -r '.tenantId' )"
 
@@ -113,10 +113,11 @@ json="$( az group create \
 echo "Creation of resource group \"${resourceGroupName}\" status: $( deploymentStatus "${json}" )"
 
 #
-# It could happen that the subscription doesn't have the resource provider Microsoft.Solutions registered.
-# In such a case, the "Appliance Resource Provider" cannot be found
-# https://github.com/MicrosoftDocs/azure-docs/issues/55581#issuecomment-638496371
-#
+# If the "Appliance Resource Provider" cannot be found, one probable reason is
+# that the subscription doesn't have the resource provider "Microsoft.Solutions" registered.
+# You can check that via 
+#       az provider show --namespace Microsoft.Solutions | jq -r '.registrationState'
+# 
 jsonpath='.aad.applianceResourceProviderObjectID'
 applianceResourceProviderObjectID="$( get-value "${jsonpath}" )"
 if [ -z "${applianceResourceProviderObjectID}" ] || [ "${applianceResourceProviderObjectID}" == "null" ]
@@ -139,8 +140,6 @@ put-value '.aad.msgraph.appRoleId'  "$( echo "${msgraph}" | jq -r '.appRoles[] |
 #
 # Determine the software version to be deployed within the ARM script
 #
-
-# commitId="$( git log --format='%H' -n 1 )"
 webAppVersion="$( jq -r '.version' < "${basedir}/../../version.json" )"
 webAppVersion="1.0.69-beta"
 put-value '.deployment.webAppVersion' "${webAppVersion}"
@@ -157,6 +156,7 @@ put-value '.managedApp.notificationSecret' "${notificationSecret}"
 #
 # The bootstrap secret (which is needed to create service principals) is directly injected into KeyVault, we don't store it locally.
 # The notification secret is needed for the Azure Marketplace setup, we we store it.
+# 
 deploymentResultJSON="$( az deployment group create \
     --resource-group "${resourceGroupName}" \
     --template-file "${basedir}/isv-backend.bicep" \
@@ -175,32 +175,6 @@ echo "ARM Deployment: $( deploymentStatus "${deploymentResultJSON}" )"
 echo "${deploymentResultJSON}" | jq . > "${basedir}/isv-backend.deloyment-result.json"
 
 put-json-value '.names' "$(echo "${deploymentResultJSON}" | jq '.properties.outputs.resourceNames.value' )" 
-
-# az webapp config appsettings set \
-#    --name "$( get-value '.names.appService' )" \
-#    --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
-#    --settings WEBSITE_RUN_FROM_PACKAGE="${zipUrl}"
-# 
-# az webapp config appsettings set \
-#    --name "$( get-value '.names.appService' )" \
-#    --resource-group "$( get-value '.initConfig.resourceGroupName' )" \
-#    --settings WEBSITE_RUN_FROM_PACKAGE="https://typora.blob.core.windows.net/typoraimages/2022/11/24/10/00/publish----XFVSD918H1798DRNJ1D45HAH40.zip"
-
-# Check if the metadata has been set properly, want to see
-#
-# {
-#   "id": "/subscriptions/../resourceGroups/../providers/Microsoft.Web/sites/../config/metadata",
-#   "location": "West Europe",
-#   "name": "metadata",
-#   "properties": {
-#     "CURRENT_STACK": "dotnetcore"
-#   },
-#   "type": "Microsoft.Web/sites/config"
-# }
-# Show metadata
-# az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/metadata/list?api-version=2022-03-01" | jq .properties
-# Show appsettings
-# az rest --method POST --url "https://management.azure.com/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Web/sites/$( get-value '.names.appService' )/config/appsettings/list?api-version=2022-03-01" | jq .properties
 
 put-value '.aad.managedIdentityPrincipalID' "$(echo "${deploymentResultJSON}" | jq -r '.properties.outputs.managedIdentityPrincipalID.value' )" 
 put-value '.managedApp.notificationUrl' "https://$( get-value '.names.appService' ).azurewebsites.net/?sig=${notificationSecret}"
@@ -253,11 +227,11 @@ echo "${dataDeploymentResult}" > "${basedir}/data.deployment-result.json"
 echo "Data Backend Deployment: $( deploymentStatus "${dataDeploymentResult}" )"
 
 put-value \
-   '.eventHub.capture.eventHubNamespaceName'
+   '.eventHub.capture.eventHubNamespaceName' \
    "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubNamespaceName.value' )" 
 
 put-value \
-   '.eventHub.capture.eventHubName'
+   '.eventHub.capture.eventHubName' \
    "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubName.value' )" 
 
 put-value \

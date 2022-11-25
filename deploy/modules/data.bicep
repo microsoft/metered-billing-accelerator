@@ -42,7 +42,7 @@ var names = {
   }
   eventHub: {
     namespaceName: appNamePrefix
-    hubName: appNamePrefix
+    hubName: 'metering'
   }
   roleDefinitions: {
     evntHub: {
