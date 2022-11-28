@@ -124,6 +124,7 @@ public class ApplicationService
             {
                 throw new ArgumentException("Service principal already exist");
             }
+            var repoUrl = "https://github.com/microsoft/metered-billing-accelerator";
 
             //Create AAD application
             var app = await _graphServiceClient
@@ -133,7 +134,7 @@ public class ApplicationService
                 {
                     DisplayName = appName,
                     SignInAudience = "AzureADMyOrg",
-                    Description = $"This application belongs to a customer-purchased managed application deployment from Azure Marketplace. The managedBy is the application \"{subscriptionRegistrationRequest.ManagedBy}\"",
+                    Description = $"This application belongs to a customer-purchased managed application deployment from Azure Marketplace. The managedBy is the application \"{subscriptionRegistrationRequest.ManagedBy}\". This application has been generated using the software {repoUrl}",
                     Notes = $"ManagedBy: {subscriptionRegistrationRequest.ManagedBy}",
                     ServiceManagementReference = subscriptionRegistrationRequest.ManagedBy,
                 });

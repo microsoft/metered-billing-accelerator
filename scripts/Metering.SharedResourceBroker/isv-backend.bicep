@@ -24,6 +24,8 @@ param useAppInsights bool = true
 
 var prefix = toLower('sp${uniqueString(suffix)}')
 
+var windowsInstance = true // When going for Linux, you must also update the config setting names to use __ instead of : (see below)
+
 // The ARM [`substring`](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions-string#substring) function is difficult to use. `substring('Hallo', 0, 10)` currently throws the error `The index and length parameters must refer to a location within the string.`. In languages such as C# etc., the length parameter is treated as a maximum, not an absolute. If the provided input string is shorter than the length, the function should just return the original input string. Workaround is writing something like `substring('Hallo', 0, min(10, length('Hallo')))`, which is cumbersome.
 var names = {
   uami: '${prefix}-service-principal-generator'
@@ -60,7 +62,7 @@ resource publisherKeyVault 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   properties: {
     enabledForDeployment: false
     enabledForDiskEncryption: false
-    enabledForTemplateDeployment: true
+    enabledForTemplateDeployment: true // https://learn.microsoft.com/en-us/azure/azure-resource-manager/managed-applications/key-vault-access
     enableRbacAuthorization: true
     tenantId: subscription().tenantId
     sku: { name: 'standard', family: 'A' }
@@ -157,6 +159,9 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
     suffix: suffix
   }
   sku: { name: 'F1', capacity: 1 }
+  properties: {
+    reserved: windowsInstance ? false : true
+  }
 }
 
 resource appService 'Microsoft.Web/sites@2021-03-01' = {
@@ -171,18 +176,21 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
       '${uami.id}': {}
     }
   }
+  kind: windowsInstance ? 'app' : 'linux'
   properties: {
     serverFarmId: appServicePlan.id
-    httpsOnly: true
+    reserved: windowsInstance ? false : true
     clientAffinityEnabled: false
+    httpsOnly: true
     siteConfig: {
       minTlsVersion: '1.2'
-      // linuxFxVersion: 'DOTNETCORE|7.0' // This is only for Linux *containers*
+      netFrameworkVersion: windowsInstance ? 'v7.0' : null
+      linuxFxVersion: windowsInstance ? null : 'DOTNETCORE|7.0' // This is only for Linux *containers*
       // windowsFxVersion: 'dotnet:7'     // This is for Windows *containers* (code-name Xenon)
     }
   }
 
-  resource metadata 'config@2021-03-01' = {
+  resource metadata 'config@2021-03-01' = if (windowsInstance) {
     name: 'metadata'
     properties: {
       CURRENT_STACK: 'dotnet' // This should be 'dotnetcore' only for .NET Core 3.x..
