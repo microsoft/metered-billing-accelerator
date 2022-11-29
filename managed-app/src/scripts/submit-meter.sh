@@ -21,53 +21,53 @@ function get_access_token {
     | jq -r ".access_token"
 }
 
-function createBatchUsage {
-  local saas_subscription_id="$1"
-  local meter_name="$2"
-  local consumption="$3"
-
-  echo "{}"                                                                                  \
-    | jq --arg x "UsageReported"                       '.Body.type=($x)'                     \
-    | jq --arg x "${saas_subscription_id}"             '.Body.value.internalResourceId=($x)' \
-    | jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.Body.value.timestamp=($x)'          \
-    | jq --arg x "${meter_name}"                       '.Body.value.meterName=($x)'          \
-    | jq --arg x "${consumption}"                      '.Body.value.quantity=($x | fromjson)'\
-    | jq --arg x "${saas_subscription_id}"             '.BrokerProperties.PartitionKey=($x)' 
-}
+# function createBatchUsage {
+#   local managed_by="$1"
+#   local meter_name="$2"
+#   local consumption="$3"
+#
+#   echo "{}"                                                                                  \
+#     | jq --arg x "UsageReported"                       '.Body.type=($x)'                     \
+#     | jq --arg x "${managed_by}"                       '.Body.value.resourceUri=($x)' \
+#     | jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.Body.value.timestamp=($x)'          \
+#     | jq --arg x "${meter_name}"                       '.Body.value.meterName=($x)'          \
+#     | jq --arg x "${consumption}"                      '.Body.value.quantity=($x | fromjson)'\
+#     | jq --arg x "${managed_by}"                       '.BrokerProperties.PartitionKey=($x)' 
+# }
 
 function createUsage {
-  local saas_subscription_id="$1"
+  local managed_by="$1"
   local meter_name="$2"
   local consumption="$3"
 
-  echo "{}"                                                                              \
-    | jq --arg x "UsageReported"                       '.type=($x)'                      \
-    | jq --arg x "${saas_subscription_id}"             '.value.internalResourceId=($x)'  \
-    | jq --arg x "$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"  '.value.timestamp=($x)'           \
-    | jq --arg x "${meter_name}"                       '.value.meterName=($x)'           \
+  echo "{}"                                                                      \
+    | jq --arg x "UsageReported"                       '.type=($x)'              \
+    | jq --arg x "${managed_by}"                       '.value.resourceUri=($x)' \
+    | jq --arg x "$( date -u "+%Y-%m-%dT%H:%M:%SZ" )"  '.value.timestamp=($x)'   \
+    | jq --arg x "${meter_name}"                       '.value.meterName=($x)'   \
     | jq --arg x "${consumption}"                      '.value.quantity=($x | fromjson)'
 }
 
 function submit_single_usage {
-  local saas_subscription_id="$1"
+  local managed_by="$1"
   local meter_name="$2"
   local consumption="$3"
   local access_token="$4"
 
-  data="$( createUsage "${saas_subscription_id}" "${meter_name}" "${consumption}" )"
+  jsonPayload="$( createUsage "${managed_by}" "${meter_name}" "${consumption}" )"
 
   curl \
     --include --no-progress-meter \
     --url "${AZURE_METERING_INFRA_EVENTHUB_URL}/messages?api-version=2014-01&timeout=60" \
     --header "Authorization: Bearer ${access_token}" \
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8" \
-    --header "BrokerProperties: {\"PartitionKey\": \"${saas_subscription_id}\"}" \
+    --header "BrokerProperties: {\"PartitionKey\": \"${managed_by}\"}" \
     --write-out 'Submission status: %{http_code}\nDuration: %{time_total} seconds\n\n' \
-    --data "${data}"    
+    --data "${jsonPayload}"    
 }
 
 if [ $# -ne 2 ]; then 
-  echo "Specify the SaaS subscription ID, the meter name, and the consumption value, for example: 
+  echo "Specify the meter name, and the consumption value, for example: 
 
       $0 cpu 1000.0
   "
