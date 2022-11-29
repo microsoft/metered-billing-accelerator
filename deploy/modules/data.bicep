@@ -1,6 +1,7 @@
 targetScope = 'resourceGroup'
 
 param appNamePrefix string
+
 param location string = resourceGroup().location
 
 // Storage
@@ -17,6 +18,9 @@ param archiveNameFormat string = '{Namespace}/{EventHub}/p={PartitionId}/y={Year
 param messageRetentionInDays int = 3
 
 param partitionCount int = 5
+
+@description('The object ID of the group or service principal submitting usage events')
+param senderObjectId string
 
 var config = {
   eventHub: {    
@@ -45,7 +49,7 @@ var names = {
     hubName: 'metering'
   }
   roleDefinitions: {
-    evntHub: {
+    eventHub: {
       receiver:  'a638d3c7-ab3a-418d-83e6-5f17a39d4fde'
       sender:    '2b629674-e913-4c01-ae53-ef4638d8f975'
       dataOwner: 'f526a384-b230-433a-b45c-95f59c4a2dec'
@@ -61,6 +65,9 @@ resource captureAndStateStorageAccount 'Microsoft.Storage/storageAccounts@2022-0
   location: location
   kind: 'StorageV2'
   sku: { name: 'Standard_RAGRS' }
+  tags: {
+    prefix: appNamePrefix
+  }
   properties: {
     accessTier: 'Hot'
     minimumTlsVersion: 'TLS1_2'
@@ -87,6 +94,9 @@ resource checkpointContainer 'Microsoft.Storage/storageAccounts/blobServices/con
 resource eh_namespace 'Microsoft.EventHub/namespaces@2021-11-01' = {
   name: names.eventHub.namespaceName
   location: location
+  tags: {
+    prefix: appNamePrefix
+  }
   sku: {
     name: config.eventHub.sku
     tier: config.eventHub.sku
@@ -127,16 +137,29 @@ resource eventHub 'Microsoft.EventHub/namespaces/eventhubs@2021-11-01' = {
 resource aggregatorInfrastructureIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2018-11-30' = {
   name: names.identity
   location: location
+  tags: {
+    prefix: appNamePrefix
+  }
 }
 
-resource eventhubRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
-  name: guid(aggregatorInfrastructureIdentity.name, eventHub.name, names.roleDefinitions.evntHub.dataOwner)
+resource eventhubRoleAssignmentBackend 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
+  name: guid(aggregatorInfrastructureIdentity.name, eventHub.name, names.roleDefinitions.eventHub.dataOwner)
   scope: eventHub
   properties: {
     description: '${aggregatorInfrastructureIdentity.name} should be a Azure Event Hubs Data Owner on ${eventHub.id}'
     principalId: aggregatorInfrastructureIdentity.properties.principalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', names.roleDefinitions.evntHub.dataOwner)
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', names.roleDefinitions.eventHub.dataOwner)
+  }
+}
+
+resource eventhubRoleAssignmentApplications 'Microsoft.Authorization/roleAssignments@2020-08-01-preview' = {
+  name: guid(senderObjectId, eventHub.name, names.roleDefinitions.eventHub.sender)
+  scope: eventHub
+  properties: {
+    description: '${senderObjectId} should be a Azure Event Hubs Sender on ${eventHub.id}'
+    principalId: senderObjectId
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', names.roleDefinitions.eventHub.sender)
   }
 }
 
@@ -153,9 +176,9 @@ resource storageRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-08-
 
 output storageId string = captureAndStateStorageAccount.id
 output storageName string = captureAndStateStorageAccount.name
-output captureBlobEndpoint string = 'https://${captureAndStateStorageAccount.name}.blob.${environment().suffixes.storage}/${captureContainer.name}'
-output snapshotsBlobEndpoint string = 'https://${captureAndStateStorageAccount.name}.blob.${environment().suffixes.storage}/${snapshotsContainer.name}'
-output checkpointBlobEndpoint string = 'https://${captureAndStateStorageAccount.name}.blob.${environment().suffixes.storage}/${checkpointContainer.name}'
+output captureBlobEndpoint string = 'https://${captureAndStateStorageAccount.name}.blob.${environment().suffixes.storage}/${names.containers.capture}'
+output snapshotsBlobEndpoint string = 'https://${captureAndStateStorageAccount.name}.blob.${environment().suffixes.storage}/${names.containers.snapshots}'
+output checkpointBlobEndpoint string = 'https://${captureAndStateStorageAccount.name}.blob.${environment().suffixes.storage}/${names.containers.checkpoint}'
 output aggregatorInfrastructureIdentityId string = aggregatorInfrastructureIdentity.id
 output eventHubNamespaceName string = names.eventHub.namespaceName
 output eventHubName string = names.eventHub.hubName

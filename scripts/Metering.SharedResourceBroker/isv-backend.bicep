@@ -1,5 +1,5 @@
-@description('Specifies a suffix to append to resource names.')
-param suffix string
+@description('Specifies a seed to generate the resource name prefix from.')
+param seed string
 
 @description('Specifies the Azure location where the resources should be created.')
 param location string = resourceGroup().location
@@ -22,7 +22,7 @@ param deploymentZip string = 'https://github.com/microsoft/metered-billing-accel
 
 param useAppInsights bool = true
 
-var prefix = toLower('sp${uniqueString(suffix)}')
+var prefix = toLower('sp${uniqueString(seed)}')
 
 var windowsInstance = true // When going for Linux, you must also update the config setting names to use __ instead of : (see below)
 
@@ -37,6 +37,7 @@ var names = {
     bootstrapSecret: 'BootstrapSecret'
     notificationSecret: 'NotificationSecret'
   }
+  prefix: prefix
 }
 
 var keyVaultRoleID = {
@@ -57,7 +58,7 @@ resource publisherKeyVault 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   name: names.publisherKeyVault
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
   properties: {
     enabledForDeployment: false
@@ -93,7 +94,7 @@ resource uami 'Microsoft.ManagedIdentity/userAssignedIdentities@2021-09-30-previ
   name: names.uami
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
 }
 
@@ -144,7 +145,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (useAppInsi
   name: names.appInsights
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
   kind: 'web'
   properties: {
@@ -156,7 +157,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: names.appServicePlan
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
   sku: { name: 'F1', capacity: 1 }
   properties: {
@@ -168,7 +169,7 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
   name: names.appService
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
   identity: {
     type: 'UserAssigned'
