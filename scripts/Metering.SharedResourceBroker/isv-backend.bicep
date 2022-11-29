@@ -1,5 +1,5 @@
-@description('Specifies a suffix to append to resource names.')
-param suffix string
+@description('Specifies a seed to generate the resource name prefix from.')
+param seed string
 
 @description('Specifies the Azure location where the resources should be created.')
 param location string = resourceGroup().location
@@ -22,7 +22,9 @@ param deploymentZip string = 'https://github.com/microsoft/metered-billing-accel
 
 param useAppInsights bool = true
 
-var prefix = toLower('sp${uniqueString(suffix)}')
+var prefix = toLower('sp${uniqueString(seed)}')
+
+var windowsInstance = true // When going for Linux, you must also update the config setting names to use __ instead of : (see below)
 
 // The ARM [`substring`](https://learn.microsoft.com/en-us/azure/azure-resource-manager/templates/template-functions-string#substring) function is difficult to use. `substring('Hallo', 0, 10)` currently throws the error `The index and length parameters must refer to a location within the string.`. In languages such as C# etc., the length parameter is treated as a maximum, not an absolute. If the provided input string is shorter than the length, the function should just return the original input string. Workaround is writing something like `substring('Hallo', 0, min(10, length('Hallo')))`, which is cumbersome.
 var names = {
@@ -35,6 +37,7 @@ var names = {
     bootstrapSecret: 'BootstrapSecret'
     notificationSecret: 'NotificationSecret'
   }
+  prefix: prefix
 }
 
 var keyVaultRoleID = {
@@ -55,12 +58,12 @@ resource publisherKeyVault 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   name: names.publisherKeyVault
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
   properties: {
     enabledForDeployment: false
     enabledForDiskEncryption: false
-    enabledForTemplateDeployment: true
+    enabledForTemplateDeployment: true // https://learn.microsoft.com/en-us/azure/azure-resource-manager/managed-applications/key-vault-access
     enableRbacAuthorization: true
     tenantId: subscription().tenantId
     sku: { name: 'standard', family: 'A' }
@@ -91,7 +94,7 @@ resource uami 'Microsoft.ManagedIdentity/userAssignedIdentities@2021-09-30-previ
   name: names.uami
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
 }
 
@@ -142,7 +145,7 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = if (useAppInsi
   name: names.appInsights
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
   kind: 'web'
   properties: {
@@ -154,16 +157,19 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   name: names.appServicePlan
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
   sku: { name: 'F1', capacity: 1 }
+  properties: {
+    reserved: windowsInstance ? false : true
+  }
 }
 
 resource appService 'Microsoft.Web/sites@2021-03-01' = {
   name: names.appService
   location: location
   tags: {
-    suffix: suffix
+    prefix: prefix
   }
   identity: {
     type: 'UserAssigned'
@@ -171,18 +177,21 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
       '${uami.id}': {}
     }
   }
+  kind: windowsInstance ? 'app' : 'linux'
   properties: {
     serverFarmId: appServicePlan.id
-    httpsOnly: true
+    reserved: windowsInstance ? false : true
     clientAffinityEnabled: false
+    httpsOnly: true
     siteConfig: {
       minTlsVersion: '1.2'
-      // linuxFxVersion: 'DOTNETCORE|7.0' // This is only for Linux *containers*
+      netFrameworkVersion: windowsInstance ? 'v7.0' : null
+      linuxFxVersion: windowsInstance ? null : 'DOTNETCORE|7.0' // This is only for Linux *containers*
       // windowsFxVersion: 'dotnet:7'     // This is for Windows *containers* (code-name Xenon)
     }
   }
 
-  resource metadata 'config@2021-03-01' = {
+  resource metadata 'config@2021-03-01' = if (windowsInstance) {
     name: 'metadata'
     properties: {
       CURRENT_STACK: 'dotnet' // This should be 'dotnetcore' only for .NET Core 3.x..

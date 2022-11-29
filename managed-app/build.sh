@@ -14,7 +14,7 @@ zipDir="$(pwd)/zip"
 # Patch in the partnerCenterdid
 # Remove the _generator properties
 #
-bicep build --stdout src/mainTemplate.bicep | \
+az bicep build --stdout --file src/mainTemplate.bicep | \
   jq --arg x "${partnerCenterId}" 'first(.resources[] | select(.type == "Microsoft.Resources/deployments") | select(.name == "THIS-IS-INVALID-PLEASE-RUN-buildsh")).name=$x' \
   | jq 'walk(if type == "object" then del(._generator) else . end)' \
   > "${tempDir}/mainTemplate.json"

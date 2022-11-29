@@ -3,7 +3,7 @@
     "subscriptionId": "your-azure-subscription-id",
     "location": "westeurope",
     "resourceGroupName": "the-resource-group-in-which-the-isv-resources-will-be-placed",
-    "suffix": "some-unique-name-which-will-be-used-to-derive-resource-names",
+    "seed": "some-unique-name-which-will-be-used-to-derive-resource-names",
     "aadDesiredGroupName": "the-name-of-the-azure-ad-group-in-which-the-service-principals-will-be-placed",
     "useAppInsights": false
   },

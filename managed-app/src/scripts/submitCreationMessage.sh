@@ -40,7 +40,7 @@ currentDate="$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"
 
 jsonMessagePayload="$( \
    echo "${METERING_PLAN_JSON}" \
-    | jq --arg x "${managedBy}"  '.value.subscription.scope=$x' \
+    | jq --arg x "${managedBy}"   '.value.subscription.resourceUri=$x' \
     | jq --arg x "${currentDate}" '.value.subscription.subscriptionStart=($x)' )"
 
 initialMessageEventHubMessage="$( \

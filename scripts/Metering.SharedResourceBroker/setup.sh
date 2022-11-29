@@ -73,7 +73,7 @@ function deploymentStatus {
 subscriptionId="$(    get-value-or-fail '.initConfig.subscriptionId' )"
 location="$(          get-value-or-fail '.initConfig.location' )"
 resourceGroupName="$( get-value-or-fail '.initConfig.resourceGroupName' )"
-suffix="$(            get-value-or-fail '.initConfig.suffix' )"
+seed="$(              get-value-or-fail '.initConfig.seed' )"
 groupName="$(         get-value-or-fail '.initConfig.aadDesiredGroupName' )"
 useAppInsights="$(    get-value-or-fail '.initConfig.useAppInsights' )"
 
@@ -161,7 +161,7 @@ deploymentResultJSON="$( az deployment group create \
     --resource-group "${resourceGroupName}" \
     --template-file "${basedir}/isv-backend.bicep" \
     --parameters \
-       suffix="${suffix}" \
+       seed="${seed}" \
        bootstrapSecretValue="$( openssl rand 128 | base32 --wrap=0 )" \
        notificationSecretValue="${notificationSecret}" \
        applianceResourceProviderObjectID="${applianceResourceProviderObjectID}" \
@@ -221,6 +221,7 @@ dataDeploymentResult="$( az deployment group create \
        appNamePrefix="$( get-value '.names.appService' )" \
        archiveNameFormat="$( get-value '.eventHub.capture.archiveNameFormat' )" \
        partitionCount="13" \
+       senderObjectId="$( get-value '.aad.groupId' )" \
     --output json )"
 
 echo "${dataDeploymentResult}" > "${basedir}/data.deployment-result.json"
@@ -228,6 +229,7 @@ echo "Data Backend Deployment: $( deploymentStatus "${dataDeploymentResult}" )"
 
 put-value '.eventHub.capture.eventHubNamespaceName'         "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubNamespaceName.value' )" 
 put-value '.eventHub.capture.eventHubName'                  "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.eventHubName.value' )" 
+put-value '.eventHub.capture.storageAccountName'            "$( echo "${dataDeploymentResult}" | jq -r '.properties.outputs.storageName.value' )" 
 put-value '.managedApp.meteringConfiguration.amqpEndpoint'  "https://$( get-value '.eventHub.capture.eventHubNamespaceName' ).servicebus.windows.net/$( get-value '.eventHub.capture.eventHubName' )"
 
 #

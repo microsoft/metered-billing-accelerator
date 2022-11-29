@@ -4,6 +4,9 @@ param appNamePrefix string
 param rgLocation string
 
 param ADApplicationID string
+param ADObjectID string
+
+@secure()
 param ADApplicationSecret string 
 param tenantID string
 
@@ -19,6 +22,7 @@ module rgDeployment 'main-existing-rg.bicep' = {
     location: rgLocation
     ADApplicationID: ADApplicationID
     ADApplicationSecret: ADApplicationSecret
+    ADObjectID: ADObjectID
     tenantID: tenantID
   }
   scope: resourceGroup(sa.name)

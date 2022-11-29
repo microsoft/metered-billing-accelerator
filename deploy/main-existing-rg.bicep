@@ -38,6 +38,9 @@ param registryPassword string = ''
 //App params
 param ADApplicationID string
 
+@description('The object ID of the sending application.')
+param ADObjectID string
+
 @secure()
 param ADApplicationSecret string 
 
@@ -53,13 +56,12 @@ module data 'modules/data.bicep' = {
     appNamePrefix: appNamePrefix
     location: location
     isHnsEnabled: isHnsEnabled
-
     skuCapacity: skuCapacity
     eventHubSku: eventHubSku
     archiveNameFormat: AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT
+    senderObjectId: ADObjectID
   }
 }
-
 
 module marketplaceMeteringAggregatorApp './modules/container-app.bicep' = {
   name: '${appNamePrefix}-container-app'

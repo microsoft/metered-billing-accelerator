@@ -153,16 +153,16 @@ Here is example for the formated JSON
    "meters":{
       "5ff3ddfa-438f-4775-9080-01e7df258f58":{
          "subscription":{
+            "renewalInterval":"Monthly",
+            "subscriptionStart":"2022-05-24T17:13:26.5152305Z",
+            "resourceId":"5ff3ddfa-438f-4775-9080-01e7df258f58",
             "plan":{
                "planId":"privatemeter",
                "billingDimensions":{
                   "cpu1":0,
                   "mem1":0
                }
-            },
-            "renewalInterval":"Monthly",
-            "subscriptionStart":"2022-05-24T17:13:26.5152305Z",
-            "scope":"5ff3ddfa-438f-4775-9080-01e7df258f58"
+            }
          },
          "metersMapping":{
             "cpu1":"cpu1",
