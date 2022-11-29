@@ -303,8 +303,8 @@ module Json =
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode         
 
         module MarketplaceResourceId =
-            let (resourceId, resourceUri) =
-                ("resourceId", "resourceUri");
+            let (resourceId, resourceUri, internalResourceId) =
+                ("resourceId", "resourceUri", "internalResourceId");
 
             let encode (x: MarketplaceResourceId) : (string * JsonValue) list =
                 []
@@ -322,9 +322,11 @@ module Json =
                     ResourceID = get.Optional.Field resourceId Decode.string
                     ResourceURI = get.Optional.Field resourceUri Decode.string
                 }
+                let internalId = get.Optional.Field internalResourceId Decode.string
                 
-                match res with
-                | { ResourceID = None; ResourceURI = None } -> failwith $"Missing {resourceId} or {resourceUri} field"
+                match (res, internalId) with
+                | ({ ResourceID = None; ResourceURI = None }, Some internalId) -> MarketplaceResourceId.fromStr internalId 
+                | ({ ResourceID = None; ResourceURI = None }, None) -> failwith $"Missing {resourceId} or {resourceUri} field"
                 | _ -> res
     
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
