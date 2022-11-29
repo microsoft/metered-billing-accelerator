@@ -1,5 +1,7 @@
 config.json
+config-prev.json
 results.json
-/data-deployment-results.json
-/data.deployment-result.json
-/isv-backend.deloyment-result.json
+data-deployment-results.json
+data.deployment-result.json
+isv-backend.deloyment-result.json
+set-development-environment.cmd

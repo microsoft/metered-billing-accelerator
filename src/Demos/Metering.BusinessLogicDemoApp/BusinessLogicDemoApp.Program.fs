@@ -116,7 +116,7 @@ let demoAggregation =
 	"subscription": {
 		"renewalInterval": "Monthly",
 		"subscriptionStart": "2021-10-01T12:20:33",
-		"scope": "11111111-8a88-4a47-a691-1b31c289fb33",
+		"resourceId": "11111111-8a88-4a47-a691-1b31c289fb33",
 		"plan": {
 			"planId": "plan2",
             "billingDimensions": [
@@ -134,7 +134,7 @@ let demoAggregation =
 	"subscription": {
 		"renewalInterval": "Monthly",
 		"subscriptionStart": "2021-10-13T09:20:33",
-		"scope": "22222222-8a88-4a47-a691-1b31c289fb33",
+		"resourceId": "22222222-8a88-4a47-a691-1b31c289fb33",
 		"plan": {
 			"planId": "plan2",
 			"billingDimensions": [
@@ -153,7 +153,7 @@ let demoAggregation =
 	"subscription": {
 		"renewalInterval": "Monthly",
 		"subscriptionStart": "2021-11-04T16:12:26",
-		"scope": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+		"resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
 		"plan": {
 			"planId": "free_monthly_yearly",
             "billingDimensions": [

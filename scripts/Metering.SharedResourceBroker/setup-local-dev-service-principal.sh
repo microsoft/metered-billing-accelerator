@@ -125,3 +125,23 @@ az role assignment create \
   --assignee-object-id "$( get-value '.creds.spObjectId' )" \
   --assignee-principal-type "ServicePrincipal" \
   --scope "/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Storage/storageAccounts/$( get-value '.eventHub.capture.storageAccountName' )" 
+
+cat <<-EOFBATCH | unix2dos > "${basedir}/set-development-environment.cmd"
+	@echo off
+	setx.exe AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME  $( get-value '.aggregator.AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME' )
+	setx.exe AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME   $( get-value '.aggregator.AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME' )
+	setx.exe AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT $( get-value '.aggregator.AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT' )
+	setx.exe AZURE_METERING_INFRA_CAPTURE_CONTAINER       $( get-value '.aggregator.AZURE_METERING_INFRA_CAPTURE_CONTAINER' )
+	setx.exe AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER   $( get-value '.aggregator.AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER' )
+	setx.exe AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER     $( get-value '.aggregator.AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER' )
+	
+	setx.exe AZURE_METERING_INFRA_TENANT_ID               $( get-value '.aggregator.AZURE_METERING_INFRA_TENANT_ID' )
+	setx.exe AZURE_METERING_INFRA_CLIENT_ID               $( get-value '.aggregator.AZURE_METERING_INFRA_CLIENT_ID' )
+	setx.exe AZURE_METERING_INFRA_CLIENT_SECRET           $( get-value '.aggregator.AZURE_METERING_INFRA_CLIENT_SECRET' )
+	
+	setx.exe AZURE_METERING_MARKETPLACE_TENANT_ID         $( get-value '.aggregator.AZURE_METERING_MARKETPLACE_TENANT_ID' )
+	setx.exe AZURE_METERING_MARKETPLACE_CLIENT_ID         $( get-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_ID' )
+	setx.exe AZURE_METERING_MARKETPLACE_CLIENT_SECRET     $( get-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_SECRET' )
+EOFBATCH
+
+echo "You can run ${basedir}/set-development-environment.cmd on the Windows side of the house, in case you want to locally debug the environment."

@@ -221,7 +221,7 @@ dataDeploymentResult="$( az deployment group create \
        appNamePrefix="$( get-value '.names.appService' )" \
        archiveNameFormat="$( get-value '.eventHub.capture.archiveNameFormat' )" \
        partitionCount="13" \
-       senderApplicationId= "$( get-value '.aad.groupId' )" \
+       senderObjectId="$( get-value '.aad.groupId' )" \
     --output json )"
 
 echo "${dataDeploymentResult}" > "${basedir}/data.deployment-result.json"
