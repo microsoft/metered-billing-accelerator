@@ -1,0 +1,26 @@
+{
+  "type":"SubscriptionPurchased",
+  "value":{
+    "subscription":{
+      "resourceId":"..",
+      "subscriptionStart":"..",
+      "renewalInterval":"Monthly",
+      "plan": {
+        "planId":"plan1",
+        "billingDimensions": {
+          "bronze_orchestration": { "type": "simple", "dimension": "bronze_orchestration" },
+          "silver_orchestration": { "type": "simple", "dimension": "silver_orchestration" },
+          "gold_orchestration":   { "type": "simple", "dimension": "gold_orchestration"   },
+          "automation": { 
+            "type": "waterfall", 
+            "tiers": [
+              { "dimension": "bronze_automation", "threshold": 30 },
+              { "dimension": "silver_automation", "threshold": 20 },
+              { "dimension": "gold_automation",   "threshold": 20 }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
