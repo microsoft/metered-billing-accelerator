@@ -153,7 +153,9 @@ module WaterfallMeterLogic =
             LastUpdate = now }
   
   let newBillingCycle (now: MeteringDateTime) (x: WaterfallBillingDimension) : WaterfallMeterValue =
-        failwith "notimplemented"
+     { Total = Quantity.Zero
+       Consumption = Map.empty 
+       LastUpdate = now }
 
   let containsReportableQuantities (this: WaterfallMeterValue) : bool =
     (this.Consumption |> Map.count) > 0

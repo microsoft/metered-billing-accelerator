@@ -14,16 +14,22 @@ function get_access_token {
 }
 
 function createUsage {
-  local managed_by="$1"
+  local identifier="$1"
   local meter_name="$2"
   local consumption="$3"
-
-  echo "{}"                                                                      \
+  local json
+  
+  json="$( echo "{}"                                                                      \
     | jq --arg x "UsageReported"                       '.type=($x)'              \
-    | jq --arg x "${managed_by}"                       '.value.resourceUri=($x)' \
     | jq --arg x "$( date -u "+%Y-%m-%dT%H:%M:%SZ" )"  '.value.timestamp=($x)'   \
     | jq --arg x "${meter_name}"                       '.value.meterName=($x)'   \
-    | jq --arg x "${consumption}"                      '.value.quantity=($x | fromjson)'
+    | jq --arg x "${consumption}"                      '.value.quantity=($x | fromjson)' )"
+
+  if [[ "${identifier}"  == /subscription* ]] ; then
+      echo "${json}" | jq --arg x "${identifier}" '.value.resourceUri=($x)' 
+  else
+      echo "${json}" | jq --arg x "${identifier}" '.value.resourceId=($x)' 
+  fi
 }
 
 function submit_single_usage {
@@ -45,7 +51,6 @@ function submit_single_usage {
 }
 
 AZURE_METERING_INFRA_EVENTHUB_URL="https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}"
-
 
 if [ $# -ne 3 ]; then 
   echo "Specify the meter name, and the consumption value, for example: 

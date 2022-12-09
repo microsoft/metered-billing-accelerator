@@ -78,6 +78,10 @@ put-value '.creds.appObjectId' "${theObjectId}"
 put-value '.creds.appAppId'    "${theAppId}"
 put-value '.creds.spObjectId'  "${spISVId}"
 
+theObjectId="$( get-value '.creds.appObjectId' )"
+theAppId="$(    get-value '.creds.appAppId' )"
+spISVId="$(     get-value '.creds.spObjectId')"
+
 #
 # Create a client_secret
 #
@@ -114,17 +118,25 @@ put-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_SECRET'       "$( get-v
 put-value '.managedApp.offer.technicalConfiguration.aadTenantID'       "$( get-value '.aggregator.AZURE_METERING_MARKETPLACE_TENANT_ID' )" 
 put-value '.managedApp.offer.technicalConfiguration.aadApplicationID'  "$( get-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_ID' )" 
 
-
-# storageBlobDataContributor="ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+storageBlobDataContributor="ba92f5b4-2d11-453d-a403-e96b0029c9fe"
 # storageBlobDataOwner="b7e6dc6d-f1e8-4753-8033-0f276bb0955b"
-storageBlobDataReader="2a2b9908-6ea1-4ae2-8e65-a410df84e7d1"
+# storageBlobDataReader="2a2b9908-6ea1-4ae2-8e65-a410df84e7d1"
 
 az role assignment create \
-  --role "${storageBlobDataReader}" \
-  --description "Grant the service principal 'Storage Blob Data Reader' on the storage account" \
+  --role "${storageBlobDataContributor}" \
+  --description "Grant the service principal 'Storage Blob Data Contributor' on the storage account" \
   --assignee-object-id "$( get-value '.creds.spObjectId' )" \
   --assignee-principal-type "ServicePrincipal" \
   --scope "/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Storage/storageAccounts/$( get-value '.eventHub.capture.storageAccountName' )" 
+
+eventHubDataOwner='f526a384-b230-433a-b45c-95f59c4a2dec'
+
+az role assignment create \
+  --role "${eventHubDataOwner}" \
+  --description "Grant the service principal 'EventHub Data Owner' on the Event Hub" \
+  --assignee-object-id "$( get-value '.creds.spObjectId' )" \
+  --assignee-principal-type "ServicePrincipal" \
+  --scope "/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.EventHub/namespaces/$( get-value '.eventHub.capture.eventHubNamespaceName' )/eventhubs/$( get-value '.eventHub.capture.eventHubName' )" 
 
 cat <<-EOFBATCH | unix2dos > "${basedir}/set-development-environment.cmd"
 	@echo off

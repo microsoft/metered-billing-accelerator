@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function get_access_token {
-  echo "$(curl \
+  curl \
       --silent \
       --request POST \
       --data-urlencode "response_type=token" \
@@ -10,7 +10,7 @@ function get_access_token {
       --data-urlencode "client_id=${AZURE_METERING_INFRA_CLIENT_ID}" \
       --data-urlencode "client_secret=${AZURE_METERING_INFRA_CLIENT_SECRET}" \
       "https://login.microsoftonline.com/${AZURE_METERING_INFRA_TENANT_ID}/oauth2/v2.0/token" | \
-          jq -r ".access_token" )"
+          jq -r ".access_token"
 }
 
 if [ $# -ne 1 ]; then 
