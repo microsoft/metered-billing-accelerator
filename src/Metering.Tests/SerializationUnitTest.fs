@@ -44,6 +44,9 @@ let ``InternalMessages.UsageReported only resourceId`` () = roundTrip<MeteringUp
 let ``InternalMessages.SubscriptionDeleted`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionDeleted.json"
 
 [<Test>]
+let ``InternalMessages.SubscriptionPurchased but deserialized from an Avro message`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionPurchasedFromAVRO.json"
+
+[<Test>]
 let ``InternalMessages.SubscriptionDeleted only resourceUri`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionDeleted only resourceUri.json"
 
 [<Test>]

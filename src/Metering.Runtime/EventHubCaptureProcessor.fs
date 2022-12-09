@@ -337,7 +337,7 @@ module CaptureProcessor =
 
     [<Extension>]
     let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
-        let bytes = eventData.EventBody.ToArray()
+        let bytes = eventData.Body.ToArray()
         
         try
             Encoding.UTF8.GetString(bytes)
