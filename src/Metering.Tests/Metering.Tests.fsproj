@@ -55,6 +55,8 @@
     <None Include="data\MarketplaceMessages\MarketplaceErrorDuplicate.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\MarketplaceMessages\MarketplaceGenericError.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\MarketplaceMessages\MarketplaceBatchResponseDTO.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\Capture\p9--2022-12-09--16-50-12.avro"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\Capture\p9--2022-12-09--17-10-12.avro"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <Compile Include="BillingUnitTest.fs" />
     <Compile Include="WaterfallUnitTests.fs" />
     <Compile Include="SerializationUnitTest.fs" />
