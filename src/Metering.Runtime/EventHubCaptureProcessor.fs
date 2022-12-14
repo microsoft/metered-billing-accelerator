@@ -38,9 +38,10 @@ module CaptureProcessor =
         | _ -> None 
 
     let createEventDataFromBytes (blobName: string) (eventBody: byte[]) (sequenceNumber: int64) (offset: int64)  (partitionKey: string) : EventData =
-        new RehydratedFromCaptureEventData(blobName, eventBody, new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)
+        new RehydratedFromCaptureEventData(blobName, eventBody,
+            new Dictionary<string,obj>(), new Dictionary<string,obj>(), sequenceNumber, offset, DateTimeOffset.UtcNow, partitionKey)
 
-    let private ParseTime s =         
+    let private ParseTime s =
         // "12/2/2021 2:58:24 PM"
         DateTime.ParseExact(
             s = s,
@@ -80,11 +81,11 @@ module CaptureProcessor =
                 pattern = createRegexPattern captureFileNameFormat (eventHubName, partitionId), 
                 options = RegexOptions.ExplicitCapture)
 
-        let matcH = regex.Match(input = blobName)        
+        let matcH = regex.Match(input = blobName)
         match matcH.Success with 
         | false -> None
         | true ->
-            let g (name: string) = matcH.Groups[name].Value |> Int32.Parse            
+            let g (name: string) = matcH.Groups[name].Value |> Int32.Parse
             MeteringDateTime.create ("year" |> g) ("month" |> g) ("day" |> g) ("hour" |> g) ("minute" |> g) ("second" |> g)
             |> Some
 
@@ -99,7 +100,7 @@ module CaptureProcessor =
                
     [<Extension>]
     let ReadEventDataFromAvroStream (blobName: string) (stream: Stream) : IEnumerable<EventData> =
-        // https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-capture-overview        
+        // https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-capture-overview
         seq {
             use reader = DataFileReader<GenericRecord>.OpenReader(stream)
             while reader.HasNext() do
@@ -107,7 +108,7 @@ module CaptureProcessor =
 
                 let sequenceNumber = genericAvroRecord |> GetRequiredAvroProperty<int64> "SequenceNumber"
                 let offset = genericAvroRecord |> GetRequiredAvroProperty<string> "Offset" |> Int64.Parse
-                let enqueuedTimeUtc = genericAvroRecord |> GetRequiredAvroProperty<string> "EnqueuedTimeUtc" |> ParseTime        
+                let enqueuedTimeUtc = genericAvroRecord |> GetRequiredAvroProperty<string> "EnqueuedTimeUtc" |> ParseTime
                 let systemProperties = genericAvroRecord |> GetRequiredAvroProperty<Dictionary<string, obj>> "SystemProperties" |> ImmutableDictionary.ToImmutableDictionary
                 let properties = genericAvroRecord |> GetRequiredAvroProperty<IDictionary<string, obj>> "Properties"
                 let body = genericAvroRecord |> GetRequiredAvroProperty<byte[]> "Body"
