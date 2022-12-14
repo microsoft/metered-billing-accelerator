@@ -1,7 +1,7 @@
 #!/bin/bash
 
-resourceId="37d53fe9-7b82-40d7-dfe4-e28e4cdd7d18" # The SaaS subscription ID of the purchase
-subscriptionStart="2022-12-07T11:15:29Z"
+resourceId="d8b14c3c-fcfa-4bf4-d034-be8c3f3ecab5" # The SaaS subscription ID of the purchase
+subscriptionStart="2022-12-09T00:00:00Z"
 # "resourceUri": "/subscriptions/caa4fcd0-b30f-4a39-bd65-90f0e218db3a/resourceGroups/wade-saas-metering-rg-dev/providers/Microsoft.SaaS/resources/test_purchase_1",
 
 METERING_PLAN_JSON="$( cat plan.json )"
@@ -12,11 +12,6 @@ jsonMessagePayload="$( \
    echo "${METERING_PLAN_JSON}" \
     | jq --arg x "${resourceId}"        '.value.subscription.resourceId=$x' \
     | jq --arg x "${subscriptionStart}" '.value.subscription.subscriptionStart=($x)' )"
-
-initialMessageEventHubMessage="$( \
-   echo "{}" \
-     | jq --arg x "${jsonMessagePayload}"   '.Body=($x | fromjson)' \
-     | jq --arg x "${eventHubPartitionKey}" '.BrokerProperties.PartitionKey=$x' )"
 
 eventhub_access_token="$( curl \
     --silent \
@@ -38,16 +33,12 @@ submissionStatusCode="$( curl \
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8" \
     --header "BrokerProperties: {\"PartitionKey\": \"${eventHubPartitionKey}\"}" \
     --write-out '%{http_code}' \
-    --data "${initialMessageEventHubMessage}" )"
-
-
-
-
+    --data "${jsonMessagePayload}" )"
 
 echo "POST ${AZURE_METERING_INFRA_EVENTHUB_URL}/messages?api-version=2014-01&timeout=60
 Content-Type: application/atom+xml;type=entry;charset=utf-8
 BrokerProperties: {\"PartitionKey\": \"${eventHubPartitionKey}\"}
 
-${initialMessageEventHubMessage}"
+${jsonMessagePayload}"
 
 echo "submissionStatusCode: ${submissionStatusCode}"

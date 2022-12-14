@@ -758,7 +758,7 @@ module Json =
                 |> List.map Decode.object
                 |> Decode.oneOf
 
-        module MeteringUpdateEventCore =
+        module MeteringUpdateEvent =
             open Marketplace
 
             let (typeid, value) = ("type", "value")
@@ -790,38 +790,19 @@ module Json =
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode 
 
-        module EventHubCaptureEventWithMeteringUpdateEventOrMeteringUpdateEvent =
-            module Body =
-                let (body) = ("Body")
-
-                let decode (get: Decode.IGetters) : MeteringUpdateEvent =
-                    get.Required.Field body MeteringUpdateEventCore.Decoder
-                let Decoder = decode |> JsonUtil.toDecoder
-
-            let encode = MeteringUpdateEventCore.encode
-
-            let Encoder = JsonUtil.toEncoder MeteringUpdateEventCore.encode
-
-            let Decoder : Decoder<MeteringUpdateEvent> =
-                [
-                    Body.Decoder 
-                    MeteringUpdateEventCore.Decoder
-                ] 
-                |> Decode.oneOf
-
         module EventHubEvent_MeteringUpdateEvent =
             let (position, event) = ("position", "event")
 
             let encode (x: EventHubEvent<MeteringUpdateEvent>) : (string * JsonValue) list =
                 [
                     (position, x.MessagePosition |> MessagePosition.Encoder)
-                    (event, x.EventData |> MeteringUpdateEventCore.Encoder)
+                    (event, x.EventData |> MeteringUpdateEvent.Encoder)
                 ]
             
             let decode (get: Decode.IGetters) : EventHubEvent<MeteringUpdateEvent> =
                 {
                     MessagePosition = get.Required.Field position MessagePosition.Decoder
-                    EventData = get.Required.Field event MeteringUpdateEventCore.Decoder
+                    EventData = get.Required.Field event MeteringUpdateEvent.Decoder
                     Source = EventHub
                     EventsToCatchup = None
                 }
@@ -890,7 +871,7 @@ module Json =
         |> Extra.withCustom Subscription.Encoder Subscription.Decoder
         |> Extra.withCustom SubscriptionCreationInformation.Encoder SubscriptionCreationInformation.Decoder
         |> Extra.withCustom Meter.Encoder Meter.Decoder
-        |> Extra.withCustom EventHubCaptureEventWithMeteringUpdateEventOrMeteringUpdateEvent.Encoder EventHubCaptureEventWithMeteringUpdateEventOrMeteringUpdateEvent.Decoder
+        |> Extra.withCustom MeteringUpdateEvent.Encoder MeteringUpdateEvent.Decoder
         |> Extra.withCustom EventHubEvent_MeteringUpdateEvent.Encoder EventHubEvent_MeteringUpdateEvent.Decoder
         |> JsonUtil.withCustom MeterCollection.encode MeterCollection.decode
 

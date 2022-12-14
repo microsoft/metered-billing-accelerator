@@ -33,24 +33,23 @@ function createUsage {
 }
 
 function submit_single_usage {
-  local managed_by="$1"
+  local identifier="$1"
   local meter_name="$2"
   local consumption="$3"
   local access_token="$4"
 
-  jsonPayload="$( createUsage "${managed_by}" "${meter_name}" "${consumption}" )"
+  jsonPayload="$( createUsage "${identifier}" "${meter_name}" "${consumption}" )"
 
+# --include
   curl \
-    --include --no-progress-meter \
-    --url "${AZURE_METERING_INFRA_EVENTHUB_URL}/messages?api-version=2014-01&timeout=60" \
+    --no-progress-meter \
+    --url "https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/messages?api-version=2014-01&timeout=60" \
     --header "Authorization: Bearer ${access_token}" \
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8" \
-    --header "BrokerProperties: {\"PartitionKey\": \"${managed_by}\"}" \
+    --header "BrokerProperties: {\"PartitionKey\": \"${identifier}\"}" \
     --write-out 'Submission status: %{http_code}\nDuration: %{time_total} seconds\n\n' \
     --data "${jsonPayload}"    
 }
-
-AZURE_METERING_INFRA_EVENTHUB_URL="https://${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}.servicebus.windows.net/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}"
 
 if [ $# -ne 3 ]; then 
   echo "Specify the meter name, and the consumption value, for example: 
@@ -63,11 +62,11 @@ if [ $# -ne 3 ]; then
   exit 1
 fi
 
-resourceId=$1
+identifier=$1
 meter_name=$2
 consumption=$3
 
-echo "Submit ${consumption} for ${resourceId} / ${meter_name}"
+echo "Submit ${consumption} for ${identifier} / ${meter_name}"
 
 access_token="$(get_access_token)"
-submit_single_usage "${resourceId}" "${meter_name}" "${consumption}" "${access_token}"
+submit_single_usage "${identifier}" "${meter_name}" "${consumption}" "${access_token}"

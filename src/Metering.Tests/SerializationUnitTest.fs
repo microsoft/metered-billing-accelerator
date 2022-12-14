@@ -44,9 +44,6 @@ let ``InternalMessages.UsageReported only resourceId`` () = roundTrip<MeteringUp
 let ``InternalMessages.SubscriptionDeleted`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionDeleted.json"
 
 [<Test>]
-let ``InternalMessages.SubscriptionPurchased but deserialized from an Avro message`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionPurchasedFromAVRO.json"
-
-[<Test>]
 let ``InternalMessages.SubscriptionDeleted only resourceUri`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionDeleted only resourceUri.json"
 
 [<Test>]
@@ -172,3 +169,30 @@ let ``Marketplace.BatchRequest`` () = roundTrip<MarketplaceBatchRequest> "Market
 [<Test>]
 let ``Marketplace.BatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceMessages/MarketplaceBatchResponseDTO.json"
 
+[<Test>]
+let ``EventHub.Avro`` () = 
+    [
+        "p9--2022-12-09--14-50-12.avro"
+        "p9--2022-12-09--16-50-12.avro"
+        "p9--2022-12-09--17-10-12.avro"
+        "p9--2022-12-13--11-15-12.avro"
+    ]
+    |> List.iter (fun filename -> 
+        let events =
+            filename
+            |> (fun n -> $"data/Capture/{filename}")
+            |> File.OpenRead
+            |> Metering.EventHub.CaptureProcessor.ReadEventDataFromAvroStream $"https://whatever.blob.core.windows.net/whatever-capture/whatever/metering/{filename}"
+            |> Seq.map (fun e ->
+                //printfn "%s %s %d %s" filename e.PartitionKey e.SequenceNumber (System.Text.Encoding.UTF8.GetString(e.Body.ToArray()))
+                e
+            )
+            |> Seq.map Metering.EventHub.CaptureProcessor.toMeteringUpdateEvent
+            |> Seq.map (fun e ->
+                printfn "%s %s %A" filename e.partitionKey e
+
+                e
+            )
+
+        Assert.IsTrue(events |> Seq.length > 0)
+    )
