@@ -85,7 +85,7 @@ module SimpleMeterLogic =
     
     let containsReportableQuantities (this: SimpleMeterValue) : bool = 
         match this with
-        | ConsumedQuantity _ -> true
+        | ConsumedQuantity q when q.CurrentHour > Quantity.Zero -> true
         | _ -> false
 
     let closeHour marketplaceResourceId (planId: PlanId) (this: SimpleBillingDimension) : (MarketplaceRequest list * SimpleBillingDimension) = 
@@ -94,6 +94,7 @@ module SimpleMeterLogic =
         | Some meter ->
             match meter with
             | IncludedQuantity _ -> (List.empty, this)
+            | ConsumedQuantity q when q.CurrentHour = Quantity.Zero -> (List.empty, this)
             | ConsumedQuantity q -> 
                 let marketplaceRequest =
                     { MarketplaceResourceId = marketplaceResourceId
