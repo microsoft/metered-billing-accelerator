@@ -10,15 +10,15 @@ using Metering.BaseTypes.EventHub;
 using Metering.Integration;
 using Metering.ClientSDK;
 using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;
-using Microsoft.FSharp.Core;
 using Metering.EventHub;
-using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Processor;
 
 // https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/eventhub/Azure.Messaging.EventHubs/samples/Sample05_ReadingEvents.md
 
 public class AggregatorWorker : BackgroundService
 {
+    record MarketplaceRequestAndPartitionId(MarketplaceRequest MarketplaceRequest, PartitionID PartitionID);
+    record MarketplaceRequestsAndPartitionId(IEnumerable<MarketplaceRequest> MarketplaceRequests, PartitionID PartitionID);
+
     private readonly ILogger<AggregatorWorker> _logger;
     private readonly MeteringConfigurationProvider config;
 
@@ -29,8 +29,8 @@ public class AggregatorWorker : BackgroundService
 
     private IDisposable SubscribeEmitter(IObservable<MeterCollection> events)
     {
-        List<MarketplaceRequest> previousToBeSubmitted = new();
-        ConcurrentQueue<MarketplaceRequest[]> tobeSubmitted = new();
+        List<MarketplaceRequestAndPartitionId> previousToBeSubmitted = new();
+        ConcurrentQueue<MarketplaceRequestsAndPartitionId> tobeSubmitted = new();
         var producer = config.MeteringConnections.createEventHubProducerClient();
 
         // Run an endless loop,
@@ -43,8 +43,8 @@ public class AggregatorWorker : BackgroundService
                 await Task.Delay(1000);
                 if (tobeSubmitted.TryDequeue(out var usage))
                 {
-                    var response = await config.SubmitUsage(usage);
-                    await producer.ReportUsagesSubmitted(response, CancellationToken.None);
+                    var response = await config.SubmitUsage(usage.MarketplaceRequests);
+                    await producer.ReportUsagesSubmitted(usage.PartitionID, response, CancellationToken.None);
                     _logger.Log(LogLevel.Information, "Submitted {0} values", response.Results.Length);
                 }
             }
@@ -54,20 +54,26 @@ public class AggregatorWorker : BackgroundService
             .Subscribe(
                 onNext: meterCollection =>
                 {
+                    var partitionId = meterCollection.LastUpdate.Value.PartitionID;
                     // Only add new (unseen) events to the concurrent queue.
-                    var current = meterCollection.metersToBeSubmitted.ToList();
+                    var current = meterCollection.metersToBeSubmitted.Select(request => new MarketplaceRequestAndPartitionId(request, partitionId)).ToList();
+
                     var newOnes = current.Except(previousToBeSubmitted).ToList();
                     if (newOnes.Any())
                     {
+                        // Send batches to Azure Marketplace API which have resourceIds and resourceURIs which are tracked in the same event hub partition
                         newOnes
+                            .GroupBy(g => g.PartitionID)
+                            .SelectMany(g => g.Select(x => x.MarketplaceRequest))
                             .Chunk(25)
+                            .Select(i => new MarketplaceRequestsAndPartitionId(i, partitionId))
                             .ForEach(tobeSubmitted.Enqueue);
                     }
                     previousToBeSubmitted = current;
                 }
             );
     }
-
+    
     private void RegularlyCreateSnapshots(PartitionID partitionId, MeterCollection meterCollection, Func<string> prefix)
     {
         if (meterCollection.getLastSequenceNumber() % 100 == 0)

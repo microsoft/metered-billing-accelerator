@@ -70,6 +70,13 @@ type MarketplaceResourceId =
         | (Some uri, Some resourceId )-> $"resourceId=\"{resourceId}\" / resourceUri=\"{uri}\""
         | (None, Some resourceId) -> $"resourceId=\"{resourceId}\""
         | (None, None) -> $"For this {nameof MarketplaceResourceId}, missing resourceId or resourceUri field"
+
+    member this.PartitionKey : string =
+        match (this.ResourceURI, this.ResourceID) with
+        | (Some uri, None)-> uri
+        | (None, Some resourceId) -> resourceId
+        | (Some uri, Some resourceId )-> $"{{\"resourceId\":\"{resourceId}\",\"resourceUri\":\"{uri}\"}}"
+        | (None, None) -> failwith $"The {nameof(MarketplaceResourceId)} has no id? {this}" 
  
     static member from resourceUri resourceId = { ResourceURI = Some resourceUri; ResourceID = Some resourceId }
 
