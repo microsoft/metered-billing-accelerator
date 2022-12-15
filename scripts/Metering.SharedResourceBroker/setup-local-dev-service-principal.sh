@@ -118,13 +118,13 @@ put-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_SECRET'       "$( get-v
 put-value '.managedApp.offer.technicalConfiguration.aadTenantID'       "$( get-value '.aggregator.AZURE_METERING_MARKETPLACE_TENANT_ID' )" 
 put-value '.managedApp.offer.technicalConfiguration.aadApplicationID'  "$( get-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_ID' )" 
 
-storageBlobDataContributor="ba92f5b4-2d11-453d-a403-e96b0029c9fe"
-# storageBlobDataOwner="b7e6dc6d-f1e8-4753-8033-0f276bb0955b"
+# storageBlobDataContributor="ba92f5b4-2d11-453d-a403-e96b0029c9fe"
+storageBlobDataOwner="b7e6dc6d-f1e8-4753-8033-0f276bb0955b"
 # storageBlobDataReader="2a2b9908-6ea1-4ae2-8e65-a410df84e7d1"
 
 az role assignment create \
-  --role "${storageBlobDataContributor}" \
-  --description "Grant the service principal 'Storage Blob Data Contributor' on the storage account" \
+  --role "${storageBlobDataOwner}" \
+  --description "Grant the service principal 'Storage Blob Data Owner' on the storage account" \
   --assignee-object-id "$( get-value '.creds.spObjectId' )" \
   --assignee-principal-type "ServicePrincipal" \
   --scope "/subscriptions/$( get-value '.initConfig.subscriptionId' )/resourceGroups/$( get-value '.initConfig.resourceGroupName' )/providers/Microsoft.Storage/storageAccounts/$( get-value '.eventHub.capture.storageAccountName' )" 

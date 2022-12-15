@@ -172,10 +172,7 @@ let ``Marketplace.BatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO>
 [<Test>]
 let ``EventHub.Avro`` () = 
     [
-        "p9--2022-12-09--14-50-12.avro"
         "p9--2022-12-09--16-50-12.avro"
-        "p9--2022-12-09--17-10-12.avro"
-        "p9--2022-12-13--11-15-12.avro"
     ]
     |> List.iter (fun filename -> 
         let events =

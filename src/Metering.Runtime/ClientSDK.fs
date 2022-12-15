@@ -77,7 +77,7 @@ module MeteringEventHubExtensions =
             return! eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = cancellationToken)
         }
 
-    let private SubmitMeteringUpdateEventToPartition (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (cancellationToken: CancellationToken) (meteringUpdateEvent: MeteringUpdateEvent) : Task =
+    let private SubmitMeteringUpdateEventToPartitionID (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (cancellationToken: CancellationToken) (meteringUpdateEvent: MeteringUpdateEvent) : Task =
         task {
             let! eventBatch = eventHubProducerClient.CreateBatchAsync(
                 options = new CreateBatchOptions (PartitionId = partitionId.value),
@@ -86,6 +86,22 @@ module MeteringEventHubExtensions =
             meteringUpdateEvent
             |> createEventData (meteringUpdateEvent.partitionKey)
             |> addEvent eventBatch
+
+            return! eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = cancellationToken)
+        }
+
+    let private SubmitMeteringUpdateEventsToPartitionID (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (cancellationToken: CancellationToken) (meteringUpdateEvents: MeteringUpdateEvent list) : Task =
+        task {
+            let! eventBatch = eventHubProducerClient.CreateBatchAsync(
+                options = new CreateBatchOptions (PartitionId = partitionId.value),
+                cancellationToken = cancellationToken)
+            
+            meteringUpdateEvents
+            |> List.map (
+                Json.toStr 0
+                >> (fun x -> new BinaryData(x))
+                >> (fun x -> new EventData(eventBody = x, ContentType = "application/json")))
+            |> List.iter (addEvent eventBatch)
 
             return! eventHubProducerClient.SendAsync(eventBatch = eventBatch, cancellationToken = cancellationToken)
         }
@@ -158,22 +174,22 @@ module MeteringEventHubExtensions =
 
     // this is not exposed as C# extension, as only F# is supposed to call it. 
     [<Extension>]
-    let ReportUsagesSubmitted (eventHubProducerClient: EventHubProducerClient) ({ Results = items}: MarketplaceBatchResponse) (cancellationToken: CancellationToken) =
+    let ReportUsagesSubmitted (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) ({ Results = items}: MarketplaceBatchResponse) (cancellationToken: CancellationToken) =
         items
         |> List.map UsageSubmittedToAPI 
-        |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
+        |> SubmitMeteringUpdateEventsToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
     let RemoveUnprocessableMessagesUpTo(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         { PartitionID = partitionId; Selection = sequenceNumber |> BeforeIncluding }
         |> RemoveUnprocessedMessages 
-        |> SubmitMeteringUpdateEventToPartition eventHubProducerClient partitionId cancellationToken
+        |> SubmitMeteringUpdateEventToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
     let RemoveUnprocessableMessage(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         { PartitionID = partitionId; Selection = sequenceNumber |> Exactly }
         |> RemoveUnprocessedMessages 
-        |> SubmitMeteringUpdateEventToPartition eventHubProducerClient partitionId cancellationToken
+        |> SubmitMeteringUpdateEventToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
     let AddMeteringClientSDK (services: IServiceCollection) = 

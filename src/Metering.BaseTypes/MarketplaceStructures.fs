@@ -7,6 +7,7 @@ open System
 
 // https://docs.microsoft.com/en-us/azure/marketplace/marketplace-metering-service-apis
 /// From aggregator to metering API
+[<CustomEquality; NoComparison>]
 type MarketplaceRequest = 
     { /// Time in UTC when the usage event occurred, from now and until 24 hours back.
       EffectiveStartTime: MeteringDateTime
@@ -25,6 +26,24 @@ type MarketplaceRequest =
     
     override this.ToString() =
         $"Usage: {this.MarketplaceResourceId.ToString()} {this.EffectiveStartTime} {this.PlanId}/{this.DimensionId}: {this.Quantity.ToString()}"
+
+    override this.Equals other =
+        let equal =
+            match other with
+            | :? MarketplaceRequest as x -> 
+                (x.EffectiveStartTime = this.EffectiveStartTime) &&
+                (x.PlanId = this.PlanId) &&
+                (x.DimensionId = this.DimensionId) && 
+                (x.Quantity = this.Quantity) &&
+                (x.MarketplaceResourceId.Matches this.MarketplaceResourceId)
+            | _ -> false
+        equal
+
+     override this.GetHashCode () = 
+        (this.EffectiveStartTime.GetHashCode()) ^^^ 
+        (this.PlanId.GetHashCode()) ^^^ 
+        (this.DimensionId.GetHashCode()) ^^^ 
+        (this.Quantity.GetHashCode())
 
 type MarketplaceBatchRequest = 
     private | Value of MarketplaceRequest list
@@ -132,6 +151,11 @@ module MarketplaceSubmissionResult =
             | ResourceNotFound e -> e.resourceId()
             | Expired e -> e.resourceId()
             | Generic e -> e.resourceId()
+
+    let partitionKey (marketplaceSubmissionResult: MarketplaceSubmissionResult) : string =
+        marketplaceSubmissionResult
+        |> marketplaceResourceId
+        |> (fun x -> x.PartitionKey)
 
     let toStr (x: MarketplaceSubmissionResult) : string =
         match x with
