@@ -7,18 +7,10 @@
 namespace AggregatorFunctionHost;
 
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Reactive.Linq;
-using Microsoft.Azure.WebJobs;   
 using Microsoft.Azure.Functions.Extensions.DependencyInjection;
+using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
-using Metering.ClientSDK;
-using Metering.BaseTypes;
-using Metering.BaseTypes.EventHub;
 using Metering.Integration;
-using Metering.EventHub;
-using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseTypes.MeterCollection>;
 using Metering.RuntimeCS;
 
 public class AggregatorStartup : FunctionsStartup
@@ -31,29 +23,24 @@ public class AggregatorStartup : FunctionsStartup
 
 public class AggregatorFunction
 {
-    private readonly MeteringConfigurationProvider _meteringConfigurationProvider;
-    private readonly AggregationWorker _aggregationWorker;
+    private readonly MeteringConfigurationProvider cfg;
+    private readonly AggregationWorker aw;
     
-    public AggregatorFunction(ILogger<AggregationWorker> logger, MeteringConfigurationProvider meteringConfigurationProvider)
-    {
-        this._meteringConfigurationProvider = meteringConfigurationProvider;
-        this._aggregationWorker = new(logger, meteringConfigurationProvider);
-    }
+    public AggregatorFunction(ILogger<AggregationWorker> l, MeteringConfigurationProvider c) { (cfg, aw) = (c, new(l, c)); }
 
     [FunctionName("AggregatorFunction")]
     public void Run([TimerTrigger("0 */5 * * * *")]TimerInfo myTimer, ILogger<AggregationWorker> logger, CancellationToken cancellationToken)
     {
         var token = cancellationToken.CancelAfter(TimeSpan.FromMinutes(3));
 
-        logger.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}, Using event hub {_meteringConfigurationProvider.MeteringConnections.EventHubConfig.EventHubName}");
+        logger.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}, Using event hub {cfg.MeteringConnections.EventHubConfig.EventHubName}");
         try
         {
-            _aggregationWorker.ExecuteAsync(token).Wait(token);
+            aw.ExecuteAsync(token).Wait(token);
         }
         catch (OperationCanceledException)
         {
             logger.LogInformation("Operation cancelled");
         }
     }
-
 }

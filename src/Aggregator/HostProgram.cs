@@ -1,15 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-using Metering.Aggregator;
+namespace Metering.Aggregator;
+
 using Metering.Integration;
+using Metering.RuntimeCS;
 
-IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices(services =>
+public class AggregatorEntryPoint
+{
+    class Worker : BackgroundService
     {
-        services.AddMeteringAggregatorConfigFromEnvironment();
-        services.AddHostedService<AggregatorWorker>();
-    })
-    .Build();
+        private readonly AggregationWorker aw;
 
-await host.RunAsync();
+        public Worker(ILogger<AggregationWorker> l, MeteringConfigurationProvider c) { aw = new(l, c); }
+
+        protected override Task ExecuteAsync(CancellationToken ct) => aw.ExecuteAsync(ct);        
+    }
+
+    public static Task Main(string[] args) => Host
+        .CreateDefaultBuilder(args)
+        .ConfigureServices(services =>
+        {
+            services.AddMeteringAggregatorConfigFromEnvironment();
+            services.AddHostedService<Worker>();
+        })
+        .Build()
+        .RunAsync();
+}

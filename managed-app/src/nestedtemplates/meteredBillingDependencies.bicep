@@ -4,6 +4,8 @@ param location string
 @description('Location for scripts etc.')
 param _artifactsLocation string
 
+param _artifactsLocationSasToken string = ''
+
 @description('The bootstrap secret to request service principal creation')
 @secure()
 param bootstrapSecretValue string
