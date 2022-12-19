@@ -4,6 +4,7 @@
 namespace Metering.Integration 
 
 open System
+open System.Collections.Generic
 open System.IO
 open System.IO.Compression
 open System.Runtime.CompilerServices
@@ -186,6 +187,20 @@ module MeterCollectionStore =
     //let loadStateBySequenceNumber config partitionID cancellationToken (sequenceNumber: SequenceNumber) =
     //    let blobNames = CaptureProcessor.getCaptureBlobs 
 
+    let private createBlobMetadata (lastUpdate) =
+        let options = new BlobUploadOptions()
+        options.Metadata <- new Dictionary<string,string>()
+        options.Metadata.Add(
+            key = "SequenceNumber", 
+            value = lastUpdate.SequenceNumber.ToString())
+        options.Metadata.Add(
+            key = "PartitionId", 
+            value = lastUpdate.PartitionID.value)
+        options.Metadata.Add(
+            key = "PartitionTimestamp", 
+            value = (lastUpdate.PartitionTimestamp |> MeteringDateTime.toStr))
+        options
+
     let storeLastState
         (connections: MeteringConnections)
         (meterCollection: MeterCollection)
@@ -208,8 +223,15 @@ module MeterCollectionStore =
                 //    eprintfn $"Already existed {name}"
                 //else
                 use stream = meterCollection |> asJSONStream |> gzipCompress
+                let options = lastUpdate |> createBlobMetadata
+
                 try
-                    let! _ = blobDate.UploadAsync(content = stream, overwrite = true, cancellationToken = cancellationToken)
+                    //let! _ = blobDate.UploadAsync(content = stream, overwrite = true, cancellationToken = cancellationToken)
+                    let! _ = blobDate.UploadAsync(
+                        content = stream, 
+                        options = options, 
+                        cancellationToken = cancellationToken )
+
                     ()
                 with
                 | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" -> 
@@ -218,7 +240,10 @@ module MeterCollectionStore =
                 try
                     ignore <| stream.Seek(offset = 0L, origin = SeekOrigin.Begin)
                     let latestBlob = connections.SnapshotStorage.GetBlobClient(latest)
-                    let! s = latestBlob.UploadAsync(content = stream, overwrite = true, cancellationToken = cancellationToken)
+                    let! s = latestBlob.UploadAsync(
+                        content = stream, 
+                        options = options, 
+                        cancellationToken = cancellationToken)
                     ()
                 with
                 | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" -> 
