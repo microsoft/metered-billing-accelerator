@@ -11,6 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.EventHub\Metering.EventHub.csproj" />
+    <ProjectReference Include="..\Metering.RuntimeCS\Metering.RuntimeCS.csproj" />
     <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
