@@ -101,7 +101,7 @@ type EventHubEvent<'TEvent> =
         { EventData = evnt
           MessagePosition = messagePosition
           EventsToCatchup = eventsToCatchup
-          Source = EventHub }
+          Source = Capture blobName }
 
 type EventHubProcessorEvent<'TState, 'TEvent> =    
     | PartitionInitializing of PartitionID:PartitionID * InitialState:'TState
