@@ -56,12 +56,15 @@ public class AggregationWorker
 
                     IObservable<MeterCollection> events = group
                         .Scan(seed: MeterCollection.Uninitialized, accumulator: MeteringAggregator.createAggregator)
-                        .Choose(); // '.Choose()' is cleaner than '.Where(x => x.IsSome()).Select(x => x.Value)'
+                        .Choose( /* '.Choose()' is cleaner than '.Where(x => x.IsSome()).Select(x => x.Value)' */ );
 
                     // Subscribe the creation of snapshots
                     events
                         .Subscribe(
-                            onNext: coll => RegularlyCreateSnapshots(partitionId, coll, currentPartitions),
+                            onNext: coll =>
+                            {
+                                RegularlyCreateSnapshots(partitionId, coll, currentPartitions);
+                            },
                             onError: ex =>
                             {
                                 _logger.LogError($"Error {partitionId.value}: {ex.Message}");
@@ -144,18 +147,12 @@ public class AggregationWorker
 
     private void RegularlyCreateSnapshots(PartitionID partitionId, MeterCollection meterCollection, Func<string> prefix)
     {
-        if (meterCollection.getLastSequenceNumber() % 100 == 0)
-        {
-            _logger.LogInformation($"{prefix()} Processed event {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
-        }
-
         //if (meterCollection.getLastSequenceNumber() % 500 == 0)
         {
             MeterCollectionStore.storeLastState(config.MeteringConnections, meterCollection: meterCollection).Wait();
             _logger.LogInformation($"{prefix()} Saved state {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
         }
     }
-
 }
 
 public static class Extensions

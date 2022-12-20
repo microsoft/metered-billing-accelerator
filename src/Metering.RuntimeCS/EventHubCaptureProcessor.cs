@@ -14,7 +14,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using MeteringDateTime = NodaTime.ZonedDateTime;
-using SequenceNumber = System.Int64;
 
 internal record BlobNameAndTime(string BlobName, MeteringDateTime Time);
 
