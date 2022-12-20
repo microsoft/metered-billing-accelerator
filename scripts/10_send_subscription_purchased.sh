@@ -1,10 +1,10 @@
 #!/bin/bash
 
-resourceId="d8b14c3c-fcfa-4bf4-d034-be8c3f3ecab5" # The SaaS subscription ID of the purchase
-subscriptionStart="2022-12-09T00:00:00Z"
+resourceId="deadbeef-fcfa-4bf4-d034-be8c3f3ecab5" # The SaaS subscription ID of the purchase
+subscriptionStart="2022-12-19T00:00:00Z"
 # "resourceUri": "/subscriptions/caa4fcd0-b30f-4a39-bd65-90f0e218db3a/resourceGroups/wade-saas-metering-rg-dev/providers/Microsoft.SaaS/resources/test_purchase_1",
 
-METERING_PLAN_JSON="$( cat plan.json )"
+METERING_PLAN_JSON="$( cat plan2.json )"
 
 eventHubPartitionKey="${resourceId}"
 

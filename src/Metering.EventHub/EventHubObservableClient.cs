@@ -5,17 +5,17 @@ namespace Metering.Integration;
 
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using Microsoft.Extensions.Logging;
+using System.Threading;
+using System.Threading.Tasks;
 using Azure.Messaging.EventHubs;
-using Azure.Messaging.EventHubs.Processor;
 using Azure.Messaging.EventHubs.Consumer;
+using Azure.Messaging.EventHubs.Processor;
+using Microsoft.Extensions.Logging;
+using Microsoft.FSharp.Core;
 using Metering.BaseTypes;
 using Metering.BaseTypes.EventHub;
-using Microsoft.FSharp.Core;
 using MeteringDateTime = NodaTime.ZonedDateTime;
 using SequenceNumber = System.Int64;
 

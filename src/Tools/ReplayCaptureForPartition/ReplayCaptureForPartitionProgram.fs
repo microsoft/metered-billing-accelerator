@@ -13,17 +13,15 @@ open Metering.Integration
 let cancellationToken =CancellationToken.None
 let config = MeteringConnections.getFromEnvironment()
 
-let writeToFilesystem dirname (newState: MeterCollection) (msg: EventHubEvent<MeteringUpdateEvent>) =
+let writeToFilesystem dirname (msg: EventHubEvent<MeteringUpdateEvent>) (newState: MeterCollection) =
     File.WriteAllText((sprintf "%s\\%s-%d-msg-%s.json" dirname newState.LastUpdate.Value.PartitionID.value newState.LastUpdate.Value.SequenceNumber (msg.EventData.MessageType)), (Json.toStr 1 msg.EventData))
     File.WriteAllText((sprintf "%s\\%s-%d-state.json" dirname newState.LastUpdate.Value.PartitionID.value newState.LastUpdate.Value.SequenceNumber), (Json.toStr 1 newState))
-
-let handle dirname state msg = 
-    let newState = MeterCollectionLogic.handleMeteringEvent state msg
-    
-    writeToFilesystem dirname newState msg
-
     newState
 
+let handle (dirname: string) (state: MeterCollection) (msg: EventHubEvent<MeteringUpdateEvent>) : MeterCollection = 
+    msg
+    |> MeterCollectionLogic.handleMeteringEvent state
+    |> writeToFilesystem dirname msg
 
 config.createEventHubConsumerClient().GetPartitionIdsAsync(cancellationToken).Result
 |> Seq.map PartitionID.create
@@ -33,9 +31,9 @@ config.createEventHubConsumerClient().GetPartitionIdsAsync(cancellationToken).Re
 
     let events = CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent partitionId cancellationToken config
     
-    let finalState = events |> Seq.fold (handle dirname) MeterCollection.Empty
-
-    printfn "%A" finalState
+    events
+    |> Seq.fold (handle dirname) MeterCollection.Empty
+    |> printfn "%A"
 )
 
 exit 0
