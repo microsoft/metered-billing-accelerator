@@ -46,3 +46,13 @@ type MeteringUpdateEvent =
             match x with 
             | BeforeIncluding x -> $"Removing messages older than sequence number {x + 1L} in partition {p}"
             | Exactly x  -> $"Removing messages with sequence number {x} in partition {p}"
+
+    member this.MessageType
+        with get() : string =
+            match this with
+            | SubscriptionPurchased _ -> nameof(SubscriptionPurchased)
+            | SubscriptionDeletion _ -> nameof(SubscriptionDeletion)
+            | UsageReported _ -> nameof(UsageReported)
+            | UsageSubmittedToAPI _ -> nameof(UsageSubmittedToAPI)
+            | UnprocessableMessage _ -> nameof(UnprocessableMessage)
+            | RemoveUnprocessedMessages _ -> nameof(RemoveUnprocessedMessages)
