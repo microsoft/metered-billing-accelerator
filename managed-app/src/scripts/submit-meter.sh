@@ -45,7 +45,8 @@ function createUsage {
     | jq --arg x "${managed_by}"                       '.value.resourceUri=($x)' \
     | jq --arg x "$( date -u "+%Y-%m-%dT%H:%M:%SZ" )"  '.value.timestamp=($x)'   \
     | jq --arg x "${meter_name}"                       '.value.meterName=($x)'   \
-    | jq --arg x "${consumption}"                      '.value.quantity=($x | fromjson)'
+    | jq --arg x "${consumption}"                      '.value.quantity=($x | fromjson)' \
+    | jq -c -M '.'
 }
 
 function submit_single_usage {
