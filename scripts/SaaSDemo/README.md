@@ -160,3 +160,12 @@ watch "../../src/show_meters.sh 9 | jq '.meters[0].subscription.plan.billingDime
 partitionId="9"
 ./remove-bad-message.sh "${partitionId}" 32
 ```
+
+### Fetch all AVRO capture files
+
+```shell
+az storage blob download-batch \
+  --destination . \
+  --source "${AZURE_METERING_INFRA_CAPTURE_CONTAINER}" \
+  --pattern "${AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME}/${AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME}/*.avro"
+```

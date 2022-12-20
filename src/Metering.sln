@@ -72,6 +72,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.SharedResourceBrok
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{4AB2B986-13C0-4052-9FDE-8797DBFF2FFB}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ReplayCaptureForPartition", "Tools\ReplayCaptureForPartition\ReplayCaptureForPartition.fsproj", "{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -166,6 +168,10 @@ Global
 		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98F369FC-2F7C-427D-9AF7-37AB2145F372}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -185,6 +191,7 @@ Global
 		{CCAB4FC0-8900-4126-8389-5C52062DBAE5} = {21099251-12F2-48DF-8704-058CD6A7C8E8}
 		{6BF359A0-CF94-4A06-8A81-8CFCCEA99EE9} = {0FC868E2-1262-421D-9F92-7425F224A428}
 		{B2563E68-CBE6-4E71-A3BC-6CA978254535} = {0FC868E2-1262-421D-9F92-7425F224A428}
+		{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA} = {4AB2B986-13C0-4052-9FDE-8797DBFF2FFB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D3FA63C3-048D-4660-A9A0-7299AF2C0417}

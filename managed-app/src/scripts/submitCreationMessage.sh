@@ -41,12 +41,9 @@ currentDate="$( date -u +"%Y-%m-%dT%H:%M:%SZ" )"
 jsonMessagePayload="$( \
    echo "${METERING_PLAN_JSON}" \
     | jq --arg x "${managedBy}"   '.value.subscription.resourceUri=$x' \
-    | jq --arg x "${currentDate}" '.value.subscription.subscriptionStart=($x)' )"
-
-initialMessageEventHubMessage="$( \
-   echo "{}" \
-     | jq --arg x "${jsonMessagePayload}"   '.Body=($x | fromjson)' \
-     | jq --arg x "${eventHubPartitionKey}" '.BrokerProperties.PartitionKey=$x' )"
+    | jq --arg x "${currentDate}" '.value.subscription.subscriptionStart=($x)' \
+    | jq -c -M '.' \
+    )"
 
 isvClientId="$(     echo "${secret}" | jq -r '.servicePrincipalInformation.ClientID' )"
 isvClientSecret="$( echo "${secret}" | jq -r '.servicePrincipalInformation.ClientSecret' )"
@@ -71,21 +68,20 @@ submissionStatusCode="$( curl \
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8" \
     --header "BrokerProperties: {\"PartitionKey\": \"${eventHubPartitionKey}\"}" \
     --write-out '%{http_code}' \
-    --data "${initialMessageEventHubMessage}" )"
+    --data "${jsonMessagePayload}" )"
 
 echo "POST ${isvEventHubUrl}/messages?api-version=2014-01&timeout=60
 Content-Type: application/atom+xml;type=entry;charset=utf-8
 BrokerProperties: {\"PartitionKey\": \"${eventHubPartitionKey}\"}
 
-${initialMessageEventHubMessage}"
+${jsonMessagePayload}"
 
 echo "submissionStatusCode: ${submissionStatusCode}"
 
-echo "initialMessageEventHubMessage: ${initialMessageEventHubMessage}"
+echo "initialMessageEventHubMessage: ${jsonMessagePayload}"
 
 output="$( echo "{}" \
     | jq --arg x "${submissionStatusCode}"           '.submissionStatusCode=$x' \
-    | jq --arg x "${initialMessageEventHubMessage}"  '.initialMessageEventHubMessage=$x' \
     | jq --arg x "${jsonMessagePayload}"             '.jsonMessagePayload=$x' )"
 
 # https://docs.microsoft.com/en-us/azure/azure-resource-manager/templates/deployment-script-template?tabs=CLI#work-with-outputs-from-cli-script
