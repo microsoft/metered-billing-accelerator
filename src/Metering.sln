@@ -5,16 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BE422FBF-7D05-4571-AAFA-874471D110F2}"
 	ProjectSection(SolutionItems) = preProject
-		.editorconfig = .editorconfig
-		1.sh = 1.sh
 		Dockerfile = Dockerfile
 		global.json = global.json
 		..\docs\MarketplaceDataStructures.md = ..\docs\MarketplaceDataStructures.md
 		..\NOTICE.md = ..\NOTICE.md
-		..\docs\old_snippets.md = ..\docs\old_snippets.md
-		push_event_hub.sh = push_event_hub.sh
 		..\README.md = ..\README.md
-		show_meters.sh = show_meters.sh
 		..\docs\state-transistions.md = ..\docs\state-transistions.md
 	EndProjectSection
 EndProject
