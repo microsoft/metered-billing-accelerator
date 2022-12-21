@@ -103,7 +103,7 @@ module ManagementUtils =
             return props.PartitionIds |> Array.toSeq
         }
 
-    let getConfigurations (connections: MeteringConnections) (cancellationToken: CancellationToken) : Task<Map<PartitionID, MeterCollection>>=
+    let getConfigurations (connections: MeteringConnections) (cancellationToken: CancellationToken) : Task<Map<PartitionID, MeterCollection>> =
         //let aMap f x = async {
         //    let! a = x
         //    return f a }
