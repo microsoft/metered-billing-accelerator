@@ -6,12 +6,12 @@ namespace Metering.Integration
 open System.Threading.Tasks
 open Metering.BaseTypes
 
-type SubmitMeteringAPIUsageEvent = MeteringConfigurationProvider -> (MarketplaceRequest list) -> Task<MarketplaceBatchResponse> 
-and MeteringConfigurationProvider = 
-    { SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent 
+type SubmitMeteringAPIUsageEvent = MeteringConfigurationProvider -> (MarketplaceRequest list) -> Task<MarketplaceBatchResponse>
+and MeteringConfigurationProvider =
+    { SubmitMeteringAPIUsageEvent: SubmitMeteringAPIUsageEvent
       MeteringConnections: MeteringConnections }
 
 module MeteringConfigurationProvider =
     let create (connections: MeteringConnections) (marketplaceClient: SubmitMeteringAPIUsageEvent) : MeteringConfigurationProvider =
-        { SubmitMeteringAPIUsageEvent = marketplaceClient          
+        { SubmitMeteringAPIUsageEvent = marketplaceClient
           MeteringConnections = connections }

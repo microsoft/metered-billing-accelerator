@@ -4,7 +4,7 @@
 namespace Metering.BaseTypes
 
 /// The ID of the plan (as defined in partner center)
-type PlanId = 
+type PlanId =
     private | Value of string
 
     member this.value
@@ -26,8 +26,8 @@ type DimensionId =
     static member create x = (Value x)
 
 /// A meter name used between app and aggregator
-type ApplicationInternalMeterName = 
-    private | Value of string 
+type ApplicationInternalMeterName =
+    private | Value of string
 
     member this.value
         with get() =

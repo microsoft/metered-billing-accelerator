@@ -17,14 +17,14 @@ type MarketplaceResourceIdError =
 /// When submitting to Azure Marketplace API, the request can contain a resourceId, or a resourceUri, or even both.
 
 type MarketplaceResourceId =
-    private 
+    private
         { ResourceURI: string option
           ResourceID: string option }
 
     member this.ResourceUri() = this.ResourceURI |> Option.defaultWith (fun () -> null)
     member this.ResourceId() = this.ResourceID |> Option.defaultWith (fun () -> null)
 
-    member this.Matches other = 
+    member this.Matches other =
         let { ResourceURI = tu; ResourceID = ti } = this
         let { ResourceURI = ou; ResourceID = ii } = other
 
@@ -34,7 +34,7 @@ type MarketplaceResourceId =
         | _ -> false
 
     //interface IEquatable<MarketplaceResourceId> with
-    //    member this.Equals other = 
+    //    member this.Equals other =
     //        let { ResourceURI = tu; ResourceID = ti } = this
     //        let { ResourceURI = ou; ResourceID = ii } = other
     //        tu = ou || ti = ii
@@ -42,7 +42,7 @@ type MarketplaceResourceId =
     //     match other with
     //     | :? MarketplaceResourceId as p -> (this :> IEquatable<_>).Equals p
     //     | _ -> false
-    // override this.GetHashCode () = 
+    // override this.GetHashCode () =
     //    (this.ResourceURI, this.ResourceID).GetHashCode()
 
     // This function merges two MarketplaceResourceIds, if possible.
@@ -76,11 +76,11 @@ type MarketplaceResourceId =
         | (Some uri, None)-> uri
         | (None, Some resourceId) -> resourceId
         | (Some uri, Some resourceId )-> $"{{\"resourceId\":\"{resourceId}\",\"resourceUri\":\"{uri}\"}}"
-        | (None, None) -> failwith $"The {nameof(MarketplaceResourceId)} has no id? {this}" 
- 
+        | (None, None) -> failwith $"The {nameof(MarketplaceResourceId)} has no id? {this}"
+
     static member from resourceUri resourceId = { ResourceURI = Some resourceUri; ResourceID = Some resourceId }
 
-    static member fromResourceURI (resourceUri: string) = 
+    static member fromResourceURI (resourceUri: string) =
         if resourceUri.StartsWith(MarketplaceResourceId.requiredPrefixForResourceUris)
         then { ResourceURI = Some resourceUri; ResourceID = None }
         else raise (new System.ArgumentException(message = $"String must start with {MarketplaceResourceId.requiredPrefixForResourceUris}", paramName = nameof(resourceUri)))

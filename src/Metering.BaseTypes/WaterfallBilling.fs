@@ -15,12 +15,12 @@ type WaterfallOverageOverage =
       LowerIncluding: Quantity }
 
 /// This is the 'compiled model'
-type WaterfallModelRow =  
+type WaterfallModelRow =
     | FreeIncluded of Quantity // For included quantities, no reporting to the metering API
     | Range of WaterfallModelRange
     | Overage of WaterfallOverageOverage
 
-type WaterfallExpandedModel = 
+type WaterfallExpandedModel =
     WaterfallModelRow list
 
 type WaterfallMeterValue =
@@ -29,17 +29,17 @@ type WaterfallMeterValue =
     LastUpdate: MeteringDateTime }
 
 /// These must be reported
-type ConsumptionReport = 
+type ConsumptionReport =
   { DimensionId: DimensionId
     Quantity: Quantity }
 
 type SubtractionAggregation =
-  { CurrentTotal: Quantity 
-    AmountToBeDeducted: Quantity 
+  { CurrentTotal: Quantity
+    AmountToBeDeducted: Quantity
     Consumption: Map<DimensionId, Quantity> }
 
 /// Serialization
-type WaterfallBillingDimensionItem = 
+type WaterfallBillingDimensionItem =
     { Threshold: Quantity
       DimensionId: DimensionId }
 
@@ -48,7 +48,7 @@ type WaterfallIncrementalDescription =
 
 type WaterfallBillingDimension =
     { Tiers: WaterfallIncrementalDescription
-      
+
       Model: WaterfallExpandedModel option
 
       Meter: WaterfallMeterValue option }
@@ -59,12 +59,12 @@ module WaterfallMeterLogic =
 
     let expanded =
       [0 .. len - 1]
-      |> List.map (fun i -> 
-        { Threshold = 
+      |> List.map (fun i ->
+        { Threshold =
             waterfallTiers
             |> List.take (i + 1)
             |> List.sumBy (fun x -> x.Threshold)
-          DimensionId = 
+          DimensionId =
             waterfallTiers
             |> List.skip(i)
             |> List.head
@@ -87,17 +87,17 @@ module WaterfallMeterLogic =
       |> List.last
       |> fun i -> { DimensionId = i.DimensionId; LowerIncluding = i.Threshold }
       |> Overage
-       
+
     match included with
     | FreeIncluded x when x > Quantity.Zero -> included :: (ranges @ [overage])
     | _ -> (ranges @ [overage])
-  
+
   let display : (WaterfallModelRow -> DimensionId * string) = function
     | FreeIncluded x -> (DimensionId.create "Free", $"[0 <= x <= {x}]")
     | Range x -> (x.DimensionId, $"[{x.LowerIncluding} <= x < {x.UpperExcluding})")
     | Overage x -> (x.DimensionId, $"[{x.LowerIncluding} <= x < Infinity)")
 
-    /// Identify the ranges into which the amount might fit.  
+    /// Identify the ranges into which the amount might fit.
   let findRange (amount: Quantity) (model: WaterfallExpandedModel) : WaterfallModelRow list =
     /// Determine if the current total matches the given row.
     let isNotInRow (currentTotal: Quantity) (row: WaterfallModelRow) : bool =
@@ -108,14 +108,14 @@ module WaterfallMeterLogic =
         |> not
 
     model
-    |> List.skipWhile (isNotInRow amount)    
+    |> List.skipWhile (isNotInRow amount)
 
   let subtract (agg: SubtractionAggregation) (row: WaterfallModelRow) : SubtractionAggregation =
     let add (v: Quantity) = function
         | None -> Some v
         | Some e -> Some (v + e)
 
-    let augment (ct: Quantity) (a: Quantity) (c: ConsumptionReport option) (agg: SubtractionAggregation) : SubtractionAggregation= 
+    let augment (ct: Quantity) (a: Quantity) (c: ConsumptionReport option) (agg: SubtractionAggregation) : SubtractionAggregation=
       match c with
       | Some c when c.Quantity > Quantity.Zero -> { CurrentTotal = ct; AmountToBeDeducted = a; Consumption = agg.Consumption |> Map.change c.DimensionId (add c.Quantity) }
       | _ -> { CurrentTotal = ct; AmountToBeDeducted = a; Consumption = agg.Consumption } // Do not add empty consumption records
@@ -128,12 +128,12 @@ module WaterfallMeterLogic =
     | Range { UpperExcluding = upper; DimensionId = did } -> agg |> augment upper (newTotal - upper) (Some { DimensionId = did; Quantity = upper - agg.CurrentTotal})
     | Overage { DimensionId = dim } -> agg |> augment newTotal Quantity.Zero (Some { DimensionId = dim; Quantity = agg.AmountToBeDeducted })
 
-  let createMeterFromDimension (now: MeteringDateTime) (dimension: WaterfallBillingDimension) : WaterfallMeterValue = 
+  let createMeterFromDimension (now: MeteringDateTime) (dimension: WaterfallBillingDimension) : WaterfallMeterValue =
      { Total = Quantity.Zero
        Consumption = Map.empty
        LastUpdate = now }
 
-  let setTotal (newTotal: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue = 
+  let setTotal (newTotal: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
     { meter with Total = newTotal }
 
   let getModel (waterfallDimension: WaterfallBillingDimension) : WaterfallExpandedModel =
@@ -145,16 +145,16 @@ module WaterfallMeterLogic =
     waterfallDimension
     |> getModel
     |> findRange meter.Total
-    |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption } 
+    |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption }
     |> fun agg ->
-        { meter with 
-            Total = agg.CurrentTotal 
+        { meter with
+            Total = agg.CurrentTotal
             Consumption = agg.Consumption
             LastUpdate = now }
-  
+
   let newBillingCycle (now: MeteringDateTime) (x: WaterfallBillingDimension) : WaterfallMeterValue =
      { Total = Quantity.Zero
-       Consumption = Map.empty 
+       Consumption = Map.empty
        LastUpdate = now }
 
   let containsReportableQuantities (this: WaterfallMeterValue) : bool =
@@ -164,10 +164,10 @@ module WaterfallMeterLogic =
     match this.Meter with
     | None -> (List.empty, this)
     | Some meter ->
-        let consumption = 
+        let consumption =
             meter.Consumption
             |> Map.toSeq
-            |> Seq.map (fun (dimensionId, quantity) -> 
+            |> Seq.map (fun (dimensionId, quantity) ->
                 { MarketplaceResourceId = marketplaceResourceId
                   PlanId = planId
                   DimensionId = dimensionId ; Quantity = quantity

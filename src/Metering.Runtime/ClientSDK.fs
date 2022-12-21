@@ -15,7 +15,7 @@ open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.Integration
 
-type MeterValue = 
+type MeterValue =
     { Quantity: Quantity
       Name: ApplicationInternalMeterName }
 
@@ -27,10 +27,10 @@ type MeterValue =
     [<CompiledName("create")>]
     static member createFloat (applicationInternalName: string) (quantity: float) =
         { MeterValue.Quantity = quantity |> Quantity.create
-          Name = applicationInternalName |> ApplicationInternalMeterName.create }        
-        
+          Name = applicationInternalName |> ApplicationInternalMeterName.create }
+
 type Consumption =
-    { MarketplaceResourceId: MarketplaceResourceId 
+    { MarketplaceResourceId: MarketplaceResourceId
       Meters: MeterValue list }
 
     static member create (identifier: string, [<ParamArray>] vals: MeterValue array) =
@@ -38,14 +38,14 @@ type Consumption =
           Meters = vals |> Array.toList }
 
 [<Extension>]
-module MeteringEventHubExtensions =    
+module MeteringEventHubExtensions =
     let sendingApp =  System.Reflection.Assembly.GetEntryAssembly().FullName
 
     let private createEventData (resourceId: string) (meteringUpdateEvent: MeteringUpdateEvent) : EventData =
         meteringUpdateEvent
         |> Json.toStr 0
         |> (fun x -> new BinaryData(x))
-        |> (fun x -> 
+        |> (fun x ->
             let eventData = new EventData(eventBody = x, ContentType = "application/json")
             eventData.Properties.Add("resourceId", resourceId)
             eventData.Properties.Add("SendingApplication", sendingApp)
@@ -61,15 +61,15 @@ module MeteringEventHubExtensions =
     let private SubmitMeteringUpdateEvent (eventHubProducerClient: EventHubProducerClient) (cancellationToken: CancellationToken) (meteringUpdateEvents: MeteringUpdateEvent list) : Task =
         task {
             // the public functions and type design in this module ensure all events from a call go to the same partition
-            let partitionKey = 
+            let partitionKey =
                 meteringUpdateEvents
                 |> List.head
                 |> (fun f -> f.partitionKey)
-            
+
             let! eventBatch = eventHubProducerClient.CreateBatchAsync(
                 options = new CreateBatchOptions (PartitionKey = partitionKey),
                 cancellationToken = cancellationToken)
-            
+
             meteringUpdateEvents
             |> List.map (createEventData partitionKey)
             |> List.iter (addEvent eventBatch)
@@ -82,7 +82,7 @@ module MeteringEventHubExtensions =
             let! eventBatch = eventHubProducerClient.CreateBatchAsync(
                 options = new CreateBatchOptions (PartitionId = partitionId.value),
                 cancellationToken = cancellationToken)
-            
+
             meteringUpdateEvent
             |> createEventData (meteringUpdateEvent.partitionKey)
             |> addEvent eventBatch
@@ -95,7 +95,7 @@ module MeteringEventHubExtensions =
             let! eventBatch = eventHubProducerClient.CreateBatchAsync(
                 options = new CreateBatchOptions (PartitionId = partitionId.value),
                 cancellationToken = cancellationToken)
-            
+
             meteringUpdateEvents
             |> List.map (
                 Json.toStr 0
@@ -107,9 +107,9 @@ module MeteringEventHubExtensions =
         }
 
     let enforceNonNegativeAndNonInfiniteQuantity (q: Quantity) =
-        match q with        
+        match q with
         | MeteringInt _ -> () // no need to check an integer which can't be negative
-        | MeteringFloat f -> 
+        | MeteringFloat f ->
             if f < 0.0
             then raise (new ArgumentException(message = $"Not allowed to submit negative metering values like {f}"))
         | Infinite -> raise (new ArgumentException(message = "Not allowed to submit infinite consumption"))
@@ -119,7 +119,7 @@ module MeteringEventHubExtensions =
     let SubmitMetersAsync (eventHubProducerClient: EventHubProducerClient) (resourceId: string) (meters: MeterValue seq) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         meters
         |> Seq.map (fun v -> enforceNonNegativeAndNonInfiniteQuantity v.Quantity; v)
-        |> Seq.map (fun v -> 
+        |> Seq.map (fun v ->
             { InternalUsageEvent.MarketplaceResourceId = resourceId |> MarketplaceResourceId.fromResourceID
               Quantity = v.Quantity
               Timestamp = MeteringDateTime.now()
@@ -129,7 +129,7 @@ module MeteringEventHubExtensions =
         )
         |> Seq.toList
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
-        
+
     [<Extension>]
     [<CompiledName("SubmitMeterAsync")>] // Naming these for C# method overloading
     let submitMeterUIntAsync (eventHubProducerClient: EventHubProducerClient) (resourceId: string) (applicationInternalMeterName: string) (quantity: uint) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
@@ -156,7 +156,7 @@ module MeteringEventHubExtensions =
         ]
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
-    let private asListWithSingleElement<'T> (t: 'T) = [ t ] 
+    let private asListWithSingleElement<'T> (t: 'T) = [ t ]
 
     [<Extension>]
     [<CompiledName("SubmitSubscriptionCreationAsync")>]
@@ -172,25 +172,25 @@ module MeteringEventHubExtensions =
         |> asListWithSingleElement
         |> SubmitMeteringUpdateEvent eventHubProducerClient cancellationToken
 
-    // this is not exposed as C# extension, as only F# is supposed to call it. 
+    // this is not exposed as C# extension, as only F# is supposed to call it.
     [<Extension>]
     let ReportUsagesSubmitted (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) ({ Results = items}: MarketplaceBatchResponse) (cancellationToken: CancellationToken) =
         items
-        |> List.map UsageSubmittedToAPI 
+        |> List.map UsageSubmittedToAPI
         |> SubmitMeteringUpdateEventsToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
     let RemoveUnprocessableMessagesUpTo(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         { PartitionID = partitionId; Selection = sequenceNumber |> BeforeIncluding }
-        |> RemoveUnprocessedMessages 
+        |> RemoveUnprocessedMessages
         |> SubmitMeteringUpdateEventToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
     let RemoveUnprocessableMessage(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         { PartitionID = partitionId; Selection = sequenceNumber |> Exactly }
-        |> RemoveUnprocessedMessages 
+        |> RemoveUnprocessedMessages
         |> SubmitMeteringUpdateEventToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
-    let AddMeteringClientSDK (services: IServiceCollection) = 
+    let AddMeteringClientSDK (services: IServiceCollection) =
         services.AddSingleton(MeteringConnections.createEventHubProducerClientForClientSDK())

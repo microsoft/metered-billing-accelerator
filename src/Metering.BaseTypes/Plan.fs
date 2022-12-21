@@ -4,7 +4,7 @@
 namespace Metering.BaseTypes
 
 type Plan =
-    { PlanId: PlanId 
+    { PlanId: PlanId
       BillingDimensions: BillingDimensions }
 
 module Plan =

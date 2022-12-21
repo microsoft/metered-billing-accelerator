@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.Integration 
+namespace Metering.Integration
 
 open System
 open System.Collections.Generic
@@ -24,8 +24,8 @@ open Metering.BaseTypes.EventHub
 [<Extension>]
 module MeterCollectionStore =
     open MeterCollectionLogic
-    
-    type SnapshotName = 
+
+    type SnapshotName =
         { EventHubName: EventHubName
           MessagePosition : MessagePosition }
 
@@ -34,10 +34,10 @@ module MeterCollectionStore =
     let private toUTF8Bytes (str: string) : byte[] = Encoding.UTF8.GetBytes(str)
 
     let private gzipCompress (input: Stream) : Stream =
-        use output = new MemoryStream()        
+        use output = new MemoryStream()
         using (new GZipStream(output, CompressionMode.Compress)) (fun gzip -> input.CopyTo(gzip))
         new MemoryStream(output.ToArray())
-    
+
     let private gzipDecompress (input: Stream) : Stream =
         use output = new MemoryStream()
         using (new GZipStream(input, CompressionMode.Decompress)) (fun gzip -> gzip.CopyTo(output))
@@ -83,19 +83,19 @@ module MeterCollectionStore =
 
             let sasBuilder =
                 new BlobSasBuilder(
-                    permissions = BlobContainerSasPermissions.Read, 
-                    expiresOn = inTenMinutes, 
-                    StartsOn = aMinuteAgo, 
-                    Resource = "b", 
-                    BlobContainerName = source.BlobContainerName, 
-                    BlobName = source.Name) 
+                    permissions = BlobContainerSasPermissions.Read,
+                    expiresOn = inTenMinutes,
+                    StartsOn = aMinuteAgo,
+                    Resource = "b",
+                    BlobContainerName = source.BlobContainerName,
+                    BlobName = source.Name)
 
             let blobUriBuilder = new BlobUriBuilder(
                 uri = source.Uri,
                 Sas = sasBuilder.ToSasQueryParameters(userDelegationKey.Value, blobServiceClient.AccountName))
 
             let options = new BlobCopyFromUriOptions (DestinationConditions = new BlobRequestConditions())
-                        
+
             let! _ =
                 destination.SyncCopyFromUriAsync(
                     source = (blobUriBuilder.ToUri()),
@@ -106,48 +106,48 @@ module MeterCollectionStore =
             return ()
         }
 
-    module Naming =        
+    module Naming =
         let private prefix (name: EventHubName) = $"{name.FullyQualifiedNamespace}/{name.InstanceName}"
 
         let private regexPattern = "(?<ns>[^\.]+?)\.servicebus\.windows\.net/(?<hub>[^\/]+?)/(?<partitionid>[^\/]+?)/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})--(?<hour>\d{2})-(?<minute>\d{2})-(?<second>\d{2})---sequencenr-(?<sequencenr>\d+)\.json\.gz" // " // (?<year>\d{4})
-    
+
         let internal latestName (meteringConnections: MeteringConnections) (partitionId: PartitionID) =
             $"{meteringConnections.EventHubConfig.EventHubName |> prefix}/{partitionId.value}/latest.json.gz"
-    
+
         let internal currentName (meteringConnections: MeteringConnections) (lastUpdate: MessagePosition) =
             $"{meteringConnections.EventHubConfig.EventHubName |> prefix}/{lastUpdate.PartitionID.value}/{lastUpdate.PartitionTimestamp |> MeteringDateTime.blobName}---sequencenr-{lastUpdate.SequenceNumber}.json.gz"
-    
-        let blobnameToPosition config blobName = 
-            let i32 (m: Match) (name: string) = 
+
+        let blobnameToPosition config blobName =
+            let i32 (m: Match) (name: string) =
                 match m.Groups.ContainsKey name with
                 | false -> None
                 | true ->
                     match m.Groups[name].Value |> Int32.TryParse with
                     | false, _ -> None
                     | _, v -> Some v
-            let sn (m: Match) (name: string) = 
+            let sn (m: Match) (name: string) =
                 match m.Groups.ContainsKey name with
                 | false -> None
                 | true ->
                     match m.Groups[name].Value |> SequenceNumber.TryParse with
                     | false, _ -> None
                     | _, v -> Some v
-            let s (m: Match) (name: string) = 
+            let s (m: Match) (name: string) =
                 match m.Groups.ContainsKey name with
                 | false -> None
                 | true -> Some m.Groups[name].Value
 
             let regex = new Regex(pattern = regexPattern, options = RegexOptions.ExplicitCapture)
             let m = regex.Match(input = blobName)
-            
+
             match ("ns" |> s m), ("hub" |> s m), ("partitionid" |> s m), ("year" |> i32 m), ("month" |> i32 m), ("day" |> i32 m), ("hour" |> i32 m), ("minute" |> i32 m), ("second" |> i32 m), ("sequencenr" |> sn m) with
-            | Some ns, Some hub, Some partitionId, Some y, Some m, Some d, Some H, Some M, Some S, Some sequenceNumber -> 
-                { EventHubName = 
+            | Some ns, Some hub, Some partitionId, Some y, Some m, Some d, Some H, Some M, Some S, Some sequenceNumber ->
+                { EventHubName =
                     EventHubName.create ns hub
-                  MessagePosition = 
-                    (MessagePosition.create 
-                        partitionId 
-                        sequenceNumber 
+                  MessagePosition =
+                    (MessagePosition.create
+                        partitionId
+                        sequenceNumber
                         (MeteringDateTime.create y m d H M S)) } |> Some
             | _ -> None
 
@@ -160,16 +160,16 @@ module MeterCollectionStore =
         : Task<MeterCollection option> =
         task {
             let blob = meteringConnections.SnapshotStorage.GetBlobClient(name)
-    
+
             try
                 let! content = blob.DownloadAsync(cancellationToken = cancellationToken)
                 let! meterCollection = content.Value.Content |> gzipDecompress |> fromJSONStream<MeterCollection>
-        
+
                 return Some meterCollection
             with
             | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobNotFound" ->
                 return None
-            | e -> 
+            | e ->
                 // TODO log some weird exception
                 return None
         }
@@ -183,21 +183,21 @@ module MeterCollectionStore =
     let loadLastState (connections: MeteringConnections) partitionID cancellationToken =
         Naming.latestName connections partitionID
         |> loadStateFromFilename connections partitionID cancellationToken
-    
+
     //let loadStateBySequenceNumber config partitionID cancellationToken (sequenceNumber: SequenceNumber) =
-    //    let blobNames = CaptureProcessor.getCaptureBlobs 
+    //    let blobNames = CaptureProcessor.getCaptureBlobs
 
     let private createBlobMetadata (lastUpdate) =
         let options = new BlobUploadOptions()
         options.Metadata <- new Dictionary<string,string>()
         options.Metadata.Add(
-            key = "SequenceNumber", 
+            key = "SequenceNumber",
             value = lastUpdate.SequenceNumber.ToString())
         options.Metadata.Add(
-            key = "PartitionId", 
+            key = "PartitionId",
             value = lastUpdate.PartitionID.value)
         options.Metadata.Add(
-            key = "PartitionTimestamp", 
+            key = "PartitionTimestamp",
             value = (lastUpdate.PartitionTimestamp |> MeteringDateTime.toStr))
         options
 
@@ -216,7 +216,7 @@ module MeterCollectionStore =
 
             task {
                 let blobDate = connections.SnapshotStorage.GetBlobClient(current)
-                
+
                 //let! exists = blobDate.ExistsAsync(cancellationToken = cancellationToken)
 
                 //if exists.Value then
@@ -228,25 +228,25 @@ module MeterCollectionStore =
                 try
                     //let! _ = blobDate.UploadAsync(content = stream, overwrite = true, cancellationToken = cancellationToken)
                     let! _ = blobDate.UploadAsync(
-                        content = stream, 
-                        options = options, 
+                        content = stream,
+                        options = options,
                         cancellationToken = cancellationToken )
 
                     ()
                 with
-                | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" -> 
+                | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" ->
                     ()
 
                 try
                     ignore <| stream.Seek(offset = 0L, origin = SeekOrigin.Begin)
                     let latestBlob = connections.SnapshotStorage.GetBlobClient(latest)
                     let! s = latestBlob.UploadAsync(
-                        content = stream, 
-                        options = options, 
+                        content = stream,
+                        options = options,
                         cancellationToken = cancellationToken)
                     ()
                 with
-                | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" -> 
+                | :? RequestFailedException as rfe when rfe.ErrorCode = "BlobAlreadyExists" ->
                     ()
 
                 //try
@@ -258,5 +258,5 @@ module MeterCollectionStore =
                 //| e -> eprintfn $"Delete/Copy problem {e.Message}"
             }
 
-    let isLoaded<'T> (state: 'T option) : bool = 
+    let isLoaded<'T> (state: 'T option) : bool =
         state.IsSome

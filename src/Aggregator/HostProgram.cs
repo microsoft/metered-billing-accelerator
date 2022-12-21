@@ -14,7 +14,7 @@ public class AggregatorEntryPoint
 
         public Worker(ILogger<AggregationWorker> l, MeteringConfigurationProvider c) { aw = new(l, c); }
 
-        protected override Task ExecuteAsync(CancellationToken ct) => aw.ExecuteAsync(ct);        
+        protected override Task ExecuteAsync(CancellationToken ct) => aw.ExecuteAsync(ct);
     }
 
     public static Task Main(string[] args) => Host

@@ -12,41 +12,41 @@ open Metering.BaseTypes.EventHub
 open Metering.Integration
 
 type ReportingOverview =
-    { ApplicationInternalName: string 
+    { ApplicationInternalName: string
       LastUpdate: MeteringDateTime
-      RemainingIncluded: Quantity 
+      RemainingIncluded: Quantity
       TotalConsumed: Quantity }
 
 module ReportingOverview =
     let fromBillingDimensions (dimensions: BillingDimensions) : ReportingOverview list =
             dimensions
             |> Map.toSeq
-            |> Seq.map (fun (appInternalName, billingDimension) -> 
-                match billingDimension with 
+            |> Seq.map (fun (appInternalName, billingDimension) ->
+                match billingDimension with
                 | SimpleBillingDimension d ->
                     match d.Meter with
-                    | None -> None 
+                    | None -> None
                     | Some m ->
-                        match m with 
-                        | IncludedQuantity q -> 
-                            { 
+                        match m with
+                        | IncludedQuantity q ->
+                            {
                                 ApplicationInternalName = appInternalName.value
                                 TotalConsumed = Quantity.Zero
                                 RemainingIncluded = q.RemainingQuantity
                                 LastUpdate = q.LastUpdate
                             } |> Some
                         | ConsumedQuantity q ->
-                            { 
+                            {
                                 ApplicationInternalName = appInternalName.value
                                 TotalConsumed = q.BillingPeriodTotal
                                 RemainingIncluded = Quantity.Zero
                                 LastUpdate = q.LastUpdate
                             } |> Some
-                | WaterfallBillingDimension d -> 
+                | WaterfallBillingDimension d ->
                     match d.Meter with
-                    | None -> None 
-                    | Some m -> 
-                        { 
+                    | None -> None
+                    | Some m ->
+                        {
                             ApplicationInternalName = appInternalName.value
                             TotalConsumed = m.Total
                             RemainingIncluded = Quantity.Zero
@@ -70,9 +70,9 @@ module ManagementUtils =
     let recreateLatestStateFromEventHubCapture (connections: MeteringConnections) (partitionId: PartitionID)  =
         let cancellationToken = CancellationToken.None
 
-        let x = 
+        let x =
             connections
-            |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent partitionId cancellationToken 
+            |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent partitionId cancellationToken
             |> Seq.scan MeterCollectionLogic.handleMeteringEvent MeterCollection.Empty
             |> Seq.last
 
@@ -82,22 +82,22 @@ module ManagementUtils =
     let showEventsFromPositionInEventHub (config: MeteringConfigurationProvider) (partitionId: PartitionID) (start: MeteringDateTime) =
         config.MeteringConnections
         |> CaptureProcessor.readEventsFromTime CaptureProcessor.toMeteringUpdateEvent partitionId start CancellationToken.None
-        
+
     let getUnsubmittedMeters (meteringConnections: MeteringConnections) (partitionId: PartitionID) (cancellationToken: CancellationToken) : Task<MarketplaceRequest seq> =
         task {
-            let! state = 
-                MeterCollectionStore.loadLastState 
+            let! state =
+                MeterCollectionStore.loadLastState
                     meteringConnections partitionId cancellationToken
 
             return
                 match state with
                 | Some m -> m.metersToBeSubmitted
-                | None -> Seq.empty            
+                | None -> Seq.empty
 
         }
 
     [<Extension>]
-    let getPartitionCount (connections: MeteringConnections) (cancellationToken: CancellationToken) : Task<string seq> = 
+    let getPartitionCount (connections: MeteringConnections) (cancellationToken: CancellationToken) : Task<string seq> =
         task {
             let! props = connections.createEventHubConsumerClient().GetEventHubPropertiesAsync(CancellationToken.None)
             return props.PartitionIds |> Array.toSeq
@@ -111,7 +111,7 @@ module ManagementUtils =
         task {
             let! partitionIDs = getPartitionCount connections cancellationToken
 
-            let fetchTasks = 
+            let fetchTasks =
                 partitionIDs
                 |> Seq.map PartitionID.create
                 |> Seq.map (fun partitionId -> MeterCollectionStore.loadLastState connections partitionId cancellationToken)
@@ -130,7 +130,7 @@ module ManagementUtils =
         task {
             let! allMeterCollections = getConfigurations connections cancellationToken
 
-            return 
+            return
                 allMeterCollections
                 |> Map.toSeq
                 |> Seq.map (fun (_partitionId, meterCollection) -> meterCollection)

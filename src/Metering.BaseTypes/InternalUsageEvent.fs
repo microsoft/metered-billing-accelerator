@@ -3,15 +3,15 @@
 
 namespace Metering.BaseTypes
 
-/// Internal usage event Message, sent from app to aggregator. 
+/// Internal usage event Message, sent from app to aggregator.
 type InternalUsageEvent =
     { /// The resource ID, i.e. SaaS subscription ID or managed app ID.
       MarketplaceResourceId: MarketplaceResourceId
-      
+
       /// Timestamp (wallclock) of the sending app. This is only for recording purposes. The business logic uses EventHub timestamps.
       Timestamp: MeteringDateTime
-      
-      /// Application-internal name of the meter / billing dimension. 
+
+      /// Application-internal name of the meter / billing dimension.
       MeterName: ApplicationInternalMeterName
 
       /// The consumed quantity.

@@ -12,13 +12,13 @@ type BillingDimension =
 module BillingDimension =
     /// Indicates whether a certain BillingDimension contains a given DimensionId
     let hasDimensionId (dimensionId: DimensionId) (billingDimension: BillingDimension) : bool =
-        match billingDimension with 
+        match billingDimension with
         | WaterfallBillingDimension x -> x.Tiers |> List.exists (fun item -> item.DimensionId = dimensionId)
         | SimpleBillingDimension x -> x.DimensionId = dimensionId
 
     let newBillingCycle (now: MeteringDateTime) (bd: BillingDimension) : BillingDimension =
         match bd with
-        | SimpleBillingDimension x -> 
+        | SimpleBillingDimension x ->
             x
             |> SimpleMeterLogic.newBillingCycle now
             |> (fun a -> { x with Meter = Some a})
@@ -31,10 +31,10 @@ module BillingDimension =
 
 // https://docs.microsoft.com/en-us/azure/marketplace/azure-app-metered-billing#billing-dimensions
 
-/// Defines a custom unit by which the ISV can emit usage events. 
-/// Billing dimensions are also used to communicate to the customer about how they will be billed for using the software. 
+/// Defines a custom unit by which the ISV can emit usage events.
+/// Billing dimensions are also used to communicate to the customer about how they will be billed for using the software.
 type BillingDimensions =
-    Map<ApplicationInternalMeterName, BillingDimension> 
+    Map<ApplicationInternalMeterName, BillingDimension>
 
 module BillingDimensions =
     /// Applies the updateValue function to each value
