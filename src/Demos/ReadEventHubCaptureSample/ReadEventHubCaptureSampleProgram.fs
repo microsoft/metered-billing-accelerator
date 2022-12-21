@@ -8,7 +8,6 @@ open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.Integration
 open Metering.EventHub
-open Metering.Mockup
 
 module MySeq =
     let inspect<'T> i =
@@ -19,17 +18,14 @@ module MySeq =
             a
         Seq.map (inspect i)
 
-let config : MeteringConfigurationProvider = 
-    { SubmitMeteringAPIUsageEvent = SubmitMeteringAPIUsageEventMock.PretendEverythingIsAccepted     
-      MeteringConnections = MeteringConnections.getFromEnvironment() }
-
 let partitionId = "2" |> PartitionID.create
+let connections = MeteringConnections.getFromEnvironment()
 
 CaptureProcessor.readAllEvents 
     CaptureProcessor.toMeteringUpdateEvent
     partitionId
     CancellationToken.None
-    config.MeteringConnections
+    connections
 |> Seq.iter (fun i -> 
     let ts = (i.MessagePosition.PartitionTimestamp |> MeteringDateTime.toStr)
     match i.EventData with
@@ -130,7 +126,7 @@ match initialState with
 | None -> 
     let partitionId = "0"
     let x = 
-        config.MeteringConnections
+        connections
         |> CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent (partitionId |> PartitionID.create) CancellationToken.None 
         //|> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.scan MeterCollectionLogic.handleMeteringEvent MeterCollection.Empty
@@ -141,7 +137,7 @@ match initialState with
 
     File.WriteAllText("latest.json", x |> Json.toStr 1)
 
-    (MeterCollectionStore.storeLastState config.MeteringConnections x CancellationToken.None).Wait()
+    (MeterCollectionStore.storeLastState connections x CancellationToken.None).Wait()
 
     let x =
         File.ReadAllText("latest.json")
@@ -157,7 +153,7 @@ match initialState with
     let startPosition = initialState.LastUpdate.Value
 
     let x = 
-        config.MeteringConnections
+        connections
         |> CaptureProcessor.readEventsFromPosition CaptureProcessor.toMeteringUpdateEvent startPosition CancellationToken.None 
         // |> MySeq.inspect (fun me -> $"{me.Source |> EventSource.toStr} {me.MessagePosition.SequenceNumber} {me.MessagePosition.PartitionTimestamp} " |> Some)
         |> Seq.scan MeterCollectionLogic.handleMeteringEvent initialState

@@ -42,8 +42,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AddMetadataToEventHubCaptur
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BaseTypes", "Metering.BaseTypes\Metering.BaseTypes.fsproj", "{D62C452D-496D-4342-B5AC-177E9C09A5EA}"
 EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Mockup", "Metering.Mockup\Metering.Mockup.fsproj", "{3D433F50-5DC5-4918-98E3-3B8A11DB923F}"
-EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.EventHubTypes", "Metering.EventHubTypes\Metering.EventHubTypes.fsproj", "{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.EventHub", "Metering.EventHub\Metering.EventHub.csproj", "{8893A675-FA73-4213-9C13-C92CF54D0C17}"
@@ -72,7 +70,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.SharedResourceBrok
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{4AB2B986-13C0-4052-9FDE-8797DBFF2FFB}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ReplayCaptureForPartition", "Tools\ReplayCaptureForPartition\ReplayCaptureForPartition.fsproj", "{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ReplayCaptureForPartition", "Tools\ReplayCaptureForPartition\ReplayCaptureForPartition.fsproj", "{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -124,10 +122,6 @@ Global
 		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3D433F50-5DC5-4918-98E3-3B8A11DB923F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3D433F50-5DC5-4918-98E3-3B8A11DB923F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3D433F50-5DC5-4918-98E3-3B8A11DB923F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3D433F50-5DC5-4918-98E3-3B8A11DB923F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
