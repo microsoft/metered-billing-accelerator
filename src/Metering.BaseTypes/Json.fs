@@ -877,7 +877,8 @@ module Json =
 
     let enriched = Extra.empty |> enrich
 
-    let toStr ([<Optional; DefaultParameterValue(0)>] space: int) o = Encode.Auto.toString(space, o, extra = enriched)
+    let toStr ([<Optional; DefaultParameterValue(0)>] space: int) value = 
+        Encode.Auto.toString(space = space, value = value, extra = enriched)
         
     let fromStr<'T> json = 
         match Decode.Auto.fromString<'T>(json, extra = enriched) with
