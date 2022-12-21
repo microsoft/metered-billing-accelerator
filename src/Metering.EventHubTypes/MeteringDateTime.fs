@@ -11,17 +11,17 @@ type MeteringDateTime = NodaTime.ZonedDateTime
 module MeteringDateTime =
     open NodaTime.Text
 
-    let private toPattern p = 
+    let private toPattern p =
         ZonedDateTimePattern.CreateWithInvariantCulture(p, DateTimeZoneProviders.Bcl)
-    
+
     let onlySecond = "yyyy-MM-ddTHH:mm:ss" |> toPattern
     let onlySecondZulu = "yyyy-MM-ddTHH:mm:ss'Z'" |> toPattern
     let withNanoSecondsInZulu = "yyyy-MM-ddTHH:mm:ss.FFFFFFF'Z'" |> toPattern
-    let meteringDateTimePatterns = 
-        [ 
+    let meteringDateTimePatterns =
+        [
             withNanoSecondsInZulu // "2021-11-05T10:00:25.7798568Z",
             onlySecondZulu
-            onlySecond 
+            onlySecond
         ]
 
     let blobName : (MeteringDateTime -> string) =
@@ -29,8 +29,8 @@ module MeteringDateTime =
 
     let toStr (d: MeteringDateTime) : string =
         d |> withNanoSecondsInZulu.Format
-    
-    let fromStr (str: string) : MeteringDateTime =      
+
+    let fromStr (str: string) : MeteringDateTime =
         meteringDateTimePatterns
         |> List.map (fun p -> p.Parse(str))
         |> List.filter (fun p -> p.Success)
@@ -46,11 +46,11 @@ module MeteringDateTime =
 
     let now () : MeteringDateTime =
         ZonedDateTime(SystemClock.Instance.GetCurrentInstant(), DateTimeZone.Utc)
-    
-    let create year month day hour minute second = 
+
+    let create year month day hour minute second =
         new MeteringDateTime(
             localDateTime = new LocalDateTime(
-                year = year, month = month, day = day, 
+                year = year, month = month, day = day,
                 hour = hour, minute = minute, second = second),
             zone = DateTimeZone.Utc,
             offset = Offset.Zero)

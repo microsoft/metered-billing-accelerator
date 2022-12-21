@@ -9,7 +9,7 @@ type SequenceNumber = int64
 
 type DifferenceBetweenTwoSequenceNumbers = SequenceNumber
 
-type PartitionID = 
+type PartitionID =
     private | PartitionID of string
 
     member this.value
@@ -19,7 +19,7 @@ type PartitionID =
 
     static member create (x: string) : PartitionID = (PartitionID x)
 
-type PartitionKey = 
+type PartitionKey =
     private | PartitionKey of string
 
     member this.value
@@ -37,7 +37,7 @@ type PartitionIdentifier =
 
     static member createKey = PartitionKey.create >> PartitionKey
 
-type MessagePosition = 
+type MessagePosition =
     { PartitionID: PartitionID
       SequenceNumber: SequenceNumber
       PartitionTimestamp: MeteringDateTime }
@@ -55,11 +55,11 @@ type StartingPosition =
         match someMessagePosition with
         | None -> Earliest
         | Some pos -> NextEventAfter(
-            LastProcessedSequenceNumber = pos.SequenceNumber, 
+            LastProcessedSequenceNumber = pos.SequenceNumber,
             PartitionTimestamp = pos.PartitionTimestamp)
 
 type SeekPosition =
-    | FromSequenceNumber of SequenceNumber: SequenceNumber 
+    | FromSequenceNumber of SequenceNumber: SequenceNumber
     | Earliest
     | FromTail
 
@@ -81,14 +81,14 @@ type EventSource =
     override this.ToString() =
         match this with
         | EventHub -> "EventHub"
-        | Capture(BlobName=b) -> b 
+        | Capture(BlobName=b) -> b
 
 type EventHubEvent<'TEvent> =
     { MessagePosition: MessagePosition
       EventsToCatchup: EventsToCatchup option
       EventData: 'TEvent
 
-      /// Indicate whether an event was read from EventHub, or from the associated capture storage.      
+      /// Indicate whether an event was read from EventHub, or from the associated capture storage.
       Source: EventSource }
 
     static member createEventHub (evnt: 'TEvent) (messagePosition: MessagePosition) (eventsToCatchup: EventsToCatchup option) : EventHubEvent<'TEvent> =
@@ -103,7 +103,7 @@ type EventHubEvent<'TEvent> =
           EventsToCatchup = eventsToCatchup
           Source = Capture blobName }
 
-type EventHubProcessorEvent<'TState, 'TEvent> =    
+type EventHubProcessorEvent<'TState, 'TEvent> =
     | PartitionInitializing of PartitionID:PartitionID * InitialState:'TState
     | PartitionClosing of PartitionID
     | EventReceived of EventHubEvent<'TEvent>
@@ -113,7 +113,7 @@ type EventHubName =
     { NamespaceName: string
       FullyQualifiedNamespace: string
       InstanceName: string }
-    
+
     static member create nameSpaceName instanceName =
         { NamespaceName = nameSpaceName
           FullyQualifiedNamespace = $"{nameSpaceName}.servicebus.windows.net"
