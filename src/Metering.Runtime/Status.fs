@@ -17,13 +17,13 @@ open Metering.Integration
 module Status =
     type PartitionProps = PartitionProps of PartitionId:PartitionID * LastEnqueuedSequenceNumber:int64 * LastEnqueuedTime:MeteringDateTime * LastOffset:int64
 
-    let private getPartitionIDs (client: EventHubConsumerClient) (cancellationToken: CancellationToken) = 
+    let private getPartitionIDs (client: EventHubConsumerClient) (cancellationToken: CancellationToken) : Task<PartitionID seq> = 
         task {
             let! props = client.GetEventHubPropertiesAsync(cancellationToken = cancellationToken)
             return props.PartitionIds |> Seq.map PartitionID.create
         }
 
-    let private getPartitionProperties (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) = 
+    let private getPartitionProperties (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) : Task<Map<PartitionID, PartitionProps>> = 
         let getPartitionProps (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionId: PartitionID) = 
             task {
                 let! p = client.GetPartitionPropertiesAsync(
@@ -106,7 +106,7 @@ module Status =
         }
 
     [<Extension>]
-    let fetchStates (config: MeteringConfigurationProvider) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    let fetchStates (config: MeteringConfigurationProvider) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<Map<PartitionID, MeterCollection option>> =
         task {
             let client = config.MeteringConnections.createEventHubConsumerClient()
             let! partitionIds = getPartitionIDs client cancellationToken

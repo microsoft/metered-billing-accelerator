@@ -13,4 +13,3 @@ type RehydratedFromCaptureEventData(
     sequenceNumber: int64, offset: int64, enqueuedTime: DateTimeOffset, partitionKey: string) =                 
     inherit EventData(new BinaryData(eventBody), properties, systemProperties, sequenceNumber, offset, enqueuedTime, partitionKey)
     member this.BlobName = blobName
-
