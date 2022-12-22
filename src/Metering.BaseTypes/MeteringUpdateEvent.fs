@@ -3,6 +3,8 @@
 
 namespace Metering.BaseTypes
 
+open Metering.BaseTypes.EventHub
+
 /// The events which are processed by the aggregator.
 type MeteringUpdateEvent =
     /// Event to initialize the aggregator.

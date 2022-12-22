@@ -131,16 +131,13 @@ module MeterCollectionLogic =
         |> applyMeters updateList
 
     /// Iterate over all current meters, and check if one of the overages can be converted into a metering API event.
-    let handleMeteringTimestamp now state =
+    let handleMeteringTimestamp (now: MeteringDateTime) (state: MeterCollection) : MeterCollection =
         state.Meters
         |> List.map (fun meter -> Meter.closePreviousHourIfNeeded now meter)
         |> (fun updatedMeters -> { state with Meters = updatedMeters })
 
     let private setLastProcessed (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         { state with LastUpdate = Some messagePosition }
-
-    let private handlePing (ping: PingMessage) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
-        state
 
     let handleMeteringEvent (state: MeterCollection) ({EventData = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup}: EventHubEvent<MeteringUpdateEvent>) : MeterCollection =
         state
@@ -152,7 +149,7 @@ module MeterCollectionLogic =
            | UsageReported internalUsageEvent -> addUsage internalUsageEvent messagePosition
            | UnprocessableMessage upm -> addUnprocessableMessage (UnprocessableMessage upm) messagePosition
            | RemoveUnprocessedMessages rupm -> removeUnprocessedMessages rupm
-           | Ping ping -> handlePing ping messagePosition
+           | Ping _ -> id
         |> handleMeteringTimestamp messagePosition.PartitionTimestamp
         |> setLastProcessed messagePosition
 
