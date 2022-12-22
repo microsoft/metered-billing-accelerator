@@ -109,8 +109,12 @@ type MeteringConnections =
             eventHubName = eh.EventHubName.InstanceName,
             credential = eh.InfraStructureCredentials,
             clientOptions = new EventProcessorClientOptions(
+                //ConnectionOptions = new EventHubConnectionOptions(
+                //    TransportType = EventHubsTransportType.AmqpWebSockets
+                //),
                 TrackLastEnqueuedEventProperties = true,
                 PartitionOwnershipExpirationInterval = TimeSpan.FromMinutes(1),
+                // MaximumWaitTime = TimeSpan.FromSeconds(10),
                 PrefetchCount = 1000,
                 CacheEventCount = 5000))
 
