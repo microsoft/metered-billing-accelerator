@@ -17,8 +17,8 @@ module MeteringAggregator =
         let apply meterCollection eventHubEvent =
             eventHubEvent
             |> handleMeteringEvent meterCollection
-            
-        match meters with 
+
+        match meters with
         | None ->
             match e with
             | PartitionInitializing (_, initialState)-> initialState
@@ -36,7 +36,7 @@ module MeteringAggregator =
     [<Extension>]
     let AddMeteringAggregatorConfigFromEnvironment (services: IServiceCollection) =
         services.AddSingleton(
-            MeteringConfigurationProvider.create 
-                (MeteringConnections.getFromEnvironment()) 
+            MeteringConfigurationProvider.create
+                (MeteringConnections.getFromEnvironment())
                 (MarketplaceClient.SubmitUsage)
         )

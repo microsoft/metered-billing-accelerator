@@ -6,12 +6,12 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NETCore.Targets" Version="5.0.0" PrivateAssets="all" />
-    <PackageReference Include="Azure.Identity" Version="1.7.0" />
+    <PackageReference Include="Azure.Identity" Version="1.8.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.14.1" />
-    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.7.4" />
-    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.7.4" />
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.7.5" />
+    <PackageReference Include="Azure.Messaging.EventHubs.Processor" Version="5.7.5" />
     <PackageReference Include="Apache.Avro" Version="1.11.1" />
-    <PackageReference Include="NodaTime" Version="3.1.5" />
+    <PackageReference Include="NodaTime" Version="3.1.6" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Metering.BaseTypes\Metering.BaseTypes.fsproj" />

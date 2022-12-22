@@ -8,10 +8,10 @@ open Metering.BaseTypes.EventHub
 
 [<Extension>]
 module MeterCollectionLogic =
-    let lastUpdate (mc: MeterCollection option) : MessagePosition option = 
+    let lastUpdate (mc: MeterCollection option) : MessagePosition option =
         mc |> Option.bind (fun m -> m.LastUpdate)
 
-    [<Extension>] 
+    [<Extension>]
     let getEventPosition (someMeterCollection: MeterCollection option) : StartingPosition =
         match someMeterCollection with
         | None -> StartingPosition.Earliest
@@ -30,14 +30,14 @@ module MeterCollectionLogic =
         | Some p -> p.SequenceNumber
 
     let usagesToBeReported (meterCollection: MeterCollection) : MarketplaceRequest list =
-        if meterCollection.Meters |> Seq.isEmpty 
+        if meterCollection.Meters |> Seq.isEmpty
         then []
         else
             meterCollection.Meters
             |> Seq.map (fun x -> x.UsageToBeReported)
             |> Seq.concat
             |> List.ofSeq
-    
+
     let private addOnlyIfNotExists (marketplaceResourceId: MarketplaceResourceId) (value: Meter) (table: Meter list) : Meter list =
         if table |> List.exists (Meter.matches marketplaceResourceId)
         then table
@@ -48,47 +48,47 @@ module MeterCollectionLogic =
 
     /// Ensure that we apply the right event at the right time, belonging to the appropriate partition
     let private enforceStrictSequenceNumbers ({ SequenceNumber = concreteSequenceNumber; PartitionID = pidEvent }: MessagePosition)  (state: MeterCollection) : MeterCollection =
-        match state.LastUpdate with 
-        | Some { SequenceNumber = lastUpdateSequenceNumber; PartitionID = pidState } -> 
+        match state.LastUpdate with
+        | Some { SequenceNumber = lastUpdateSequenceNumber; PartitionID = pidState } ->
             //if pidState <> pidEvent
             //then failwith $"Seems your are reading the wrong event stream. The state belongs to partition {pidState.value}, but the event belongs to {pidEvent.value}"
             //else ()
 
-            if lastUpdateSequenceNumber + 1L <> concreteSequenceNumber 
-            then failwith $"Seems you are reading the wrong event stream. The last state update was sequence number {lastUpdateSequenceNumber}, therefore we expect event with sequence number {lastUpdateSequenceNumber + 1L}, but got {concreteSequenceNumber}" 
+            if lastUpdateSequenceNumber + 1L <> concreteSequenceNumber
+            then failwith $"Seems you are reading the wrong event stream. The last state update was sequence number {lastUpdateSequenceNumber}, therefore we expect event with sequence number {lastUpdateSequenceNumber + 1L}, but got {concreteSequenceNumber}"
             else ()
         | None -> ()
 
         state
 
     let private addUnprocessableMessage (m: MeteringUpdateEvent) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
-        let newHead = 
+        let newHead =
             { MessagePosition = messagePosition
               EventData = m
               EventsToCatchup = None
               Source = EventHub }
 
         { state with UnprocessableMessages = newHead :: state.UnprocessableMessages }
-            
+
     let private removeUnprocessedMessages { Selection = selection } state =
         match state.LastUpdate with
         | None -> state
-        | Some _ -> 
+        | Some _ ->
             let filter = function
                 | BeforeIncluding x -> List.filter (fun e -> e.MessagePosition.SequenceNumber > x) // Keep all with a sequence number greater x in state
                 | Exactly x -> List.filter (fun e -> e.MessagePosition.SequenceNumber <> x) // Keep all except x in state
-                                    
+
             { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
 
     let private mapIf predicate update a =
-        if predicate a 
-        then update a 
+        if predicate a
+        then update a
         else a
 
     let private updateIf predicate update =
         List.map (mapIf predicate update)
 
-    let private updateMeter (marketplaceResourceId: MarketplaceResourceId) (update: Meter -> Meter) (meters: Meter list) : Meter list = 
+    let private updateMeter (marketplaceResourceId: MarketplaceResourceId) (update: Meter -> Meter) (meters: Meter list) : Meter list =
         updateIf (Meter.matches marketplaceResourceId) update meters
 
     let private applyMeters (handler: Meter list -> Meter list) (state: MeterCollection)  : MeterCollection =
@@ -100,11 +100,11 @@ module MeterCollectionLogic =
         let marketplaceResourceId = internalUsageEvent.MarketplaceResourceId
         let existingSubscription = state.Meters |> List.exists (Meter.matches marketplaceResourceId)
         if existingSubscription
-        then 
+        then
             let newMeterCollection =
                 state.Meters
-                |> updateMeter 
-                    marketplaceResourceId 
+                |> updateMeter
+                    marketplaceResourceId
                     (Meter.handleUsageEvent (internalUsageEvent, messagePosition))
 
             { state with Meters = newMeterCollection }
@@ -115,10 +115,10 @@ module MeterCollectionLogic =
         let meter: Meter = Meter.createNewSubscription subscriptionCreationInformation messagePosition
         let updateList: Meter list -> Meter list = handleSubscriptionPurchased subscriptionCreationInformation.Subscription.MarketplaceResourceId meter
 
-        state 
+        state
         |> applyMeters updateList
-        
-    let private deleteSubscription marketplaceResourceId state = 
+
+    let private deleteSubscription marketplaceResourceId state =
         let metersWithoutTheOne =  state.Meters |> List.filter (fun meter -> not (meter |> Meter.matches marketplaceResourceId))
         { state with Meters = metersWithoutTheOne }
 
@@ -131,7 +131,7 @@ module MeterCollectionLogic =
         |> applyMeters updateList
 
     /// Iterate over all current meters, and check if one of the overages can be converted into a metering API event.
-    let handleMeteringTimestamp now state =
+    let handleMeteringTimestamp (now: MeteringDateTime) (state: MeterCollection) : MeterCollection =
         state.Meters
         |> List.map (fun meter -> Meter.closePreviousHourIfNeeded now meter)
         |> (fun updatedMeters -> { state with Meters = updatedMeters })
@@ -145,12 +145,13 @@ module MeterCollectionLogic =
         |> match meteringUpdateEvent with
            | SubscriptionPurchased subscriptionCreationInformation -> addSubscription subscriptionCreationInformation messagePosition
            | SubscriptionDeletion marketplaceResourceId -> deleteSubscription marketplaceResourceId
-           | UsageSubmittedToAPI marketplaceResponse -> usageSubmitted marketplaceResponse messagePosition            
+           | UsageSubmittedToAPI marketplaceResponse -> usageSubmitted marketplaceResponse messagePosition
            | UsageReported internalUsageEvent -> addUsage internalUsageEvent messagePosition
            | UnprocessableMessage upm -> addUnprocessableMessage (UnprocessableMessage upm) messagePosition
            | RemoveUnprocessedMessages rupm -> removeUnprocessedMessages rupm
+           | Ping _ -> id
         |> handleMeteringTimestamp messagePosition.PartitionTimestamp
-        |> setLastProcessed messagePosition 
+        |> setLastProcessed messagePosition
 
     let handleMeteringEvents (meterCollection: MeterCollection option) (meteringEvents: EventHubEvent<MeteringUpdateEvent> list) : MeterCollection =
         let meterCollection = meterCollection |> Option.defaultWith (fun () -> MeterCollection.Empty)

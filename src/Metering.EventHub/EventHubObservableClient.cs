@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using Azure.Messaging.EventHubs;
 using Azure.Messaging.EventHubs.Consumer;
 using Azure.Messaging.EventHubs.Processor;
+using Azure.Messaging.EventHubs.Producer;
 using Microsoft.Extensions.Logging;
 using Microsoft.FSharp.Core;
 using Metering.BaseTypes;
@@ -33,17 +34,20 @@ public static class EventHubObservableClient
         Func<TState, StartingPosition> determinePositionFromState,
         Func<EventProcessorClient> newEventProcessorClient,                                                                           // config.MeteringConnections.createEventProcessorClient
         Func<EventHubConsumerClient> newEventHubConsumerClient,                                                                       // config.MeteringConnections.createEventHubConsumerClient
+        Func<EventHubProducerClient> newEventHubProducerClient,                                                                       // config.MeteringConnections.createEventHubProducerClient
+        Func<EventHubProducerClient, PingMessage, CancellationToken, Task> sendPing,
         Func<EventData, TEvent> eventDataToEvent,                                                                                     // CaptureProcessor.toMeteringUpdateEvent
         Func<Func<EventData, TEvent>, ProcessEventArgs, FSharpOption<EventHubEvent<TEvent>>> createEventHubEventFromEventData,        // EventHubIntegration.createEventHubEventFromEventData
         Func<Func<EventData, TEvent>, PartitionID, CancellationToken, IEnumerable<EventHubEvent<TEvent>>> readAllEvents,              // CaptureProcessor.readAllEvents
         Func<Func<EventData, TEvent>, MessagePosition, CancellationToken, IEnumerable<EventHubEvent<TEvent>>> readEventsFromPosition, // CaptureProcessor.readEventsFromPosition
         CancellationToken cancellationToken)
     {
+        // Dictionary<PartitionID, EventHubProducerClient>
         void registerCancellationMessage(CancellationToken ct, string message)
         {
             ct.Register(() => logger.LogWarning(message));
         }
-        
+
         registerCancellationMessage(cancellationToken, "outer cancellationToken pulled");
 
         IDisposable csharpFunction(IObserver<EventHubProcessorEvent<TState, TEvent>> o)
@@ -52,30 +56,65 @@ public static class EventHubObservableClient
 
             var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             var innerCancellationToken = cts.Token;
+
+            EventHubProducerClient pingSender = newEventHubProducerClient();
+            Dictionary<PartitionID, (CancellationTokenSource, Task)> pingTasks = new();
+
+            async Task SendTopOfHourPing(PartitionID partitionId, CancellationToken pingCancellationToken)
+            {
+                await sendPing(pingSender, PingMessageModule.create(partitionId, PingReason.ProcessingStarting), pingCancellationToken);
+                while (!pingCancellationToken.IsCancellationRequested)
+                {
+                    var now = DateTime.Now;
+                    var x = now.AddHours(1);
+                    DateTime nextPing = new(year: x.Year, month: x.Month, day: x.Day, hour: x.Hour, minute: 6, second: 0);
+                    var delta = nextPing.Subtract(now);
+                    logger.LogInformation($"XXXXXX Need to sleep pinger for partition {partitionId.value} for {delta.TotalSeconds}s (until {nextPing})");
+                    await Task.Delay(delta, pingCancellationToken);
+
+                    await sendPing(pingSender, PingMessageModule.create(partitionId, PingReason.TopOfHour), pingCancellationToken);
+                    logger.LogInformation($"Sending a TopOfHour ping to {partitionId.value}");
+                }
+            }
+
             registerCancellationMessage(innerCancellationToken, "innerCancellationToken is Cancelled");
 
-            Task ProcessEvent(ProcessEventArgs processEventArgs)
+            async Task ProcessEvent(ProcessEventArgs processEventArgs)
             {
-                logger.LogInformation($"ProcessEvent called: {processEventArgs.Partition.PartitionId}");
+                var partitionId = processEventArgs.Partition.PartitionId;
                 try
                 {
                     FSharpOption<EventHubEvent<TEvent>> x = createEventHubEventFromEventData(eventDataToEvent, processEventArgs);
-                    if (x.IsSome())
+                    if (processEventArgs.HasEvent && x.IsSome())
                     {
+                        logger.LogInformation($"ProcessEvent called: {partitionId}");
                         o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventReceived(x.Value));
                     }
                     else
                     {
-                        LastEnqueuedEventProperties catchUp = processEventArgs.Partition.ReadLastEnqueuedEventProperties();
-                        var msg = $"Didn't find events: PartitionId {processEventArgs.Partition.PartitionId} SequenceNumber {catchUp.SequenceNumber} EnqueuedTime {catchUp.EnqueuedTime} LastReceivedTime {catchUp.LastReceivedTime} ###############";
-                        logger.LogDebug(msg);
+                        try
+                        {
+                            LastEnqueuedEventProperties catchUp = processEventArgs.Partition.ReadLastEnqueuedEventProperties();
+                            logger.LogDebug($"Didn't find events: PartitionId {partitionId} SequenceNumber {catchUp.SequenceNumber} EnqueuedTime {catchUp.EnqueuedTime} LastReceivedTime {catchUp.LastReceivedTime}");
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            await Task.Delay(millisecondsDelay: 1, cancellationToken: cancellationToken);
+                            //await using EventHubConsumerClient consumerClient = newEventHubConsumerClient();
+                            //var p = await consumerClient.GetEventHubPropertiesAsync(cancellationToken);
+                            //PartitionProperties partitionProps = await consumerClient.GetPartitionPropertiesAsync(partitionId: partitionId, cancellationToken: cancellationToken);
+                            //if (partitionProps.LastEnqueuedSequenceNumber > -1)
+                            //{
+                            //    var t = MeteringDateTime.FromDateTimeOffset(partitionProps.LastEnqueuedTime.ToUniversalTime());
+                            //    logger.LogInformation($"Last message {partitionId}#{partitionProps.LastEnqueuedSequenceNumber} {MeteringDateTimeModule.toStr(t)}");
+                            //}
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex.Message);
+                    logger.LogError($"Exception during ProcessEvent for partition {partitionId}: {ex.GetType().FullName}: {ex.Message}");
                 }
-                return Task.CompletedTask;
             }
 
             Task ProcessError(ProcessErrorEventArgs processErrorEventArgs)
@@ -116,6 +155,16 @@ public static class EventHubObservableClient
                 {
                     logger.LogError($"ProcessError Exception {e.Message}");
                 }
+
+                // When we stop handling a certain partition, stop sending Ping messages into it.
+                var partitionId = PartitionID.create(partitionClosingEventArgs.PartitionId);
+                if (pingTasks.ContainsKey(partitionId))
+                {
+                    var (cts, pingTask) = pingTasks[partitionId];
+                    pingTasks.Remove(partitionId);
+                    cts.Cancel();
+                }
+
                 return Task.CompletedTask;
             }
 
@@ -123,6 +172,12 @@ public static class EventHubObservableClient
             {
                 logger.LogInformation($"PartitionInitializing: {partitionInitializingEventArgs.PartitionId}");
                 var partitionIdStr = partitionInitializingEventArgs.PartitionId;
+                var partitionId = PartitionID.create(partitionIdStr);
+
+                var pingCancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var pingCancellationToken = pingCancellationTokenSource.Token;
+                Task pingTask = Task.Run(() => SendTopOfHourPing(partitionId, pingCancellationToken), pingCancellationToken);
+                pingTasks.Add(partitionId, (pingCancellationTokenSource, pingTask));
 
                 TState initialState = await determineInitialState(partitionInitializingEventArgs, innerCancellationToken);
                 StartingPosition initialPosition = determinePositionFromState(initialState);
@@ -140,9 +195,9 @@ public static class EventHubObservableClient
 
                         // Let's briefly check if the desired event is still avail in EventHub,
                         // otherwise we need to crawl through EventHub Capture
-                        var consumerClient = newEventHubConsumerClient();
+                        EventHubConsumerClient consumerClient = newEventHubConsumerClient();
 
-                        var partitionProps = await consumerClient.GetPartitionPropertiesAsync(
+                        PartitionProperties partitionProps = await consumerClient.GetPartitionPropertiesAsync(
                             partitionId: partitionIdStr, cancellationToken: cancellationToken);
 
                         long desiredEvent = lastProcessedEventSequenceNumber + 1;
@@ -158,7 +213,7 @@ public static class EventHubObservableClient
                         else
                         {
                             // If isInclusive=true, the specified event (nextEventAfter) is included; otherwise the next event is returned.
-                            // We *cannot* do 
+                            // We *cannot* do
                             //     EventPosition.FromSequenceNumber(nextEventAfter + 1L, isInclusive = true)
                             // , as that crashes if nextEventAfter is the last one
                             return new CanReadEverythingFromEventHub(
@@ -197,7 +252,7 @@ public static class EventHubObservableClient
 
                     if (lastProcessedEventReadFromCaptureSequenceNumber == -1)
                     {
-                        partitionInitializingEventArgs.DefaultStartingPosition = 
+                        partitionInitializingEventArgs.DefaultStartingPosition =
                             EventPosition.Earliest;
                     }
                     else
@@ -259,7 +314,7 @@ public static class EventHubObservableClient
             async Task createTask()
             {
                 logger.LogInformation($"createTask called");
-                var processor = newEventProcessorClient();
+                EventProcessorClient processor = newEventProcessorClient();
                 try
                 {
                     processor.ProcessEventAsync += ProcessEvent;
@@ -294,7 +349,7 @@ public static class EventHubObservableClient
 
         logger.LogInformation($"Now returning the observable...");
 
-        return Observable.Create<EventHubProcessorEvent<TState, TEvent>>(csharpFunction);   
+        return Observable.Create<EventHubProcessorEvent<TState, TEvent>>(csharpFunction);
     }
 
     public static IObservable<IGroupedObservable<PartitionID, EventHubProcessorEvent<TState, TEvent>>> Create<TState, TEvent>(
@@ -302,6 +357,8 @@ public static class EventHubObservableClient
         Func<EventHubProcessorEvent<TState, TEvent>, PartitionID> getPartitionId,                                                     // EventHubIntegration.partitionId
         Func<EventProcessorClient> newEventProcessorClient,                                                                           // config.MeteringConnections.createEventProcessorClient
         Func<EventHubConsumerClient> newEventHubConsumerClient,                                                                       // config.MeteringConnections.createEventHubConsumerClient
+        Func<EventHubProducerClient> newEventHubProducerClient,                                                                       // config.MeteringConnections.createEventHubProducerClient
+        Func<EventHubProducerClient, PingMessage, CancellationToken, Task> sendPing,
         Func<EventData, TEvent> eventDataToEvent,                                                                                     // CaptureProcessor.toMeteringUpdateEvent
         Func<Func<EventData, TEvent>, ProcessEventArgs, FSharpOption<EventHubEvent<TEvent>>> createEventHubEventFromEventData,        // EventHubIntegration.createEventHubEventFromEventData
         Func<Func<EventData, TEvent>, PartitionID, CancellationToken, IEnumerable<EventHubEvent<TEvent>>> readAllEvents,              // CaptureProcessor.readAllEvents
@@ -310,14 +367,16 @@ public static class EventHubObservableClient
         Func<TState, StartingPosition> determinePosition,                                                                             // MeterCollectionLogic.getEventPosition
         CancellationToken cancellationToken = default)
     {
-        Task<TState> determineInitialState(PartitionInitializingEventArgs args, CancellationToken ct) => 
+        Task<TState> determineInitialState(PartitionInitializingEventArgs args, CancellationToken ct) =>
             loadLastState(PartitionID.create(args.PartitionId), ct);
-        
-        return CreateInternal(logger, 
-                determineInitialState, 
+
+        return CreateInternal(logger,
+                determineInitialState,
                 determinePosition,
                 newEventProcessorClient,
                 newEventHubConsumerClient,
+                newEventHubProducerClient,
+                sendPing,
                 eventDataToEvent,
                 createEventHubEventFromEventData,
                 readAllEvents,

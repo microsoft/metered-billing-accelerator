@@ -1,12 +1,19 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+using Azure.Messaging.EventHubs;
 using Metering.BaseTypes;
-using Metering.Integration;
 using Metering.EventHub;
+using Metering.Integration;
+
+/*
+ * This utility can go through an Event Hub capture container, and add metadata to the capture files about what's included in them.
+ */
 
 static string DateTimeOffsetToString(DateTimeOffset d) => MeteringDateTimeModule.toStr(MeteringDateTimeModule.fromDateTimeOffset(d));
+static (string, string, string) getData(EventData item) => (item.SequenceNumber.ToString(), item.Offset.ToString(), DateTimeOffsetToString(item.EnqueuedTime));
 
-var configuration = MeteringConnections.getFromEnvironment();
-var captureContainer = configuration.EventHubConfig.CaptureStorage.Value.Storage;
+var captureContainer = MeteringConnections.getFromEnvironment().EventHubConfig.CaptureStorage.Value.Storage;
 await foreach (var blob in captureContainer.GetBlobsAsync())
 {
     var client = captureContainer.GetBlobClient(blob.Name);
@@ -16,18 +23,18 @@ await foreach (var blob in captureContainer.GetBlobsAsync())
     {
         var events = CaptureProcessor.ReadEventDataFromAvroStream(blob.Name, content.Value.Content).ToArray();
 
-        var first = events.First();
-        var last = events.Last();
+        var (s, o, e) = getData(events.First());
+        blob.Metadata.Add("firstSequenceNumber", s);
+        blob.Metadata.Add("firstOffset", o);
+        blob.Metadata.Add("firstEnqueuedTime", e);
 
-        blob.Metadata.Add("firstSequenceNumber", first.SequenceNumber.ToString());
-        blob.Metadata.Add("lastSequenceNumber", last.SequenceNumber.ToString());
-        blob.Metadata.Add("firstOffset", first.Offset.ToString());
-        blob.Metadata.Add("lastOffset", last.Offset.ToString());
-        blob.Metadata.Add("firstEnqueuedTime", DateTimeOffsetToString(first.EnqueuedTime));
-        blob.Metadata.Add("lastEnqueuedTime", DateTimeOffsetToString(last.EnqueuedTime));
+        (s, o, e) = getData(events.Last());
+        blob.Metadata.Add("lastSequenceNumber", s);
+        blob.Metadata.Add("lastOffset", o);
+        blob.Metadata.Add("lastEnqueuedTime", e);
 
         await client.SetMetadataAsync(blob.Metadata);
-        await Console.Out.WriteLineAsync($"Wrote {blob.Name}");
+        await Console.Out.WriteLineAsync($"Updated metadata for {blob.Name}");
     }
     catch (Exception ex)
     {

@@ -3,7 +3,7 @@
 
 namespace Metering.BaseTypes
 
-/// Event representing the creation of a subscription. 
+/// Event representing the creation of a subscription.
 type SubscriptionCreationInformation =
     { Subscription: Subscription } // The purchase information of the subscription
 

@@ -1,4 +1,7 @@
-﻿namespace Metering.EventHub;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.EventHub;
 
 using Avro.File;
 using Avro.Generic;
@@ -106,7 +109,7 @@ public static class CaptureProcessorCS
 
     public static IEnumerable<EventData> ReadEventDataFromAvroStream(this Stream stream, string blobName, CancellationToken cancellationToken = default)
     {
-        // https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-capture-overview       
+        // https://docs.microsoft.com/en-us/azure/event-hubs/event-hubs-capture-overview
         using var reader = DataFileReader<GenericRecord>.OpenReader(stream);
         while (reader.HasNext())
         {
@@ -178,7 +181,7 @@ public static class CaptureProcessorCS
     public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T?> enumerable) => enumerable.Where(x => x != null).Select(x => x!);
 
     public static async Task<string[]> ListRelevantBlobs(
-        this MeteringConnections connections, 
+        this MeteringConnections connections,
         PartitionID partitionId, CancellationToken cancellationToken = default)
     {
         var captureStorage = connections.EventHubConfig.CaptureStorage.Value;
@@ -186,7 +189,7 @@ public static class CaptureProcessorCS
         MeteringDateTime? getTime(string blobName) => ExtractTime(
                captureStorage!.CaptureFileNameFormat, blobName, connections.EventHubConfig.EventHubName, partitionId);
 
-        return 
+        return
             (await connections.GetCaptureBlobs(partitionId, cancellationToken))
             .Select(n =>
             {
@@ -270,10 +273,10 @@ public static class CaptureProcessorCS
             foreach (var blobName in relevantBlobs)
             {
                 EventHubEvent<TEvent> toEvent(EventData eventData) => CreateFromEventHubCapture(eventData, convert, messagePosition.PartitionID, blobName!);
-                
+
                 BlobClient? client = captureStorage.Storage.GetBlobClient(blobName: blobName);
                 Response<BlobDownloadStreamingResult>? downloadInfo = await client.DownloadStreamingAsync(cancellationToken: cancellationToken);
-                
+
                 var events = downloadInfo?.Value?.Content?
                     .ReadEventDataFromAvroStream(blobName, cancellationToken)
                     .Select(toEvent)

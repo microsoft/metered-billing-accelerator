@@ -5,22 +5,15 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BE422FBF-7D05-4571-AAFA-874471D110F2}"
 	ProjectSection(SolutionItems) = preProject
-		.editorconfig = .editorconfig
-		1.sh = 1.sh
 		Dockerfile = Dockerfile
 		global.json = global.json
 		..\docs\MarketplaceDataStructures.md = ..\docs\MarketplaceDataStructures.md
 		..\NOTICE.md = ..\NOTICE.md
-		..\docs\old_snippets.md = ..\docs\old_snippets.md
-		push_event_hub.sh = push_event_hub.sh
 		..\README.md = ..\README.md
-		show_meters.sh = show_meters.sh
 		..\docs\state-transistions.md = ..\docs\state-transistions.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Demos", "Demos", "{63515470-9590-4E66-9C64-9F0D3B86547E}"
-EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BusinessLogicDemoApp", "Demos\Metering.BusinessLogicDemoApp\Metering.BusinessLogicDemoApp.fsproj", "{F0A33057-5480-41D5-B71E-DD9483552DF6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DemoClient", "Demos\DemoClient\DemoClient.csproj", "{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}"
 EndProject
@@ -41,8 +34,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AddMetadataToEventHubCapture", "AddMetadataToEventHubCapture\AddMetadataToEventHubCapture.csproj", "{4AC8628A-A27B-4D8A-8FE5-BC88C3DB2C80}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.BaseTypes", "Metering.BaseTypes\Metering.BaseTypes.fsproj", "{D62C452D-496D-4342-B5AC-177E9C09A5EA}"
-EndProject
-Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.Mockup", "Metering.Mockup\Metering.Mockup.fsproj", "{3D433F50-5DC5-4918-98E3-3B8A11DB923F}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Metering.EventHubTypes", "Metering.EventHubTypes\Metering.EventHubTypes.fsproj", "{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}"
 EndProject
@@ -72,7 +63,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Metering.SharedResourceBrok
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{4AB2B986-13C0-4052-9FDE-8797DBFF2FFB}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ReplayCaptureForPartition", "Tools\ReplayCaptureForPartition\ReplayCaptureForPartition.fsproj", "{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "ReplayCaptureForPartition", "Tools\ReplayCaptureForPartition\ReplayCaptureForPartition.fsproj", "{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Applications", "Applications", "{0198CFB0-AC6C-4808-BDA1-DB560554A1C0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -80,10 +73,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F0A33057-5480-41D5-B71E-DD9483552DF6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -124,10 +113,6 @@ Global
 		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D62C452D-496D-4342-B5AC-177E9C09A5EA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3D433F50-5DC5-4918-98E3-3B8A11DB923F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3D433F50-5DC5-4918-98E3-3B8A11DB923F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3D433F50-5DC5-4918-98E3-3B8A11DB923F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3D433F50-5DC5-4918-98E3-3B8A11DB923F}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4C14F7D-2BAC-4BA2-8FAA-62906901FA2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -177,10 +162,11 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{F0A33057-5480-41D5-B71E-DD9483552DF6} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{CA96EF69-AA0C-44E7-B7D9-B912ED8666C1} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{2A7F95C9-5A33-4530-B023-814362AB307D} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{B40115AB-446F-4391-9BC0-8FD2947A8DFC} = {63515470-9590-4E66-9C64-9F0D3B86547E}
+		{570845F9-9E8B-4267-8B02-04A3CFE3C908} = {0198CFB0-AC6C-4808-BDA1-DB560554A1C0}
+		{F6ADCE13-6314-40E7-9E0A-A81EDF12FB59} = {0198CFB0-AC6C-4808-BDA1-DB560554A1C0}
 		{4AC8628A-A27B-4D8A-8FE5-BC88C3DB2C80} = {4AB2B986-13C0-4052-9FDE-8797DBFF2FFB}
 		{E3DB61E9-B1B7-4CBD-AF7C-4AF1C0AB204F} = {63515470-9590-4E66-9C64-9F0D3B86547E}
 		{B81F891D-C187-4DC2-B32C-25875B28B04D} = {63515470-9590-4E66-9C64-9F0D3B86547E}
@@ -191,6 +177,8 @@ Global
 		{CCAB4FC0-8900-4126-8389-5C52062DBAE5} = {21099251-12F2-48DF-8704-058CD6A7C8E8}
 		{6BF359A0-CF94-4A06-8A81-8CFCCEA99EE9} = {0FC868E2-1262-421D-9F92-7425F224A428}
 		{B2563E68-CBE6-4E71-A3BC-6CA978254535} = {0FC868E2-1262-421D-9F92-7425F224A428}
+		{98F369FC-2F7C-427D-9AF7-37AB2145F372} = {0198CFB0-AC6C-4808-BDA1-DB560554A1C0}
+		{4AB2B986-13C0-4052-9FDE-8797DBFF2FFB} = {0198CFB0-AC6C-4808-BDA1-DB560554A1C0}
 		{E47C8AEC-A25A-48C3-8E56-B0386A29C3EA} = {4AB2B986-13C0-4052-9FDE-8797DBFF2FFB}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution

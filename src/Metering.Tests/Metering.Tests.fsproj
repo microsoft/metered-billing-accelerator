@@ -6,9 +6,9 @@
     <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.4.1" />
     <PackageReference Include="NUnit" Version="3.13.3" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.3.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.3.1" />
     <PackageReference Include="coverlet.collector" Version="3.2.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -21,6 +21,8 @@
     <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="data\InternalMessages\Ping TopOfHour.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\Ping ProcessingStarting.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\SubscriptionPurchased.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\SubscriptionDeleted.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\SubscriptionDeleted only resourceUri.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>

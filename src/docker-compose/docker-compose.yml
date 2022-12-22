@@ -4,7 +4,7 @@ services:
     image: ${DOCKER_REGISTRY-}aggregator
     build:
       context: ..
-      dockerfile: Aggregator/Dockerfile
+      dockerfile: Dockerfile.Aggregator
     environment:
       # We just pass the existing environment variables into Docker
       - AZURE_METERING_MARKETPLACE_CLIENT_ID

@@ -7,7 +7,7 @@ open System
 
 [<CustomComparison; CustomEquality>]
 type Quantity =
-    /// Indicates that this plan participates in this dimension, but does not emit usage against this dimension. 
+    /// Indicates that this plan participates in this dimension, but does not emit usage against this dimension.
     | Infinite // https://docs.microsoft.com/en-us/azure/marketplace/partner-center-portal/saas-metered-billing
     | MeteringInt of uint
     | MeteringFloat of float
@@ -31,18 +31,18 @@ type Quantity =
         | MeteringInt i -> i.GetHashCode()
         | MeteringFloat f -> f.GetHashCode()
 
-    member this.AsInt = 
+    member this.AsInt =
         match this with
         | MeteringInt i -> i
         | MeteringFloat f -> uint32 f
         | Infinite -> failwith $"Trying to convert {nameof(Infinite)} to an uint64"
 
-    member this.AsFloat = 
+    member this.AsFloat =
         match this with
         | MeteringInt i -> float i
         | MeteringFloat f -> f
         | Infinite -> failwith $"Trying to convert {nameof(Infinite)} to a float"
-        
+
     member this.isAllowedIncomingQuantity =
         match this with
         | MeteringInt i -> true
@@ -52,21 +52,21 @@ type Quantity =
     static member Zero
         with get() = (MeteringInt 0u)
 
-    static member None 
+    static member None
         with get() : (Quantity option) = None
 
     static member fromString (s: string) =
         if s = Quantity.infiniteMarker
         then Infinite
-        else 
+        else
             if s.Contains(".")
             then s |> Double.Parse |> MeteringFloat
             else s |> UInt32.Parse |> MeteringInt
-    
+
     static member create (i: uint) = (MeteringInt i)
 
     static member create (f: float) = (MeteringFloat f)
-    
+
     [<CompiledName("some")>]
     static member someInt = MeteringInt >> Some
 
@@ -89,7 +89,7 @@ type Quantity =
               | null                 -> 1
               | :? Quantity as other -> (this :> IComparable<_>).CompareTo other
               | _                    -> invalidArg "obj" $"not a {nameof(Quantity)}"
-        
+
     interface IEquatable<Quantity> with
         member this.Equals other =
             match (this, other) with
@@ -109,7 +109,7 @@ type Quantity =
             | (Infinite, _) -> Infinite
             | (_, Infinite) -> Infinite
 
-    static member (-) (a: Quantity, b: Quantity) =        
+    static member (-) (a: Quantity, b: Quantity) =
         match (a, b) with
             | ((MeteringInt a), (MeteringInt b)) -> MeteringInt (a - b)
             | ((MeteringInt a), (MeteringFloat b)) -> MeteringFloat (float a - b)
@@ -119,7 +119,7 @@ type Quantity =
             | (Infinite, _) -> Infinite
             |> function
                 | MeteringInt i -> MeteringInt i
-                | MeteringFloat f -> 
+                | MeteringFloat f ->
                     if f < 0.0
                     then failwith "Cannot be negative"
                     else MeteringFloat f

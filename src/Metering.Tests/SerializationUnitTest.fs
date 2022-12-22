@@ -16,17 +16,24 @@ let private roundTrip<'T> (filename: string) =
     let json =
         $"data/{filename}"
         |> File.ReadAllText
-    
+
     let t1 = json |> Json.fromStr<'T>
 
     // printfn "--------------------------- %s \n%A" filename t1
-    
-    let t2 = 
+
+    let t2: 'T =
         t1
         |> Json.toStr 0
+        //|> (fun s -> printfn "%s" s; s)
         |> Json.fromStr<'T>
 
     Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
+
+[<Test>]
+let ``InternalMessages.Ping TopOfHour`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/Ping TopOfHour.json"
+
+[<Test>]
+let ``InternalMessages.Ping ProcessingStarting`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/Ping ProcessingStarting.json"
 
 [<Test>]
 let ``InternalMessages.SubscriptionPurchased`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionPurchased.json"
@@ -120,7 +127,7 @@ let ``InternalDataStructures.ParsePlan`` () =
     Assert.AreEqual("the_plan", p.PlanId.value)
 
     let check (appInternalName: string) (expected: Quantity) =
-        let actual = 
+        let actual =
             p.BillingDimensions
             |> Map.find (appInternalName |> ApplicationInternalMeterName.create)
             |> function
@@ -128,7 +135,7 @@ let ``InternalDataStructures.ParsePlan`` () =
                 | _ -> failwith $"Should have been a {nameof(SimpleBillingDimension)}"
 
         Assert.AreEqual(expected, actual)
-    
+
     check "infinite" Quantity.Infinite
     check "literal" (Quantity.create 2u)
     check "quoted" (Quantity.create 1000000u)
@@ -170,11 +177,11 @@ let ``Marketplace.BatchRequest`` () = roundTrip<MarketplaceBatchRequest> "Market
 let ``Marketplace.BatchResponseDTO`` () = roundTrip<MarketplaceBatchResponseDTO> "MarketplaceMessages/MarketplaceBatchResponseDTO.json"
 
 [<Test>]
-let ``EventHub.Avro`` () = 
+let ``EventHub.Avro`` () =
     [
         "p9--2022-12-09--16-50-12.avro"
     ]
-    |> List.iter (fun filename -> 
+    |> List.iter (fun filename ->
         let events =
             filename
             |> (fun n -> $"data/Capture/{filename}")

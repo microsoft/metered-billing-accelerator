@@ -3,6 +3,8 @@
 
 namespace Metering.BaseTypes
 
+open Metering.BaseTypes.EventHub
+
 /// The events which are processed by the aggregator.
 type MeteringUpdateEvent =
     /// Event to initialize the aggregator.
@@ -12,7 +14,7 @@ type MeteringUpdateEvent =
 
     /// Event representing usage / consumption. Send from the application to the aggregator.
     | UsageReported of InternalUsageEvent
-    
+
     /// An aggregator-internal event to keep track of which events must be / have been submitted to the metering API.
     | UsageSubmittedToAPI of MarketplaceResponse
 
@@ -22,7 +24,9 @@ type MeteringUpdateEvent =
     /// Clean up state
     | RemoveUnprocessedMessages of RemoveUnprocessedMessages
 
-    member this.partitionKey 
+    | Ping of PingMessage
+
+    member this.partitionKey
         with get() : string =
             match this with
             | SubscriptionPurchased x -> x.Subscription.MarketplaceResourceId.ToString()
@@ -31,21 +35,23 @@ type MeteringUpdateEvent =
             | UsageSubmittedToAPI x -> x.Result |> MarketplaceSubmissionResult.partitionKey
             | UnprocessableMessage _ -> ""
             | RemoveUnprocessedMessages _ -> ""
-    
+            | Ping x -> x.PartitionID.value
+
     override this.ToString() =
         match this with
         | SubscriptionPurchased x -> x.ToString()
         | SubscriptionDeletion x -> $"Deletion of {x}"
         | UsageReported x -> x.ToString()
-        | UsageSubmittedToAPI x -> x.Result |>  MarketplaceSubmissionResult.toStr        
-        | UnprocessableMessage p -> 
+        | UsageSubmittedToAPI x -> x.Result |>  MarketplaceSubmissionResult.toStr
+        | UnprocessableMessage p ->
             match p with
             | UnprocessableStringContent s -> $"Unprocessable payload: {s}"
             | UnprocessableByteContent b -> $"Unprocessable payload: {System.Convert.ToBase64String(b)}"
         | RemoveUnprocessedMessages { PartitionID = p; Selection = x } ->
-            match x with 
+            match x with
             | BeforeIncluding x -> $"Removing messages older than sequence number {x + 1L} in partition {p}"
             | Exactly x  -> $"Removing messages with sequence number {x} in partition {p}"
+        | Ping x -> $"Ping from {x.SendingHost}, sent {x.LocalTime} because of {x.PingReason}"
 
     member this.MessageType
         with get() : string =
@@ -56,3 +62,4 @@ type MeteringUpdateEvent =
             | UsageSubmittedToAPI _ -> nameof(UsageSubmittedToAPI)
             | UnprocessableMessage _ -> nameof(UnprocessableMessage)
             | RemoveUnprocessedMessages _ -> nameof(RemoveUnprocessedMessages)
+            | Ping _ -> nameof(PingMessage)

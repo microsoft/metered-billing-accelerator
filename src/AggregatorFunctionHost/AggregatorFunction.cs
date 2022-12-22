@@ -25,7 +25,7 @@ public class AggregatorFunction
 {
     private readonly MeteringConfigurationProvider cfg;
     private readonly AggregationWorker aw;
-    
+
     public AggregatorFunction(ILogger<AggregationWorker> l, MeteringConfigurationProvider c) { (cfg, aw) = (c, new(l, c)); }
 
     [FunctionName("AggregatorFunction")]

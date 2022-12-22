@@ -3,7 +3,7 @@
 
 namespace Metering.BaseTypes
 
-type Subscription = 
+type Subscription =
     { /// The details of the plan
       Plan: Plan
 
@@ -11,13 +11,13 @@ type Subscription =
       MarketplaceResourceId: MarketplaceResourceId
 
       /// Whether this is an annual or a monthly plan.
-      RenewalInterval: RenewalInterval 
-      
+      RenewalInterval: RenewalInterval
+
       /// When a certain plan was purchased
       SubscriptionStart: MeteringDateTime }
 
     member this.updateBillingDimensions (dimensions: BillingDimensions) : Subscription =
-        let newPlan = 
+        let newPlan =
             this.Plan
             |> Plan.updateBillingDimensions dimensions
 

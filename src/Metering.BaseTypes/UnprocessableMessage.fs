@@ -5,9 +5,9 @@ namespace Metering.BaseTypes
 
 open Metering.BaseTypes.EventHub
 
-/// Represents an unprocessable message in the state file. 
-/// 
-/// For debugging purposes, messages which cannot properly be parsed are included in the state file. 
+/// Represents an unprocessable message in the state file.
+///
+/// For debugging purposes, messages which cannot properly be parsed are included in the state file.
 type UnprocessableMessage =
     | UnprocessableStringContent of string
     | UnprocessableByteContent of byte array
@@ -22,4 +22,3 @@ type RemoveUnprocessedMessagesSelection =
 type RemoveUnprocessedMessages =
     { PartitionID: PartitionID
       Selection: RemoveUnprocessedMessagesSelection }
-

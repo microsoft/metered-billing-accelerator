@@ -12,7 +12,7 @@ open Azure.Messaging.EventHubs.Consumer
 open Azure.Messaging.EventHubs.Producer
 open Metering.BaseTypes.EventHub
 
-type CaptureStorage = 
+type CaptureStorage =
     { CaptureFileNameFormat: string
       Storage: BlobContainerClient }
 
@@ -24,18 +24,18 @@ type EventHubConfig =
       InfraStructureCredentials: TokenCredential }
 
 type MeteringConnections =
-    { MeteringAPICredentials: MeteringAPICredentials 
-      SnapshotStorage: BlobContainerClient      
+    { MeteringAPICredentials: MeteringAPICredentials
+      SnapshotStorage: BlobContainerClient
       EventHubConfig: EventHubConfig }
 
     static member private environmentVariablePrefix = "AZURE_METERING_"
 
-    static member getConfiguration () : (string -> string option) = 
+    static member getConfiguration () : (string -> string option) =
         // Doing this convoluted syntax as c# extension methods seem unavailable.
         let configuration = EnvironmentVariablesExtensions.AddEnvironmentVariables(
             new ConfigurationBuilder(),
             prefix = MeteringConnections.environmentVariablePrefix).Build()
-        let get key = 
+        let get key =
             match configuration.Item(key) with
             | v when String.IsNullOrWhiteSpace(v) -> None
             | v -> Some v
@@ -46,7 +46,7 @@ type MeteringConnections =
         | Some s -> s
         | None -> failwith $"Missing configuration {MeteringConnections.environmentVariablePrefix}{var}"
 
-    static member private getInfraStructureCredential (get: (string -> string option)) : TokenCredential = 
+    static member private getInfraStructureCredential (get: (string -> string option)) : TokenCredential =
         match ("INFRA_TENANT_ID" |> get, "INFRA_CLIENT_ID" |> get, "INFRA_CLIENT_SECRET" |> get) with
         | (Some t, Some i, Some s) -> InfraStructureCredentials.createServicePrincipal t i s
         | (None, None, None) -> InfraStructureCredentials.createManagedIdentity()
@@ -57,7 +57,7 @@ type MeteringConnections =
             ("INFRA_EVENTHUB_NAMESPACENAME" |> MeteringConnections.getRequired get)
             ("INFRA_EVENTHUB_INSTANCENAME" |> MeteringConnections.getRequired get)
 
-    static member private getMeteringApiCredential get = 
+    static member private getMeteringApiCredential get =
         match ("MARKETPLACE_TENANT_ID" |> get, "MARKETPLACE_CLIENT_ID" |> get, "MARKETPLACE_CLIENT_SECRET" |> get) with
         | (Some t, Some i, Some s) -> MeteringAPICredentials.createServicePrincipal t i s
         | (None, None, None) -> ManagedIdentity
@@ -69,7 +69,7 @@ type MeteringConnections =
         let captureStorage =
             match ("INFRA_CAPTURE_CONTAINER" |> get, "INFRA_CAPTURE_FILENAME_FORMAT" |> get) with
             | (None, None) -> None
-            | (Some c, Some f) -> 
+            | (Some c, Some f) ->
                 { Storage = c |> containerClientWith (MeteringConnections.getInfraStructureCredential get)
                   CaptureFileNameFormat = f }
                 |> Some
@@ -79,7 +79,7 @@ type MeteringConnections =
 
         { MeteringAPICredentials = MeteringConnections.getMeteringApiCredential get
           SnapshotStorage = "INFRA_SNAPSHOTS_CONTAINER" |> MeteringConnections.getRequired get |> containerClientWith infraCred
-          EventHubConfig = 
+          EventHubConfig =
             { CheckpointStorage = "INFRA_CHECKPOINTS_CONTAINER" |> MeteringConnections.getRequired get |> containerClientWith infraCred
               CaptureStorage = captureStorage
               ConsumerGroupName = consumerGroupName
@@ -89,9 +89,9 @@ type MeteringConnections =
     static member  getFromEnvironmentWithSpecificConsumerGroup (consumerGroupName: string) =
         MeteringConnections.getFromConfig (MeteringConnections.getConfiguration()) consumerGroupName
 
-    static member getFromEnvironment() = 
+    static member getFromEnvironment() =
         MeteringConnections.getFromEnvironmentWithSpecificConsumerGroup EventHubConsumerClient.DefaultConsumerGroupName
-    
+
     member this.createEventHubConsumerClient() : EventHubConsumerClient =
         let eh = this.EventHubConfig
         new EventHubConsumerClient(
@@ -109,8 +109,12 @@ type MeteringConnections =
             eventHubName = eh.EventHubName.InstanceName,
             credential = eh.InfraStructureCredentials,
             clientOptions = new EventProcessorClientOptions(
+                //ConnectionOptions = new EventHubConnectionOptions(
+                //    TransportType = EventHubsTransportType.AmqpWebSockets
+                //),
                 TrackLastEnqueuedEventProperties = true,
                 PartitionOwnershipExpirationInterval = TimeSpan.FromMinutes(1),
+                // MaximumWaitTime = TimeSpan.FromSeconds(10),
                 PrefetchCount = 1000,
                 CacheEventCount = 5000))
 
@@ -125,10 +129,10 @@ type MeteringConnections =
                     TransportType = EventHubsTransportType.AmqpTcp)))
 
     static member createEventHubProducerClientForClientSDK () : EventHubProducerClient =
-        let get = MeteringConnections.getConfiguration() 
+        let get = MeteringConnections.getConfiguration()
         let eh = MeteringConnections.getEventHubName get
         let infraCred = MeteringConnections.getInfraStructureCredential get
-        
+
         new EventHubProducerClient(
             fullyQualifiedNamespace = eh.FullyQualifiedNamespace,
             eventHubName = eh.InstanceName,

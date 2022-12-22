@@ -17,17 +17,17 @@ open Metering.Integration
 module Status =
     type PartitionProps = PartitionProps of PartitionId:PartitionID * LastEnqueuedSequenceNumber:int64 * LastEnqueuedTime:MeteringDateTime * LastOffset:int64
 
-    let private getPartitionIDs (client: EventHubConsumerClient) (cancellationToken: CancellationToken) = 
+    let private getPartitionIDs (client: EventHubConsumerClient) (cancellationToken: CancellationToken) : Task<PartitionID seq> =
         task {
             let! props = client.GetEventHubPropertiesAsync(cancellationToken = cancellationToken)
             return props.PartitionIds |> Seq.map PartitionID.create
         }
 
-    let private getPartitionProperties (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) = 
-        let getPartitionProps (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionId: PartitionID) = 
+    let private getPartitionProperties (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionIds: PartitionID seq) : Task<Map<PartitionID, PartitionProps>> =
+        let getPartitionProps (client: EventHubConsumerClient) (cancellationToken: CancellationToken) (partitionId: PartitionID) =
             task {
                 let! p = client.GetPartitionPropertiesAsync(
-                    partitionId = (partitionId.value), 
+                    partitionId = (partitionId.value),
                     cancellationToken = cancellationToken)
                 return (partitionId, PartitionProps(
                     PartitionId = partitionId,
@@ -74,7 +74,7 @@ module Status =
             let client = config.MeteringConnections.createEventHubConsumerClient()
             let! partitionIds = getPartitionIDs client cancellationToken
 
-            let! partitionProperties = partitionIds |> getPartitionProperties client cancellationToken           
+            let! partitionProperties = partitionIds |> getPartitionProperties client cancellationToken
             let! storedStates = partitionIds |> getMessagePositions config.MeteringConnections cancellationToken
 
             let diff (partitionId:PartitionID, lastEnqueuedSequenceNumber:int64, lastEnqueuedTime:MeteringDateTime, lastOffset:int64) (mp: MessagePosition) =
@@ -89,15 +89,15 @@ module Status =
                     let (stateLastMessagePos : MessagePosition option) = storedStates |> Map.tryFind partitionId |> Option.flatten
 
                     match (part,stateLastMessagePos) with
-                    | Some (PartitionProps (pid,seqid,date,lastOffset)), Some statePosition ->  
+                    | Some (PartitionProps (pid,seqid,date,lastOffset)), Some statePosition ->
                         (pid, { LastSequenceNumber = seqid
                                 LastEnqueuedTime = date
                                 NumberOfEvents = seqid - statePosition.SequenceNumber
                                 TimeDeltaSeconds = (date - statePosition.PartitionTimestamp).TotalSeconds })
-                    | Some (PartitionProps (pid,seqid,date,lastOffset)), None -> 
+                    | Some (PartitionProps (pid,seqid,date,lastOffset)), None ->
                         (pid, { LastSequenceNumber = seqid
                                 LastEnqueuedTime = date
-                                NumberOfEvents = seqid 
+                                NumberOfEvents = seqid
                                 TimeDeltaSeconds = -1 })
 
                     | _ -> failwith $"Could not find {partitionId.value}: {part} {stateLastMessagePos}"
@@ -106,7 +106,7 @@ module Status =
         }
 
     [<Extension>]
-    let fetchStates (config: MeteringConfigurationProvider) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    let fetchStates (config: MeteringConfigurationProvider) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) : Task<Map<PartitionID, MeterCollection option>> =
         task {
             let client = config.MeteringConnections.createEventHubConsumerClient()
             let! partitionIds = getPartitionIDs client cancellationToken

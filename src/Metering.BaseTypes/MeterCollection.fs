@@ -6,7 +6,7 @@ namespace Metering.BaseTypes
 open System.Runtime.CompilerServices
 open Metering.BaseTypes.EventHub
 
-type MeterCollection = 
+type MeterCollection =
     { Meters: Meter list
       UnprocessableMessages: EventHubEvent<MeteringUpdateEvent> list
       LastUpdate: MessagePosition option }
@@ -15,23 +15,23 @@ type MeterCollection =
         this.Meters
         |> Seq.collect (fun meter -> meter.UsageToBeReported)
 
-    static member Empty 
+    static member Empty
         with get() =
             { Meters = List.empty
               UnprocessableMessages = List.empty
               LastUpdate = None }
-    
-    static member Uninitialized 
+
+    static member Uninitialized
         with get() : (MeterCollection option) = None
 
 type SomeMeterCollection = MeterCollection option
- 
+
 [<Extension>]
 module MeterCollection =
     let find (marketplaceResourceId: MarketplaceResourceId) (state: MeterCollection) : Meter  =
         state.Meters
         |> List.find (Meter.matches marketplaceResourceId)
-    
+
     let contains (marketplaceResourceId: MarketplaceResourceId) (state: MeterCollection) : bool =
         state.Meters
         |> List.exists (Meter.matches marketplaceResourceId)
@@ -41,7 +41,7 @@ module MeterCollection =
         |> Seq.sortBy  (fun a -> a.Subscription.MarketplaceResourceId)
         |> Seq.map (Meter.toStr pid)
         |> String.concat "\n-----------------\n"
-    
+
     let toStr (mc: MeterCollection option) : string =
         match mc with
         | None -> ""
@@ -49,7 +49,7 @@ module MeterCollection =
             let pid =
                 match mc.LastUpdate with
                 | None -> ""
-                | Some p -> p.PartitionID.value 
+                | Some p -> p.PartitionID.value
                 |> sprintf "%2s"
 
             mc.Meters
