@@ -21,6 +21,8 @@
     <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="data\InternalMessages\Ping TopOfHour.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\Ping ProcessingStarting.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\SubscriptionPurchased.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\SubscriptionDeleted.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\SubscriptionDeleted only resourceUri.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
