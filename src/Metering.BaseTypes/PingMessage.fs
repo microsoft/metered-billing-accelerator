@@ -10,6 +10,7 @@ type PingReason =
     | ProcessingStarting
     | TopOfHour
 
+/// Represents a regular message sent by the aggregator as a heartbeat signal.
 type PingMessage =
     { PartitionID: PartitionID
       PingReason: PingReason
