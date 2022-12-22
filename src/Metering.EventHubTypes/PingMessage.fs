@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-namespace Metering.BaseTypes
+namespace Metering.BaseTypes.EventHub
 
 open System
-open Metering.BaseTypes.EventHub
+open Metering.BaseTypes
 
 type PingReason =
     | ProcessingStarting

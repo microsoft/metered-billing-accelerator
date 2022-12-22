@@ -41,7 +41,7 @@ module Meter =
 
         let usagesToBeReported =
             results
-            |> Seq.map (fun (_name,(marketplaceRequests,_newMeter)) -> marketplaceRequests)
+            |> Seq.map (fun (_name, (marketplaceRequests, _newMeter)) -> marketplaceRequests)
             |> List.concat
 
         state

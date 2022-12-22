@@ -1,4 +1,7 @@
-﻿namespace Metering.EventHub;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+namespace Metering.EventHub;
 
 using Avro.File;
 using Avro.Generic;

@@ -13,5 +13,6 @@
     <Compile Include="FSharpFuncUtil.fs" />
     <Compile Include="MeteringDateTime.fs" />
     <Compile Include="EventHubAbstractions.fs" />
+    <Compile Include="PingMessage.fs" />
   </ItemGroup>
 </Project>

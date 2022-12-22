@@ -1,6 +1,9 @@
-﻿
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 namespace Metering.RuntimeCS;
 
+using Azure.Messaging.EventHubs.Producer;
 using Metering.BaseTypes;
 using Metering.BaseTypes.EventHub;
 using Metering.ClientSDK;
@@ -36,12 +39,15 @@ public class AggregationWorker
         Array.Fill(partitions, "_");
         string currentPartitions() => string.Join("-", partitions);
 
+
         var groupedSub = EventHubObservableClient
             .Create<SomeMeterCollection, MeteringUpdateEvent>(
                 logger: _logger,
                 getPartitionId: EventHubIntegration.partitionId,
                 newEventProcessorClient: config.MeteringConnections.createEventProcessorClient,
                 newEventHubConsumerClient: config.MeteringConnections.createEventHubConsumerClient,
+                sendPing: MeteringEventHubExtensions.SendPing,
+                newEventHubProducerClient: config.MeteringConnections.createEventHubProducerClient,
                 eventDataToEvent: CaptureProcessor.toMeteringUpdateEvent,
                 createEventHubEventFromEventData: EventHubIntegration.CreateEventHubEventFromEventData,
                 readAllEvents: config.MeteringConnections.ReadAllEvents,
@@ -107,7 +113,7 @@ public class AggregationWorker
         // Run an endless loop,
         // - to look at the concurrent queue,
         // - submit REST calls to marketplace, and then
-        // - submit the marketplace responses to EventHub. 
+        // - submit the marketplace responses to EventHub.
         var task = Task.Factory.StartNew(async () => {
             while (true)
             {

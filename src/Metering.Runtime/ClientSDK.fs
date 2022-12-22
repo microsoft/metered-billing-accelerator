@@ -180,17 +180,23 @@ module MeteringEventHubExtensions =
         |> SubmitMeteringUpdateEventsToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
-    let RemoveUnprocessableMessagesUpTo(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    let RemoveUnprocessableMessagesUpTo (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         { PartitionID = partitionId; Selection = sequenceNumber |> BeforeIncluding }
         |> RemoveUnprocessedMessages
         |> SubmitMeteringUpdateEventToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
-    let RemoveUnprocessableMessage(eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+    let RemoveUnprocessableMessage (eventHubProducerClient: EventHubProducerClient) (partitionId: PartitionID) (sequenceNumber: SequenceNumber) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
         { PartitionID = partitionId; Selection = sequenceNumber |> Exactly }
         |> RemoveUnprocessedMessages
         |> SubmitMeteringUpdateEventToPartitionID eventHubProducerClient partitionId cancellationToken
 
     [<Extension>]
+    let SendPing (eventHubProducerClient: EventHubProducerClient) (message: PingMessage) ([<Optional; DefaultParameterValue(CancellationToken())>] cancellationToken: CancellationToken) =
+        Ping message
+        |> SubmitMeteringUpdateEventToPartitionID eventHubProducerClient message.PartitionID cancellationToken
+
+    [<Extension>]
     let AddMeteringClientSDK (services: IServiceCollection) =
         services.AddSingleton(MeteringConnections.createEventHubProducerClientForClientSDK())
+
