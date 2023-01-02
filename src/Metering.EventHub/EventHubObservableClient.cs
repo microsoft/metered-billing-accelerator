@@ -326,14 +326,17 @@ public static class EventHubObservableClient
                     {
                         await processor.StartProcessingAsync(cancellationToken);
                         logger.LogInformation($"createTask / processor.StartProcessingAsync called");
-                        await Task.Delay(Timeout.Infinite, cancellationToken);
+                        try{
+                            await Task.Delay(Timeout.Infinite, cancellationToken);
+                        }
+                        catch (TaskCanceledException) { }
                         o.OnCompleted();
                         await processor.StopProcessingAsync(cancellationToken);
                     }
                     catch (TaskCanceledException) { }
                     catch (Exception ex) { o.OnError(ex); }
                 }
-                catch (Exception)
+                finally
                 {
                     processor.ProcessEventAsync -= ProcessEvent;
                     processor.ProcessErrorAsync -= ProcessError;
