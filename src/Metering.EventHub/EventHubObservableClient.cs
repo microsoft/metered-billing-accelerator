@@ -332,11 +332,11 @@ public static class EventHubObservableClient
                     catch (Exception ex) { o.OnError(ex); }
                     finally{
                         try
-				        {
-							o.OnCompleted();
-							processor.StopProcessing();
-						}
-						catch (Exception) { }
+			{
+				o.OnCompleted();
+				processor.StopProcessing();
+			}
+			catch (Exception) { }
                     }
                 }
                 finally
