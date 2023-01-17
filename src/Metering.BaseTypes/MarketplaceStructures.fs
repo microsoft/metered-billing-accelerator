@@ -157,6 +157,18 @@ module MarketplaceSubmissionResult =
         |> marketplaceResourceId
         |> (fun x -> x.PartitionKey)
 
+    let requestFromError (error: MarketplaceSubmissionError) : MarketplaceRequest =
+        match error with
+        | DuplicateSubmission d -> d.PreviouslyAcceptedMessage.RequestData
+        | ResourceNotFound e -> e.RequestData
+        | Expired e -> e.RequestData
+        | Generic e -> e.RequestData
+
+    let request (marketplaceSubmissionResult: MarketplaceSubmissionResult) : MarketplaceRequest =
+        match marketplaceSubmissionResult with
+        | Ok s -> s.RequestData
+        | Error e -> requestFromError e
+
     let toStr (x: MarketplaceSubmissionResult) : string =
         match x with
         | Ok success -> $"Marketplace OK: {success.RequestData.MarketplaceResourceId.ToString()}/{success.RequestData.PlanId.value}/{success.RequestData.DimensionId.value} Period {success.RequestData.EffectiveStartTime |> MeteringDateTime.toStr} {success.Status.MessageTime |> MeteringDateTime.toStr} {success.RequestData.Quantity.ToString()}"

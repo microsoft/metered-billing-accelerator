@@ -19,6 +19,7 @@ using Metering.BaseTypes;
 using Metering.BaseTypes.EventHub;
 using MeteringDateTime = NodaTime.ZonedDateTime;
 using SequenceNumber = System.Int64;
+using PartitionID = Metering.BaseTypes.EventHub.PartitionID;
 
 // https://www.fareez.info/blog/emulating-discriminated-unions-in-csharp-using-records/
 internal record EventHubCaptureConf { };
@@ -60,22 +61,34 @@ public static class EventHubObservableClient
             EventHubProducerClient pingSender = newEventHubProducerClient();
             Dictionary<PartitionID, (CancellationTokenSource, Task)> pingTasks = new();
 
+            Task SleepUntilNextHour(int minutesPastTheFullHour, CancellationToken ct)
+            {
+                var now = DateTime.Now;
+                var oneHourFromNow = now.AddHours(1);
+                var nextPing = new DateTime(year: oneHourFromNow.Year, month: oneHourFromNow.Month, day: oneHourFromNow.Day, hour: oneHourFromNow.Hour, minute: minutesPastTheFullHour, second: 0);
+                var delta = nextPing.Subtract(now);
+                return Task.Delay(delta, ct);
+            }
+
             async Task SendTopOfHourPing(PartitionID partitionId, CancellationToken pingCancellationToken)
             {
                 await sendPing(pingSender, PingMessageModule.create(partitionId, PingReason.ProcessingStarting), pingCancellationToken);
                 while (!pingCancellationToken.IsCancellationRequested)
                 {
-                    var now = DateTime.Now;
-                    var x = now.AddHours(1);
-                    DateTime nextPing = new(year: x.Year, month: x.Month, day: x.Day, hour: x.Hour, minute: 6, second: 0);
-                    var delta = nextPing.Subtract(now);
-                    logger.LogInformation($"XXXXXX Need to sleep pinger for partition {partitionId.value} for {delta.TotalSeconds}s (until {nextPing})");
-                    await Task.Delay(delta, pingCancellationToken);
+                    try
+                    {
+                        // Sleep until next hour, 10 mins after. 10 mins pat should be enough for all Event Hub partitions to be in the next hour.
+                        await SleepUntilNextHour(minutesPastTheFullHour: 10, pingCancellationToken);
 
-                    await sendPing(pingSender, PingMessageModule.create(partitionId, PingReason.TopOfHour), pingCancellationToken);
-                    logger.LogInformation($"Sending a TopOfHour ping to {partitionId.value}");
+                        await sendPing(pingSender, PingMessageModule.create(partitionId, PingReason.TopOfHour), pingCancellationToken);
+                        logger.LogInformation($"Sending a TopOfHour ping to {partitionId.value}");
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        ;
+                    }
                 }
-            }
+             }
 
             registerCancellationMessage(innerCancellationToken, "innerCancellationToken is Cancelled");
 
@@ -87,8 +100,10 @@ public static class EventHubObservableClient
                     FSharpOption<EventHubEvent<TEvent>> x = createEventHubEventFromEventData(eventDataToEvent, processEventArgs);
                     if (processEventArgs.HasEvent && x.IsSome())
                     {
-                        logger.LogInformation($"ProcessEvent called: {partitionId}");
-                        o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventReceived(x.Value));
+                        var xValue = x.Value;
+
+                        logger.LogInformation($"{MeteringDateTimeModule.toStr(xValue.MessagePosition.PartitionTimestamp)} Event {partitionId}#{xValue.MessagePosition.SequenceNumber} arrived");
+                        o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewEventReceived(xValue));
                     }
                     else
                     {
@@ -119,7 +134,7 @@ public static class EventHubObservableClient
 
             Task ProcessError(ProcessErrorEventArgs processErrorEventArgs)
             {
-                logger.LogError($"ProcessError");
+                logger.LogError($"ProcessError: {processErrorEventArgs.Exception.Message}: {processErrorEventArgs.Exception.StackTrace}");
                 try
                 {
                     o.OnError(processErrorEventArgs.Exception);
@@ -228,9 +243,10 @@ public static class EventHubObservableClient
 
                 Task OnlyEventHub(CanReadEverythingFromEventHub x)
                 {
-                    o.OnNext(EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(
-                        PartitionID.create(partitionIdStr), initialState));
                     partitionInitializingEventArgs.DefaultStartingPosition = x.EventPosition;
+                    var pid = PartitionID.create(partitionIdStr);
+                    var ehpe = EventHubProcessorEvent<TState, TEvent>.NewPartitionInitializing(pid, initialState);
+                    o.OnNext(ehpe);
                     return Task.CompletedTask;
                 }
 

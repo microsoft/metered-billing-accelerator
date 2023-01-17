@@ -27,13 +27,13 @@ type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * str
 
 type MeterValue_subtractQuantityFromMeterValue_Vector = { State: SimpleMeterValue; Quantity: Quantity; Expected: SimpleMeterValue}
 [<Test>]
-let ``MeterValue.subtractQuantity``() =
+let ``MeterValue.consume``() =
     let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let test (idx, testcase) =
 
-        let result = testcase.State |> SimpleMeterLogic.subtractQuantity now testcase.Quantity
+        let result = testcase.State |> SimpleMeterLogic.consume now testcase.Quantity
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
     [
@@ -273,7 +273,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         let overallquantity = Quantity.create overallquantity
 
         let totalToBeSubmitted =
-            mc.metersToBeSubmitted
+            mc.MetersToBeSubmitted()
             |> Seq.filter (fun m -> m.MarketplaceResourceId = marketplaceResourceId && m.DimensionId = dimension)
             |> Seq.sumBy (fun m -> m.Quantity.AsInt)
             |> Quantity.create
