@@ -163,7 +163,7 @@ The aggregator keeps track of subscriptions using a unique identifier, which can
 
 `resourceId`s are GUIDs, while `resourceUri`s are strictly speaking not URIs (in the W3C sense), but just the path segment in the ARM control plane, such as `"/subscriptions/../resourceGroups/.../providers/microsoft.solutions/applications/..."` or `"/subscriptions/../resourceGroups/../providers/Microsoft.SaaS/resources/..."`. 
 
-For a managed application, it might be the easiest to get hold of the `resourceUri`, while for a SaaS offer, it might be better to use the `resourceId`. Please refer to this blog article to get a better understanding where these values come from: [resourceIdResourceUriBlob](resourceIdResourceUriBlob)
+For a managed application, it might be the easiest to get hold of the `resourceUri`, while for a SaaS offer, it might be better to use the `resourceId`. Please refer to this blog article to get a better understanding where these values come from: [Selecting the correct ID when submitting usage events to the Azure Marketplace Metered Billing API]
 
 > IMPORTANT: When submitting messages to EventHub, it is important to use exactly one of these properties, **consistently**. Using the same type of value for a type of offer ensures that all events for a certain subscription end up in the same Azure EventHub partition. 
 
@@ -503,4 +503,4 @@ Any use of third-party trademarks or logos are subject to those third-party's po
 
 [folding]: https://en.wikipedia.org/wiki/Fold_(higher-order_function) "Fold (higher-order function) on Wikipedia"
 
-[resourceIdResourceUriBlob]: https://techcommunity.microsoft.com/t5/fasttrack-for-azure/azure-marketplace-metered-billing-picking-the-correct-id-when/ba-p/3542373 "Selecting the correct ID when submitting usage events to the Azure Marketplace Metered Billing API"
+[Selecting the correct ID when submitting usage events to the Azure Marketplace Metered Billing API]: https://techcommunity.microsoft.com/t5/fasttrack-for-azure/azure-marketplace-metered-billing-picking-the-correct-id-when/ba-p/3542373
