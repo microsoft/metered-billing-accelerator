@@ -379,12 +379,13 @@ module Json =
                 ("plan", "renewalInterval", "subscriptionStart");
 
             let encode (x: Subscription) : (string * JsonValue) list =
-                (x.MarketplaceResourceId |> MarketplaceResourceId.encode)
-                |> List.append [
-                    (subscriptionStart, x.SubscriptionStart |> MeteringDateTime.Encoder)
-                    (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
-                    (plan, x.Plan |> Plan.Encoder)
-                ]
+                List.append
+                    (x.MarketplaceResourceId |> MarketplaceResourceId.encode)
+                    [
+                        (subscriptionStart, x.SubscriptionStart |> MeteringDateTime.Encoder)
+                        (renewalInterval, x.RenewalInterval |> RenewalInterval.Encoder)
+                        (plan, x.Plan |> Plan.Encoder)
+                    ]
 
             let decode (get: Decode.IGetters) : Subscription =
                 {

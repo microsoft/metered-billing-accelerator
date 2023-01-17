@@ -14,23 +14,23 @@ let cancellationToken =CancellationToken.None
 let config = MeteringConnections.getFromEnvironment()
 
 let writeToFilesystem dirname (msg: EventHubEvent<MeteringUpdateEvent>) (newState: MeterCollection) =
-    File.WriteAllText((sprintf "%s\\%s-%d-msg-%s.json" dirname newState.LastUpdate.Value.PartitionID.value newState.LastUpdate.Value.SequenceNumber (msg.EventData.MessageType)), (Json.toStr 1 msg.EventData))
-    File.WriteAllText((sprintf "%s\\%s-%d-state.json" dirname newState.LastUpdate.Value.PartitionID.value newState.LastUpdate.Value.SequenceNumber), (Json.toStr 1 newState))
+    File.WriteAllText((sprintf "%s\\%s-%d-%s-msg-%s.json" dirname newState.LastUpdate.Value.PartitionID.value newState.LastUpdate.Value.SequenceNumber (msg.MessagePosition.PartitionTimestamp |> MeteringDateTime.blobName) (msg.EventData.MessageType)), (Json.toStr 1 msg.EventData))
+    File.WriteAllText((sprintf "%s\\%s-%d-%s-state.json"  dirname newState.LastUpdate.Value.PartitionID.value newState.LastUpdate.Value.SequenceNumber (msg.MessagePosition.PartitionTimestamp |> MeteringDateTime.blobName)), (Json.toStr 1 newState))
     newState
 
-let handle (dirname: string) (state: MeterCollection) (msg: EventHubEvent<MeteringUpdateEvent>) : MeterCollection = 
+let handle (dirname: string) (state: MeterCollection) (msg: EventHubEvent<MeteringUpdateEvent>) : MeterCollection =
     msg
     |> MeterCollectionLogic.handleMeteringEvent state
     |> writeToFilesystem dirname msg
 
 config.createEventHubConsumerClient().GetPartitionIdsAsync(cancellationToken).Result
 |> Seq.map PartitionID.create
-|> Seq.iter(fun partitionId -> 
+|> Seq.iter(fun partitionId ->
     let dirname = $"data\\{config.EventHubConfig.EventHubName.NamespaceName}\\{config.EventHubConfig.EventHubName.InstanceName}\\{partitionId.value}"
     let dirname = Directory.CreateDirectory(dirname).FullName
 
     let events = CaptureProcessor.readAllEvents CaptureProcessor.toMeteringUpdateEvent partitionId cancellationToken config
-    
+
     events
     |> Seq.fold (handle dirname) MeterCollection.Empty
     |> printfn "%A"

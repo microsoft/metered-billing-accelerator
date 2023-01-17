@@ -36,10 +36,10 @@ module MeterValue =
                     | None ->
                         simpleDimension
                         |> SimpleMeterLogic.newBillingCycle now
-                        |> SimpleMeterLogic.subtractQuantity now quantity
+                        |> SimpleMeterLogic.consume now quantity
                     | Some meterValue ->
                         meterValue
-                        |> SimpleMeterLogic.subtractQuantity now quantity
+                        |> SimpleMeterLogic.consume now quantity
 
                 SimpleBillingDimension { simpleDimension with Meter = Some meterValue }
 
@@ -53,5 +53,36 @@ module MeterValue =
                     | Some meterValue ->
                         meterValue
                         |> WaterfallMeterLogic.consume waterfallDimension now quantity
+
+                WaterfallBillingDimension { waterfallDimension with Meter = Some meterValue}
+
+    let accountForExpiredSubmission (dimensionId: DimensionId) (now: MeteringDateTime) (quantity: Quantity) (billingDimension: BillingDimension) : BillingDimension =
+        if not quantity.isAllowedIncomingQuantity
+        then billingDimension // If the incoming value is not a real (non-negative) number, don't change anything.
+        else
+            match billingDimension with
+            | SimpleBillingDimension simpleDimension ->
+                let meterValue =
+                    match simpleDimension.Meter with
+                    | None ->
+                        simpleDimension
+                        |> SimpleMeterLogic.newBillingCycle now
+                        |> SimpleMeterLogic.accountExpiredSubmission dimensionId now quantity
+                    | Some meterValue ->
+                        meterValue
+                        |> SimpleMeterLogic.accountExpiredSubmission dimensionId now quantity
+
+                SimpleBillingDimension { simpleDimension with Meter = Some meterValue }
+
+            | WaterfallBillingDimension waterfallDimension ->
+                let meterValue =
+                    match waterfallDimension.Meter with
+                    | None ->
+                        waterfallDimension
+                        |> WaterfallMeterLogic.newBillingCycle now
+                        |> WaterfallMeterLogic.accountExpiredSubmission dimensionId waterfallDimension now quantity
+                    | Some meterValue ->
+                        meterValue
+                        |> WaterfallMeterLogic.accountExpiredSubmission dimensionId waterfallDimension now quantity
 
                 WaterfallBillingDimension { waterfallDimension with Meter = Some meterValue}

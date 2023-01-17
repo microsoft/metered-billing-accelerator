@@ -110,11 +110,11 @@ module WaterfallMeterLogic =
     model
     |> List.skipWhile (isNotInRow amount)
 
-  let subtract (agg: SubtractionAggregation) (row: WaterfallModelRow) : SubtractionAggregation =
-    let add (v: Quantity) = function
+  let add (v: Quantity) : (Quantity option -> Quantity option) = function
         | None -> Some v
         | Some e -> Some (v + e)
 
+  let subtract (agg: SubtractionAggregation) (row: WaterfallModelRow) : SubtractionAggregation =
     let augment (ct: Quantity) (a: Quantity) (c: ConsumptionReport option) (agg: SubtractionAggregation) : SubtractionAggregation=
       match c with
       | Some c when c.Quantity > Quantity.Zero -> { CurrentTotal = ct; AmountToBeDeducted = a; Consumption = agg.Consumption |> Map.change c.DimensionId (add c.Quantity) }
@@ -151,6 +151,13 @@ module WaterfallMeterLogic =
             Total = agg.CurrentTotal
             Consumption = agg.Consumption
             LastUpdate = now }
+
+  let accountExpiredSubmission (dimensionId: DimensionId) (waterfallDimension: WaterfallBillingDimension) (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
+    let newConsumption = meter.Consumption |> Map.change dimensionId (add amount)
+
+    { meter with
+        Consumption = newConsumption
+        LastUpdate = now }
 
   let newBillingCycle (now: MeteringDateTime) (x: WaterfallBillingDimension) : WaterfallMeterValue =
      { Total = Quantity.Zero

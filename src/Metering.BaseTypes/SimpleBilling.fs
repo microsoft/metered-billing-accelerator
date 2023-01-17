@@ -15,6 +15,8 @@ type ConsumedQuantity =
 
     member this.increaseConsumption now amount = { this with CurrentHour = this.CurrentHour + amount; BillingPeriodTotal = this.BillingPeriodTotal + amount; LastUpdate = now }
 
+    member this.accountExpiredSubmission now amount = { this with CurrentHour = this.CurrentHour + amount; LastUpdate = now }
+
     member this.resetHourCounter now = { this with CurrentHour = Quantity.Zero ; LastUpdate = now }
 
     static member createNew now currentHourAmount = { CurrentHour = currentHourAmount; BillingPeriodTotal = currentHourAmount; LastUpdate = now }
@@ -51,11 +53,30 @@ type SimpleBillingDimension =
 
 module SimpleMeterLogic =
     /// Subtracts the given Quantity from a MeterValue
-    let subtractQuantity (now: MeteringDateTime) (quantity: Quantity) (this: SimpleMeterValue) : SimpleMeterValue =
+    let consume (now: MeteringDateTime) (quantity: Quantity) (this: SimpleMeterValue) : SimpleMeterValue =
         this
         |> function
            | ConsumedQuantity consumedQuantity ->
                 consumedQuantity.increaseConsumption now quantity
+                |> ConsumedQuantity
+           | IncludedQuantity iq ->
+                let remaining = iq.RemainingQuantity
+
+                if remaining >= quantity
+                then
+                    iq.decrease now quantity
+                    |> IncludedQuantity
+                else
+                    quantity - remaining
+                    |> ConsumedQuantity.createNew now
+                    |> ConsumedQuantity
+
+    /// This gets called when due to a problem in the aggregator the previous usage has been rejected by the Azure Metering API
+    let accountExpiredSubmission (dimensionId: DimensionId) (now: MeteringDateTime) (quantity: Quantity) (this: SimpleMeterValue) : SimpleMeterValue =
+        this
+        |> function
+           | ConsumedQuantity consumedQuantity ->
+                consumedQuantity.accountExpiredSubmission now quantity
                 |> ConsumedQuantity
            | IncludedQuantity iq ->
                 let remaining = iq.RemainingQuantity
@@ -74,7 +95,7 @@ module SimpleMeterLogic =
 
     let someHandleQuantity (currentPosition: MeteringDateTime) (quantity: Quantity) (current: SimpleMeterValue option) : SimpleMeterValue option =
         let subtract quantity (meterValue: SimpleMeterValue) =
-            meterValue |> subtractQuantity currentPosition quantity
+            meterValue |> consume currentPosition quantity
 
         current
         |> Option.bind ((subtract quantity) >> Some)
