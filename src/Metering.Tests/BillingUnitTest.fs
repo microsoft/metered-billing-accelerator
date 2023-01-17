@@ -28,7 +28,6 @@ type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * str
 type MeterValue_subtractQuantityFromMeterValue_Vector = { State: SimpleMeterValue; Quantity: Quantity; Expected: SimpleMeterValue}
 [<Test>]
 let ``MeterValue.subtractQuantity``() =
-    let created =    "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let lastUpdate = "2021-10-28T12:38:00" |> MeteringDateTime.fromStr
     let now =        "2021-10-28T13:38:00" |> MeteringDateTime.fromStr
     let test (idx, testcase) =
@@ -38,33 +37,33 @@ let ``MeterValue.subtractQuantity``() =
     [
         {
             // deduct without overage
-            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; BillingPeriodTotal = Quantity.create 10u; Created = created; LastUpdate = lastUpdate}
+            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; BillingPeriodTotal = Quantity.create 10u; LastUpdate = lastUpdate}
             Quantity = Quantity.create 13u
-            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 17u; BillingPeriodTotal = Quantity.create 23u; Created = created; LastUpdate = now }
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 17u; BillingPeriodTotal = Quantity.create 23u; LastUpdate = now }
         }
         {
             // deplete completely
-            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; BillingPeriodTotal = Quantity.create 1u; Created = created; LastUpdate = lastUpdate}
+            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; BillingPeriodTotal = Quantity.create 1u; LastUpdate = lastUpdate}
             Quantity = Quantity.create 30u
-            Expected = IncludedQuantity { RemainingQuantity = Quantity.Zero; BillingPeriodTotal = Quantity.create 31u; Created = created; LastUpdate = now }
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.Zero; BillingPeriodTotal = Quantity.create 31u; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = IncludedQuantity { RemainingQuantity = Quantity.Zero; BillingPeriodTotal = Quantity.create 10u; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { RemainingQuantity = Quantity.Zero; BillingPeriodTotal = Quantity.create 10u; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; BillingPeriodTotal = Quantity.create 2u; Created = now; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; BillingPeriodTotal = Quantity.create 2u; LastUpdate = now }
         }
         {
             // Going further into the overage
-            State = ConsumedQuantity { CurrentHour = Quantity.create 10u; BillingPeriodTotal = Quantity.create 200u; Created = created; LastUpdate = lastUpdate }
+            State = ConsumedQuantity { CurrentHour = Quantity.create 10u; BillingPeriodTotal = Quantity.create 200u; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { CurrentHour = Quantity.create 12u; BillingPeriodTotal = Quantity.create 202u; Created = created; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 12u; BillingPeriodTotal = Quantity.create 202u; LastUpdate = now }
         }
         {
             // If there's infinite, it never gets depleted
-            State = IncludedQuantity { RemainingQuantity = Quantity.Infinite; BillingPeriodTotal = Quantity.create 100u; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { RemainingQuantity = Quantity.Infinite; BillingPeriodTotal = Quantity.create 100u; LastUpdate = lastUpdate }
             Quantity = Quantity.create 200000u
-            Expected = IncludedQuantity { RemainingQuantity = Quantity.Infinite; BillingPeriodTotal = Quantity.create 200100u; Created = created; LastUpdate = now }
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.Infinite; BillingPeriodTotal = Quantity.create 200100u; LastUpdate = now }
         }
     ] |> runTestVectors test
 
@@ -72,7 +71,6 @@ type MeterValue_topupMonthlyCredits_Vector = { Value: uint; Expected: SimpleMete
 
 [<Test>]
 let ``MeterValue.createIncluded``() =
-    let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
     let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
 
     let test (idx, testcase) =
@@ -82,7 +80,7 @@ let ``MeterValue.createIncluded``() =
     [
         {
             Value = 9u
-            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 9u; BillingPeriodTotal = Quantity.create 0u; Created = created; LastUpdate = now }
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 9u; BillingPeriodTotal = Quantity.create 0u; LastUpdate = now }
         }
     ] |> runTestVectors test
 
