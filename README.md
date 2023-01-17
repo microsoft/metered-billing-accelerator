@@ -359,58 +359,6 @@ setx.exe AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT     {Namespace}/{EventHub}
 setx.exe WSLENV AZURE_METERING_MARKETPLACE_CLIENT_ID/u:AZURE_METERING_MARKETPLACE_CLIENT_SECRET/u:AZURE_METERING_MARKETPLACE_TENANT_ID/u:AZURE_METERING_INFRA_CLIENT_ID/u:AZURE_METERING_INFRA_CLIENT_SECRET/u:AZURE_METERING_INFRA_TENANT_ID/u:AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME/u:AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME/u:AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER/u:AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER/u:AZURE_METERING_INFRA_CAPTURE_CONTAINER/u:AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT/u:
 ```
 
-## Demo time - How to run / try it yourself
-
-The service principal `AZURE_METERING_INFRA_CLIENT_ID` must have access (read/write to both the `AZURE_METERING_INFRA_EVENTHUB` event hub, as well as the checkpoints blob storage, the snapshot blob storage, and read access to the eventhub capture blob storage).
-
-There are currently two CLI console apps to try it out:
-
-- The `Demos\EventHubDemo` is the aggregator. 
-  - It aggregates events, and displays stuff on screen. You can't interact with it. 
-  - When you stop it, and restart it, it might take up to a minute until you see output, as it's battling leadership election games with it's previous incarnation on who owns which EventHub partition.
-- The `Demos\SimpleMeteringSubmissionClient` is your demo app to submit real values.
-  - Before you can see anything usefull, you must create a subscription: Type `c 1` for example, which (c)reates a new subscription. The code takes the `1`, and generates a GUID from it. 
-    So unfortunately you can't see that `1` in the `Demos\EventHubDemo`, only the corresponding GUID. 
-  - You can create multiple subscriptions, e.g. type `c 2` and `c 3`, and create more subs to play with
-  - After you have a subscription, you can (s)ubmit metering values, by saying `s 1 20`, which sends a usage event of 20 units for the subscription GUID which corresponds to the `1`.
-  - Once you have pressed the return button, an event goes into EventHub, and you should see metering values on the `Demos\EventHubDemo` side change.
-
-### Example
-
-Run these commands
-
-- `c foo`: This (c)reates a subscription. The demo app converts the string `foo` into a GUID `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`, and submits an event creating a new subscription.
-- `s foo 99`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
-- `s foo 900`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
-- `s foo 13`: This submits the consumption to the subscription `b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2`
-
-Somewhere in the output, you will see this (at different spots):
-
-```
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 901
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: 12 consumed
-```
-
-When the subscription was created (check the `plan.json` file in the `SimpleMeteringSubmissionClient` directory), these details were included in the plan:
-
-```json
-{
-  "cpucharge": "1000",
-}
-```
-
-You can see an included (monthly) quantity of 1000. This is reflected in the output:
-
-```text
- 0 b5c7ee0b-3fea-db0f-c95d-0dd47f3c5bc2:   cpucharge: Remaining 1000
-```
-
-- Once you (s)ubmit a usage of 99 units (by typing `s foo 99`), the `Remaining 1000` become `Remaining 901`
-- Once you (s)ubmit a usage of 1000 units (by typing `s foo 900`), the `Remaining 901` become `Remaining 1`
-- The last consumption of 13 units fully depletes the remaining 1 credits, and brings you into the overage, i.e. the included quantity of `Remaining 1` becomes `12 consumed`
-
 ## Supported deployment models
 
 The metering accelerator is planned for three distinct deployment models:
