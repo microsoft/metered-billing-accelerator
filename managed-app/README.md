@@ -1,6 +1,6 @@
-# Sample managed app
+# A sample managed app
 
-This directory contains the code to create a deployment ZIP for an Azure Marketplace Managed Application. 
+This directory contains the code to create a deployment ZIP for an Azure Marketplace Managed Application. The goal is that you can quickly create a deployable package for partner portal, which deploys compute components that submit real usage data.
 
 - The ARM templates in the ZIP are created out of Bicep templates.
 - The [`build.sh`](build.sh) script runs the overall build process.
