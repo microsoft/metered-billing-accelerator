@@ -4,7 +4,7 @@
     "sequenceNumber": "5",
     "partitionTimestamp": "2022-01-28T15:36:21Z"
   },
-  "meters": [    
+  "meters": [
     {
       "subscription": {
         "resourceId": "8151a707-467c-4105-df0b-44c3fca5880d",
@@ -13,15 +13,14 @@
         "plan": {
           "planId": "free_monthly_yearly",
           "billingDimensions": {
-            "cpu": { 
+            "cpu": {
               "type": "simple",
               "dimension": "cpucharge",
               "included": "Infinite",
               "meter": {
-                "included": { 
-                  "quantity": "Infinite", 
-                  "created": "2022-01-28T15:36:17Z", 
-                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                "included": {
+                  "quantity": "Infinite",
+                  "lastUpdate": "2022-01-28T15:36:21Z"
                 }
               }
             },
@@ -30,38 +29,35 @@
               "dimension": "datasourcecharge",
               "included": 1000,
               "meter": {
-                "included": { 
-                  "quantity": 999,        
-                  "created": "2022-01-28T15:36:17Z", 
-                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                "included": {
+                  "quantity": 999,
+                  "lastUpdate": "2022-01-28T15:36:21Z"
                 }
               }
             },
-            "msg": { 
+            "msg": {
               "type": "simple",
               "dimension": "messagecharge",
               "included": "10000",
               "meter": {
                 "included": {
-                  "quantity": 999.123,  
-                  "created": "2022-01-28T15:36:17Z", 
-                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                  "quantity": 999.123,
+                  "lastUpdate": "2022-01-28T15:36:21Z"
                 }
                }
             },
-            "nde": {  
+            "nde": {
               "type": "simple",
               "dimension": "nodecharge",
               "included": 1000,
               "meter": {
-                "included": { 
-                  "quantity": 999,        
-                  "created": "2022-01-28T15:36:17Z", 
-                  "lastUpdate": "2022-01-28T15:36:21Z" 
+                "included": {
+                  "quantity": 999,
+                  "lastUpdate": "2022-01-28T15:36:21Z"
                 }
               }
             },
-            "obj": {  
+            "obj": {
               "type": "simple",
               "dimension": "objectcharge",
               "included": 0,
@@ -69,13 +65,12 @@
                 "consumed": {
                   "consumedQuantity": 1.0,
                   "total": 20,
-                  "created": "2022-01-28T15:36:17Z",
                   "lastUpdate": "2022-01-28T15:36:21Z"
                 }
               }
             },
-            "gigabyte_egress": { 
-              "type": "waterfall", 
+            "gigabyte_egress": {
+              "type": "waterfall",
               "tiers": [
                 { "dimension": "egress_tier_1",  "threshold":    100 },
                 { "dimension": "egress_tier_2",  "threshold":  10000 },
