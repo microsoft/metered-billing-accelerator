@@ -181,8 +181,20 @@ module MeterCollectionStore =
 
     [<Extension>]
     let loadLastState (connections: MeteringConnections) partitionID cancellationToken =
-        Naming.latestName connections partitionID
-        |> loadStateFromFilename connections partitionID cancellationToken
+        task {
+            let! state =
+                Naming.latestName connections partitionID
+                |> loadStateFromFilename connections partitionID cancellationToken
+
+            match state with
+            | None -> printfn "Could not load state for partition %s" partitionID.value
+            | Some s ->
+                match s.LastUpdate with
+                | None -> printfn "Loaded state %s#%s" partitionID.value "-1"
+                | Some lu -> printfn "Loaded state %s#%s" partitionID.value (lu.SequenceNumber.ToString())
+
+            return state
+        }
 
     //let loadStateBySequenceNumber config partitionID cancellationToken (sequenceNumber: SequenceNumber) =
     //    let blobNames = CaptureProcessor.getCaptureBlobs

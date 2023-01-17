@@ -3,7 +3,6 @@
 
 namespace Metering.RuntimeCS;
 
-using Azure.Messaging.EventHubs.Producer;
 using Metering.BaseTypes;
 using Metering.BaseTypes.EventHub;
 using Metering.ClientSDK;
@@ -18,8 +17,8 @@ using SomeMeterCollection = Microsoft.FSharp.Core.FSharpOption<Metering.BaseType
 
 public class AggregationWorker
 {
-    record MarketplaceRequestAndPartitionId(MarketplaceRequest MarketplaceRequest, PartitionID PartitionID);
-    record MarketplaceRequestsAndPartitionId(IEnumerable<MarketplaceRequest> MarketplaceRequests, PartitionID PartitionID);
+    record MarketplaceRequestAndPartitionId(PartitionID PartitionID, MarketplaceRequest MarketplaceRequest);
+    record MarketplaceRequestsAndPartitionId(PartitionID PartitionID, IEnumerable<MarketplaceRequest> MarketplaceRequests);
 
     private readonly ILogger _logger;
     private readonly MeteringConfigurationProvider config;
@@ -38,7 +37,6 @@ public class AggregationWorker
         var partitions = new string[props.PartitionIds.Length];
         Array.Fill(partitions, "_");
         string currentPartitions() => string.Join("-", partitions);
-
 
         var groupedSub = EventHubObservableClient
             .Create<SomeMeterCollection, MeteringUpdateEvent>(
@@ -83,7 +81,7 @@ public class AggregationWorker
                         .AddToSubscriptions(subscriptions);
 
                     // Subscribe the submission to marketplace.
-                    SubscribeEmitter(events)
+                    SubscribeEmitter(events, stoppingToken)
                         .AddToSubscriptions(subscriptions);
                 },
                 onCompleted: () => {
@@ -98,15 +96,21 @@ public class AggregationWorker
         while (!stoppingToken.IsCancellationRequested)
         {
             _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
-            await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(10), stoppingToken);
+            }
+            catch (TaskCanceledException) { _logger.LogInformation("Worker cancelled at: {time}", DateTimeOffset.Now); }
         }
 
         subscriptions.ForEach(subscription => subscription.Dispose());
     }
 
-    private IDisposable SubscribeEmitter(IObservable<MeterCollection> events)
+    private IDisposable SubscribeEmitter(IObservable<MeterCollection> events, CancellationToken stoppingToken)
     {
         List<MarketplaceRequestAndPartitionId> previousToBeSubmitted = new();
+        object lockO = new();
+
         ConcurrentQueue<MarketplaceRequestsAndPartitionId> tobeSubmitted = new();
         var producer = config.MeteringConnections.createEventHubProducerClient();
 
@@ -117,11 +121,11 @@ public class AggregationWorker
         var task = Task.Factory.StartNew(async () => {
             while (true)
             {
-                await Task.Delay(1000);
+                await Task.Delay(millisecondsDelay: 1000, stoppingToken);
                 if (tobeSubmitted.TryDequeue(out var usage))
                 {
                     var response = await config.SubmitUsage(usage.MarketplaceRequests);
-                    await producer.ReportUsagesSubmitted(usage.PartitionID, response, CancellationToken.None);
+                    await producer.ReportUsagesSubmitted(usage.PartitionID, response, stoppingToken);
                     _logger.Log(LogLevel.Information, "Submitted {0} values", response.Results.Length);
                 }
             }
@@ -132,21 +136,35 @@ public class AggregationWorker
                 onNext: meterCollection =>
                 {
                     var partitionId = meterCollection.LastUpdate.Value.PartitionID;
-                    // Only add new (unseen) events to the concurrent queue.
-                    var current = meterCollection.metersToBeSubmitted.Select(request => new MarketplaceRequestAndPartitionId(request, partitionId)).ToList();
 
-                    var newOnes = current.Except(previousToBeSubmitted).ToList();
+                    var current = meterCollection
+                        .MetersToBeSubmitted()
+                        .Select(r => new MarketplaceRequestAndPartitionId(partitionId, r))
+                        .ToList();
+
+                    // Only add new (unseen) events to the concurrent queue.
+                    var newOnes = current
+                        .Except(previousToBeSubmitted)
+                        .ToList();
+
                     if (newOnes.Any())
                     {
                         // Send batches to Azure Marketplace API which have resourceIds and resourceURIs which are tracked in the same event hub partition
-                        newOnes
+                        var batches = newOnes
                             .GroupBy(g => g.PartitionID)
                             .SelectMany(g => g.Select(x => x.MarketplaceRequest))
                             .Chunk(25)
-                            .Select(i => new MarketplaceRequestsAndPartitionId(i, partitionId))
+                            .Select(items => new MarketplaceRequestsAndPartitionId(partitionId, items));
+
+                        batches
                             .ForEach(tobeSubmitted.Enqueue);
                     }
-                    previousToBeSubmitted = current;
+
+                    lock (lockO)
+                    {
+                        previousToBeSubmitted.Clear();
+                        previousToBeSubmitted.AddRange(current);
+                    }
                 }
             );
     }

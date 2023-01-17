@@ -11,7 +11,7 @@ type MeterCollection =
       UnprocessableMessages: EventHubEvent<MeteringUpdateEvent> list
       LastUpdate: MessagePosition option }
 
-    member this.metersToBeSubmitted : MarketplaceRequest seq =
+    member this.MetersToBeSubmitted() : MarketplaceRequest seq =
         this.Meters
         |> Seq.collect (fun meter -> meter.UsageToBeReported)
 

@@ -91,7 +91,7 @@ module ManagementUtils =
 
             return
                 match state with
-                | Some m -> m.metersToBeSubmitted
+                | Some m -> m.MetersToBeSubmitted()
                 | None -> Seq.empty
 
         }

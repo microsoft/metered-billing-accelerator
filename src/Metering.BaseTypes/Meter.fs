@@ -22,8 +22,6 @@ module Meter =
     let setLastProcessedMessage x this = { this with LastProcessedMessage = x }
     let addUsageToBeReported (item: MarketplaceRequest) this = { this with UsageToBeReported = (item :: this.UsageToBeReported) }
     let addUsagesToBeReported (items: MarketplaceRequest list) this = { this with UsageToBeReported = List.concat [ items; this.UsageToBeReported ] }
-    /// Removes the item from the UsageToBeReported collection
-    let removeUsageToBeReported (item: MarketplaceRequest) this = { this with UsageToBeReported = (this.UsageToBeReported |> List.filter (fun e -> e <> item)) }
 
     /// This function must be called when 'a new hour' started, i.e. the previous period must be closed.
     let closePreviousMeteringPeriod (state: Meter) : Meter =
@@ -48,12 +46,11 @@ module Meter =
         |> updateDimensions updatedBillingDimensions
         |> addUsagesToBeReported usagesToBeReported
 
-    let updateConsumptionForApplicationInternalMeterName (quantity: Quantity) (timestamp: MeteringDateTime) (applicationInternalMeterName: ApplicationInternalMeterName) (meter: Meter) : Meter =
+    let updateConsumptionForApplicationInternalMeterName (quantity: Quantity) (timestamp: MeteringDateTime) (applicationInternalMeterName: ApplicationInternalMeterName) (mechanism: MeteringDateTime -> Quantity -> BillingDimension -> BillingDimension) (meter: Meter) : Meter =
         if not quantity.isAllowedIncomingQuantity
         then meter // If the incoming value is not a real (non-negative) number, don't change anything.
         else
-            let update : (BillingDimension -> BillingDimension) =
-                MeterValue.applyConsumption timestamp quantity
+            let update : (BillingDimension -> BillingDimension) = mechanism timestamp quantity
 
             let updatedDimensions =
                 meter.Subscription.Plan.BillingDimensions
@@ -65,7 +62,7 @@ module Meter =
     let previousBillingIntervalCanBeClosedNewEvent (previous: MeteringDateTime) (eventTime: MeteringDateTime) : bool =
         previous.Hour <> eventTime.Hour || eventTime - previous >= Duration.FromHours(1.0)
 
-    let closeAndDebit (quantity: Quantity) (messagePosition: MessagePosition) (applicationInternalMeterName: ApplicationInternalMeterName) (meter: Meter) : Meter =
+    let closeAndDebit (quantity: Quantity) (messagePosition: MessagePosition) (applicationInternalMeterName: ApplicationInternalMeterName) (mechanism: MeteringDateTime -> Quantity -> BillingDimension -> BillingDimension) (meter: Meter) : Meter =
         let closePreviousIntervalIfNeeded : (Meter -> Meter) =
             let last = meter.LastProcessedMessage.PartitionTimestamp
             let curr = messagePosition.PartitionTimestamp
@@ -75,11 +72,11 @@ module Meter =
 
         meter
         |> closePreviousIntervalIfNeeded
-        |> updateConsumptionForApplicationInternalMeterName quantity messagePosition.PartitionTimestamp applicationInternalMeterName
+        |> updateConsumptionForApplicationInternalMeterName quantity messagePosition.PartitionTimestamp applicationInternalMeterName mechanism
         |> setLastProcessedMessage messagePosition
 
     let handleUsageEvent ((event: InternalUsageEvent), (currentPosition: MessagePosition)) (meter : Meter) : Meter =
-        closeAndDebit event.Quantity currentPosition event.MeterName meter
+        closeAndDebit event.Quantity currentPosition event.MeterName MeterValue.applyConsumption meter
 
     let closePreviousHourIfNeeded (partitionTimestamp: MeteringDateTime) (meter: Meter) : Meter =
         let previousTimestamp = meter.LastProcessedMessage.PartitionTimestamp
@@ -88,36 +85,64 @@ module Meter =
         then meter |> closePreviousMeteringPeriod
         else meter
 
-    let handleUnsuccessfulMeterSubmission (error: MarketplaceSubmissionError) (messagePosition: MessagePosition) (meter: Meter) : Meter =
-        match error with
-        | DuplicateSubmission duplicate ->
-            meter |> removeUsageToBeReported duplicate.PreviouslyAcceptedMessage.RequestData
-        | ResourceNotFound notFound ->
+    let private removeUsageForMarketplaceSuccessResponse (successfulResponse: MarketplaceSuccessResponse) (meter: Meter) : Meter =
+        let request: MarketplaceRequest= successfulResponse.RequestData
+        { meter with UsageToBeReported = meter.UsageToBeReported |> List.filter (fun x -> x <> request )}
+
+    type UsageReportedRemovalResult =
+        | UsageReportRemovedFromMeter
+        | UsageReportNotFound
+
+    let private removeUsageForMarketplaceSubmissionError (submissionError: MarketplaceSubmissionError) (meter: Meter) : (UsageReportedRemovalResult * Meter) =
+        let failedRequest: MarketplaceRequest = MarketplaceSubmissionResult.requestFromError submissionError
+
+        if meter.UsageToBeReported |> List.contains failedRequest
+        then (UsageReportRemovedFromMeter, { meter with UsageToBeReported = meter.UsageToBeReported |> List.filter (fun x -> x <> failedRequest )})
+        else (UsageReportNotFound, meter)
+
+    let handleUnsuccessfulMeterSubmission (submissionError: MarketplaceSubmissionError) (messagePosition: MessagePosition) (meter: Meter) : Meter =
+        match submissionError with
+        | DuplicateSubmission _ ->
+            let (_status, meter) = removeUsageForMarketplaceSubmissionError submissionError meter
+            meter
+        | ResourceNotFound _ ->
+            let (_status, meter) = removeUsageForMarketplaceSubmissionError submissionError meter
             // TODO When the resource doesn't exist in marketplace, we need to raise some alarm bells here.
-            meter |> removeUsageToBeReported notFound.RequestData
+            meter
         | Expired expired ->
-            // Seems we're trying to submit something which is too old.
+            // Seems we're trying to submit a report which should have been submitted 24h ago (or even earlier).
             // Need to ring an alarm that the aggregator must be scheduled more frequently
-            // TODO: Submit compensating action for now?
+            match removeUsageForMarketplaceSubmissionError submissionError meter with
+            | (UsageReportNotFound, meter) ->
+                // if the usage was no longer in the meter, no need to do anything
+                meter
+            | (UsageReportRemovedFromMeter, meter) ->
+                // Now we need to find the correct meter to re-apply the consumption to.
+                // TODO: Submit compensating action for now?
+                let dimensionIdOfTheFailedSubmission = expired.RequestData.DimensionId
+                let theRightDimension (_, bd: BillingDimension) : bool =
+                    BillingDimension.hasDimensionId dimensionIdOfTheFailedSubmission bd
 
-            // Now we need to find the correct meter to re-apply the consumption to.
-            let theRightDimension (_, billingDimension: BillingDimension) : bool =
-                billingDimension |> BillingDimension.hasDimensionId expired.RequestData.DimensionId
+                let nameAndDimension =
+                    meter.Subscription.Plan.BillingDimensions
+                    |> Map.toSeq
+                    |> Seq.tryFind theRightDimension
 
-            let nameAndDimension =
-                meter.Subscription.Plan.BillingDimensions
-                |> Map.toSeq
-                |> Seq.tryFind theRightDimension
-
-            match nameAndDimension with
-            | None -> meter // It seems the dimension in question isn't part of the plan, that is impossible
-            | Some (applicationInternalMeterName, _billingDimension) -> meter |> closeAndDebit expired.RequestData.Quantity messagePosition applicationInternalMeterName
+                match nameAndDimension with
+                | None -> meter // It seems the dimension in question isn't part of the plan, that is impossible
+                | Some (applicationInternalMeterName, _billingDimension) ->
+                    // The quantity should have been reported a long time ago. Unfortunately, the aggregator didn't submit the report in time.
+                    // Now we compensate, by pretending as if the the usage happened *now*. Given that the usage is already reflected in the total,
+                    // we want to get it recorded without updating the total value.
+                    //
+                    let applyWithoutUpdatingTotal = MeterValue.accountForExpiredSubmission expired.RequestData.DimensionId
+                    closeAndDebit expired.RequestData.Quantity messagePosition applicationInternalMeterName applyWithoutUpdatingTotal meter
         | Generic _ ->
             meter
 
     let handleUsageSubmissionToAPI (item: MarketplaceResponse) (messagePosition: MessagePosition) (meter: Meter) : Meter =
         match item.Result with
-        | Ok success ->  meter |> removeUsageToBeReported success.RequestData
+        | Ok success ->  meter |> removeUsageForMarketplaceSuccessResponse success
         | Error error -> meter |> handleUnsuccessfulMeterSubmission error messagePosition
 
     /// Applies the updateBillingDimension function to each BillingDimension
