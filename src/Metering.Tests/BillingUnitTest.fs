@@ -28,32 +28,31 @@ type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * str
 type MeterValue_subtractQuantityFromMeterValue_Vector = { State: SimpleMeterValue; Quantity: Quantity; Expected: SimpleMeterValue}
 [<Test>]
 let ``MeterValue.subtractQuantity``() =
-    let created = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
-    let lastUpdate = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
-    let now = "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
+    let created =    "2021-10-28T11:38:00" |> MeteringDateTime.fromStr
+    let lastUpdate = "2021-10-28T12:38:00" |> MeteringDateTime.fromStr
+    let now =        "2021-10-28T13:38:00" |> MeteringDateTime.fromStr
     let test (idx, testcase) =
-
         let result = testcase.State |> SimpleMeterLogic.subtractQuantity now testcase.Quantity
         Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
 
     [
         {
             // deduct without overage
-            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
+            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; BillingPeriodTotal = Quantity.create 10u; Created = created; LastUpdate = lastUpdate}
             Quantity = Quantity.create 13u
-            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 17u; Created = created; LastUpdate = now}
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 17u; BillingPeriodTotal = Quantity.create 23u; Created = created; LastUpdate = now }
         }
         {
             // deplete completely
-            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; Created = created; LastUpdate = lastUpdate}
+            State = IncludedQuantity { RemainingQuantity = Quantity.create 30u; BillingPeriodTotal = Quantity.create 1u; Created = created; LastUpdate = lastUpdate}
             Quantity = Quantity.create 30u
-            Expected = IncludedQuantity { RemainingQuantity = Quantity.Zero; Created = created; LastUpdate = now}
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.Zero; BillingPeriodTotal = Quantity.create 31u; Created = created; LastUpdate = now }
         }
         {
             // If there's nothing, it costs money
-            State = IncludedQuantity { RemainingQuantity = Quantity.Zero; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { RemainingQuantity = Quantity.Zero; BillingPeriodTotal = Quantity.create 10u; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 2u
-            Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; BillingPeriodTotal = Quantity.create 2u; Created = created; LastUpdate = now }
+            Expected = ConsumedQuantity { CurrentHour = Quantity.create 2u; BillingPeriodTotal = Quantity.create 2u; Created = now; LastUpdate = now }
         }
         {
             // Going further into the overage
@@ -63,9 +62,9 @@ let ``MeterValue.subtractQuantity``() =
         }
         {
             // If there's infinite, it never gets depleted
-            State = IncludedQuantity { RemainingQuantity = Quantity.Infinite; Created = created; LastUpdate = lastUpdate }
+            State = IncludedQuantity { RemainingQuantity = Quantity.Infinite; BillingPeriodTotal = Quantity.create 100u; Created = created; LastUpdate = lastUpdate }
             Quantity = Quantity.create 200000u
-            Expected = IncludedQuantity { RemainingQuantity = Quantity.Infinite; Created = created; LastUpdate = now }
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.Infinite; BillingPeriodTotal = Quantity.create 200100u; Created = created; LastUpdate = now }
         }
     ] |> runTestVectors test
 
@@ -83,7 +82,7 @@ let ``MeterValue.createIncluded``() =
     [
         {
             Value = 9u
-            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 9u; Created = created; LastUpdate = now }
+            Expected = IncludedQuantity { RemainingQuantity = Quantity.create 9u; BillingPeriodTotal = Quantity.create 0u; Created = created; LastUpdate = now }
         }
     ] |> runTestVectors test
 

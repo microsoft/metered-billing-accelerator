@@ -136,18 +136,20 @@ module Json =
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode
 
         module IncludedQuantity =
-            let (quantity, created, lastUpdate) = ("quantity", "created", "lastUpdate")
+            let (remaining, consumedTotal, created, lastUpdate) = ("quantity", "consumed", "created", "lastUpdate")
 
             let encode (x: IncludedQuantity) : (string * JsonValue) list =
                 [
-                    (quantity, x.RemainingQuantity |> Quantity.Encoder)
+                    (remaining, x.RemainingQuantity |> Quantity.Encoder)
+                    (consumedTotal, x.BillingPeriodTotal |> Quantity.Encoder)
                     (created, x.Created |> MeteringDateTime.Encoder)
                     (lastUpdate, x.LastUpdate |> MeteringDateTime.Encoder)
                 ]
 
             let decode (get: Decode.IGetters) : IncludedQuantity =
                 {
-                    RemainingQuantity = get.Required.Field quantity Quantity.Decoder
+                    RemainingQuantity = get.Required.Field remaining Quantity.Decoder
+                    BillingPeriodTotal = get.Optional.Field consumedTotal Quantity.Decoder |> Option.defaultValue Quantity.Zero // Introducing this as an optional field, assuming 0 if not there.
                     Created = get.Required.Field created MeteringDateTime.Decoder
                     LastUpdate = get.Required.Field lastUpdate MeteringDateTime.Decoder
                 }
