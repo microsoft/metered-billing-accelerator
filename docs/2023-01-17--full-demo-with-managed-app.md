@@ -28,7 +28,42 @@ You can see quite a few dimensions here, but from an application perspective, we
 
    So our application just emits usage events for `bandwidth`, and the metered billing accelerator determines whether a gigabyte falls into the free tier, whether it fits int the `bandwidth-tier-a` (Next 10TB / Month), or one of the higher tiers. On the Azure pricing page, you can see that customers who send more than 500,1 TB into the Internet should "Contact us", and Microsoft doesn't list a price. However, our solution needs to know how to properly handle that overage, and that's what `bandwidth-tier-e` is for, i.e. overage above 500TB (and our 100 included GBs). 
 
-Once deployed, the managed application will contain 
+## Customer Deployment
+
+Once deployed, the managed resource group in the customer subscription will look like this: 
 
 ![Contents of the managed resource group](2023-01-17--managed-rg-contents.png)
 
+It will effectively contain a virtual machine, into which they can SSH, and then call a local executable to submit usage:
+
+```shell
+chgeuer@laptop:~$ ssh chgeuer@mymanagedapp.westeurope.cloudapp.azure.com
+
+Welcome to Ubuntu 20.04.5 LTS (GNU/Linux 5.15.0-1031-azure x86_64)
+
+chgeuer@vm:~$ submit-meter dimension-included 2
+
+Submit 2 for /subscriptions/.../resourceGroups/managed-app-resourcegroup/providers/microsoft.solutions/applications/mymanagedapp/ dimension-included
+
+HTTP/1.1 201 Created
+Transfer-Encoding: chunked
+Content-Type: application/xml; charset=utf-8
+Server: Microsoft-HTTPAPI/2.0
+Strict-Transport-Security: max-age=31536000
+Date: Tue, 17 Jan 2023 13:51:27 GMT
+
+Submission status: 201
+Duration: 0.414782 seconds
+```
+
+So after logging in, one will be able to submit a usage of 2 units of the `dimension-included`, and that will send the appropriate event into EventHub on the publisher side.
+
+## Setup
+
+### ISV Setup
+
+### Partner Center Offer
+
+### Managed App Package Configuration
+
+### Partner Center Package Upload
