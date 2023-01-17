@@ -57,10 +57,10 @@ module setupMeteredBillingConfigurationModule './nestedtemplates/meteredBillingD
   }
 }
 
-resource runtimeKeyVault 'Microsoft.KeyVault/vaults@2021-10-01' existing = {
-  name: setupMeteredBillingConfigurationModule.outputs.runtimeKeyVaultName
-  scope: resourceGroup()
-}
+// resource runtimeKeyVault 'Microsoft.KeyVault/vaults@2021-10-01' existing = {
+//   name: setupMeteredBillingConfigurationModule.outputs.runtimeKeyVaultName
+//   scope: resourceGroup()
+// }
 
 module submitInitialMeteringMessage './nestedtemplates/submitCreationMessage.bicep' = {
   name: 'submitInitialMeteringMessage'
