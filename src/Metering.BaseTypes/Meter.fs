@@ -9,7 +9,8 @@ open Metering.BaseTypes.EventHub
 type Meter =
     { Subscription: Subscription // The purchase information of the subscription
       UsageToBeReported: MarketplaceRequest list // a list of usage elements which haven't yet been reported to the metering API
-      LastProcessedMessage: MessagePosition } // Last message which has been applied to this Meter
+      LastProcessedMessage: MessagePosition // Last message which has been applied to this Meter
+      DeletionRequested: bool }
 
 module Meter =
     let matches (marketplaceResourceId: MarketplaceResourceId) (this: Meter) : bool =
@@ -162,7 +163,8 @@ module Meter =
         // When we receive the creation of a subscription
         { Subscription = subscriptionCreationInformation.Subscription
           LastProcessedMessage = messagePosition
-          UsageToBeReported = List.empty }
+          UsageToBeReported = List.empty
+          DeletionRequested = false }
         |> topupMonthlyCreditsOnNewSubscription messagePosition.PartitionTimestamp
 
     let toStr (pid: string) (m: Meter) =

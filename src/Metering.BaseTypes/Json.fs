@@ -686,8 +686,8 @@ module Json =
         module Meter =
             open Marketplace
 
-            let (subscription, currentMeters, usageToBeReported, lastProcessedMessage) =
-                ("subscription", "currentMeters", "usageToBeReported", "lastProcessedMessage");
+            let (subscription, currentMeters, usageToBeReported, lastProcessedMessage, deletionRequested) =
+                ("subscription", "currentMeters", "usageToBeReported", "lastProcessedMessage", "deletionRequested");
 
             let encode (x: Meter) : (string * JsonValue) list =
                 [
@@ -695,12 +695,18 @@ module Json =
                     (usageToBeReported, x.UsageToBeReported |> List.map MarketplaceRequest.Encoder |> Encode.list)
                     (lastProcessedMessage, x.LastProcessedMessage |> MessagePosition.Encoder)
                 ]
+                |> (fun l ->
+                    if x.DeletionRequested
+                    then (deletionRequested, x.DeletionRequested |> Encode.bool) :: l
+                    else l
+                )
 
             let decode (get: Decode.IGetters) : Meter =
                 {
                     Subscription = get.Required.Field subscription Subscription.Decoder
                     UsageToBeReported = get.Required.Field usageToBeReported (Decode.list MarketplaceRequest.Decoder)
                     LastProcessedMessage = get.Required.Field lastProcessedMessage MessagePosition.Decoder
+                    DeletionRequested = get.Optional.Field deletionRequested Decode.bool |> Option.defaultValue false
                 }
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode
