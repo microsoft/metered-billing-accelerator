@@ -12,7 +12,7 @@ public class ServicePrincipalCreatorSettings
     /// <summary>
     /// The object ID of the Azure Active Directory group where service principals should be added to.
     /// </summary>
-    public Guid SharedResourcesGroup { get; set; }
+    public string SharedResourcesGroup { get; set; }
 
     /// <summary>
     /// The name of the KeyVault where the BootstrapSecret can be found.

@@ -28,4 +28,4 @@ message=$1
 partition_key=$2
 access_token="$( "${basedir}/01_get_access_token_eventhubs.sh" )"
 
-eh_send_message_partition_id "${message}" "${partition_key}" "${access_token}"
+eh_send_message_partition_key "${message}" "${partition_key}" "${access_token}"

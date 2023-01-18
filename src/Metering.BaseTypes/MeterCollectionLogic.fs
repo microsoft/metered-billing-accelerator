@@ -118,21 +118,34 @@ module MeterCollectionLogic =
         state
         |> applyMetersInMeterCollection updateMeters
 
-    /// Removes a Meter with the given MarketplaceResourceId from the MeterCollection.
-    let private handleDeletedSubscription (marketplaceResourceId: MarketplaceResourceId) (state: MeterCollection) : MeterCollection =
-        let metersWithoutTheOne =  state.Meters |> List.filter (fun meter -> not (meter |> Meter.matches marketplaceResourceId))
-        { state with Meters = metersWithoutTheOne }
+    /// Remove all meters that are requested to be deleted, and have no usage still to be reported.
+    let private deleteAllDeletableSubscriptions (state: MeterCollection) : MeterCollection =
+        /// Meter is flagged for deletion and has no usage to be reported
+        let meterCanBeDeleted (meter: Meter) : bool = meter.DeletionRequested && (List.isEmpty meter.UsageToBeReported)
+        let meterMustRemain m = not (meterCanBeDeleted m)
+        state |> applyMetersInMeterCollection (List.filter meterMustRemain)
 
+    /// Flags a Meter for deletion.
+    let private handleSubscriptionDeletionRequest (marketplaceResourceId: MarketplaceResourceId) (state: MeterCollection) : MeterCollection =
+        // When the deletion request event comes in, we first flag the subscription for deletion, and we move all non-billed consumption
+        // **immediately** into the to-be-reported collection. Once these values are successfully submitted, we remove the subscription from the collection.
+        let setDeletionRequested meter = { meter with DeletionRequested = true }
+
+        let closeOutMeter: Meter -> Meter = Meter.closePreviousMeteringPeriod >> setDeletionRequested
+        let updateMeters = updateMeterForMarketplaceResourceId marketplaceResourceId closeOutMeter
+
+        state
+        |> applyMetersInMeterCollection updateMeters
 
     let private handleMarketplaceResponseReceived (submission: MarketplaceResponse) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         // TODO: Here I must check that there is a matching MarketplaceRequest that can be removed, before applying the compensating money.
         let marketplaceResourceId = MarketplaceSubmissionResult.marketplaceResourceId submission.Result
 
         let updateSingleMeter: Meter -> Meter = Meter.handleUsageSubmissionToAPI submission messagePosition
-        let updateList: Meter list -> Meter list = updateMeterForMarketplaceResourceId marketplaceResourceId updateSingleMeter
+        let updateMeters: Meter list -> Meter list = updateMeterForMarketplaceResourceId marketplaceResourceId updateSingleMeter
 
         state
-        |> applyMetersInMeterCollection updateList
+        |> applyMetersInMeterCollection updateMeters
 
     /// Iterate over all current meters, and check if one of the overages can be converted into a metering API event.
     let handleMeteringTimestamp (now: MeteringDateTime) (state: MeterCollection) : MeterCollection =
@@ -148,13 +161,14 @@ module MeterCollectionLogic =
         |> enforceStrictSequenceNumbers messagePosition  // This line throws an exception if we're not being fed the right event #
         |> match meteringUpdateEvent with
            | SubscriptionPurchased subscriptionCreationInformation -> handleAddedSubscription subscriptionCreationInformation messagePosition
-           | SubscriptionDeletion marketplaceResourceId -> handleDeletedSubscription marketplaceResourceId
+           | SubscriptionDeletion marketplaceResourceId -> handleSubscriptionDeletionRequest marketplaceResourceId
            | UsageSubmittedToAPI marketplaceResponse -> handleMarketplaceResponseReceived marketplaceResponse messagePosition
            | UsageReported internalUsageEvent -> handleUsageReport internalUsageEvent messagePosition
            | UnprocessableMessage upm -> handleUnprocessableMessage (UnprocessableMessage upm) messagePosition
            | RemoveUnprocessedMessages rupm -> handleRemoveUnprocessedMessages rupm
            | Ping _ -> id
         |> handleMeteringTimestamp messagePosition.PartitionTimestamp
+        |> deleteAllDeletableSubscriptions
         |> setLastProcessed messagePosition
 
     let handleMeteringEvents (meterCollection: MeterCollection option) (meteringEvents: EventHubEvent<MeteringUpdateEvent> list) : MeterCollection =
