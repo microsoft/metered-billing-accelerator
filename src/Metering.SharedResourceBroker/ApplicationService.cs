@@ -83,6 +83,7 @@ public class ApplicationService
                 .Filter($"startsWith(displayName,'{appName}')")
                 .Header("ConsistencyLevel", "eventual")
                 .GetAsync();
+
             if (applications.Any())
             {
                 var application = applications.First();
@@ -169,7 +170,7 @@ public class ApplicationService
                 try
                 {
                     //Add Service principal to the security group, which has permissions the resource(s).
-                    await _graphServiceClient.Groups[_appSettings.SharedResourcesGroup.ToString()].Members.References
+                    await _graphServiceClient.Groups[_appSettings.SharedResourcesGroup].Members.References
                          .Request()
                          .AddAsync(new DirectoryObject { Id = spr.Id });
                     _logger.LogTrace($"Service principal added to security group: {spr.Id}");
