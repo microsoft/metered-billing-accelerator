@@ -26,6 +26,8 @@ public class ResourceController : ControllerBase
         _applicationService = applicationService;
     }
 
+    // private async Task MarkSubscriptionForDeletion(string subscription, CancellationToken cancellationToken) { await Task.Delay(1, cancellationToken); }
+
     [ApiExplorerSettings(IgnoreApi = true)]
     [HttpPost]
     [Route("/resource")]
@@ -46,6 +48,7 @@ public class ResourceController : ControllerBase
             {
                 case (ProvisioningState.Deleted):
                     await _applicationService.DeleteApplication(data.ApplicationId);
+                    // await MarkSubscriptionForDeletion(data.ApplicationId, CancellationToken.None);
                     break;
                 case (ProvisioningState.Succeeded):
                 case (ProvisioningState.Deleting):
