@@ -8,6 +8,53 @@ open NUnit.Framework
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
 open Metering.EventHub
+open NodaTime
+
+type SequenceNumberGenerator() =
+    let mutable sequenceNumber = -1L
+    member _.Current() = sequenceNumber
+    member _.Next() =
+        sequenceNumber <- sequenceNumber + 1L
+        sequenceNumber
+
+[<Test>]
+let ``checkSequenceNumberGenerator``() =
+    let sg1 = SequenceNumberGenerator()
+    let sg2 = SequenceNumberGenerator()
+
+    Assert.AreEqual(0L, sg1.Next())
+    Assert.AreEqual(1L, sg1.Next())
+
+    Assert.AreEqual(0L, sg2.Next())
+    Assert.AreEqual(1L, sg2.Next())
+    Assert.AreEqual(2L, sg2.Next())
+    Assert.AreEqual(3L, sg2.Next())
+
+type TimeGenerator(startTime: string) =
+    let mutable now = MeteringDateTime.fromStr startTime
+    member this.InThisHour() =
+        now <- now.PlusSeconds(1)
+        now |> MeteringDateTime.toStr
+    member this.NextHour() =
+        let oneHourLater = now.PlusHours(1)
+        now <- MeteringDateTime.create (oneHourLater.Year) (oneHourLater.Month) (oneHourLater.Day) (oneHourLater.Hour) 0 1
+        now |> MeteringDateTime.toStr
+    member this.PreviousReportingHour() =
+        let previousHour = now.Minus(Duration.FromHours(1))
+        MeteringDateTime.create (previousHour.Year) (previousHour.Month) (previousHour.Day) (previousHour.Hour) 0 0 |> MeteringDateTime.toStr
+    member this.Plus(duration) =
+        now <- now.Plus(duration)
+        now |> MeteringDateTime.toStr
+    member this.Now() =
+        now |> MeteringDateTime.toStr
+
+[<Test>]
+let ``CheckTimeGenerator`` () =
+    let tg = TimeGenerator("2023-04-15T00:01:00Z")
+    Assert.AreEqual("2023-04-15T00:01:00Z", tg.Now())
+    Assert.AreEqual("2023-04-15T00:01:01Z", tg.InThisHour())
+    Assert.AreEqual("2023-04-15T00:01:02Z", tg.InThisHour())
+    Assert.AreEqual("2023-04-15T01:00:01Z", tg.NextHour())
 
 [<SetUp>]
 let Setup () = ()
@@ -23,9 +70,10 @@ let somePlan : Plan =
 let someManagedAppId =
     MarketplaceResourceId.fromStr "/subscriptions/.../resourceGroups/.../providers/Microsoft.Solutions/applications/myapp123"
 
-type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * string); BillingPeriodIndex: uint; Candidate: string; Expected: bool}
+type BillingPeriod_isInBillingPeriod_Vector = { Purchase: (RenewalInterval * string); BillingPeriodIndex: uint; Candidate: string; Expected: bool }
 
-type MeterValue_subtractQuantityFromMeterValue_Vector = { State: SimpleMeterValue; Quantity: Quantity; Expected: SimpleMeterValue}
+type MeterValue_subtractQuantityFromMeterValue_Vector = { State: SimpleMeterValue; Quantity: Quantity; Expected: SimpleMeterValue }
+
 [<Test>]
 let ``MeterValue.subtractQuantity``() =
     let lastUpdate = "2021-10-28T12:38:00" |> MeteringDateTime.fromStr
@@ -151,6 +199,32 @@ let ``Quantity.Math`` () =
 
     Assert.AreEqual(f 11.1, (q 3) + (f 8.1))
 
+let partitionId = "2"
+
+let createEvent sequenceNr timestamp (evnt: MeteringUpdateEvent) =
+    let timestamp = timestamp |> MeteringDateTime.fromStr
+    let messagePosition = MessagePosition.create partitionId sequenceNr timestamp
+    let eventToCatchup = None
+
+    EventHubEvent.createEventHub evnt messagePosition eventToCatchup
+
+let createSubsc (sequenceNr: int64) (timestamp: string) (sub: SubscriptionCreationInformation) =
+    sub |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent sequenceNr timestamp
+
+let createUsage (sub: MarketplaceResourceId) (dimension: string) (sequenceNr: int64) (timestamp: string) (amount: uint)  =
+    { InternalUsageEvent.MarketplaceResourceId = sub
+      Timestamp = timestamp |> MeteringDateTime.fromStr
+      MeterName = dimension |> ApplicationInternalMeterName.create
+      Quantity = amount |> Quantity.create
+      Properties = None }
+    |> MeteringUpdateEvent.UsageReported
+    |> createEvent sequenceNr timestamp
+
+let check (f: MeterCollection -> unit) (mc: MeterCollection) : MeterCollection =
+    // check is a little helper to run a lambda 'f' on a MeterCollection, and return the MeterCollection (for piping purposes)
+    f mc
+    mc
+
 [<Test>]
 let ``MeterCollectionLogic.handleMeteringEvent`` () =
     let sub1 = "saas-guid-1234" |> MarketplaceResourceId.fromStr
@@ -188,30 +262,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
             }
         }
 
-    let createEvent sequenceNr timestamp (evnt: MeteringUpdateEvent) =
-        let partitionId = "2"
-        let timestamp = timestamp |> MeteringDateTime.fromStr
-        let messagePosition = MessagePosition.create partitionId sequenceNr timestamp
-        let eventToCatchup = None
 
-        EventHubEvent.createEventHub evnt messagePosition eventToCatchup
-
-    let createSubsc sequenceNr timestamp sub =
-        sub |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent sequenceNr timestamp
-
-    let createUsage sub sequenceNr timestamp (amount: uint) dimension =
-        { InternalUsageEvent.MarketplaceResourceId = sub
-          Timestamp = timestamp |> MeteringDateTime.fromStr
-          MeterName = dimension |> ApplicationInternalMeterName.create
-          Quantity = amount |> Quantity.create
-          Properties = None }
-        |> MeteringUpdateEvent.UsageReported
-        |> createEvent sequenceNr timestamp
-
-    let check (f: MeterCollection -> unit) (mc: MeterCollection) : MeterCollection =
-        // check is a little helper to run a lambda 'f' on a MeterCollection, and return the MeterCollection (for piping purposes)
-        f mc
-        mc
 
     let checkSub (f: Meter -> unit)  (mc: Meter) : Meter =
         f mc
@@ -279,16 +330,12 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
         mc
 
-    // Have a little lambda closure which gives us a continuously increasing sequence number
-    let mutable sequenceNumber = 0L;
-    let sn () =
-        sequenceNumber <- sequenceNumber + 1L
-        sequenceNumber
+    let sn = SequenceNumberGenerator()
 
     let handle a b = MeterCollectionLogic.handleMeteringEvent b a
 
     let newusage sub date quantity dimension =
-        handle (createUsage sub (sn()) date quantity dimension)
+        handle (createUsage sub dimension (sn.Next()) date quantity)
 
     let assertIncluded sub dimension quantity =
         check (fun m -> getSimpleMeterValue m sub dimension |> includes quantity)
@@ -300,7 +347,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         check (fun m ->
             match m.LastUpdate with
             | None -> Assert.Fail "missing LastUpdate"
-            | Some u -> Assert.AreEqual(sequenceNumber, u.SequenceNumber)
+            | Some u -> Assert.AreEqual(sn.Current(), u.SequenceNumber)
         )
 
     let inspectJson (header: string) (a: 'a) : 'a =
@@ -315,7 +362,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
     MeterCollection.Empty
     // after the subscription creation ...
-    |> handle (createSubsc (sn()) "2021-11-29T17:04:00Z" (subCreation sub1 "2021-11-29T17:00:00Z"))
+    |> handle (createSubsc (sn.Next()) "2021-11-29T17:04:00Z" (subCreation sub1 "2021-11-29T17:00:00Z"))
     |> ensureSequenceNumberHasBeenApplied
     // ... all meters should be at their original levels
     |> check (fun m -> Assert.AreEqual(1, m.Meters.Length))
@@ -358,7 +405,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> assertUsageReported sub1 "dimension1" "2021-11-29T19:00:00Z" 5u
     |> assertOverallUsageToBeReported sub1 "dimension1" 6u
     // let's add an additional subscription to the system
-    |> handle (createSubsc (sn()) "2021-11-29T19:04:00Z" (subCreation sub2 "2021-11-29T18:58:00Z"))
+    |> handle (createSubsc (sn.Next()) "2021-11-29T19:04:00Z" (subCreation sub2 "2021-11-29T18:58:00Z"))
     |> ensureSequenceNumberHasBeenApplied
     // Now we should have 2 subsriptions
     |> check (fun m -> Assert.AreEqual(2, m.Meters.Length))
@@ -507,3 +554,142 @@ let ``MarketplaceResourceId.Equal`` () =
     Assert.IsTrue(i.Matches(ui))
     Assert.IsTrue(ui.Matches(i))
     Assert.IsFalse(u.Matches(i))
+
+[<Test>]
+let ``Meter.handleUnsuccessfulMeterSubmission.Expired``() =
+    let sn = SequenceNumberGenerator()
+    let tg = TimeGenerator("2023-04-15T00:01:00Z")
+
+    let sub1 = Guid.NewGuid().ToString() |> MarketplaceResourceId.fromStr
+    let bd = ApplicationInternalMeterName.create "m"
+
+    let sub =
+        {
+            Plan = {
+                PlanId = "p" |> PlanId.create
+                BillingDimensions =
+                    [
+                        (
+                            bd,
+                            {
+                                DimensionId = ("official-dimension-name" |> DimensionId.create)
+                                IncludedQuantity = Quantity.Zero
+                                Meter = None
+                            })
+                    ]
+                    |> List.map (fun (name, bd) -> (name, SimpleBillingDimension bd))
+                    |> Map.ofList
+            }
+            MarketplaceResourceId = sub1
+            RenewalInterval = Monthly
+            SubscriptionStart = tg.Now() |> MeteringDateTime.fromStr
+        }
+
+
+    let handle e mc = MeterCollectionLogic.handleMeteringEvent mc e
+
+    let assertSubscription (sub: MarketplaceResourceId) (applicationInternalMeterName: string) (m: uint) (meterCollection: MeterCollection) : unit =
+        let m = Quantity.MeteringInt m
+        let meter = meterCollection |> MeterCollection.find sub
+        let dim = meter.Subscription.Plan.BillingDimensions |> Map.find (ApplicationInternalMeterName.create applicationInternalMeterName)
+        match dim with
+        | SimpleBillingDimension sbd ->
+            match sbd.Meter with
+            | None -> ()
+            | Some x ->
+                match x with
+                | IncludedQuantity iq -> ()
+                | ConsumedQuantity cq -> Assert.AreEqual(m, cq.CurrentHour)
+        | WaterfallBillingDimension wbd ->
+            match wbd.Meter with
+            | None -> ()
+            | Some x -> Assert.AreEqual(m, x.Total)
+
+    let assertUsageToBeReported (expected: bool) expectedRequest (meterCollection: MeterCollection) : MeterCollection =
+        let containsElement =
+            meterCollection
+            |> MeterCollectionLogic.usagesToBeReported
+            |> List.contains expectedRequest
+
+        Assert.AreEqual(expected, containsElement)
+
+        meterCollection
+
+    let ping = PingMessage.create (partitionId |> PartitionID.create) PingReason.ProcessingStarting |> Ping
+
+    let simulateMarketplaceResponses (nowStr: string) (mc: MeterCollection) : MeterCollection =
+        let now = MeteringDateTime.fromStr nowStr
+        let responseHeaders = { RequestID = Guid.NewGuid().ToString(); CorrelationID = Guid.NewGuid().ToString() }
+
+        let responses =
+            mc
+            |> MeterCollectionLogic.usagesToBeReported
+            |> List.map (fun usage ->
+                let delta = now.Minus(usage.EffectiveStartTime)
+
+                if Duration.Zero <= delta && delta < Duration.FromHours(24)
+                then
+                    { Status = { Status = SubmissionStatus.Accepted; MessageTime = now; UsageEventID = None }
+                      RequestData = usage } |> Ok
+                else
+                    { Error = { MarketplaceError.Code = "BadArgument"; Target = Some "usageEventRequest"; Message = "One or more errors have occurred." }
+                      ErrorDetails = [ { MarketplaceError.Code = "BadArgument"; Target = Some "effectiveStartTime"; Message = "The effective time provided is has expired or is in future." } ]
+                      Status = { Status = SubmissionStatus.Expired; MessageTime = now; UsageEventID = None }
+                      RequestData = usage } |> Expired |> Error
+            )
+            |> List.map (fun e -> { MarketplaceResponse.Headers = responseHeaders; Result = e } |> UsageSubmittedToAPI)
+            |> List.map (fun e ->
+                let sequenceNumber = sn.Next()
+                printfn "%d %A" sequenceNumber e
+                createEvent sequenceNumber nowStr e
+                )
+
+        // apply all marketplace responses to the system
+        responses |> List.fold MeterCollectionLogic.handleMeteringEvent mc
+
+    let metersBeforeGoingSleepALongTime =
+        MeterCollection.Empty
+        |> handle ( { Subscription = sub } |> MeteringUpdateEvent.SubscriptionPurchased |> createEvent (sn.Next()) (tg.InThisHour()))
+        // In a new subscription, there are 3 units created in the 1st hour
+        |> handle (createUsage sub1 "m" (sn.Next()) (tg.InThisHour()) 1u) |> check (assertSubscription sub1 "m" 1u)
+        |> handle (createUsage sub1 "m" (sn.Next()) (tg.InThisHour()) 1u) |> check (assertSubscription sub1 "m" 2u)
+        |> handle (createUsage sub1 "m" (sn.Next()) (tg.InThisHour()) 1u) |> check (assertSubscription sub1 "m" 3u)
+        // Then 1 unit the next hour,
+        |> handle (createUsage sub1 "m" (sn.Next()) (tg.NextHour()) 1u) |> check (assertSubscription sub1 "m" 1u)
+    // Then the aggregator stops working
+
+
+    let expectedRequest1 =
+        { EffectiveStartTime = (tg.PreviousReportingHour() |> MeteringDateTime.fromStr)
+          DimensionId = ("official-dimension-name" |> DimensionId.create)
+          MarketplaceResourceId = sub.MarketplaceResourceId
+          Quantity = (Quantity.create 3u)
+          PlanId = sub.Plan.PlanId }
+    let expectedRequest2 =
+        { EffectiveStartTime = (tg.PreviousReportingHour() |> MeteringDateTime.fromStr).PlusHours(1)
+          DimensionId = ("official-dimension-name" |> DimensionId.create)
+          MarketplaceResourceId = sub.MarketplaceResourceId
+          Quantity = (Quantity.create 1u)
+          PlanId = sub.Plan.PlanId }
+
+    let resultAfterCatchup =
+        metersBeforeGoingSleepALongTime
+        |> handle (createEvent (sn.Next()) (tg.Plus(Duration.FromDays(2))) ping) // When the system wakes up after 2 days
+        |> assertUsageToBeReported true expectedRequest1 // Ensure we try to report 3 units the 1st hour
+        |> assertUsageToBeReported true expectedRequest2 // and 1 for the following hour
+        |> simulateMarketplaceResponses (tg.InThisHour()) // After rejection by marketplace
+        |> assertUsageToBeReported false expectedRequest1 // both usage reports should be removed from the TODO list
+        |> assertUsageToBeReported false expectedRequest2
+        |> check (assertSubscription sub1 "m" 4u) // and a compentating transaction for all 4 should be for the hour in which marketplace rejected.
+        |> handle (createEvent (sn.Next()) (tg.NextHour()) ping)
+
+    let expectedRequest3 =
+        { EffectiveStartTime = (tg.PreviousReportingHour() |> MeteringDateTime.fromStr)
+          DimensionId = ("official-dimension-name" |> DimensionId.create)
+          MarketplaceResourceId = sub.MarketplaceResourceId
+          Quantity = (Quantity.create 4u)
+          PlanId = sub.Plan.PlanId }
+
+    resultAfterCatchup
+    |> assertUsageToBeReported true expectedRequest3
+    |> ignore

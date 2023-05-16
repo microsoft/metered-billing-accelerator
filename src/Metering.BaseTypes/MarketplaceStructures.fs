@@ -96,10 +96,6 @@ type MarketplaceSubmissionStatus =
       /// The "usageEventId"
       UsageEventID: UsageEventID option }
 
-type MarketplaceErrorCode =
-    { Code: string
-      Message: string}
-
 type MarketplaceSuccessResponse =
     { ///  "resourceId/effectiveStartTime/planId/dimension/quantity"
       RequestData: MarketplaceRequest
@@ -115,18 +111,21 @@ type MarketplaceErrorDuplicate =
       /// ./error/additionalInfo/acceptedMessage/...
       PreviouslyAcceptedMessage: MarketplaceSuccessResponse }
 
-/// ./[code,message,target]
-type MarketplaceArgumentErrorData =
-    { Error: MarketplaceErrorCode
-      Target: string }
+type MarketplaceError =
+    { Code: string
+      Target: string option
+      Message: string }
 
-     override this.ToString() = $"{this.Error.Code}: {this.Error.Message}"
+     override this.ToString() =
+        match this.Target with
+        | None -> $"Code: {this.Code}: {this.Message}"
+        | Some target -> $"Code: {this.Code} (target: {target}): {this.Message}"
 
 type MarketplaceGenericError =
     { RequestData: MarketplaceRequest
       Status: MarketplaceSubmissionStatus
-      Error: MarketplaceArgumentErrorData
-      ErrorDetails: MarketplaceArgumentErrorData list }
+      Error: MarketplaceError
+      ErrorDetails: MarketplaceError list }
 
     override this.ToString() = this.Error.ToString()
 

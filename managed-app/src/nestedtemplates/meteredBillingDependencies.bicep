@@ -4,6 +4,7 @@ param location string
 @description('Location for scripts etc.')
 param _artifactsLocation string
 
+@secure()
 param _artifactsLocationSasToken string = ''
 
 @description('The bootstrap secret to request service principal creation')
@@ -176,6 +177,6 @@ output setupIdentityId string = setupIdentity.id
 output runtimeIdentityId string = runtimeIdentity.id
 output runtimeKeyVaultName string = names.runtimeKeyVault.name
 output meteringSubmissionSecretName string = names.runtimeKeyVault.meteringSubmissionSecretName
-
+output sas string = _artifactsLocationSasToken
 // Do not expose the service principal secret in an output, otherwise the customer could see it by looking at deployment operations
 // output keyVaultSecret object = reference(deploymentScript.name).outputs.keyVaultSecret
