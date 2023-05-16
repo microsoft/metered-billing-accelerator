@@ -93,7 +93,6 @@ module ManagementUtils =
                 match state with
                 | Some m -> m.MetersToBeSubmitted()
                 | None -> Seq.empty
-
         }
 
     [<Extension>]

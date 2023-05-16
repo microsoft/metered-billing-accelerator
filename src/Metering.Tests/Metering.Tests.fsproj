@@ -18,6 +18,7 @@
     <PackageReference Update="FSharp.Core" Version="7.0.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Metering.RuntimeCS\Metering.RuntimeCS.csproj" />
     <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
@@ -50,9 +51,7 @@
     <None Include="data\InternalDataStructures\Subscription list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\Plan.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\MeterCollection.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
-    <None Include="data\MarketplaceMessages\MarketplaceExpiredErrorResponse.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <None Include="data\MarketplaceMessages\MarketplaceExpiredErrorResponse.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\MarketplaceMessages\MarketplaceRequest.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\MarketplaceMessages\MarketplaceBatchRequest.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\MarketplaceMessages\MarketplaceSuccessResponse.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
@@ -61,6 +60,7 @@
     <None Include="data\MarketplaceMessages\MarketplaceBatchResponseDTO.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\Capture\p9--2022-12-09--16-50-12.avro"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <Compile Include="BillingUnitTest.fs" />
+    <Compile Include="PartitionIdTests.fs" />
     <Compile Include="WaterfallUnitTests.fs" />
     <Compile Include="SerializationUnitTest.fs" />
     <Compile Include="Program.fs" />
