@@ -50,6 +50,9 @@
     <None Include="data\InternalDataStructures\Subscription list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\Plan.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\MeterCollection.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\MarketplaceMessages\MarketplaceExpiredErrorResponse.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\MarketplaceMessages\MarketplaceRequest.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\MarketplaceMessages\MarketplaceBatchRequest.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\MarketplaceMessages\MarketplaceSuccessResponse.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
@@ -62,4 +65,5 @@
     <Compile Include="SerializationUnitTest.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
+  <ProjectExtensions><VisualStudio><UserProperties data_4marketplacemessages_4marketplacegenericerror_1json__JsonSchema="https://docs.renovatebot.com/renovate-schema.json" /></VisualStudio></ProjectExtensions>
 </Project>

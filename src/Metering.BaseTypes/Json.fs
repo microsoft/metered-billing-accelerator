@@ -515,20 +515,28 @@ module Json =
                         UsageEventID = get |> UsageEventID.decode
                     }
 
-            module MarketplaceErrorCode =
-                let (code, message) = ("code", "message")
+            module MarketplaceError =
+                let (code, target, message) = ("code", "target", "message")
 
-                let encode (x: MarketplaceErrorCode) =
+                let encode (x: MarketplaceError) =
                     [
                         (code, x.Code |> Encode.string)
                         (message, x.Message |> Encode.string)
                     ]
+                    |> (fun l ->
+                        match x.Target with
+                        | None -> l
+                        | Some t -> (target, t |> Encode.string) :: l)
+
 
                 let decode (get: Decode.IGetters) =
                     {
                         Code = get.Required.Field code Decode.string
+                        Target = get.Optional.Field target Decode.string
                         Message = get.Required.Field message Decode.string
                     }
+
+                let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode
 
             module MarketplaceSuccessResponse =
                 let encode (x: MarketplaceSuccessResponse) =
@@ -567,21 +575,6 @@ module Json =
                         PreviouslyAcceptedMessage = get.Required.At [ "error"; "additionalInfo"; "acceptedMessage" ] MarketplaceSuccessResponse.Decoder
                     }
 
-            module MarketplaceArgumentErrorData =
-                let encode (x: MarketplaceArgumentErrorData) : (string * JsonValue) list =
-                    [
-                        x.Error |> MarketplaceErrorCode.encode
-                        [ "target", x.Target |> Encode.string ]
-                    ] |> List.concat
-
-                let decode (get: Decode.IGetters) : MarketplaceArgumentErrorData =
-                    {
-                        Error = get |> MarketplaceErrorCode.decode
-                        Target = get.Required.Field "target" Decode.string
-                    }
-
-                let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode
-
             module MarketplaceGenericError =
                 let encode (x: MarketplaceGenericError) : (string * JsonValue) list =
                     [
@@ -589,8 +582,8 @@ module Json =
                         x.Status |> MarketplaceSubmissionStatus.encode
                         [ "error",
                             [
-                                x.Error |> MarketplaceArgumentErrorData.encode
-                                [ "details", x.ErrorDetails |> List.map MarketplaceArgumentErrorData.Encoder |> Encode.list ]
+                                x.Error |> MarketplaceError.encode
+                                [ "details", x.ErrorDetails |> List.map MarketplaceError.Encoder |> Encode.list ]
                             ] |> List.concat |> Encode.object
                         ]
                     ] |> List.concat
@@ -599,9 +592,10 @@ module Json =
                     {
                         RequestData = get |> MarketplaceRequest.decode
                         Status = get |> MarketplaceSubmissionStatus.decode
-                        Error = get.Required.At [ "error" ] MarketplaceArgumentErrorData.Decoder
-                        ErrorDetails = get.Required.At [ "error"; "details" ] (Decode.list MarketplaceArgumentErrorData.Decoder)
+                        Error = get.Required.At [ "error" ] MarketplaceError.Decoder
+                        ErrorDetails = get.Required.At [ "error"; "details" ] (Decode.list MarketplaceError.Decoder)
                     }
+
 
             module MarketplaceSubmissionError =
                 let encode (x: MarketplaceSubmissionError) : (string * JsonValue) list =
@@ -880,10 +874,9 @@ module Json =
         |> JsonUtil.withCustom Marketplace.MarketplaceBatchRequest.encode Marketplace.MarketplaceBatchRequest.decode
         |> JsonUtil.withCustom Marketplace.SubmissionStatus.encode Marketplace.SubmissionStatus.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceSubmissionStatus.encode Marketplace.MarketplaceSubmissionStatus.decode
-        |> JsonUtil.withCustom Marketplace.MarketplaceErrorCode.encode Marketplace.MarketplaceErrorCode.decode
+        |> JsonUtil.withCustom Marketplace.MarketplaceError.encode Marketplace.MarketplaceError.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceSuccessResponse.encode Marketplace.MarketplaceSuccessResponse.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceErrorDuplicate.encode Marketplace.MarketplaceErrorDuplicate.decode
-        |> JsonUtil.withCustom Marketplace.MarketplaceArgumentErrorData.encode Marketplace.MarketplaceArgumentErrorData.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceGenericError.encode Marketplace.MarketplaceGenericError.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceSubmissionError.encode Marketplace.MarketplaceSubmissionError.decode
         |> JsonUtil.withCustom Marketplace.MarketplaceBatchResponseDTO.encode Marketplace.MarketplaceBatchResponseDTO.decode

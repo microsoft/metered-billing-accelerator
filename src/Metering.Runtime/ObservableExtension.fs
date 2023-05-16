@@ -20,4 +20,3 @@ type public ObservableExtension =
                 source = o,
                 predicate = ((fun v -> v.IsSome) : ('TSource option -> bool))),
             selector = ((fun v -> v.Value):('TSource option -> 'TSource)))
-

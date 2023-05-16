@@ -2,16 +2,16 @@
   "status": "ResourceNotFound",
   "messageTime": "2021-12-14T20:59:40.7377957Z",
   "error": {
-    "message": "One or more errors have occurred.",
+    "code": "BadArgument",
     "target": "usageEventRequest",
+    "message": "One or more errors have occurred.",
     "details": [
       {
-        "message": "The resourceId value provided cannot be found or this resource is not active.",
+        "code": "BadArgument",
         "target": "resourceId",
-        "code": "BadArgument"
+        "message": "The resourceId value provided cannot be found or this resource is not active."
       }
-    ],
-    "code": "BadArgument"
+    ]
   },
   "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5441",
   "quantity": 9.1234567890123461,
