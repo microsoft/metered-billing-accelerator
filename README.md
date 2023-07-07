@@ -6,6 +6,11 @@
 
 > This component takes care of the accounting necessary for correctly reporting custom metering information to the Azure Marketplace Metering API. 
 
+Check-out these short videos on what metered billing, and what this project is about:
+
+- [What is metered billing? ](https://www.youtube.com/watch?v=62KoPN7uICk&list=PLmsFUfdnGr3wSJ-pevi9RR0J-p8gbhE3B&index=2)
+- [An introduction to the Metered Billing Accelerator](https://www.youtube.com/watch?v=OB8dcYvNlCM&list=PLmsFUfdnGr3wSJ-pevi9RR0J-p8gbhE3B&index=3)
+
 ## Table of contents
 
 - [Design goals](#design-goals)
