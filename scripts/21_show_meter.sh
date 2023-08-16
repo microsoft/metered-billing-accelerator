@@ -18,7 +18,7 @@ fi
 
 identifier=$1
 
-partition_id="$( partition_id --partition-count "$( "${basedir}/03_get_partition_count.sh" )" --partition-key "${identifier}" )"
+partition_id="$( ../bin/partition_id --partition-count "$( "${basedir}/03_get_partition_count.sh" )" --partition-key "${identifier}" )"
 # partition_id="7"
 
 meter="$(
