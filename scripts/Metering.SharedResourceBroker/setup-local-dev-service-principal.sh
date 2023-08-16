@@ -72,7 +72,7 @@ theObjectId="$( echo "${appJson}" | jq -r '.id' )"
 theAppId="$( echo "${appJson}" | jq -r '.appId' )"
 
 spCreationISVJSON="$( az ad sp create --id "${theAppId}" )"
-spISVId="$( echo "${spCreationISVJSON}" | jq -r .id )"
+spISVId="$( echo "${spCreationISVJSON}" | jq -r '.id' )"
 
 put-value '.creds.appObjectId' "${theObjectId}"
 put-value '.creds.appAppId'    "${theAppId}"

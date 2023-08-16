@@ -53,7 +53,7 @@ access_token="( curl \
     --data-urlencode "client_id=${AZURE_METERING_INFRA_CLIENT_ID}" \
     --data-urlencode "client_secret=${AZURE_METERING_INFRA_CLIENT_SECRET}" \
     --data-urlencode "scope=https://eventhubs.azure.net/.default" \
-    | jq -r ".access_token" )"
+    | jq -r '.access_token' )"
 
 json="$( echo "{}"                                                                      \
     | jq --arg x "UsageReported"                       '.type=($x)'              \

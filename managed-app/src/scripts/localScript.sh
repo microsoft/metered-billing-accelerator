@@ -55,12 +55,15 @@ loginMicrosoftonlineCom="$( unEscapeHardcodedURL 'login dot microsoftonline dot 
 #
 # Fetch secret from KeyVault
 #
-keyVaultAccessToken="$( curl --silent --get --header "Metadata: true" \
-      --data-urlencode "api-version=2018-02-01" \
-      --data-urlencode "resource=https://${vaultAzureNet}" \
-      --data-urlencode "mi_res_id=${uamiId}" \
-      --url "http://169.254.169.254/metadata/identity/oauth2/token" | \
-      jq -r ".access_token" )"
+keyVaultAccessToken="$( curl \
+  --silent \
+  --get \
+  --header "Metadata: true" \
+  --data-urlencode "api-version=2018-02-01" \
+  --data-urlencode "resource=https://${vaultAzureNet}" \
+  --data-urlencode "mi_res_id=${uamiId}" \
+  --url "http://169.254.169.254/metadata/identity/oauth2/token" \
+  | jq -r '.access_token' )"
 
 echo "${keyVaultAccessToken}" | jq -R 'split(".")|.[1]|@base64d|fromjson' 
 
@@ -69,10 +72,10 @@ echo "${keyVaultAccessToken}" | jq -R 'split(".")|.[1]|@base64d|fromjson'
 #
 keyVaultApiVersion="7.3"
 secretVersion="$( curl --silent --get \
+  --url "https://${keyVaultName}.${vaultAzureNet}/secrets/${keyVaultSecretName}/versions" \
   --header "Authorization: Bearer ${keyVaultAccessToken}" \
   --data-urlencode "api-version=${keyVaultApiVersion}" \
-  --url "https://${keyVaultName}.${vaultAzureNet}/secrets/${keyVaultSecretName}/versions" | \
-  jq -r ".value | sort_by(.attributes.created) | .[-1].id")"
+  | jq -r '.value | sort_by(.attributes.created) | .[-1].id' )"
 
 #
 # Fetch the actual secret's value
@@ -80,22 +83,23 @@ secretVersion="$( curl --silent --get \
 secret="$( curl --silent \
   --url "${secretVersion}?api-version=${keyVaultApiVersion}" \
   --header "Authorization: Bearer ${keyVaultAccessToken}" \
-  | jq -r ".value" )"
+  | jq -r '.value' )"
 
 settingsSecretName="meteringsettings"
 settingsSecretVersion="$( curl --silent --get \
+  --url "https://${keyVaultName}.${vaultAzureNet}/secrets/${settingsSecretName}/versions" \
   --header "Authorization: Bearer ${keyVaultAccessToken}" \
   --data-urlencode "api-version=${keyVaultApiVersion}" \
-  --url "https://${keyVaultName}.${vaultAzureNet}/secrets/${settingsSecretName}/versions" | \
-  jq -r ".value | sort_by(.attributes.created) | .[-1].id")"
+  | jq -r '.value | sort_by(.attributes.created) | .[-1].id' )"
 settings="$( curl --silent \
   --url "${settingsSecretVersion}?api-version=${keyVaultApiVersion}" \
   --header "Authorization: Bearer ${keyVaultAccessToken}" \
-  | jq -r ".value" )"
+  | jq -r '.value' )"
+
 echo "${settings}" | jq
 
-managedBy="$( echo "${settings}" | jq -r .managedBy )"
-meteringEventHub="$( echo "${settings}" | jq -r .amqpEndpoint )"
+managedBy="$( echo "${settings}" | jq -r '.managedBy' )"
+meteringEventHub="$( echo "${settings}" | jq -r '.amqpEndpoint' )"
 
 publisherServicePrincipalClientId="$( echo "${secret}" | jq -r '.ClientID' )"
 publisherServicePrincipalClientSecret="$( echo "${secret}" | jq -r '.ClientSecret' )"
@@ -112,7 +116,7 @@ accessTokenToAccessPublisherResources="$(curl \
   --data-urlencode "client_id=${publisherServicePrincipalClientId}" \
   --data-urlencode "client_secret=${publisherServicePrincipalClientSecret}" \
   --data-urlencode "scope=${publisherResource}" \
-  | jq -r ".access_token")"
+  | jq -r '.access_token' )"
 
 # Print out access token claims
 echo "${keyVaultAccessToken}" | jq -R 'split(".")|.[1]|@base64d|fromjson' 
@@ -121,8 +125,8 @@ echo "${accessTokenToAccessPublisherResources}" | jq -R 'split(".")|.[1]|@base64
 echo "Metering event hub: ${meteringEventHub}
 ManagedBy: ${managedBy}"
 
-customerAADTenant="$( echo "${keyVaultAccessToken}" | jq -R 'split(".")|.[1]|@base64d|fromjson'  | jq -r .iss )"
-publisherAADTenant="$( echo "${accessTokenToAccessPublisherResources}" | jq -R 'split(".")|.[1]|@base64d|fromjson'  | jq -r .iss )"
+customerAADTenant="$( echo "${keyVaultAccessToken}" | jq -R 'split(".")|.[1]|@base64d|fromjson | .iss' )"
+publisherAADTenant="$( echo "${accessTokenToAccessPublisherResources}" | jq -R 'split(".")|.[1]|@base64d|fromjson|.iss' )"
 
 echo "Customer AAD: ${customerAADTenant}
 Publisher AAD: ${publisherAADTenant}"
@@ -135,15 +139,15 @@ echo "${secret}" | jq . > /etc/metering-config.json
 # managementApi="https://management.azure.com/"
 # 
 # managementAccessToken="$( curl --silent --get --header "Metadata: true" \
+#       --url "http://169.254.169.254/metadata/identity/oauth2/token" \
 #       --data-urlencode "api-version=2018-02-01" \
 #       --data-urlencode "resource=${managementApi}" \
-#       --url "http://169.254.169.254/metadata/identity/oauth2/token" | \
-#       jq -r ".access_token" )"
+#       | jq -r '.access_token' )"
 # 
-# echo "${managementAccessToken}" | jq -R 'split(".")|.[1]|@base64d|fromjson' 
+# echo "${managementAccessToken}" | jq -R 'split(".")|.[1]|@base64d|fromjson'
 # 
 # curl --silent --get \
+#   --url "${managementApi}${managedBy}" \
 #   --header "Authorization: Bearer ${managementAccessToken}" \
 #   --data-urlencode "api-version=2021-07-01" \
-#   --url "${managementApi}${managedBy}" \
-#   | jq . > /tmp/m.json
+#   | jq '.' > /tmp/m.json

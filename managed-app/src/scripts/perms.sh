@@ -16,7 +16,7 @@ az login --tenant "${publisherTenant}" --use-device-code
 
 publisherToken="$( az account get-access-token \
      --tenant "${publisherTenant}" \
-     --resource-type arm | jq -r .accessToken)"
+     --resource-type arm | jq -r '.accessToken' )"
 
 echo "${publisherToken}" | jq -R 'split(".")|.[1]|@base64d|fromjson' 
 
@@ -31,11 +31,11 @@ access_token="$( curl --silent --request POST \
    --url "https://management.azure.com${managedApp}/listTokens?api-version=2019-07-01" \
    --header "Authorization: Bearer ${publisherToken}" \
    --header "Content-Type: application/json" \
-   --data '{"authorizationAudience": "https://vault.azure.net"}' \
+   --data '{ "authorizationAudience": "https://vault.azure.net" }' \
    | jq -r '.value[0].access_token' )"
 
 # "xms_mirid": "/subscriptions/724467b5-bee4-484b-bf13-d6a5505d2b51/resourcegroups/managed-app-resourcegroup/providers/Microsoft.Solutions/applications/chgeuer202207251"
-echo "${access_token}" | jq -R 'split(".")|.[1]|@base64d|fromjson' | jq .xms_mirid
+echo "${access_token}" | jq -R 'split(".")|.[1]|@base64d|fromjson|.xms_mirid'
 
 # param principalId string
 # param roleId string
