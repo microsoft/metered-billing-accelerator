@@ -26,7 +26,7 @@ param skuCapacity int = 1
 //Container App params 
 param minReplicas int = 1
 
-param containerImage string = 'ghcr.io/gjoshevski/metered-billing-accelerator:main'
+param containerImage string = 'ghcr.io/microsoft/metered-billing-accelerator:main'
 param isPrivateRegistry bool = false
 
 param containerRegistry string  = 'ghcr.io'
