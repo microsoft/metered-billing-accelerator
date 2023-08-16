@@ -18,7 +18,7 @@ function get_access_token {
     --data-urlencode "client_id=${AZURE_METERING_INFRA_CLIENT_ID}" \
     --data-urlencode "client_secret=${AZURE_METERING_INFRA_CLIENT_SECRET}" \
     --data-urlencode "scope=https://eventhubs.azure.net/.default" \
-    | jq -r ".access_token"
+    | jq -r '.access_token'
 }
 
 # function createBatchUsage {

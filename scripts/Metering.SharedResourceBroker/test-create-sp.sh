@@ -131,8 +131,8 @@ echo "notificationSecret: ${notificationSecret}"
 echo "POST'ing to https://${websiteName}.azurewebsites.net/resource?sig=${notificationSecret}: "
 
 status="$( curl \
-  --request POST \
   --silent \
+  --request POST \
   --url "https://${websiteName}.azurewebsites.net/resource?sig=${notificationSecret}" \
   --header 'Content-Type: application/json' \
   --data "$( echo "{}" \

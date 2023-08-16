@@ -126,7 +126,7 @@ then
     
     # az provider show -n Microsoft.Solutions
     
-    applianceResourceProviderObjectID="$( az ad sp list --display-name "Appliance Resource Provider" | jq -r .[0].id )"
+    applianceResourceProviderObjectID="$( az ad sp list --display-name "Appliance Resource Provider" | jq -r '.[0].id' )"
 
     put-value "${jsonpath}" "${applianceResourceProviderObjectID}"
 fi
@@ -134,7 +134,7 @@ echo "🔑 Appliance Resource Provider ID: ${applianceResourceProviderObjectID}"
 
 msgraph="$( az ad sp show --id 00000003-0000-0000-c000-000000000000 | jq . )"
 # echo "${msgraph}" | jq .
-put-value '.aad.msgraph.resourceId' "$( echo "${msgraph}" | jq -r .id )"
+put-value '.aad.msgraph.resourceId' "$( echo "${msgraph}" | jq -r '.id' )"
 put-value '.aad.msgraph.appRoleId'  "$( echo "${msgraph}" | jq -r '.appRoles[] | select(.value | contains("Application.ReadWrite.OwnedBy")) | .id' )"
 
 #
