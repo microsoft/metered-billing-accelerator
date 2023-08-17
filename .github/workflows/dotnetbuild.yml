@@ -50,11 +50,14 @@ jobs:
            dotnet publish --nologo --no-restore --no-build --configuration Release --output publish
            cd publish
            zip -r ../zip-deploy-${{ matrix.application }}.zip *
+           cd ..
+           pwd
+           ls -als
     - name: Upload ${{ matrix.application }} Build Artifacts
       uses: actions/upload-artifact@v2
       with:
         name: ${{ matrix.application }}.${{env.NBGV_SemVer2}}
-        path: src/${{ matrix.application }}//bin/Debug/net7.0
+        path: src/${{ matrix.application }}/zip-deploy-${{ matrix.application }}.zip
    release:
      name: Release Build
      needs: build
