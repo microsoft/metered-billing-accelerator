@@ -8,13 +8,14 @@ on:
     branches: [ main ]
     paths:
       - './src/**'
-  
+
 env:
-  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
-  
+  DOTNET_NOLOGO: "true"
+
 jobs:
-   build:
+  build:
     strategy:
       matrix:
         application: [ Aggregator, Metering.SharedResourceBroker ]
@@ -39,7 +40,7 @@ jobs:
       run: dotnet restore
     - name: Build
       working-directory: ./src
-      run: dotnet build --nologo --no-restore --configuration Release
+      run: dotnet build --no-restore --configuration Release
     - name: Test
       working-directory: ./src
       run: dotnet test --no-build --configuration Release --verbosity normal
@@ -47,7 +48,7 @@ jobs:
       working-directory: ./src
       run: |
            cd ${{ matrix.application }}
-           dotnet publish --nologo --no-restore --no-build --configuration Release --output publish
+           dotnet publish --no-restore --no-build --configuration Release --output publish
            cd publish
            zip -r ../zip-deploy-${{ matrix.application }}.zip *
            cd ..
@@ -58,25 +59,34 @@ jobs:
       with:
         path: src/${{ matrix.application }}/zip-deploy-${{ matrix.application }}.zip
         name: ${{ matrix.application }}.${{env.NBGV_SemVer2}}
-   release:
-     name: Release Build
-     needs: build
-     runs-on: ubuntu-latest
-     steps:
-     - uses: actions/download-artifact@v3
-     - name: Display structure of downloaded files
-       run: | 
-           ls -R 
-           find . -type f
-           echo '${{ toJSON(job) }}'
-           echo '${{ toJSON(steps) }}'
-     - name: Release
-       uses: softprops/action-gh-release@v1
-       with:
-         name: Release-${{needs.build.outputs.tagVersion}}
-         tag_name: ${{needs.build.outputs.tagVersion}} 
-         fail_on_unmatched_files: true
-         generate_release_notes: true
-         files: |
-            "zip_aggregator=Aggregator.${{needs.build.outputs.tagVersion}}/zip-deploy-Aggregator.zip"
-            "zip_SharedResourceBroker=Metering.SharedResourceBroker.${{needs.build.outputs.tagVersion}}/zip-deploy-Metering.SharedResourceBroker.zip"
+  release:
+    name: Release Build
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/download-artifact@v3
+    - name: Display structure of downloaded files
+      run: | 
+          ls -R 
+          find . -type f
+          echo '${{ toJSON(job) }}'
+          echo '${{ toJSON(steps) }}'
+    - name: Archive build
+      id: build_archive
+      run: |
+        archive_path=Aggregator.${{needs.build.outputs.tagVersion}}/zip-deploy-Aggregator.zip
+        echo "zip_agg=$archive_path" >> $GITHUB_OUTPUT
+        archive_path=Metering.SharedResourceBroker.${{needs.build.outputs.tagVersion}}/zip-deploy-Metering.SharedResourceBroker.zip
+        echo "zip_srb=$archive_path" >> $GITHUB_OUTPUT
+        echo "Created the file $GITHUB_OUTPUT with the following content: "
+        cat $GITHUB_OUTPUT
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release-${{needs.build.outputs.tagVersion}}
+        tag_name: ${{needs.build.outputs.tagVersion}} 
+        fail_on_unmatched_files: true
+        generate_release_notes: true
+        files: |
+           ${{ steps.build_archive.outputs.zip_agg }}
+           ${{ steps.build_archive.outputs.zip_srb }}
