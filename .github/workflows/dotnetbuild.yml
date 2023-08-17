@@ -48,7 +48,7 @@ jobs:
       working-directory: ./src
       run: |
         cd ${{ matrix.application }}
-        dotnet publish --no-restore --configuration Release --os win-x64 --output publishFolder
+        dotnet publish --no-restore --configuration Release --os win --output publishFolder
         cd publishFolder
         zip -r ../zip-deploy-${{ matrix.application }}-win-x64.zip *
     - name: Upload ${{ matrix.application }} build artifact
