@@ -41,13 +41,17 @@ jobs:
     - name: Build and Test (on Linux), then build a Windows release
       working-directory: ./src
       run: |
-        dotnet build --no-restore --configuration Release
-        dotnet test  --no-build   --configuration Release --verbosity normal
+        dotnet build --no-restore
+        dotnet test --no-build --verbosity normal
     - name: Build and Publish ${{ matrix.application }} for Windows ZIP deployment
       working-directory: ./src
       run: |
         cd ${{ matrix.application }}
-        dotnet publish --no-restore --configuration Release --os win --output publishFolder
+        dotnet publish \
+          -r win-x64 \
+          --self-contained true \
+          --configuration Release \
+          --output publishFolder
         cd publishFolder
         zip -r ../zip-deploy-${{ matrix.application }}-win-x64.zip *
     - name: Upload ${{ matrix.application }} build artifact
