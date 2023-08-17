@@ -92,9 +92,10 @@ groupId="$( get-value "${jsonpath}" )"
 
 if [ -z "${groupId}" ] || [ "${groupId}" == "null" ]
 then
+    echo "⚙️ Creating group with display name \"$( get-value '.initConfig.aadDesiredGroupName' )\" and nickname \"$( get-value '.initConfig.aadDesiredGroupNickname' )\""
     groupId="$( az ad group create \
         --display-name  "$( get-value '.initConfig.aadDesiredGroupName' )" \
-        --mail-nickname "$( get-value '.initConfig.aadDesiredGroupName' )" \
+        --mail-nickname "$( get-value '.initConfig.aadDesiredGroupNickname' )" \
         | jq -r .id )"
 
     put-value "${jsonpath}" "${groupId}"
@@ -187,7 +188,10 @@ az ad group owner add \
     --group           "${groupName}" \
     --owner-object-id "$( get-value '.aad.managedIdentityPrincipalID' )" 
 
-# Allow the managed identity to create service principals
+# Allow the managed identity to create service principals.
+#
+# The person running this script needs to be a global admin in the AAD tenant.
+#
 az rest \
     --method POST \
     --uri "https://graph.microsoft.com/v1.0/servicePrincipals/$( get-value '.aad.managedIdentityPrincipalID' )/appRoleAssignments" \
@@ -196,8 +200,7 @@ az rest \
                | jq --arg x "$( get-value '.aad.managedIdentityPrincipalID' )" '.principalId=$x' \
                | jq --arg x "$( get-value '.aad.msgraph.resourceId')"          '.resourceId=$x' \
                | jq --arg x "$( get-value '.aad.msgraph.appRoleId')"           '.appRoleId=$x' \
-             )" \
-    > /dev/null 2>&1
+             )"
 
 put-json-value '.managedApp.meteringConfiguration' "$( echo "{}" \
   | jq --arg x "https://$( get-value '.names.appService' ).azurewebsites.net" '.servicePrincipalCreationURL=$x' \

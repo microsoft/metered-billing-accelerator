@@ -4,6 +4,7 @@
     "location": "westeurope",
     "resourceGroupName": "the-resource-group-in-which-the-isv-resources-will-be-placed",
     "seed": "some-unique-name-which-will-be-used-to-derive-resource-names",
+    "aadDesiredGroupNickname": "shortalias",
     "aadDesiredGroupName": "the-name-of-the-azure-ad-group-in-which-the-service-principals-will-be-placed",
     "useAppInsights": false
   },

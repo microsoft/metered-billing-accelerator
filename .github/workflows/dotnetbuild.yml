@@ -40,10 +40,17 @@ jobs:
       run: dotnet restore
     - name: Build
       working-directory: ./src
-      run: dotnet build --nologo --no-restore
+      run: dotnet build --nologo --no-restore --configuration Release
     - name: Test
       working-directory: ./src
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --configuration Release --verbosity normal
+    - name: Publish
+      if: matrix.platform == 'windows-latest'
+      working-directory: ./src/${{ matrix.application }}
+      run: |
+           dotnet publish --nologo --no-restore --no-build --configuration Release --output bin/Release/net7.0/${{ matrix.platform }}
+           cd bin/Release/net7.0/${{ matrix.platform }}
+           zip -r ../../../../../../zip-deploy-${{ matrix.application }}-${{ matrix.platform }}.zip *
     - name: Upload ${{ matrix.application }} Build Artifacts
       uses: actions/upload-artifact@v2
       with:
@@ -51,7 +58,7 @@ jobs:
         path: src/${{ matrix.application }}/bin/Debug/net7.0
    release:
     name: Release Build
-    runs-on: [ubuntu-latest]
+    runs-on: [windows-latest]
     needs: build
     steps:
       - uses: actions/download-artifact@v3
@@ -60,34 +67,6 @@ jobs:
             ls -R 
             echo '${{ toJSON(job) }}'
             echo '${{ toJSON(steps) }}'
-      - name: Archive windows build
-        id: windows_build_archive
-        run: |
-          cd           Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}
-          zip -r    ../Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}.zip . && cd ..
-          archive_path=Aggregator.windows-latest.${{needs.build.outputs.tagVersion}}.zip
-          echo "archive_path_Aggregator=$archive_path" >> $GITHUB_OUTPUT
-
-          cd           Metering.SharedResourceBroker.windows-latest.${{needs.build.outputs.tagVersion}}
-          zip -r    ../Metering.SharedResourceBroker.windows-latest.${{needs.build.outputs.tagVersion}}.zip . && cd ..
-          archive_path=Metering.SharedResourceBroker.windows-latest.${{needs.build.outputs.tagVersion}}.zip
-          echo "archive_path_SharedResourceBroker=$archive_path" >> $GITHUB_OUTPUT
-
-          ls -als *.zip
-      - name: Archive ubuntu build
-        id: ubuntu_build_archive
-        run: |
-          cd           Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}
-          zip -r    ../Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip . && cd ..
-          archive_path=Aggregator.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip
-          echo "archive_path_Aggregator=$archive_path" >> $GITHUB_OUTPUT
-
-          cd           Metering.SharedResourceBroker.ubuntu-latest.${{needs.build.outputs.tagVersion}}
-          zip -r    ../Metering.SharedResourceBroker.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip . && cd ..
-          archive_path=Metering.SharedResourceBroker.ubuntu-latest.${{needs.build.outputs.tagVersion}}.zip
-          echo "archive_path_SharedResourceBroker=$archive_path" >> $GITHUB_OUTPUT
-
-          ls -als *.zip
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
@@ -96,7 +75,6 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            ${{ steps.windows_build_archive.outputs.archive_path_Aggregator }}
-            ${{ steps.ubuntu_build_archive.outputs.archive_path_Aggregator }}
-            ${{ steps.windows_build_archive.outputs.archive_path_SharedResourceBroker }}
-            ${{ steps.ubuntu_build_archive.outputs.archive_path_SharedResourceBroker }}
+            zip_deploy_windows_aggregator=zip-deploy-Aggregator-windows-latest.zip
+            zip_deploy_windows_SharedResourceBroker=zip-deploy-Metering.SharedResourceBroker-windows-latest.zip
+
