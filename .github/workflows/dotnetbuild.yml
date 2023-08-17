@@ -14,13 +14,13 @@ env:
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
   
 jobs:
-   runs-on: ubuntu-latest
    build:
     strategy:
       matrix:
         application: [ Aggregator, Metering.SharedResourceBroker ]
     outputs:
       tagVersion: ${{ steps.nbgv.outputs.SemVer2 }}
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
       with:
@@ -58,6 +58,7 @@ jobs:
    release:
      name: Release Build
      needs: build
+     runs-on: ubuntu-latest
      steps:
      - uses: actions/download-artifact@v3
      - name: Display structure of downloaded files
