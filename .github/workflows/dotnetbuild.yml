@@ -69,6 +69,11 @@ jobs:
            ls -R 
            echo '${{ toJSON(job) }}'
            echo '${{ toJSON(steps) }}'
+     - name: Archive ubuntu build
+       id: build_archive
+       run: |
+          echo "zip_aggregator=zip-deploy-Aggregator.zip" >> $GITHUB_OUTPUT
+          echo "zip_SharedResourceBroker=zip-deploy-Metering.SharedResourceBroker.zip" >> $GITHUB_OUTPUT
      - name: Release
        uses: softprops/action-gh-release@v1
        with:
@@ -77,5 +82,5 @@ jobs:
          fail_on_unmatched_files: true
          generate_release_notes: true
          files: |
-           zip_aggregator=zip-deploy-Aggregator.zip
-           zip_SharedResourceBroker=zip-deploy-Metering.SharedResourceBroker.zip
+            ${{ steps.build_archive.outputs.zip_aggregator }}
+            ${{ steps.build_archive.outputs.zip_SharedResourceBroker }}
