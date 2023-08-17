@@ -41,6 +41,9 @@ jobs:
     - name: Build
       working-directory: ./src
       run: dotnet build --nologo --no-restore --configuration Release
+    - name: Test
+      working-directory: ./src
+      run: dotnet test --no-build --configuration Release --verbosity normal
     - name: Publish
       if: matrix.platform == 'windows-latest'
       working-directory: ./src/${{ matrix.application }}
@@ -48,9 +51,6 @@ jobs:
            dotnet publish --nologo --no-restore --no-build --configuration Release --output bin/Release/net7.0/${{ matrix.platform }}
            cd bin/Release/net7.0/${{ matrix.platform }}
            zip -r ../../../../../../zip-deploy-${{ matrix.application }}-${{ matrix.platform }}.zip *
-    - name: Test
-      working-directory: ./src
-      run: dotnet test --no-build --verbosity normal
     - name: Upload ${{ matrix.application }} Build Artifacts
       uses: actions/upload-artifact@v2
       with:
