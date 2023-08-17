@@ -14,7 +14,7 @@ function eh_send_message_partition_key {
     --header "Content-Type: application/atom+xml;type=entry;charset=utf-8" \
     --header "BrokerProperties: {\"PartitionKey\": \"${partition_key}\"}" \
     --write-out 'Submission status: %{http_code}\nDuration: %{time_total} seconds\n\n' \
-    --data "${message}"    
+    --data "${message}"
 }
 
 if [ $# -ne 2 ]; then 
