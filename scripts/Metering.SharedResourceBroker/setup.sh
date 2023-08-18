@@ -194,7 +194,7 @@ az ad group owner add \
 
 # Allow the managed identity to create service principals.
 #
-# The person running this script needs to be a global admin in the AAD tenant.
+# The person running this script needs to be a global admin (or similar 😬) in the AAD tenant.
 #
 az rest \
     --method POST \
