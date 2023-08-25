@@ -158,7 +158,7 @@ module MarketplaceSubmissionResult =
 
     let requestFromError (error: MarketplaceSubmissionError) : MarketplaceRequest =
         match error with
-        | DuplicateSubmission d -> d.PreviouslyAcceptedMessage.RequestData
+        | DuplicateSubmission d -> d.FailedRequest
         | ResourceNotFound e -> e.RequestData
         | Expired e -> e.RequestData
         | Generic e -> e.RequestData
