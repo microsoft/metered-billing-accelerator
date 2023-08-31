@@ -145,8 +145,12 @@ webAppVersion="$( jq -r '.version' < "${basedir}/../../version.json" )"
 webAppVersion="1.0.69-beta"
 put-value '.deployment.webAppVersion' "${webAppVersion}"
 
-# zipUrl="https://github.com/microsoft/metered-billing-accelerator/releases/download/${webAppVersion}/Metering.SharedResourceBroker.windows-latest.${webAppVersion}.zip"
-zipUrl="https://typora.blob.core.windows.net/typoraimages/2022/11/24/15/42/publish----BGRP8HCW5VZQF0H96MMNP0XNQ0.zip"
+# zipUrl="https://typora.blob.core.windows.net/typoraimages/2022/11/24/15/42/publish----BGRP8HCW5VZQF0H96MMNP0XNQ0.zip"
+zipUrl="https://github.com/microsoft/metered-billing-accelerator/releases/download/1.0.191-beta/zip-deploy-Metering.SharedResourceBroker-win-x64.zip"
+#
+# Github stores the actual release in AWS S3, so we need to follow the redirect, so that Azure App Service ZIP Deploy can download the zip file from the correct location
+#
+# zipUrl="$( curl -w "%{url_effective}\n" --head --location --silent --show-error --url "${zipUrl}" --output /dev/null )"
 put-value '.deployment.zipUrl' "${zipUrl}"
 
 notificationSecret="$( openssl rand 128 | base32 --wrap=0  )"
@@ -190,7 +194,7 @@ az ad group owner add \
 
 # Allow the managed identity to create service principals.
 #
-# The person running this script needs to be a global admin in the AAD tenant.
+# The person running this script needs to be a global admin (or similar 😬) in the AAD tenant.
 #
 az rest \
     --method POST \
