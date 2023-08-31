@@ -105,12 +105,16 @@ module Json =
                 match x with
                 | Monthly -> nameof(Monthly) |> Encode.string
                 | Annually -> nameof(Annually) |> Encode.string
+                | TwoYears -> "2-years" |> Encode.string
+                | ThreeYears -> "3-years" |> Encode.string
 
             let Decoder : Decoder<RenewalInterval> =
                 Decode.string |> Decode.andThen (
                    function
                    | nameof(Monthly) -> Decode.succeed Monthly
                    | nameof(Annually) -> Decode.succeed Annually
+                   | "2-years" -> Decode.succeed TwoYears
+                   | "3-years" -> Decode.succeed ThreeYears
                    | invalid -> Decode.fail (sprintf "Failed to decode `%s`" invalid))
 
         module ConsumedQuantity =
