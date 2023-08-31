@@ -11,6 +11,7 @@ open Metering.BaseTypes.EventHub
 type UnprocessableMessage =
     | UnprocessableStringContent of string
     | UnprocessableByteContent of byte array
+    | UnprocessableUsageEvent of InternalUsageEvent
 
 type RemoveUnprocessedMessagesSelection =
     /// Remove all unprocessable messages prior to, and including, the given sequence number.

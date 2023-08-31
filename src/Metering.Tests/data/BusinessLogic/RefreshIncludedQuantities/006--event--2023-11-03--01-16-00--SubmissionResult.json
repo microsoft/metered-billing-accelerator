@@ -1,0 +1,20 @@
+﻿{
+  "type": "UsageSubmittedToAPI",
+  "value": {
+    "httpHeaders": {
+      "xMsRequestId": "deadbeef",
+      "xMsCorrelationId": "deadbeef"
+    },
+    "result": {
+      "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+      "resourceUri": "/subscriptions/.../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription",
+      "effectiveStartTime": "2023-11-03T00:00:00Z",
+      "planId": "mySaaSPlan",
+      "dimension": "someDimensionAsAzureMarketplaceCallsIt",
+      "quantity": 1.0,
+      "status": "Accepted",
+      "usageEventId": "a1de677b-138c-4026-b5b7-9a788f7d6528",
+      "messageTime": "2021-12-14T20:29:42.0177668Z"
+    }
+  }
+}

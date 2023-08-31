@@ -19,7 +19,7 @@ type RenewalInterval =
             | TwoYears -> Period.FromYears(2)
             | ThreeYears -> Period.FromYears(3)
 
-     member this.add (i: uint) : Period =
+    member this.Multiply (i: uint) : Period =
         match this with
         | Monthly -> Period.FromMonths(int i)
         | Annually -> Period.FromYears(int i)

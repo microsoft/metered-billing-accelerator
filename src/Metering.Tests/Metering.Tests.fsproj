@@ -22,10 +22,107 @@
     <ProjectReference Include="..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="data\businesslogic\README.md" />
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\000--event--2021-11-04--16-12-26--SubscriptionPurchased-Monthly.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\000--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\001--event--2021-11-05--00-00-01--Usage-included.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\001--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\002--event--2022-12-01--00-00-01--Usage-still-included.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\002--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\003--event--2022-12-03--00-00-01--Usage-still-included.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\003--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\004--event--2022-12-03--00-00-02--Usage-go-into-overage.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\004--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\005--event--2022-12-03--01-15-00--Ping.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\005--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\006--event--2022-12-03--01-16-00--SubmissionResult.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\006--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\007--event--2022-12-03--23-59-59--Last-Ping-in-the-current-billing-season.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\007--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\008--event--2022-12-04--00-00-05--First-Ping-in-the-new-billing-season.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantitiesMonthly\008--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\BusinessLogic\RefreshIncludedQuantities\000--event--2021-11-04--16-12-26--SubscriptionPurchased-2-year.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\BusinessLogic\RefreshIncludedQuantities\000--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\001--event--2021-11-05--00-00-01--Usage-in-the-first-year-included.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\001--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\002--event--2022-12-01--00-00-01--Usage-still-included.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\002--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\003--event--2023-11-03--00-00-01--Usage-still-included.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\003--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\004--event--2023-11-03--00-00-02--Usage-go-into-overage.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\004--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\005--event--2023-11-03--01-15-00--Ping.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\005--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\006--event--2023-11-03--01-16-00--SubmissionResult.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\006--state.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\007--event--2023-11-05--16-15-00--First-Ping-in-the-new-billing-season.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="data\BusinessLogic\RefreshIncludedQuantities\007--state.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="data\InternalMessages\Ping TopOfHour.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>

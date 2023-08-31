@@ -3,7 +3,7 @@
   "value": {
     "partitionId": "7",
     "localTime": "2022-09-19T13:01:02Z",
-    "reason": "starting",
+    "reason": "newhour",
     "sender": "aggregator on 127.0.0.1"
   }
 }

@@ -1,0 +1,40 @@
+{
+  "lastProcessedMessage": {
+    "partitionId": "0",
+    "sequenceNumber": "3",
+    "partitionTimestamp": "2023-11-03T00:00:01Z"
+  },
+  "meters": [
+    {
+      "subscription": {
+        "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+        "subscriptionStart": "2021-11-04T16:12:26Z",
+        "renewalInterval": "2-years",
+        "plan": {
+          "planId": "mySaaSPlan",
+          "billingDimensions": {
+            "dimAsWeCallItAppInternally": {
+              "type": "simple",
+              "meter": {
+                "included": {
+                  "quantity": 1,
+                  "consumed": 999,
+                  "lastUpdate": "2023-11-03T00:00:01Z"
+                }
+              },
+              "included": 1000,
+              "dimension": "someDimensionAsAzureMarketplaceCallsIt"
+            }
+          }
+        }
+      },
+      "usageToBeReported": [],
+      "lastProcessedMessage": {
+        "partitionId": "0",
+        "sequenceNumber": "3",
+        "partitionTimestamp": "2023-11-03T00:00:01Z"
+      }
+    }
+  ],
+  "unprocessable": []
+}

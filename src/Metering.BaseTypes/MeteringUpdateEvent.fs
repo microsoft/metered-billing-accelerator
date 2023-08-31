@@ -47,6 +47,7 @@ type MeteringUpdateEvent =
             match p with
             | UnprocessableStringContent s -> $"Unprocessable payload: {s}"
             | UnprocessableByteContent b -> $"Unprocessable payload: {System.Convert.ToBase64String(b)}"
+            | UnprocessableUsageEvent u -> $"Unprocessable usage payload: {u}"
         | RemoveUnprocessedMessages { PartitionID = p; Selection = x } ->
             match x with
             | BeforeIncluding x -> $"Removing messages older than sequence number {x + 1L} in partition {p}"

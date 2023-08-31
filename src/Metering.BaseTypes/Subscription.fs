@@ -16,15 +16,38 @@ type Subscription =
       /// When a certain plan was purchased
       SubscriptionStart: MeteringDateTime }
 
-    member this.updateBillingDimensions (dimensions: BillingDimensions) : Subscription =
-        let newPlan =
-            this.Plan
-            |> Plan.updateBillingDimensions dimensions
+module Subscription =
+    open NodaTime
 
-        { this with Plan = newPlan }
+    let updateBillingDimensions (dimensions: BillingDimensions) (subscription: Subscription) : Subscription =
+        { subscription with Plan = subscription.Plan |> Plan.setBillingDimensions dimensions }
 
-    static member create plan marketplaceResourceId renewalInterval subscriptionStart =
-        { Plan = plan
-          MarketplaceResourceId = marketplaceResourceId
-          RenewalInterval = renewalInterval
-          SubscriptionStart = subscriptionStart }
+    let areDifferentBillingCycles (latestUpdate: MeteringDateTime) (now: MeteringDateTime) (subscription: Subscription) : bool =
+        let getBillingCycle ((renewalInterval, subscriptionStart): RenewalInterval*MeteringDateTime) (idx: int) : (MeteringDateTime * MeteringDateTime) =
+            let midnight (x: LocalDate) = $"%04d{x.Year}-%02d{x.Month}-%02d{x.Day}T00:00:00Z" |> MeteringDateTime.fromStr
+
+            let startLocalDate = subscriptionStart.Date.Plus(renewalInterval.Multiply((uint)idx))
+            let endLocalDate = subscriptionStart.Date.Plus(renewalInterval.Multiply((uint)idx + 1ul))
+            let start = startLocalDate |> midnight
+            let endDay = endLocalDate |> midnight
+
+            (start, endDay)
+
+        let IsInBillingCycle (value: MeteringDateTime) ((startDay, endDay): (MeteringDateTime * MeteringDateTime)) : bool =
+            let (startDay, value, endDay) = (startDay.ToDateTimeUtc(), value.ToDateTimeUtc(), endDay.ToDateTimeUtc())
+            let isIn = startDay <= value && value < endDay
+            isIn
+
+        let renewalInterval = subscription.RenewalInterval
+        let subscriptionStart = subscription.SubscriptionStart
+
+        let allBillingCycleToInfinity =
+            Seq.initInfinite (getBillingCycle (renewalInterval, subscriptionStart))
+
+        if now.ToDateTimeUtc() < subscriptionStart.ToDateTimeUtc()
+        then failwithf "The point in time %A is before the subscription %A started" now subscriptionStart
+        else
+            let (startDate, endDate) = allBillingCycleToInfinity |> Seq.find (IsInBillingCycle now)
+
+            let isIn = IsInBillingCycle latestUpdate (startDate, endDate)
+            not isIn
