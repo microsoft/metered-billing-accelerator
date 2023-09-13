@@ -12,7 +12,7 @@
           "nde": { "type": "simple", "dimension": "nodecharge",       "included": 1000       },
           "cpu": { "type": "simple", "dimension": "cpucharge",        "included": "Infinite" },
           "dta": { "type": "simple", "dimension": "datasourcecharge"                         },
-          "obj": { "type": "simple", "dimension": "objectcharge",     "included": 0         },
+          "obj": { "type": "simple", "dimension": "objectcharge",     "included": 0          },
           "msg": { "type": "simple", "dimension": "messagecharge",    "included": "10000"    }
         }
       }

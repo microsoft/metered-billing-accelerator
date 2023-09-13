@@ -31,6 +31,7 @@ CaptureProcessor.readAllEvents
     | UsageReported _ -> ()
     | SubscriptionPurchased sp ->
         printfn "%s Subscription %s purchased" ts (sp.Subscription.MarketplaceResourceId.ToString())
+    | SubscriptionUpdated _ -> ()
     | SubscriptionDeletion _ -> ()
     | UnprocessableMessage _ -> ()
     | RemoveUnprocessedMessages _ -> ()

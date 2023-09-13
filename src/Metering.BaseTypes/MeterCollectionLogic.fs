@@ -242,11 +242,15 @@ module MeterCollectionLogic =
             Meters = updatedMeters
             LastUpdate = Some messagePosition }
 
+    let handleSubscriptionUpdated (update: SubscriptionUpdate) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
+        raise (new System.NotImplementedException("SubscriptionUpdated is not implemented yet"))
+
     let handleMeteringEvent (state: MeterCollection) ({EventData = meteringUpdateEvent; MessagePosition = messagePosition; EventsToCatchup = catchup}: EventHubEvent<MeteringUpdateEvent>) : MeterCollection =
         state
         |> enforceStrictSequenceNumbers messagePosition  // This line throws an exception if we're not being fed the right event #
         |> match meteringUpdateEvent with
            | SubscriptionPurchased request ->      handleSubscriptionPurchased     request messagePosition
+           | SubscriptionUpdated request ->        handleSubscriptionUpdated       request messagePosition
            | SubscriptionDeletion request ->       handleSubscriptionDeletion      request messagePosition
            | UsageReported request ->              handleUsageReported             request messagePosition
            | UsageSubmittedToAPI request ->        handleUsageSubmittedToAPI       request messagePosition

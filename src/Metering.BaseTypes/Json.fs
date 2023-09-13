@@ -401,6 +401,24 @@ module Json =
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode
 
+        module SubscriptionUpdate =
+            let (updatedplan) = ("updatedplan");
+
+            let encode (x: SubscriptionUpdate) : (string * JsonValue) list =
+                List.append
+                    (x.MarketplaceResourceId |> MarketplaceResourceId.encode)
+                    [
+                        (updatedplan, x.UpdatedPlan |> Plan.Encoder)
+                    ]
+
+            let decode (get: Decode.IGetters) : SubscriptionUpdate =
+                {
+                    UpdatedPlan = get.Required.Field updatedplan Plan.Decoder
+                    MarketplaceResourceId = get |> MarketplaceResourceId.decode
+                }
+
+            let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode
+
         module SubscriptionCreationInformation =
             let (subscription) = ("subscription");
 
@@ -809,6 +827,7 @@ module Json =
             let encode (x: MeteringUpdateEvent) : (string * JsonValue) list =
                 match x with
                 | SubscriptionPurchased x -> x |> encodeKeyValue "SubscriptionPurchased" SubscriptionCreationInformation.Encoder
+                | SubscriptionUpdated x -> x |> encodeKeyValue "SubscriptionUpdated" SubscriptionUpdate.Encoder
                 | SubscriptionDeletion x -> x |> encodeKeyValue "SubscriptionDeleted" MarketplaceResourceId.Encoder
                 | UsageReported x -> x |> encodeKeyValue "UsageReported" InternalUsageEvent.Encoder
                 | UsageSubmittedToAPI x -> x |> encodeKeyValue "UsageSubmittedToAPI" MarketplaceResponse.Encoder
@@ -819,6 +838,7 @@ module Json =
             let decode (get: Decode.IGetters) : MeteringUpdateEvent =
                 match (get.Required.Field typeid Decode.string) with
                 | "SubscriptionPurchased" -> (get.Required.Field value SubscriptionCreationInformation.Decoder) |> SubscriptionPurchased
+                | "SubscriptionUpdated" -> (get.Required.Field value SubscriptionUpdate.Decoder) |> SubscriptionUpdated
                 | "SubscriptionDeleted" -> (get.Required.Field value MarketplaceResourceId.Decoder) |> SubscriptionDeletion
                 | "UsageReported" -> (get.Required.Field value InternalUsageEvent.Decoder) |> UsageReported
                 | "UsageSubmittedToAPI" -> (get.Required.Field value MarketplaceResponse.Decoder) |> UsageSubmittedToAPI

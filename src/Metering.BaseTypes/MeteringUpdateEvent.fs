@@ -10,6 +10,8 @@ type MeteringUpdateEvent =
     /// Event to initialize the aggregator.
     | SubscriptionPurchased of SubscriptionCreationInformation
 
+    | SubscriptionUpdated of SubscriptionUpdate
+
     | SubscriptionDeletion of MarketplaceResourceId
 
     /// Event representing usage / consumption. Send from the application to the aggregator.
@@ -30,6 +32,7 @@ type MeteringUpdateEvent =
         with get() : string =
             match this with
             | SubscriptionPurchased x -> x.Subscription.MarketplaceResourceId.ToString()
+            | SubscriptionUpdated x -> x.MarketplaceResourceId.ToString()
             | SubscriptionDeletion x -> x.ToString()
             | UsageReported x -> x.MarketplaceResourceId.ToString()
             | UsageSubmittedToAPI x -> x.Result |> MarketplaceSubmissionResult.partitionKey
@@ -40,6 +43,7 @@ type MeteringUpdateEvent =
     override this.ToString() =
         match this with
         | SubscriptionPurchased x -> x.ToString()
+        | SubscriptionUpdated x -> x.ToString()
         | SubscriptionDeletion x -> $"Deletion of {x}"
         | UsageReported x -> x.ToString()
         | UsageSubmittedToAPI x -> x.Result |>  MarketplaceSubmissionResult.toStr
@@ -58,6 +62,7 @@ type MeteringUpdateEvent =
         with get() : string =
             match this with
             | SubscriptionPurchased _ -> nameof(SubscriptionPurchased)
+            | SubscriptionUpdated _ -> nameof(SubscriptionUpdated)
             | SubscriptionDeletion _ -> nameof(SubscriptionDeletion)
             | UsageReported _ -> nameof(UsageReported)
             | UsageSubmittedToAPI _ -> nameof(UsageSubmittedToAPI)

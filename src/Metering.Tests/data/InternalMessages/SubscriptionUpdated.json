@@ -1,0 +1,17 @@
+﻿{
+  "type": "SubscriptionUpdated",
+  "value": {
+    "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+    "resourceUri": "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription",
+    "updatedplan": {
+      "planId": "someotherplan",
+      "billingDimensions": {
+        "nde": { "type": "simple", "dimension": "nodecharge",       "included": 1000       },
+        "cpu": { "type": "simple", "dimension": "cpucharge",        "included": "Infinite" },
+        "dta": { "type": "simple", "dimension": "datasourcecharge"                         },
+        "obj": { "type": "simple", "dimension": "objectcharge",     "included": 0          },
+        "msg": { "type": "simple", "dimension": "messagecharge",    "included": "10000"    }
+      }
+    }
+  }
+}

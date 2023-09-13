@@ -30,6 +30,7 @@
     <Compile Include="Subscription.fs" />
     <Compile Include="SubscriptionCreationInformation.fs" />
     <Compile Include="UnprocessableMessage.fs" />
+    <Compile Include="SubscriptionUpdate.fs" />
     <Compile Include="MeteringUpdateEvent.fs" />
     <Compile Include="Meter.fs" />
     <Compile Include="MeterCollection.fs" />

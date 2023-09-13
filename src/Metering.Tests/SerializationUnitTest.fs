@@ -39,6 +39,9 @@ let ``InternalMessages.Ping ProcessingStarting`` () = roundTrip<MeteringUpdateEv
 let ``InternalMessages.SubscriptionPurchased`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionPurchased.json"
 
 [<Test>]
+let ``InternalMessages.SubscriptionUpdated`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/SubscriptionUpdated.json"
+
+[<Test>]
 let ``InternalMessages.UsageReported`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/UsageReported.json"
 
 [<Test>]
