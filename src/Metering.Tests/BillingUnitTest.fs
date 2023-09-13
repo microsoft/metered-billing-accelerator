@@ -136,7 +136,7 @@ let ``MeterValue.createIncluded``() =
 let ``Meter.previousBillingIntervalCanBeClosedNewEvent``() =
     let test (idx, (prev, curEv, expected)) =
         let result =
-            Meter.previousBillingIntervalCanBeClosedNewEvent
+            Meter.previousHourCanBeClosed
                 (prev |> MeteringDateTime.fromStr)
                 (curEv |> MeteringDateTime.fromStr)
 
@@ -585,8 +585,7 @@ let ``Meter.handleUnsuccessfulMeterSubmission.Expired``() =
             SubscriptionStart = tg.Now() |> MeteringDateTime.fromStr
         }
 
-
-    let handle e mc = MeterCollectionLogic.handleMeteringEvent mc e
+    let handle event state = MeterCollectionLogic.handleMeteringEvent state event
 
     let assertSubscription (sub: MarketplaceResourceId) (applicationInternalMeterName: string) (m: uint) (meterCollection: MeterCollection) : unit =
         let m = Quantity.MeteringInt m
@@ -693,3 +692,48 @@ let ``Meter.handleUnsuccessfulMeterSubmission.Expired``() =
     resultAfterCatchup
     |> assertUsageToBeReported true expectedRequest3
     |> ignore
+
+type RenewalIntervalCheck = { NewIntervalStarted: bool; Interval: RenewalInterval; SubscriptionStarted: string; LastEvent: string; Now: string }
+
+
+[<Test>]
+let ``RenewalInterval.check``() =
+    let test (idx, testcase) =
+        let createSub renewalInterval subscriptionStart = {
+            Plan = {
+                PlanId = "p" |> PlanId.create
+                BillingDimensions =
+                    [
+                        (
+                            ApplicationInternalMeterName.create "m",
+                            {
+                                DimensionId = ("official-dimension-name" |> DimensionId.create)
+                                IncludedQuantity = Quantity.Zero
+                                Meter = None
+                            })
+                    ]
+                    |> List.map (fun (name, bd) -> (name, SimpleBillingDimension bd))
+                    |> Map.ofList
+            }
+            MarketplaceResourceId = Guid.NewGuid().ToString() |> MarketplaceResourceId.fromStr
+            RenewalInterval = renewalInterval
+            SubscriptionStart = subscriptionStart
+        }
+
+        let result =
+            createSub testcase.Interval (MeteringDateTime.fromStr testcase.SubscriptionStarted)
+            |> Subscription.areDifferentBillingCycles
+                (MeteringDateTime.fromStr testcase.LastEvent)
+                (MeteringDateTime.fromStr testcase.Now)
+        Assert.AreEqual(testcase.NewIntervalStarted, result, sprintf "Failure test case %d: %A" idx testcase)
+
+    [
+        { SubscriptionStarted = "2023-04-15T13:18:00Z"; LastEvent = "2023-05-14T23:23:58Z"; Now = "2023-05-14T23:23:59Z"; NewIntervalStarted = false; Interval = RenewalInterval.Monthly }
+        { SubscriptionStarted = "2023-04-15T13:18:00Z"; LastEvent = "2023-05-14T23:23:59Z"; Now = "2023-05-15T00:00:01Z"; NewIntervalStarted = true; Interval = RenewalInterval.Monthly }
+        { SubscriptionStarted = "2023-04-15T13:18:00Z"; LastEvent = "2024-04-14T23:23:59Z"; Now = "2024-04-15T00:00:01Z"; NewIntervalStarted = true; Interval = RenewalInterval.Annually }
+        { SubscriptionStarted = "2024-03-15T13:18:00Z"; LastEvent = "2027-03-14T23:00:00Z"; Now = "2027-03-14T23:59:59Z"; NewIntervalStarted = false; Interval = RenewalInterval.ThreeYears }
+        { SubscriptionStarted = "2024-03-15T13:18:00Z"; LastEvent = "2027-03-14T23:00:00Z"; Now = "2027-03-15T00:00:00Z"; NewIntervalStarted = true; Interval = RenewalInterval.ThreeYears }
+        { SubscriptionStarted = "2024-03-15T13:18:00Z"; LastEvent = "2030-03-14T23:00:00Z"; Now = "2030-03-15T00:00:00Z"; NewIntervalStarted = true; Interval = RenewalInterval.ThreeYears }
+        { SubscriptionStarted = "2024-02-29T13:18:00Z"; LastEvent = "2027-02-27T23:00:00Z"; Now = "2027-03-01T00:00:00Z"; NewIntervalStarted = true; Interval = RenewalInterval.ThreeYears }
+    ]
+    |> runTestVectors test

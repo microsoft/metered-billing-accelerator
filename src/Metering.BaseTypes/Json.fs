@@ -600,7 +600,6 @@ module Json =
                         ErrorDetails = get.Required.At [ "error"; "details" ] (Decode.list MarketplaceError.Decoder)
                     }
 
-
             module MarketplaceSubmissionError =
                 let encode (x: MarketplaceSubmissionError) : (string * JsonValue) list =
                     match x with
@@ -724,11 +723,17 @@ module Json =
                         (t, "bytes" |> Encode.string)
                         (v, Convert.ToBase64String(b) |> Encode.string)
                     ]
+                | UnprocessableUsageEvent u ->
+                    [
+                        (t, "usageEvent" |> Encode.string)
+                        (v, u |> InternalUsageEvent.Encoder)
+                    ]
 
             let decode (get: Decode.IGetters) : UnprocessableMessage =
                 match (get.Required.Field t Decode.string) with
                 | "string" -> (get.Required.Field v Decode.string) |> UnprocessableStringContent
                 | "bytes" -> (get.Required.Field v Decode.string) |> Convert.FromBase64String |> UnprocessableByteContent
+                | "usageEvent" -> (get.Required.Field v InternalUsageEvent.Decoder) |> UnprocessableUsageEvent
                 | unsupported -> failwith $"Could not decode {nameof(UnprocessableMessage)}, unknown type {unsupported}"
 
             let Encoder, Decoder = JsonUtil.createEncoderDecoder encode decode

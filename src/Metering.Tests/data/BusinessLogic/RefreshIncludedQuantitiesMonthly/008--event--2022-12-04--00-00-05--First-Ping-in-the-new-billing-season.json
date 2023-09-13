@@ -1,0 +1,9 @@
+﻿{
+  "type": "Ping",
+  "value": {
+    "partitionId": "0",
+    "localTime": "2022-12-04T00:00:05Z",
+    "reason": "newhour",
+    "sender": "aggregator on 127.0.0.1"
+  }
+}

@@ -8,4 +8,4 @@ type Plan =
       BillingDimensions: BillingDimensions }
 
 module Plan =
-    let updateBillingDimensions dimensions plan = { plan with BillingDimensions = dimensions }
+    let setBillingDimensions dimensions plan = { plan with BillingDimensions = dimensions }

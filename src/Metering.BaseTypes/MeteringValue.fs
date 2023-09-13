@@ -4,6 +4,7 @@
 namespace Metering.BaseTypes
 
 open Metering.BaseTypes.WaterfallTypes
+open Metering.BaseTypes.EventHub
 
 type MeterValue =
     | SimpleMeterValue of SimpleMeterValue
@@ -20,12 +21,13 @@ module MeterValue =
         | SimpleBillingDimension x -> x.Meter |> Option.map SimpleMeterValue
         | WaterfallBillingDimension x -> x.Meter |> Option.map WaterfallMeterValue
 
-    let closeHour (marketplaceResourceId: MarketplaceResourceId) (planId: PlanId) (name: ApplicationInternalMeterName) (this: BillingDimension): (MarketplaceRequest list * BillingDimension) =
+    let closeHour (marketplaceResourceId: MarketplaceResourceId) (planId: PlanId) (now: MeteringDateTime) (name: ApplicationInternalMeterName) (this: BillingDimension): (MarketplaceRequest list * BillingDimension) =
         match this with
-        | SimpleBillingDimension x -> x |> SimpleMeterLogic.closeHour marketplaceResourceId planId |> (fun (requests, newVal) -> (requests, SimpleBillingDimension newVal))
+        | SimpleBillingDimension x -> x |> SimpleMeterLogic.closeHour marketplaceResourceId planId now |> (fun (requests, newVal) -> (requests, SimpleBillingDimension newVal))
         | WaterfallBillingDimension x -> x |> WaterfallMeterLogic.closeHour marketplaceResourceId planId |> (fun (requests, newVal) -> (requests, WaterfallBillingDimension newVal))
 
-    let applyConsumption (now: MeteringDateTime) (quantity: Quantity) (billingDimension: BillingDimension) : BillingDimension =
+    let applyConsumption (messagePosition: MessagePosition) (quantity: Quantity) (billingDimension: BillingDimension) : BillingDimension =
+        let now = messagePosition.PartitionTimestamp
         if not quantity.isAllowedIncomingQuantity
         then billingDimension // If the incoming value is not a real (non-negative) number, don't change anything.
         else
@@ -56,7 +58,8 @@ module MeterValue =
 
                 WaterfallBillingDimension { waterfallDimension with Meter = Some meterValue}
 
-    let accountForExpiredSubmission (dimensionId: DimensionId) (now: MeteringDateTime) (quantity: Quantity) (billingDimension: BillingDimension) : BillingDimension =
+    let accountForExpiredSubmission (dimensionId: DimensionId) (messagePosition: MessagePosition) (quantity: Quantity) (billingDimension: BillingDimension) : BillingDimension =
+        let now = messagePosition.PartitionTimestamp
         if not quantity.isAllowedIncomingQuantity
         then billingDimension // If the incoming value is not a real (non-negative) number, don't change anything.
         else

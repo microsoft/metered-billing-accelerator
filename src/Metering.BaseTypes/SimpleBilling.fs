@@ -3,6 +3,8 @@
 
 namespace Metering.BaseTypes
 
+open Metering.BaseTypes.EventHub
+
 type ConsumedQuantity =
     { /// The consumed quantity in the current hour.
       CurrentHour: Quantity
@@ -108,7 +110,7 @@ module SimpleMeterLogic =
         | ConsumedQuantity q when q.CurrentHour > Quantity.Zero -> true
         | _ -> false
 
-    let closeHour marketplaceResourceId (planId: PlanId) (this: SimpleBillingDimension) : (MarketplaceRequest list * SimpleBillingDimension) =
+    let closeHour marketplaceResourceId (planId: PlanId) (now: MeteringDateTime) (this: SimpleBillingDimension) : (MarketplaceRequest list * SimpleBillingDimension) =
         match this.Meter with
         | None -> (List.empty, this)
         | Some meter ->
@@ -123,7 +125,7 @@ module SimpleMeterLogic =
                       Quantity = q.CurrentHour
                       EffectiveStartTime = q.LastUpdate |> MeteringDateTime.beginOfTheHour }
 
-                let newMeterValue = q.resetHourCounter (MeteringDateTime.now()) |> ConsumedQuantity
+                let newMeterValue = q.resetHourCounter now |> ConsumedQuantity
                 ( [ marketplaceRequest ], { this with Meter = Some newMeterValue })
 
     //let createNewMeterValueDuringBillingPeriod (now: MeteringDateTime) (quantity: Quantity) : SimpleMeterValue =
