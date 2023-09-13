@@ -1,5 +1,5 @@
 ﻿[
-  { "name": "gigabyte_egress", "type": "waterfall", 
+  { "name": "gigabyte_egress", "type": "waterfall",
     "tiers": [
       { "dimension": "egress_tier_1",  "threshold":    100 },
       { "dimension": "egress_tier_2",  "threshold":  10000 },
@@ -10,7 +10,7 @@
   },
   {
     "name": "gigabyte_egress",
-    "type": "waterfall", 
+    "type": "waterfall",
     "tiers": [
       { "dimension": "egress_tier_1",  "threshold":    100 },
       { "dimension": "egress_tier_2",  "threshold":  10000 },

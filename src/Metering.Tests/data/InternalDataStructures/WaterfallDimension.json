@@ -1,5 +1,5 @@
-﻿{ 
-  "type": "waterfall", 
+﻿{
+  "type": "waterfall",
   "tiers": [
     { "dimension": "egress_tier_1",  "threshold":    100 },
     { "dimension": "egress_tier_2",  "threshold":  10000 },

@@ -6,7 +6,7 @@
     "dta": { "type": "simple", "dimension": "datasourcecharge", "included": 1000       },
     "obj": { "type": "simple", "dimension": "objectcharge"                             },
     "msg": { "type": "simple", "dimension": "messagecharge",    "included": "10000"    },
-    "gigabyte_egress": { "type": "waterfall", 
+    "gigabyte_egress": { "type": "waterfall",
       "tiers": [
         { "dimension": "egress_tier_1",  "threshold":    100 },
         { "dimension": "egress_tier_2",  "threshold":  10000 },
