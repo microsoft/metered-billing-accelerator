@@ -25,7 +25,10 @@ With *migration*, we refer to dimensions that exist under the same name in both 
 
 | Dimension in old plan                      | Dimension in new plan                  | Effect                                                       |
 | :----------------------------------------- | -------------------------------------- | ------------------------------------------------------------ |
-| s | s |s|
+| Some config | Exactly as previous one | no change |
+| Has included quantities | Has no included quantities ||
+| Has no included quantities | Has included quantities ||
+| Has included quantities |  ||
 
 🚀⛔🛑❌🚫✅🆕🔄️🔴🟡🟢🟥🟧🟨🟩🟦🟪⬛⬜◼️◻️
 
