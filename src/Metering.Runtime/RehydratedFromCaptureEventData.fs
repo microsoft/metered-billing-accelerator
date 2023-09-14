@@ -17,7 +17,7 @@ type RehydratedFromCaptureEventData(
     member this.BlobName = blobName
 
 module RehydratedFromCaptureEventData =
-    let getMessagePosition (e: EventData) : MessagePosition =
-        { PartitionID = PartitionID.create e.PartitionKey
+    let getMessagePosition (partitionId: PartitionID) (e: EventData) : MessagePosition =
+        { PartitionID = partitionId
           SequenceNumber = e.SequenceNumber
           PartitionTimestamp = MeteringDateTime.fromDateTimeOffset e.EnqueuedTime}
