@@ -37,6 +37,25 @@ type MeteringUpdateEvent =
             | RemoveUnprocessedMessages _ -> ""
             | Ping x -> x.PartitionID.value
 
+    member this.MarketplaceResourceID
+        with get() : MarketplaceResourceId option =
+            match this with
+            | SubscriptionPurchased x -> x.Subscription.MarketplaceResourceId |> Some
+            | SubscriptionDeletion x -> x |> Some
+            | UsageReported x -> x.MarketplaceResourceId |> Some
+            | UsageSubmittedToAPI x ->
+                match x.Result with
+                | Ok x -> x.RequestData.MarketplaceResourceId |> Some
+                | Error e ->
+                    match e with
+                    | DuplicateSubmission d -> d.FailedRequest.MarketplaceResourceId |> Some
+                    | ResourceNotFound d -> d.RequestData.MarketplaceResourceId |> Some
+                    | Expired d -> d.RequestData.MarketplaceResourceId |> Some
+                    | Generic d -> d.RequestData.MarketplaceResourceId |> Some
+            | UnprocessableMessage _ -> None
+            | RemoveUnprocessedMessages _ -> None
+            | Ping x -> None
+
     override this.ToString() =
         match this with
         | SubscriptionPurchased x -> x.ToString()
