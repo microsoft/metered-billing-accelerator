@@ -334,14 +334,14 @@ module CaptureProcessor =
                         |> Seq.choose id
                         |> Seq.filter (isRelevantEvent startTime)
             }
-
     [<Extension>]
-    let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
-        let bytes = eventData.Body.ToArray()
-
+    let bytesToMeteringUpdateEvent (bytes: byte array) : MeteringUpdateEvent =
         try
-            Encoding.UTF8.GetString(bytes)
-            |> Ok
+            //Encoding.UTF8.GetString(bytes) |> OK
+
+            let ms = (new MemoryStream(bytes))
+            let reader = (new StreamReader(ms))
+            reader.ReadToEnd() |> Ok
         with
         | _ ->
             bytes
@@ -351,9 +351,16 @@ module CaptureProcessor =
         |> function
             | Ok str ->
                 try
-                    match str |> Json.fromStr2<MeteringUpdateEvent> with
+                    let x = str |> Json.fromStr2<MeteringUpdateEvent>
+
+                    match x with
                     | Ok v -> v
                     | Error _ -> str |> UnprocessableStringContent |> UnprocessableMessage
                 with
                 | _ -> str |> UnprocessableStringContent |> UnprocessableMessage
             | Error e -> e
+
+    [<Extension>]
+    let toMeteringUpdateEvent (eventData: EventData) : MeteringUpdateEvent =
+        eventData.Body.ToArray() |> bytesToMeteringUpdateEvent
+

@@ -9,6 +9,7 @@ open System.Text.RegularExpressions
 open NUnit.Framework
 open Metering.BaseTypes
 open Metering.BaseTypes.EventHub
+open Metering.EventHub
 
 type E = EventHubEvent<MeteringUpdateEvent>
 type S = MeterCollection
@@ -54,7 +55,10 @@ let private readFile (name: string) : TestFile option =
         let partitionId = "0"
         let messagePosition = MessagePosition.create partitionId sequenceNumber date
         let _comment = matchEvent.Groups["comment"].Value
-        let meteringUpdateEvent = File.ReadAllText(name) |> Json.fromStr<MeteringUpdateEvent>
+        let meteringUpdateEvent =
+            File.ReadAllBytes(name)
+            |> CaptureProcessor.bytesToMeteringUpdateEvent
+
 
         E.createEventHub meteringUpdateEvent messagePosition None
         |> Event
@@ -107,6 +111,26 @@ let private writeCalculatedState folder (sn: SequenceNumber) (s: S) =
     eprintfn "Wrote actual state to %s" path
     ()
 
+let private createStates folder =
+    folder
+    |> readTestFolder
+    |> getEvents
+    |> Seq.scan
+        MeterCollectionLogic.handleMeteringEvent
+        MeterCollection.Empty
+    |> Seq.iter(fun state ->
+        match state.LastUpdate with
+        | None -> ()
+        | Some mp ->
+            let path = Path.Combine(folder, $"%03d{mp.SequenceNumber}--state-calculated.json")
+            File.WriteAllText(
+                path,
+                contents = (state |> Json.toStr 2))
+
+            printfn "Created state file %s" path
+    )
+
+
 let private checkFolder folder =
     let files = readTestFolder folder
     let events = getEvents files
@@ -132,7 +156,6 @@ let private checkFolder folder =
     eventsAndStates
     |> Seq.fold applyMeterToStateAndAssertExpectedState MeterCollection.Empty
     |> ignore
-
 
 [<Test>]
 let ``check event sequence 'data/BusinessLogic/RefreshIncludedQuantities'`` () =
@@ -161,3 +184,5 @@ let private checkOneState folder (initialStateNumber: SequenceNumber) =
 let ``check 'data/BusinessLogic/RefreshIncludedQuantitiesMonthly' number 1`` () =
     checkOneState "data/BusinessLogic/RefreshIncludedQuantitiesMonthly" 1L
 
+[<Test>]
+let ``createStates "data/BusinessLogic/CleanUpUnprocessableMessages"``() = createStates "data/BusinessLogic/CleanUpUnprocessableMessages"
