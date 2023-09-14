@@ -177,9 +177,8 @@ module CaptureProcessor =
                     let blobs =
                         blobNames
                         |> Seq.map (fun n -> (n, n |> getTime))
-                        |> Seq.filter (fun (_, t) -> t.IsSome)
-                        |> Seq.map (fun (n, t) -> (n, t.Value.ToInstant()))
-                        |> Seq.sortBy (fun (blob, t) -> t)
+                        |> Seq.choose (fun (n, time) -> time |> Option.map (fun t -> (n, t))) // instead of |> Seq.filter (fun (_, t) -> t.IsSome) |> Seq.map (fun (n, t) -> (n, t.Value.ToInstant()))
+                        |> Seq.sortBy (fun (_, t) -> t.ToInstant())
                         |> Seq.map (fun (n, _) -> n)
                         |> Seq.toArray
 
