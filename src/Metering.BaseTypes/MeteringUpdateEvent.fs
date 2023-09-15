@@ -71,6 +71,7 @@ type MeteringUpdateEvent =
             match x with
             | BeforeIncluding x -> $"Removing messages older than sequence number {x + 1L} in partition {p}"
             | Exactly x  -> $"Removing messages with sequence number {x} in partition {p}"
+            | All -> $"Removing all unprocessable messages in partition {p}"
         | Ping x -> $"Ping from {x.SendingHost}, sent {x.LocalTime} because of {x.PingReason}"
 
     member this.MessageType

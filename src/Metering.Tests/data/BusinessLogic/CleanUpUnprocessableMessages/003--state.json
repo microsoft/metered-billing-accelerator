@@ -1,0 +1,83 @@
+{
+  "lastProcessedMessage": {
+    "partitionId": "0",
+    "sequenceNumber": "3",
+    "partitionTimestamp": "2021-11-04T16:12:29Z"
+  },
+  "meters": [
+    {
+      "subscription": {
+        "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+        "subscriptionStart": "2021-11-04T16:12:26Z",
+        "renewalInterval": "2-years",
+        "plan": {
+          "planId": "mySaaSPlan",
+          "billingDimensions": {
+            "dimAsWeCallItAppInternally": {
+              "type": "simple",
+              "meter": {
+                "included": {
+                  "quantity": 1000,
+                  "consumed": 0,
+                  "lastUpdate": "2021-11-04T16:12:26Z"
+                }
+              },
+              "included": 1000,
+              "dimension": "someDimensionAsAzureMarketplaceCallsIt"
+            }
+          }
+        }
+      },
+      "usageToBeReported": [],
+      "lastProcessedMessage": {
+        "partitionId": "0",
+        "sequenceNumber": "0",
+        "partitionTimestamp": "2021-11-04T16:12:26Z"
+      }
+    }
+  ],
+  "unprocessable": [
+    {
+      "position": {
+        "partitionId": "0",
+        "sequenceNumber": "3",
+        "partitionTimestamp": "2021-11-04T16:12:29Z"
+      },
+      "event": {
+        "type": "UnprocessableMessage",
+        "value": {
+          "type": "string",
+          "value": "\u001f�\b\b9q\u0003e\u0000\u0003003--event--2021-11-04--16-12-29--binary-junk.json\u0000���0�\u001c\b^�\u001e�\u001f���a��U������\u0000\u0012\u0005̩\f�\u0006\u0006F���e�y%��F\u0006F�����\u0006&���f��F�F\u0016��I�y�E��Y�y�zY��y\f�@����u�I~~@�S\\\u001d�\u0004�p\b\u0005AN^uY�@�\n�\u000e��\u00031ܲ\u0002��\u001c\u0003����X���\u0001\u0000 /ʇ�\u0000\u0000\u0000"
+        }
+      }
+    },
+    {
+      "position": {
+        "partitionId": "0",
+        "sequenceNumber": "2",
+        "partitionTimestamp": "2021-11-04T16:12:28Z"
+      },
+      "event": {
+        "type": "UnprocessableMessage",
+        "value": {
+          "type": "string",
+          "value": "~:😜😜🤯🤯⬛🟪\u001f�\b\b�p\u0003e\u0000\u0003002--event--2021-11-04--16-12-28--binary-junk.json\u0000{�{I~IbNN�B^~��W����BJ~jq�z�BRjN~^�BFjQ�\u001e\u0000�\u0018ڣ)\u0000\u0000\u0000"
+        }
+      }
+    },
+    {
+      "position": {
+        "partitionId": "0",
+        "sequenceNumber": "1",
+        "partitionTimestamp": "2021-11-04T16:12:27Z"
+      },
+      "event": {
+        "type": "UnprocessableMessage",
+        "value": {
+          "type": "string",
+          "value": "totally not JSON, doesn't belong here."
+        }
+      }
+    }
+  ]
+}

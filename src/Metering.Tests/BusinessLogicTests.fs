@@ -185,4 +185,13 @@ let ``check 'data/BusinessLogic/RefreshIncludedQuantitiesMonthly' number 1`` () 
     checkOneState "data/BusinessLogic/RefreshIncludedQuantitiesMonthly" 1L
 
 [<Test>]
-let ``createStates "data/BusinessLogic/CleanUpUnprocessableMessages"``() = createStates "data/BusinessLogic/CleanUpUnprocessableMessages"
+let ``check 'data/BusinessLogic/CleanUpUnprocessableMessages' number 1`` () =
+    checkFolder "data/BusinessLogic/CleanUpUnprocessableMessages"
+
+[<Test>]
+let ``check event sequence "data/BusinessLogic/CleanUpUnprocessableMessages"``() =
+    checkFolder "data/BusinessLogic/CleanUpUnprocessableMessages"
+
+[<Test>]
+let ``createStates "data/BusinessLogic/CleanUpUnprocessableMessages"``() =
+    createStates "data/BusinessLogic/CleanUpUnprocessableMessages"

@@ -62,16 +62,18 @@ module MeterCollectionLogic =
 
     /// Removes one or more unprocessable messages from the state.
     let private handleRemoveUnprocessedMessages (removeUnprocessedMessages: RemoveUnprocessedMessages) (state: MeterCollection) : MeterCollection =
-        let selection = removeUnprocessedMessages.Selection
-
-        match state.LastUpdate with
-        | None -> state
-        | Some _ ->
-            let filter = function
-                | BeforeIncluding x -> List.filter (fun e -> e.MessagePosition.SequenceNumber > x) // Keep all with a sequence number greater x in state
-                | Exactly x -> List.filter (fun e -> e.MessagePosition.SequenceNumber <> x) // Keep all except x in state
-
-            { state with UnprocessableMessages = state.UnprocessableMessages |> filter selection }
+        match state.UnprocessableMessages with
+        | [] -> state
+        | _ ->
+            match removeUnprocessedMessages.Selection with
+            | BeforeIncluding x ->
+                let filter = List.filter (fun e -> e.MessagePosition.SequenceNumber > x) // Keep all with a sequence number greater x in state
+                { state with UnprocessableMessages = state.UnprocessableMessages |> filter }
+            | Exactly x ->
+                let filter = List.filter (fun e -> e.MessagePosition.SequenceNumber <> x) // Keep all except x in state
+                { state with UnprocessableMessages = state.UnprocessableMessages |> filter }
+            | All ->  // Keep nothing in state
+                { state with UnprocessableMessages = List.empty }
 
     let private listMapIf (predicate: 'T -> bool) (mapping: 'T -> 'T) : ('T list -> 'T list) =
          List.map (fun t -> if predicate t then mapping t else t)

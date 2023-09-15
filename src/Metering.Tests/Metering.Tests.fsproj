@@ -128,18 +128,27 @@
     <None Include="data\BusinessLogic\CleanUpUnprocessableMessages\000--event--2021-11-04--16-12-26--SubscriptionPurchased-2-year.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="data\BusinessLogic\CleanUpUnprocessableMessages\000--state.json" />
     <None Include="data\BusinessLogic\CleanUpUnprocessableMessages\001--event--2021-11-04--16-12-27--string-junk.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="data\BusinessLogic\CleanUpUnprocessableMessages\001--state.json" />
     <None Include="data\BusinessLogic\CleanUpUnprocessableMessages\002--event--2021-11-04--16-12-28--binary-junk.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="data\BusinessLogic\CleanUpUnprocessableMessages\002--state.json" />
     <None Include="data\BusinessLogic\CleanUpUnprocessableMessages\003--event--2021-11-04--16-12-29--binary-junk.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="data\BusinessLogic\CleanUpUnprocessableMessages\003--state.json" />
     <None Include="data\BusinessLogic\CleanUpUnprocessableMessages\004--event--2021-11-04--16-12-30--RemoveUnprocessedMessages exactly.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="data\BusinessLogic\CleanUpUnprocessableMessages\004--state.json" />
+    <None Include="data\BusinessLogic\CleanUpUnprocessableMessages\005--event--2021-11-04--16-12-31--RemoveUnprocessedMessages all.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <Content Include="data\BusinessLogic\CleanUpUnprocessableMessages\005--state.json" />
     <None Include="data\InternalMessages\Ping TopOfHour.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\Ping ProcessingStarting.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\SubscriptionPurchased.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
@@ -151,6 +160,9 @@
     <None Include="data\InternalMessages\UsageReported only resourceId.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\RemoveUnprocessedMessages beforeIncluding.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalMessages\RemoveUnprocessedMessages exactly.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
+    <None Include="data\InternalMessages\RemoveUnprocessedMessages all.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="data\InternalDataStructures\MeteringDateTime list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\Quantity list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <None Include="data\InternalDataStructures\RenewalInterval list.json"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
