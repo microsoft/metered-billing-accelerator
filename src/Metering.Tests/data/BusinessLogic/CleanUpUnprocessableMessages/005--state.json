@@ -1,8 +1,8 @@
 {
   "lastProcessedMessage": {
     "partitionId": "0",
-    "sequenceNumber": "4",
-    "partitionTimestamp": "2021-11-04T16:12:30Z"
+    "sequenceNumber": "5",
+    "partitionTimestamp": "2021-11-04T16:12:31Z"
   },
   "meters": [
     {
