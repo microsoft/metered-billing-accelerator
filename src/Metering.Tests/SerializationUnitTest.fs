@@ -30,6 +30,11 @@ let private roundTrip<'T> (filename: string) =
     Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
 
 [<Test>]
+let ``InternalMessages.AllInOne`` () =
+    roundTrip<MeteringUpdateEvent list> "InternalMessages/AllInOne-SDK-Sent-Messages.json"
+    roundTrip<MeteringUpdateEvent list> "InternalMessages/AllInOne-InternalMessages.json"
+
+[<Test>]
 let ``InternalMessages.Ping TopOfHour`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/Ping TopOfHour.json"
 
 [<Test>]
