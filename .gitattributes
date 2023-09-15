@@ -1,5 +1,1 @@
-*.sln text eol=crlf
-*.md text eol=crlf
-*.fs text eol=crlf
-*.cs text eol=crlf
 *.sh text eol=lf
