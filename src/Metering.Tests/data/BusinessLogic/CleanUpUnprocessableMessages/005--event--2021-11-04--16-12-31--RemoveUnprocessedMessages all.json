@@ -1,0 +1,7 @@
+﻿{
+  "type": "RemoveUnprocessedMessages",
+  "value": {
+    "partitionId": "0",
+    "all": "all"
+  }
+}
