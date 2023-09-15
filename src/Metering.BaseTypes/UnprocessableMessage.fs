@@ -18,6 +18,8 @@ type RemoveUnprocessedMessagesSelection =
     | BeforeIncluding of SequenceNumber
     /// Remove unprocessable message with given sequence number.
     | Exactly of SequenceNumber
+    /// Completely remove all unprocessable messages.
+    | All
 
 /// Command to clean unprocessable messages from the state file.
 type RemoveUnprocessedMessages =

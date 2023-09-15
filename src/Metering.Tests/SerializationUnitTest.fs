@@ -66,6 +66,9 @@ let ``InternalMessages.RemoveUnprocessedMessages beforeIncluding`` () = roundTri
 let ``InternalMessages.RemoveUnprocessedMessages exactly`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/RemoveUnprocessedMessages exactly.json"
 
 [<Test>]
+let ``InternalMessages.RemoveUnprocessedMessages all`` () = roundTrip<MeteringUpdateEvent> "InternalMessages/RemoveUnprocessedMessages all.json"
+
+[<Test>]
 let ``InternalDataStructures.MeteringDateTime list`` () = roundTrip<MeteringDateTime list> "InternalDataStructures/MeteringDateTime list.json"
 
 [<Test>]

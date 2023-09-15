@@ -760,6 +760,7 @@ module Json =
             let encodeSelection = function
                 | BeforeIncluding x -> ("beforeIncluding", x |> Encode.int64)
                 | Exactly x -> ("exactly", x |> Encode.int64)
+                | All -> ("all", "all" |> Encode.string)
 
             let Encoder ({PartitionID = partitionID; Selection = selection}: RemoveUnprocessedMessages) : JsonValue =
                 [
@@ -779,8 +780,16 @@ module Json =
                     Selection = (get.Required.Field  "exactly" Decode.int64) |> Exactly
                 }
 
+            let decodeAll (get: Decode.IGetters) =
+                {
+                    PartitionID = (get.Required.Field "partitionId" Decode.string) |> PartitionID.create
+                    Selection =
+                        let _ = (get.Required.Field "all" Decode.string)
+                        All
+                }
+
             let Decoder : Decoder<RemoveUnprocessedMessages> =
-                [ decodeBeforeIncluding; decodeExactly ]
+                [ decodeBeforeIncluding; decodeExactly; decodeAll ]
                 |> List.map Decode.object
                 |> Decode.oneOf
 
