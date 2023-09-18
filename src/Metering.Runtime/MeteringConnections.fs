@@ -4,8 +4,10 @@
 namespace Metering.Integration
 
 open System
-open NodaTime
+open System.Runtime.CompilerServices
+open System.Runtime.InteropServices
 open Microsoft.Extensions.Configuration
+open NodaTime
 open Azure.Core
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
@@ -28,6 +30,7 @@ type SnapshotIntervalConfiguration =
    { MaximumDurationBetweenSnapshots: Duration option
      MaximumNumberOfEventsBetweenSnapshots: int64 option }
 
+[<Extension>]
 module SnapshotIntervalConfiguration =
     let shouldCreateSnapshot (lastSnapshot: MessagePosition) (currentPosition: MessagePosition) ({ MaximumDurationBetweenSnapshots = maxDuration; MaximumNumberOfEventsBetweenSnapshots = maxEvents }) : bool =
         if lastSnapshot.PartitionID <> currentPosition.PartitionID then
@@ -48,6 +51,11 @@ module SnapshotIntervalConfiguration =
             diff > maxEvents
 
         shouldSnapshotByDuration || shouldSnapshotByCount
+
+    [<Extension>]
+    let ShouldCreateSnapshot (config: SnapshotIntervalConfiguration) (lastSnapshot: MessagePosition) (currentPosition: MessagePosition) : bool =
+        config |> shouldCreateSnapshot lastSnapshot currentPosition
+
 
 type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials
