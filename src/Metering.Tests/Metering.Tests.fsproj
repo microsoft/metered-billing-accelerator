@@ -111,6 +111,7 @@
     <None Include="data\Capture\p9--2022-12-09--16-50-12.avro"><CopyToOutputDirectory>Always</CopyToOutputDirectory></None>
     <Compile Include="BusinessLogicTests.fs" />
     <Compile Include="BillingUnitTest.fs" />
+    <Compile Include="RuntimeUnitTest.fs" />
     <Compile Include="PartitionIdTests.fs" />
     <Compile Include="WaterfallUnitTests.fs" />
     <Compile Include="SerializationUnitTest.fs" />

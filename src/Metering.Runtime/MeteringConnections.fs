@@ -4,7 +4,10 @@
 namespace Metering.Integration
 
 open System
+open System.Runtime.CompilerServices
+open System.Runtime.InteropServices
 open Microsoft.Extensions.Configuration
+open NodaTime
 open Azure.Core
 open Azure.Storage.Blobs
 open Azure.Messaging.EventHubs
@@ -23,9 +26,41 @@ type EventHubConfig =
       CaptureStorage: CaptureStorage option
       InfraStructureCredentials: TokenCredential }
 
+type SnapshotIntervalConfiguration =
+   { MaximumDurationBetweenSnapshots: Duration option
+     MaximumNumberOfEventsBetweenSnapshots: int64 option }
+
+[<Extension>]
+module SnapshotIntervalConfiguration =
+    let shouldCreateSnapshot (lastSnapshot: MessagePosition) (currentPosition: MessagePosition) ({ MaximumDurationBetweenSnapshots = maxDuration; MaximumNumberOfEventsBetweenSnapshots = maxEvents }) : bool =
+        if lastSnapshot.PartitionID <> currentPosition.PartitionID then
+            failwith (sprintf "Cannot compare positions from different partitions: lastSnapshot: %A currentPosition: %A" lastSnapshot currentPosition)
+
+        let (defaultDuration, defaultEvents) = (Duration.FromHours(1.0), 1000L)
+
+        let shouldSnapshotByDuration =
+            let diff = currentPosition.PartitionTimestamp - lastSnapshot.PartitionTimestamp
+            let maxDuration = maxDuration |> Option.defaultValue defaultDuration
+
+            diff > maxDuration
+
+        let shouldSnapshotByCount =
+            let diff = currentPosition.SequenceNumber - lastSnapshot.SequenceNumber
+            let maxEvents = maxEvents |> Option.defaultValue defaultEvents
+
+            diff > maxEvents
+
+        shouldSnapshotByDuration || shouldSnapshotByCount
+
+    [<Extension>]
+    let ShouldCreateSnapshot (config: SnapshotIntervalConfiguration) (lastSnapshot: MessagePosition) (currentPosition: MessagePosition) : bool =
+        config |> shouldCreateSnapshot lastSnapshot currentPosition
+
+
 type MeteringConnections =
     { MeteringAPICredentials: MeteringAPICredentials
       SnapshotStorage: BlobContainerClient
+      SnapshotIntervalConfiguration: SnapshotIntervalConfiguration
       EventHubConfig: EventHubConfig }
 
     static member private environmentVariablePrefix = "AZURE_METERING_"
@@ -63,6 +98,20 @@ type MeteringConnections =
         | (None, None, None) -> ManagedIdentity
         | _ -> failwith $"The {nameof(MeteringAPICredentials)} configuration is incomplete."
 
+    static member loadSnapshotIntervalConfigurationFromEnvironment (get: (string -> string option)) : SnapshotIntervalConfiguration =
+        let maxDurationBetweenSnapshots =
+            match "MAX_DURATION_BETWEEN_SNAPSHOTS" |> get with
+            | Some s -> s |> TimeSpan.Parse |> Duration.FromTimeSpan |> Some
+            | None -> None
+
+        let maxNumberOfEventsBetweenSnapshots =
+            match "MAX_NUMBER_OF_EVENTS_BETWEEN_SNAPSHOTS" |> get with
+            | Some s -> s |> Int64.Parse |> Some
+            | None -> None
+
+        { MaximumDurationBetweenSnapshots = maxDurationBetweenSnapshots
+          MaximumNumberOfEventsBetweenSnapshots = maxNumberOfEventsBetweenSnapshots }
+
     static member private getFromConfig (get: (string -> string option)) (consumerGroupName: string) =
         let containerClientWith (cred: TokenCredential) uri = new BlobContainerClient(blobContainerUri = new Uri(uri), credential = cred)
 
@@ -79,6 +128,7 @@ type MeteringConnections =
 
         { MeteringAPICredentials = MeteringConnections.getMeteringApiCredential get
           SnapshotStorage = "INFRA_SNAPSHOTS_CONTAINER" |> MeteringConnections.getRequired get |> containerClientWith infraCred
+          SnapshotIntervalConfiguration = MeteringConnections.loadSnapshotIntervalConfigurationFromEnvironment get
           EventHubConfig =
             { CheckpointStorage = "INFRA_CHECKPOINTS_CONTAINER" |> MeteringConnections.getRequired get |> containerClientWith infraCred
               CaptureStorage = captureStorage
@@ -140,3 +190,4 @@ type MeteringConnections =
             clientOptions = new EventHubProducerClientOptions(
                 ConnectionOptions = new EventHubConnectionOptions(
                     TransportType = EventHubsTransportType.AmqpTcp)))
+
