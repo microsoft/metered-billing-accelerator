@@ -339,6 +339,10 @@ Configure the appropriate endpoints for EventHub and Storage via environment var
   - Set `AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT` to the proper format of the blobs in the capture container, something like `{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}`, namely the value from the EventHub'r ARM configuration, `archiveDescription.destination.properties.archiveNameFormat`. 
     Check the [documentation][eventhub-capture-format] for details
 
+### Snapshot frequency
+
+The aggregation component regularly creates snapshots of the latest state, i.e. for each Event Hub partition, it creates a corresponding JSON file representing the state. The environment variables `AZURE_METERING_MAX_DURATION_BETWEEN_SNAPSHOTS` and `AZURE_METERING_MAX_NUMBER_OF_EVENTS_BETWEEN_SNAPSHOTS` can be used to specify how often a snapshot is created (which ever comes first): For example, `AZURE_METERING_MAX_DURATION_BETWEEN_SNAPSHOTS="00:05:00"` and `AZURE_METERING_MAX_NUMBER_OF_EVENTS_BETWEEN_SNAPSHOTS="2000"` ensure that at least every 5 minutes or every 2000 processed events, a new snapshot is created. 
+
 ### Local dev setup
 
 For local development, set a few environment variables. On Windows, you can set the local user's environment variables with this script:

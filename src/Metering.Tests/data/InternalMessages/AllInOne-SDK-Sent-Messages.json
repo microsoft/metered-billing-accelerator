@@ -1,0 +1,94 @@
+﻿[
+  {
+    "type": "SubscriptionPurchased",
+    "value": {
+      "subscription": {
+        "resourceId": "fdc778a6-1281-40e4-cade-4a5fc11f5440",
+        "subscriptionStart": "2021-11-04T16:12:26Z",
+        "renewalInterval": "Monthly",
+        "plan": {
+          "planId": "free_monthly_yearly",
+          "billingDimensions": {
+            "nde": { "type": "simple", "dimension": "nodecharge",    "included": 1000       },
+            "cpu": { "type": "simple", "dimension": "cpucharge",     "included": "Infinite" },
+            "dta": { "type": "simple", "dimension": "datasourcecharge"                      },
+            "obj": { "type": "simple", "dimension": "objectcharge",  "included": 0          },
+            "msg": { "type": "simple", "dimension": "messagecharge", "included": "10000"    }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "SubscriptionPurchased",
+    "value": {
+      "subscription": {
+        "resourceUri": "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription",
+        "subscriptionStart": "2021-11-04T16:12:26Z",
+        "renewalInterval": "Monthly",
+        "plan": {
+          "planId": "free_monthly_yearly",
+          "billingDimensions": {
+            "nde": {
+              "type": "simple",
+              "dimension": "nodecharge",
+              "included": 1000
+            },
+            "gigabyte_egress": {
+              "type": "waterfall",
+              "tiers": [
+                { "dimension": "egress_tier_1",  "threshold":    100 },
+                { "dimension": "egress_tier_2",  "threshold":  10000 },
+                { "dimension": "egress_tier_3",  "threshold":  40000 },
+                { "dimension": "egress_tier_4",  "threshold": 100000 },
+                { "dimension": "egress_overage", "threshold": 350000 }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "type": "SubscriptionDeleted",
+    "value": {
+      "resourceUri": "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
+    }
+  },
+  {
+    "type": "SubscriptionDeleted",
+    "value": {
+      "resourceId": "a7911127-216b-4f7b-a1fc-ad13baaf7dcc"
+    }
+  },
+  {
+    "type": "UsageReported",
+    "value": {
+      "resourceUri": "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription",
+      "timestamp": "2022-09-19T13:26:22Z",
+      "meterName": "cpu",
+      "quantity": 1
+    }
+  },
+  {
+    "type": "UsageReported",
+    "value": {
+      "resourceId": "a7911127-216b-4f7b-a1fc-ad13baaf7dcc",
+      "timestamp": "2022-09-19T13:26:22Z",
+      "meterName": "cpu",
+      "quantity": 1.0
+    }
+  },
+  {
+    "type": "RemoveUnprocessedMessages",
+    "value": { "partitionId": "0", "beforeIncluding": 1000 }
+  },
+  {
+    "type": "RemoveUnprocessedMessages",
+    "value": { "partitionId": "0", "exactly": 16 }
+  },
+  {
+    "type": "RemoveUnprocessedMessages",
+    "value": { "partitionId": "0", "all": "all" }
+  }
+]

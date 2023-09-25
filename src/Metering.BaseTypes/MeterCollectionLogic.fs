@@ -78,7 +78,6 @@ module MeterCollectionLogic =
     let private listMapIf (predicate: 'T -> bool) (mapping: 'T -> 'T) : ('T list -> 'T list) =
          List.map (fun t -> if predicate t then mapping t else t)
 
-
     let private listMapIf2 (finalizer: 'T -> 'T) (mappingNonMatch: 'T -> 'T) (predicate: 'T -> bool) (mappingMatch: 'T -> 'T) (l: 'T list) : ('T list * bool) =
         // Iterate over the collection.
         // If the predicate matches an entry, apply the mappingMatch function (and later indicate we found a matching entry)
@@ -101,40 +100,6 @@ module MeterCollectionLogic =
         )
 
         result, found
-
-    //let private listMapMetersIf (messagePosition: MessagePosition) predicate mappingMatch =
-    //    let mappingMatch =
-    //        mappingMatch
-    //        >> Meter.closeHour messagePosition.PartitionTimestamp
-    //    let mappingNonMatch =
-    //        Meter.closePreviousHourIfNeeded messagePosition.PartitionTimestamp
-    //        >> Meter.resetCountersIfNewBillingCycleStarted messagePosition
-    //    let finalizer =
-    //        Meter.setLastProcessedMessage messagePosition
-
-    //    listMapIf2
-    //        finalizer
-    //        mappingNonMatch
-    //        predicate
-    //        mappingMatch
-
-    let private experiment
-        (marketplaceResourceId: MarketplaceResourceId)
-        (messagePosition: MessagePosition)
-        (updateExistingMeter: MessagePosition -> Meter -> Meter)
-        (state: MeterCollection)
-        : MeterCollection =
-
-        let matchingTheMeter = Meter.matches marketplaceResourceId
-        let updateMeter = updateExistingMeter messagePosition
-        let setLastProcessedMessage = Meter.setLastProcessedMessage messagePosition
-        let update = updateMeter >> setLastProcessedMessage
-
-        let updatedMeters = state.Meters |> listMapIf matchingTheMeter update
-
-        { state with
-            Meters = updatedMeters
-            LastUpdate = Some messagePosition }
 
     let private handleSubscriptionPurchased (subscriptionCreationInformation: SubscriptionCreationInformation) (messagePosition: MessagePosition) (state: MeterCollection) : MeterCollection =
         let matches = Meter.matches subscriptionCreationInformation.Subscription.MarketplaceResourceId

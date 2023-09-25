@@ -61,7 +61,9 @@ let readAllEvents<'TEvent> (captureDirectory: string) (blobPrefix: string) (conv
             yield!
                 stream
                 |> CaptureProcessor.ReadEventDataFromAvroStream blobName
-                |> Seq.map (fun e -> EventHubEvent.createFromCapture (convert e) (RehydratedFromCaptureEventData.getMessagePosition partitionId e) None blobName )
+                |> Seq.map (fun e ->
+                    EventHubEvent.createFromCapture (convert e) (RehydratedFromCaptureEventData.getMessagePosition partitionId e) None blobName
+                )
     }
 
 let recreateLatestState captureDirectory partitionId stateFile =
@@ -133,6 +135,18 @@ let printEventsWithoutPartitionKey captureDirectory partitionId =
         printf "%d " e.MessagePosition.SequenceNumber
     )
 
+let printEventsWithPartitionKey captureDirectory partitionId =
+    readAllEvents<MeteringUpdateEvent>
+                captureDirectory
+                "whatever"
+                CaptureProcessor.toMeteringUpdateEvent
+                partitionId
+                CancellationToken.None
+    // |> Seq.filter (fun e -> (not (String.IsNullOrEmpty e.EventData.partitionKey)))
+    |> Seq.iter(fun e ->
+        printfn "%s#%d %s" partitionId.value e.MessagePosition.SequenceNumber e.EventData.partitionKey
+    )
+
 /// Check if there are any events that do have a partition key
 let oneOrMoreEventsHaveAPartitionID (captureDirectory: string) (partitionId: PartitionID) : bool =
     readAllEvents<MeteringUpdateEvent>
@@ -170,11 +184,25 @@ let numberOfUnprocessedMessagesInStateFile (stateFile: string) =
     |> (fun state -> state.UnprocessableMessages)
     |> List.length
 
-
+let printAllUsageSubmittedToAPIMessages captureDirectory partitionId =
+    readAllEvents<MeteringUpdateEvent>
+                captureDirectory
+                "whatever"
+                CaptureProcessor.toMeteringUpdateEvent
+                partitionId
+                CancellationToken.None
+    |> Seq.choose (fun e ->
+        match e.EventData with
+        | UsageSubmittedToAPI usage -> Some (e, usage)
+        | _ -> None
+    )
+    |> Seq.iter(fun (e, marketPlaceResponse) ->
+        printfn "%s#%d %A" e.MessagePosition.PartitionID.value e.MessagePosition.SequenceNumber marketPlaceResponse.Result
+    )
 
 
 let numberOfPartitions = 3
-let captureDirectory = @"..\..\..\..\..\..\testcaptures" // This folder isn't checked in, so you need to create it yourself
+let captureDirectory = @"..\..\..\..\..\..\captures" // This folder isn't checked in, so you need to create it yourself
 
 [ 0 .. numberOfPartitions - 1 ]
 |> Seq.map(sprintf "%d")
@@ -189,17 +217,17 @@ let captureDirectory = @"..\..\..\..\..\..\testcaptures" // This folder isn't ch
 
     // Processing partion 0 consumed 1.0 GB, partition 1 consumed 3.5 GB, and partition 2 consumed 1.7 GB of memory
 
-    // Start with an empty state and apply all events, to get the latest state
-    let stateFile = $"{captureDirectory}\state\state-p{ partitionId.value }.json"
+    //// Start with an empty state and apply all events, to get the latest state
+    //let stateFile = $"{captureDirectory}\state\state-p{ partitionId.value }.json"
 
-    let lastState =
-        recreateLatestState captureDirectory partitionId stateFile
+    //let lastState =
+    //    recreateLatestState captureDirectory partitionId stateFile
 
-    // Print the number of unprocessed messages in the state file
-    lastState
-    |> (fun state -> state.UnprocessableMessages)
-    |> List.length
-    |> printfn "Statefile %s has %d unprocessed messages" stateFile
+    //// Print the number of unprocessed messages in the state file
+    //lastState
+    //|> (fun state -> state.UnprocessableMessages)
+    //|> List.length
+    //|> printfn "Statefile %s has %d unprocessed messages" stateFile
 
     //printfn "Statefile %s has %d unprocessed messages" stateFile (numberOfUnprocessedMessagesInStateFile stateFile)
 
@@ -210,25 +238,30 @@ let captureDirectory = @"..\..\..\..\..\..\testcaptures" // This folder isn't ch
     //    $"{captureDirectory}\events\{partitionId.value}"
 
     //// Print the sequence numbers of all events that do not have a partition key
-    printEventsWithoutPartitionKey
+    //printEventsWithoutPartitionKey
+    //    captureDirectory
+    //    partitionId
+
+    // print events with partition key
+    printAllUsageSubmittedToAPIMessages
         captureDirectory
         partitionId
 
-    //// Check if there are any events that do not have a partition key
-    if oneOrMoreEventsHaveAPartitionID captureDirectory partitionId
-    then printfn $"Partition {partitionId.value} has some events that *DO* have a partition key"
-    else printfn $"No event in partition {partitionId.value} has a partition key"
+    ////// Check if there are any events that do not have a partition key
+    //if oneOrMoreEventsHaveAPartitionID captureDirectory partitionId
+    //then printfn $"Partition {partitionId.value} has some events that *DO* have a partition key"
+    //else printfn $"No event in partition {partitionId.value} has a partition key"
 
-    // printfn $"Partition {partitionId.value} has {numberOfMessages captureDirectory partitionId} messages"
+    //// printfn $"Partition {partitionId.value} has {numberOfMessages captureDirectory partitionId} messages"
 
-    // Print all marketplace resource IDs by partition
-    marketplaceResourceIDs captureDirectory partitionId
-    |> Seq.map (fun id ->
-        printfn $"Partition {partitionId.value} has marketplace resource ID {id.ToString()}"
-        id
-    )
-    |> Seq.length
-    |> (fun num ->
-        printfn $"Partition {partitionId.value} has {num} different "
-    )
+    //// Print all marketplace resource IDs by partition
+    //marketplaceResourceIDs captureDirectory partitionId
+    //|> Seq.map (fun id ->
+    //    printfn $"Partition {partitionId.value} has marketplace resource ID {id.ToString()}"
+    //    id
+    //)
+    //|> Seq.length
+    //|> (fun num ->
+    //    printfn $"Partition {partitionId.value} has {num} different "
+    //)
 )

@@ -30,6 +30,10 @@ public class AggregationWorker
 
     public async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        _logger.LogInformation("Worker starting (AssemblyFileVersion {AssemblyFileVersion}, GitCommitId {GitCommitId})",
+            ThisAssembly.AssemblyFileVersion,
+            ThisAssembly.GitCommitId);
+
         List<IDisposable> subscriptions = new();
 
         // pretty-print which partitions we already 'own'
@@ -169,12 +173,21 @@ public class AggregationWorker
             );
     }
 
+    private readonly ConcurrentDictionary<PartitionID, MessagePosition> lastSnapshots = new();
     private void RegularlyCreateSnapshots(PartitionID partitionId, MeterCollection meterCollection, Func<string> prefix)
     {
-        //if (meterCollection.getLastSequenceNumber() % 500 == 0)
+        if (meterCollection.LastUpdate != null && meterCollection.LastUpdate.IsSome())
         {
-            MeterCollectionStore.storeLastState(config.MeteringConnections, meterCollection: meterCollection).Wait();
-            _logger.LogInformation($"{prefix()} Saved state {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
+            MessagePosition currentPosition = meterCollection.LastUpdate.Value;
+            MessagePosition lastSnapshot = lastSnapshots.GetOrAdd(partitionId, currentPosition);
+            bool justStarted = lastSnapshot == currentPosition;
+            bool shouldCreateSnapshot = config.MeteringConnections.SnapshotIntervalConfiguration.ShouldCreateSnapshot(lastSnapshot, currentPosition);
+
+            if (!justStarted && shouldCreateSnapshot)
+            {
+                MeterCollectionStore.storeLastState(config.MeteringConnections, meterCollection: meterCollection).Wait();
+                _logger.LogInformation($"{prefix()} Saved state {partitionId.value}#{meterCollection.getLastSequenceNumber()}");
+            }
         }
     }
 }
