@@ -309,7 +309,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
 
         mc
         |> MeterCollection.find marketplaceResourceId
-        |> (fun x -> x.UsageToBeReported)
+        |> _.UsageToBeReported
         |> List.filter (fun i -> i.DimensionId = dimension && i.EffectiveStartTime = timeSlot && i.MarketplaceResourceId = marketplaceResourceId && i.Quantity = quantity)
         |> List.length
         |> (fun length -> Assert.AreEqual(1, length))
@@ -323,7 +323,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         let totalToBeSubmitted =
             mc.MetersToBeSubmitted()
             |> Seq.filter (fun m -> m.MarketplaceResourceId = marketplaceResourceId && m.DimensionId = dimension)
-            |> Seq.sumBy (fun m -> m.Quantity.AsInt)
+            |> Seq.sumBy _.Quantity.AsInt
             |> Quantity.create
 
         Assert.AreEqual(overallquantity, totalToBeSubmitted)

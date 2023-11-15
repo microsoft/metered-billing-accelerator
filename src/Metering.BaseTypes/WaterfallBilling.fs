@@ -63,7 +63,7 @@ module WaterfallMeterLogic =
         { Threshold =
             waterfallTiers
             |> List.take (i + 1)
-            |> List.sumBy (fun x -> x.Threshold)
+            |> List.sumBy _.Threshold
           DimensionId =
             waterfallTiers
             |> List.skip(i)
@@ -147,10 +147,9 @@ module WaterfallMeterLogic =
     |> findRange meter.Total
     |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption }
     |> fun agg ->
-        { meter with
-            Total = agg.CurrentTotal
-            Consumption = agg.Consumption
-            LastUpdate = now }
+        { Total = agg.CurrentTotal
+          Consumption = agg.Consumption
+          LastUpdate = now }
 
   let accountExpiredSubmission (dimensionId: DimensionId) (waterfallDimension: WaterfallBillingDimension) (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
     let newConsumption = meter.Consumption |> Map.change dimensionId (add amount)

@@ -32,9 +32,9 @@ module MeteringDateTime =
 
     let fromStr (str: string) : MeteringDateTime =
         meteringDateTimePatterns
-        |> List.map (fun p -> p.Parse(str))
-        |> List.filter (fun p -> p.Success)
-        |> List.map (fun p -> p.Value)
+        |> List.map _.Parse(str)
+        |> List.filter _.Success
+        |> List.map _.Value
         |> List.head
 
     let fromDateTimeOffset (dtos: DateTimeOffset) : MeteringDateTime =

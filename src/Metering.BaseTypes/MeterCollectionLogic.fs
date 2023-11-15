@@ -9,7 +9,7 @@ open Metering.BaseTypes.EventHub
 [<Extension>]
 module MeterCollectionLogic =
     let lastUpdate (mc: MeterCollection option) : MessagePosition option =
-        mc |> Option.bind (fun m -> m.LastUpdate)
+        mc |> Option.bind _.LastUpdate
 
     [<Extension>]
     let getEventPosition (someMeterCollection: MeterCollection option) : StartingPosition =
@@ -32,7 +32,7 @@ module MeterCollectionLogic =
     /// Returns all MarketplaceRequests that are ready to be sent to the Marketplace Metering API
     let usagesToBeReported (meterCollection: MeterCollection) : MarketplaceRequest list =
         meterCollection.Meters
-        |> List.map (fun x -> x.UsageToBeReported)
+        |> List.map _.UsageToBeReported
         |> List.concat
 
     /// Ensure that we apply the right event at the right time, belonging to the appropriate partition
