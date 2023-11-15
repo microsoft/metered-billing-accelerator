@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="NodaTime" Version="3.1.9" />
-    <PackageReference Include="Thoth.Json.Net" Version="10.0.0" />
+    <PackageReference Include="Thoth.Json.Net" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="8.0.100" />

@@ -187,7 +187,7 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
       minTlsVersion: '1.2'
       netFrameworkVersion: windowsInstance ? 'v7.0' : null
       linuxFxVersion: windowsInstance ? null : 'DOTNETCORE|7.0' // This is only for Linux *containers*
-      // windowsFxVersion: 'dotnet:7'     // This is for Windows *containers* (code-name Xenon)
+      // windowsFxVersion: 'dotnet:8'     // This is for Windows *containers* (code-name Xenon)
     }
   }
 
