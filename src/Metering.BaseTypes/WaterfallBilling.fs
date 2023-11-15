@@ -68,12 +68,12 @@ module WaterfallMeterLogic =
             waterfallTiers
             |> List.skip(i)
             |> List.head
-            |> fun x -> x.DimensionId })
+            |> _.DimensionId })
 
     let included =
       expanded
       |> List.head
-      |> fun x -> x.Threshold
+      |> _.Threshold
       |> FreeIncluded
 
     let ranges =
@@ -147,7 +147,7 @@ module WaterfallMeterLogic =
     |> findRange meter.Total
     |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption }
     |> fun agg ->
-        { Total = agg.CurrentTotal
+        { WaterfallMeterValue.Total = agg.CurrentTotal
           Consumption = agg.Consumption
           LastUpdate = now }
 
