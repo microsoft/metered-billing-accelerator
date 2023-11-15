@@ -23,10 +23,14 @@ type WaterfallModelRow =
 type WaterfallExpandedModel =
     WaterfallModelRow list
 
+type WaterfallConsumption =
+    Map<DimensionId, Quantity>
+
 type WaterfallMeterValue =
   { Total: Quantity
-    Consumption: Map<DimensionId, Quantity>
+    Consumption: WaterfallConsumption
     LastUpdate: MeteringDateTime }
+  with static EmptyConsumption : WaterfallConsumption = Map.empty<DimensionId, Quantity>
 
 /// These must be reported
 type ConsumptionReport =
@@ -36,7 +40,7 @@ type ConsumptionReport =
 type SubtractionAggregation =
   { CurrentTotal: Quantity
     AmountToBeDeducted: Quantity
-    Consumption: Map<DimensionId, Quantity> }
+    Consumption: WaterfallConsumption }
 
 /// Serialization
 type WaterfallBillingDimensionItem =

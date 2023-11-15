@@ -80,11 +80,11 @@ let CreateMeterWithIncludedQuantities () =
           LastUpdate = now
         }
 
-    let submitDataToMeteringAndEmptyConsumption (x: WaterfallMeterValue) = { x with Consumption = Map.empty }
+    let submitDataToMeteringAndEmptyConsumption (x: WaterfallMeterValue) = { x with Consumption = WaterfallMeterValue.EmptyConsumption }
 
     meter
-    |> consume (GigaByte     50u) |> assertTotal (GigaByte      50u) |> assertConsumption Map.empty<DimensionId, Quantity>
-    |> consume (GigaByte     49u) |> assertTotal (GigaByte      99u) |> assertConsumption Map.empty<DimensionId, Quantity>
+    |> consume (GigaByte     50u) |> assertTotal (GigaByte      50u) |> assertConsumption WaterfallMeterValue.EmptyConsumption
+    |> consume (GigaByte     49u) |> assertTotal (GigaByte      99u) |> assertConsumption WaterfallMeterValue.EmptyConsumption
     |> consume (GigaByte      2u) |> assertTotal (GigaByte     101u) |> assertConsumption (Map.ofSeq [(tier1_100_10099, (GigaByte      1u))])
     |> consume (GigaByte      1u) |> assertTotal (GigaByte     102u) |> assertConsumption (Map.ofSeq [(tier1_100_10099, (GigaByte      2u))])
     |> consume (GigaByte  9_997u) |> assertTotal (GigaByte  10_099u) |> assertConsumption (Map.ofSeq [(tier1_100_10099, (GigaByte  9_999u))])
