@@ -13,7 +13,7 @@ type MeterCollection =
 
     member this.MetersToBeSubmitted() : MarketplaceRequest seq =
         this.Meters
-        |> Seq.collect (fun meter -> meter.UsageToBeReported)
+        |> Seq.collect _.UsageToBeReported
 
     static member Empty
         with get() =
@@ -38,7 +38,7 @@ module MeterCollection =
 
     let toStrM (pid) (meters: Meter seq) : string =
         meters
-        |> Seq.sortBy  (fun a -> a.Subscription.MarketplaceResourceId)
+        |> Seq.sortBy _.Subscription.MarketplaceResourceId
         |> Seq.map (Meter.toStr pid)
         |> String.concat "\n-----------------\n"
 

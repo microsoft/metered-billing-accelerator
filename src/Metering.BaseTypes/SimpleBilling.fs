@@ -15,7 +15,7 @@ type ConsumedQuantity =
 
     override this.ToString() = sprintf "%s consumed this hour, %s in total" (this.CurrentHour.ToString()) (this.BillingPeriodTotal.ToString())
 
-    member this.increaseConsumption now amount = { this with CurrentHour = this.CurrentHour + amount; BillingPeriodTotal = this.BillingPeriodTotal + amount; LastUpdate = now }
+    member this.increaseConsumption now amount = { CurrentHour = this.CurrentHour + amount; BillingPeriodTotal = this.BillingPeriodTotal + amount; LastUpdate = now }
 
     member this.accountExpiredSubmission now amount = { this with CurrentHour = this.CurrentHour + amount; LastUpdate = now }
 
@@ -30,7 +30,7 @@ type IncludedQuantity =
 
     override this.ToString() = sprintf "Remaining %s" (this.RemainingQuantity.ToString())
 
-    member this.decrease now amount = { this with RemainingQuantity = this.RemainingQuantity - amount; BillingPeriodTotal = this.BillingPeriodTotal + amount; LastUpdate = now }
+    member this.decrease now amount = { RemainingQuantity = this.RemainingQuantity - amount; BillingPeriodTotal = this.BillingPeriodTotal + amount; LastUpdate = now }
 
     //static member createNew now remainingQuantity = { RemainingQuantity = remainingQuantity; BillingPeriodTotal = Quantity.Zero; LastUpdate = now }
 

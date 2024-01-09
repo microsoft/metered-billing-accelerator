@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ReprocessLocalEventHubCaptureFilesProgram.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.7.5" />
+    <PackageReference Include="Azure.Messaging.EventHubs" Version="5.10.0" />
     <ProjectReference Include="..\..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
 </Project>

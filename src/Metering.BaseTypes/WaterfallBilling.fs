@@ -23,10 +23,14 @@ type WaterfallModelRow =
 type WaterfallExpandedModel =
     WaterfallModelRow list
 
+type WaterfallConsumption =
+    Map<DimensionId, Quantity>
+
 type WaterfallMeterValue =
   { Total: Quantity
-    Consumption: Map<DimensionId, Quantity>
+    Consumption: WaterfallConsumption
     LastUpdate: MeteringDateTime }
+  with static EmptyConsumption : WaterfallConsumption = Map.empty<DimensionId, Quantity>
 
 /// These must be reported
 type ConsumptionReport =
@@ -36,7 +40,7 @@ type ConsumptionReport =
 type SubtractionAggregation =
   { CurrentTotal: Quantity
     AmountToBeDeducted: Quantity
-    Consumption: Map<DimensionId, Quantity> }
+    Consumption: WaterfallConsumption }
 
 /// Serialization
 type WaterfallBillingDimensionItem =
@@ -63,17 +67,17 @@ module WaterfallMeterLogic =
         { Threshold =
             waterfallTiers
             |> List.take (i + 1)
-            |> List.sumBy (fun x -> x.Threshold)
+            |> List.sumBy _.Threshold
           DimensionId =
             waterfallTiers
             |> List.skip(i)
             |> List.head
-            |> fun x -> x.DimensionId })
+            |> _.DimensionId })
 
     let included =
       expanded
       |> List.head
-      |> fun x -> x.Threshold
+      |> _.Threshold
       |> FreeIncluded
 
     let ranges =
@@ -147,10 +151,9 @@ module WaterfallMeterLogic =
     |> findRange meter.Total
     |> List.fold subtract { CurrentTotal = meter.Total; AmountToBeDeducted = amount; Consumption = meter.Consumption }
     |> fun agg ->
-        { meter with
-            Total = agg.CurrentTotal
-            Consumption = agg.Consumption
-            LastUpdate = now }
+        { WaterfallMeterValue.Total = agg.CurrentTotal
+          Consumption = agg.Consumption
+          LastUpdate = now }
 
   let accountExpiredSubmission (dimensionId: DimensionId) (waterfallDimension: WaterfallBillingDimension) (now: MeteringDateTime) (amount: Quantity) (meter: WaterfallMeterValue) : WaterfallMeterValue =
     let newConsumption = meter.Consumption |> Map.change dimensionId (add amount)

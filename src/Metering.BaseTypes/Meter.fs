@@ -197,14 +197,14 @@ module Meter =
         let mStr =
             m.Subscription.Plan.BillingDimensions
             |> Map.toSeq
-            |> Seq.map (fun (k,v) -> v)
+            |> Seq.map (fun (_k,v) -> v)
             |> Seq.map (sprintf "%A")
             |> Seq.map (fun v -> $"{pid} {m.Subscription.MarketplaceResourceId.ToString()}: {v}")
             |> String.concat "\n"
 
         let uStr =
             m.UsageToBeReported
-            |> Seq.map (fun a -> a.ToString())
+            |> Seq.map _.ToString()
             |> String.concat "\n"
 
         $"{mStr}\n{uStr}"

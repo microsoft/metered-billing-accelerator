@@ -183,8 +183,8 @@ public class ApplicationService
                 catch (Exception e)
                 {
                     if (i == retry)
-                        _logger.LogError($"Failed to add service principal to group", e);
-                    _logger.LogWarning($"Retry {i}", e);
+                        _logger.LogError("Failed to add service principal to group {e}", e);
+                    _logger.LogWarning($"Retry {i} {e}");
                     Thread.Sleep(200 * (i + 1));
                 }
             }

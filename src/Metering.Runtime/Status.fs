@@ -46,7 +46,7 @@ module Status =
         let getState (connections: MeteringConnections) (cancellationToken: CancellationToken) (partitionId: PartitionID) =
             task {
                 let! state = MeterCollectionStore.loadLastState connections partitionId cancellationToken
-                let pos = state |> Option.bind (fun m -> m.LastUpdate)
+                let pos = state |> Option.bind _.LastUpdate
                 return (partitionId, pos)
             }
 
