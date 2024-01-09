@@ -6,7 +6,7 @@
     <WarnOn>3390;$(WarnOn)</WarnOn>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="NodaTime" Version="3.1.9" />
+    <PackageReference Include="NodaTime" Version="3.1.10" />
     <PackageReference Include="Thoth.Json.Net" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup>
