@@ -10,6 +10,7 @@ Check-out these short videos on what metered billing, and what this project is a
 
 - [What is metered billing? ](https://www.youtube.com/watch?v=62KoPN7uICk&list=PLmsFUfdnGr3wSJ-pevi9RR0J-p8gbhE3B&index=2)
 - [An introduction to the Metered Billing Accelerator](https://www.youtube.com/watch?v=OB8dcYvNlCM&list=PLmsFUfdnGr3wSJ-pevi9RR0J-p8gbhE3B&index=3)
+- **Added in January 2024**: The [YouTube video series on the "Metered Billing Accelerator"](https://www.youtube.com/playlist?list=PLZv8EMzB61uVdnelyxIrVel3EXcGgyMNR)
 
 ## Table of contents
 
