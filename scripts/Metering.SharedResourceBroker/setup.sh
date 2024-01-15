@@ -7,7 +7,7 @@ echo "Running az cli $(az version | jq '."azure-cli"' ), should be 2.37.0 or hig
 
 basedir="$( pwd )"
 basedir="$( dirname "$( readlink -f "$0" )" )"
-# basedir="/mnt/c/github/chgeuer/metered-billing-accelerator/scripts/Metering.SharedResourceBroker"
+# basedir="/mnt/c/Users/chgeuer/Desktop/metered-billing-accelerator/scripts/Metering.SharedResourceBroker"
 echo "Working in directory ${basedir}"
 
 CONFIG_FILE="${basedir}/config.json"
@@ -244,6 +244,8 @@ put-value '.aggregator.AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME'   "$( get-val
 put-value '.aggregator.AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT' "$( get-value '.eventHub.capture.archiveNameFormat' )" 
 put-value '.aggregator.AZURE_METERING_INFRA_TENANT_ID'               "$( get-value '.aad.tenantId' )" 
 put-value '.aggregator.AZURE_METERING_MARKETPLACE_TENANT_ID'         "$( get-value '.aad.tenantId' )" 
+put-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_ID'         "...missing" 
+put-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_SECRET'     "...missing" 
 
 echo "EventHub deployed to $( get-value '.managedApp.meteringConfiguration.amqpEndpoint' )"
 marketplaceConfigFile="${basedir}/../../managed-app/meteringConfiguration.json"
