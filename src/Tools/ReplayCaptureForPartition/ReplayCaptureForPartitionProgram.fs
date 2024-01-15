@@ -33,7 +33,9 @@ config.createEventHubConsumerClient().GetPartitionIdsAsync(cancellationToken).Re
 
     events
     |> Seq.fold (handle dirname) MeterCollection.Empty
-    |> printfn "%A"
+    |> (fun state ->
+        if state <> MeterCollection.Empty
+        then printfn "%A" state)
 )
 
 exit 0
