@@ -138,15 +138,9 @@ msgraph="$( az ad sp show --id 00000003-0000-0000-c000-000000000000 | jq . )"
 put-value '.aad.msgraph.resourceId' "$( echo "${msgraph}" | jq -r '.id' )"
 put-value '.aad.msgraph.appRoleId'  "$( echo "${msgraph}" | jq -r '.appRoles[] | select(.value | contains("Application.ReadWrite.OwnedBy")) | .id' )"
 
-#
-# Determine the software version to be deployed within the ARM script
-#
-webAppVersion="$( jq -r '.version' < "${basedir}/../../version.json" )"
-webAppVersion="1.0.69-beta"
-put-value '.deployment.webAppVersion' "${webAppVersion}"
-
 # zipUrl="https://typora.blob.core.windows.net/typoraimages/2022/11/24/15/42/publish----BGRP8HCW5VZQF0H96MMNP0XNQ0.zip"
-zipUrl="https://github.com/microsoft/metered-billing-accelerator/releases/download/1.0.191-beta/zip-deploy-Metering.SharedResourceBroker-win-x64.zip"
+zipUrl="https://github.com/microsoft/metered-billing-accelerator/releases/download/1.1.21-beta/zip-deploy-Metering.SharedResourceBroker-win-x64.zip"
+
 #
 # Github stores the actual release in AWS S3, so we need to follow the redirect, so that Azure App Service ZIP Deploy can download the zip file from the correct location
 #
