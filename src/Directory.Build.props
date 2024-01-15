@@ -7,7 +7,7 @@
   <ItemGroup Condition="'$(MSBuildProjectExtension)' != '.dcproj'">
     <PackageReference Include="Nerdbank.GitVersioning" Condition="!Exists('packages.config')">
       <PrivateAssets>all</PrivateAssets>
-      <Version>3.6.133</Version>
+      <Version>3.7.48-alpha</Version>
     </PackageReference>
   </ItemGroup>
 </Project>
