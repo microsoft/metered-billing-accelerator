@@ -159,7 +159,7 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2022-03-01' = {
   tags: {
     prefix: prefix
   }
-  sku: { name: 'F1', capacity: 1 }
+  sku: { name: 'S1', tier: 'Standard', size: 'S1', capacity: 1 }
   properties: {
     reserved: windowsInstance ? false : true
   }
@@ -185,9 +185,10 @@ resource appService 'Microsoft.Web/sites@2021-03-01' = {
     httpsOnly: true
     siteConfig: {
       minTlsVersion: '1.2'
-      netFrameworkVersion: windowsInstance ? 'v7.0' : null
-      linuxFxVersion: windowsInstance ? null : 'DOTNETCORE|7.0' // This is only for Linux *containers*
+      netFrameworkVersion: windowsInstance ? 'v8.0' : null
+      linuxFxVersion: windowsInstance ? null : 'DOTNETCORE|8.0' // This is only for Linux *containers*
       // windowsFxVersion: 'dotnet:8'     // This is for Windows *containers* (code-name Xenon)
+      use32BitWorkerProcess: false
     }
   }
 
