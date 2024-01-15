@@ -30,9 +30,7 @@ public class AggregationWorker
 
     public async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("Worker starting (AssemblyFileVersion {AssemblyFileVersion}, GitCommitId {GitCommitId})",
-            ThisAssembly.AssemblyFileVersion,
-            ThisAssembly.GitCommitId);
+        // _logger.LogInformation("Worker starting (AssemblyFileVersion {AssemblyFileVersion}, GitCommitId {GitCommitId})", ThisAssembly.AssemblyFileVersion, ThisAssembly.GitCommitId);
 
         List<IDisposable> subscriptions = new();
 
