@@ -4,7 +4,6 @@ Azure Event Hubs collects the same kinds of monitoring data as other Azure resou
 
 See [Azure Event Hubs monitoring data reference](https://docs.microsoft.com/en-us/azure/event-hubs/monitor-event-hubs-reference) for a detailed reference of the logs and metrics created by Azure Event Hubs.
 
-
 ## Collection and routing
 Platform metrics and the activity log are collected and stored automatically, but can be routed to other locations by using a diagnostic setting.
 
