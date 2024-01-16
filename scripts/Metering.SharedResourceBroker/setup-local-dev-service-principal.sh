@@ -154,6 +154,10 @@ cat <<-EOFBATCH | unix2dos > "${basedir}/set-development-environment.cmd"
 	setx.exe AZURE_METERING_MARKETPLACE_TENANT_ID         $( get-value '.aggregator.AZURE_METERING_MARKETPLACE_TENANT_ID' )
 	setx.exe AZURE_METERING_MARKETPLACE_CLIENT_ID         $( get-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_ID' )
 	setx.exe AZURE_METERING_MARKETPLACE_CLIENT_SECRET     $( get-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_SECRET' )
+  setx.exe AZURE_METERING_MARKETPLACE_CLIENT_SECRET     $( get-value '.aggregator.AZURE_METERING_MARKETPLACE_CLIENT_SECRET' )
+
+  setx.ex AZURE_METERING_MAX_NUMBER_OF_EVENTS_BETWEEN_SNAPSHOTS   10
+  setx.ex AZURE_METERING_MAX_DURATION_BETWEEN_SNAPSHOTS           00:05:00
 EOFBATCH
 
 echo "You can run ${basedir}/set-development-environment.cmd on the Windows side of the house, in case you want to locally debug the environment."

@@ -22,24 +22,26 @@ The entire solution can be deployed with a single command. You have two options:
       > Change the values starting with *$* with your own parameter values.
 
 ```azurecli
-az deployment sub create -f main-new-rg.bicep \
-      --location westeurope \
-      --parameters rgLocation=westeurope \
-      --parameters appNamePrefix=$meteredbilling \
-      --parameters ADApplicationID=$CHANGE-WITH-CLIENT_ID \
-      --parameters ADApplicationSecret=$CHANGE-WITH-CLIENT_SECRET \
-      --parameters tenantID=$CHANGE-WITH-TENANT_ID
+az deployment sub create \
+  --template-file main-new-rg.bicep \
+  --location westeurope \
+  --parameters rgLocation=westeurope \
+  --parameters appNamePrefix=$meteredbilling \
+  --parameters ADApplicationID=$CHANGE-WITH-CLIENT_ID \
+  --parameters ADApplicationSecret=$CHANGE-WITH-CLIENT_SECRET \
+  --parameters tenantID=$CHANGE-WITH-TENANT_ID
 ```
 
 2. Deploy the solution into an existing resource group:
 
 ```azurecli
-az deployment group create --template-file main-existing-rg.bicep  \
-      --parameters appNamePrefix=$meteredbilling \
-      --resource-group $meteredbilling-rg \
-      --parameters ADApplicationID=$CHANGE-WITH-CLIENT_ID \
-      --parameters ADApplicationSecret=$CHANGE-WITH-CLIENT_SECRET \
-      --parameters tenantID=$CHANGE-WITH-TENANT_ID
+az deployment group create \
+   --template-file main-existing-rg.bicep  \
+   --parameters appNamePrefix=$meteredbilling \
+   --resource-group $meteredbilling-rg \
+   --parameters ADApplicationID=$CHANGE-WITH-CLIENT_ID \
+   --parameters ADApplicationSecret=$CHANGE-WITH-CLIENT_SECRET \
+   --parameters tenantID=$CHANGE-WITH-TENANT_ID
 ```
 
 ## Parameters
