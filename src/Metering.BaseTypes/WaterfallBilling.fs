@@ -30,7 +30,7 @@ type WaterfallMeterValue =
   { Total: Quantity
     Consumption: WaterfallConsumption
     LastUpdate: MeteringDateTime }
-  with static EmptyConsumption : WaterfallConsumption = Map.empty<DimensionId, Quantity>
+  with static member EmptyConsumption : WaterfallConsumption = Map.empty<DimensionId, Quantity>
 
 /// These must be reported
 type ConsumptionReport =
