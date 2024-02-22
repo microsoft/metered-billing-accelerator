@@ -25,11 +25,11 @@ var connectionInformation = {
 
 var mergedSecrets = string(union(servicePrincipal, connectionInformation))
 
-resource runtimeKeyVault 'Microsoft.KeyVault/vaults@2021-10-01' existing = {
+resource runtimeKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: vaultName
 }
 
-resource meteringSubmissionSecret 'Microsoft.KeyVault/vaults/secrets@2021-11-01-preview' = {
+resource meteringSubmissionSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
 	parent: runtimeKeyVault
 	name: secretName
 	properties: {

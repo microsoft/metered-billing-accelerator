@@ -13,7 +13,6 @@ param authenticationType string = 'password'
 param sshPassword string = ''
 
 @description('SSH key for the Virtual Machine.')
-@secure()
 param sshPublicKey string = ''
 
 @description('Unique DNS Name for the Public IP used to access the Virtual Machine.')
@@ -39,8 +38,9 @@ param meteringSubmissionSecretName string
 @description('The base URL for artifacts')
 param _artifactsLocation string
 
-@description('The base URL for artifacts')
-param _artifactsLocationSasToken string = ''
+@description('SAS token to access scripts etc.')
+@secure()
+param _artifactsLocationSasToken string
 
 // param currentDateMarker string = utcNow('yyyy-MM-dd--HH-mm-ss')
 
@@ -84,7 +84,7 @@ var sample = {
   }
 }
 
-resource samplePublicIPAddressName 'Microsoft.Network/publicIPAddresses@2020-06-01' = {
+resource samplePublicIPAddressName 'Microsoft.Network/publicIPAddresses@2023-06-01' = {
   name: sample.names.publicIPAddress
   location: location
   properties: {
@@ -95,7 +95,7 @@ resource samplePublicIPAddressName 'Microsoft.Network/publicIPAddresses@2020-06-
   }
 }
 
-resource sampleNetworkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2021-08-01' = {
+resource sampleNetworkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2023-06-01' = {
   name: sample.names.networkSecurityGroup
   location: location
   properties: {
@@ -117,7 +117,7 @@ resource sampleNetworkSecurityGroup 'Microsoft.Network/networkSecurityGroups@202
   }
 }
 
-resource sampleVirtualNetwork 'Microsoft.Network/virtualNetworks@2020-06-01' = {
+resource sampleVirtualNetwork 'Microsoft.Network/virtualNetworks@2023-06-01' = {
   name: sample.names.virtualNetwork
   location: location
   properties: {
@@ -140,7 +140,7 @@ resource sampleVirtualNetwork 'Microsoft.Network/virtualNetworks@2020-06-01' = {
   }
 }
 
-resource sampleNic 'Microsoft.Network/networkInterfaces@2020-06-01' = {
+resource sampleNic 'Microsoft.Network/networkInterfaces@2023-06-01' = {
   name: sample.names.nic
   location: location
   properties: {
@@ -164,7 +164,7 @@ resource sampleNic 'Microsoft.Network/networkInterfaces@2020-06-01' = {
   ]
 }
 
-resource sampleVm 'Microsoft.Compute/virtualMachines@2020-06-01' = {
+resource sampleVm 'Microsoft.Compute/virtualMachines@2023-09-01' = {
   name: sample.names.vm
   location: location
   identity: {
@@ -222,7 +222,7 @@ resource customScriptExtension 'Microsoft.Compute/virtualMachines/extensions@202
     autoUpgradeMinorVersion: true
     // enableAutomaticUpgrade: bool
     // forceUpdateTag: 'string'
-    settings: {
+    protectedSettings: {
       fileUris: [ 
         uri(_artifactsLocation, '${customScriptExtensionConfig.directory}/${customScriptExtensionConfig.script}${_artifactsLocationSasToken}')
       ]

@@ -26,10 +26,13 @@ param dnsLabelPrefix string
 @description('Size of the virtual machine.')
 param vmSize string = 'Standard_D2_v5'
 
-// @description('The system-assigned managed identity of the managed app')
-// param managedIdentity string
+// https://github.com/Azure/azure-quickstart-templates/blob/master/1-CONTRIBUTION-GUIDE/best-practices.md#deployment-artifacts-nested-templates-scripts
+@description('The base URI where artifacts required by this template are located including a trailing \'/\'')
+param _artifactsLocation string = deployment().properties.templateLink.uri
 
-var _artifactsLocation = deployment().properties.templateLink.uri 
+@description('The sasToken required to access _artifactsLocation.  When the template is deployed using the accompanying scripts, a sasToken will be automatically generated. Use the defaultValue if the staging location is not secured.')
+@secure()
+param _artifactsLocationSasToken string = ''
 
 var meteringConfiguration = loadJsonContent('../meteringConfiguration.json')
 // var customerUsageAttribution = loadJsonContent('../customer_usage_attribution_ID.json')
@@ -41,7 +44,7 @@ module THIS_IS_INVALID_PLEASE_RUN_buildsh './nestedtemplates/emptyFile.bicep' = 
   params: {}
 }
 
-resource publisherKeyVaultWithBootstrapSecret 'Microsoft.KeyVault/vaults@2021-10-01' existing = {
+resource publisherKeyVaultWithBootstrapSecret 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: meteringConfiguration.publisherVault.vaultName
   scope: resourceGroup(meteringConfiguration.publisherVault.publisherSubscription, meteringConfiguration.publisherVault.vaultResourceGroupName)
 }
@@ -52,12 +55,13 @@ module setupMeteredBillingConfigurationModule './nestedtemplates/meteredBillingD
   params: {
     location: location
     _artifactsLocation: _artifactsLocation
+    _artifactsLocationSasToken: _artifactsLocationSasToken
     bootstrapSecretValue: publisherKeyVaultWithBootstrapSecret.getSecret(meteringConfiguration.publisherVault.bootstrapSecretName)
     meteringConfiguration: meteringConfiguration
   }
 }
 
-// resource runtimeKeyVault 'Microsoft.KeyVault/vaults@2021-10-01' existing = {
+// resource runtimeKeyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
 //   name: setupMeteredBillingConfigurationModule.outputs.runtimeKeyVaultName
 //   scope: resourceGroup()
 // }
@@ -67,6 +71,7 @@ module submitInitialMeteringMessage './nestedtemplates/submitCreationMessage.bic
   params: {
     location: location
     _artifactsLocation: _artifactsLocation
+    _artifactsLocationSasToken: _artifactsLocationSasToken
     planConfiguration: loadJsonContent('../plan.json')
     runtimeIdentityId: setupMeteredBillingConfigurationModule.outputs.runtimeIdentityId
     // runtimeIdentityId: setupMeteredBillingConfigurationModule.outputs.setupIdentityId
@@ -83,6 +88,7 @@ module managedAppContents './managedAppContents.bicep' = {
   params: {
     location: location
     _artifactsLocation: _artifactsLocation
+    _artifactsLocationSasToken: _artifactsLocationSasToken
     vmSize: vmSize
     dnsLabelPrefix: dnsLabelPrefix
     sshUsername: sshUsername, authenticationType: authenticationType, sshPassword: sshPassword, sshPublicKey: sshPublicKey
