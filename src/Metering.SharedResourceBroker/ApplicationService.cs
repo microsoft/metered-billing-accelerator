@@ -5,6 +5,9 @@ using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Graph;
+using Microsoft.Graph.Applications.Item.AddPassword;
+using Microsoft.Graph.Communications.Common;
+using Microsoft.Graph.Models;
 using Newtonsoft.Json;
 using SimpleBase;
 using System;
@@ -71,24 +74,24 @@ public class ApplicationService
     {
         try
         {
-            var queryOptions = new List<QueryOption>
-            {
-                new("$count", "true")
-            };
+            //var queryOptions = new List<QueryOption>
+            //{
+            //    new("$count", "true")
+            //};
 
             var appName = GetApplicationName(managedBy);
             var _graphServiceClient = GetGraphServiceClient();
             var applications = await _graphServiceClient.Applications
-                .Request(queryOptions)
-                .Filter($"startsWith(displayName,'{appName}')")
-                .Header("ConsistencyLevel", "eventual")
-                .GetAsync();
+                .GetAsync(requestConfiguration => {
+                    requestConfiguration.Headers.Add("ConsistencyLevel", "eventual");
+                    requestConfiguration.QueryParameters.Filter = ($"startsWith(displayName,'{appName}'");
+                });
 
-            if (applications.Any())
+            if (applications.Value.Any())
             {
-                var application = applications.First();
+                var application = applications.Value.First();
                 _logger.LogInformation($"Deleting app: {application.DisplayName}");
-                await _graphServiceClient.Applications[application.Id].Request().DeleteAsync();
+                await _graphServiceClient.Applications[application.Id].DeleteAsync();
             }
 
             await DeleteServicePrincipalSecret(managedBy);
@@ -111,17 +114,14 @@ public class ApplicationService
 
             //Search for AAD app. Make sure SP does not already exist
             var apps = await _graphServiceClient.Applications
-                .Request(
-                    new List<QueryOption>()
-                    {
-                        new("$count", "true"),
-                        new("$filter", $"DisplayName eq '{appName}'")
-                    })
-                .Header("ConsistencyLevel", "eventual")
-                .GetAsync();
+                .GetAsync(requestConfiguration => {
+                    requestConfiguration.Headers.Add("ConsistencyLevel", "eventual");
+                    requestConfiguration.QueryParameters.Count = true;
+                    requestConfiguration.QueryParameters.Filter = $"DisplayName eq '{appName}'";
+                });
 
             //Ensure that only one app can be created
-            if (apps.Count > 0)
+            if (apps.Value.Count > 0)
             {
                 throw new ArgumentException("Service principal already exist");
             }
@@ -130,8 +130,7 @@ public class ApplicationService
             //Create AAD application
             var app = await _graphServiceClient
                 .Applications
-                .Request()
-                .AddAsync(new Application
+                .PostAsync(new Application
                 {
                     DisplayName = appName,
                     SignInAudience = "AzureADMyOrg",
@@ -144,20 +143,21 @@ public class ApplicationService
 
             //Create Secret
             var pwd = await _graphServiceClient.Applications[app.Id]
-                .AddPassword(
-                    new PasswordCredential
+                .AddPassword.PostAsync(new()
+                {
+                    PasswordCredential = new()
                     {
                         DisplayName = $"{_appSettings.GeneratedServicePrincipalPrefix}-rbac",
                         EndDateTime = DateTime.Now.AddYears(100),
-                    })
-                .Request()
-                .PostAsync();
+                    }
+                });
+
+
             _logger.LogTrace($"AAD app password created: {app.DisplayName}");
 
             //Create Service principal for app
             var spr = await _graphServiceClient.ServicePrincipals
-                .Request()
-                .AddAsync(new ServicePrincipal
+                .PostAsync(new ServicePrincipal
                 {
                     AppId = app.AppId,
                     Notes = app.Notes,
@@ -170,13 +170,14 @@ public class ApplicationService
                 try
                 {
                     //Add Service principal to the security group, which has permissions the resource(s).
-                    await _graphServiceClient.Groups[_appSettings.SharedResourcesGroup].Members.References
-                         .Request()
+                    await _graphServiceClient.Groups[_appSettings.SharedResourcesGroup].Members.
+                        
+                        .References
                          .AddAsync(new DirectoryObject { Id = spr.Id });
                     _logger.LogTrace($"Service principal added to security group: {spr.Id}");
                     break;
                 }
-                catch (ServiceException e) when (e.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                catch (ServiceException e) when (e.ResponseStatusCode == (int)System.Net.HttpStatusCode.Forbidden)
                 {
                     throw;
                 }
