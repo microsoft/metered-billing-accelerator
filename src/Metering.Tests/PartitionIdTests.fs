@@ -9,7 +9,7 @@ open Metering.RuntimeCS
 [<Test>]
 let ``PartitionID tests`` () =
     let test ((partitionId,partitionCount,partitionKey) : int16*int16*string) =
-        Assert.AreEqual(partitionId, PartitionIDHashExtensions.DeterminePartitionId(partitionKey, partitionCount))
+        Assert.That(PartitionIDHashExtensions.DeterminePartitionId(partitionKey, partitionCount), Is.EqualTo(partitionId))
 
     [
         (0s, 1s, "00000000-0000-0101-9A83-DEADDEADBEEF")

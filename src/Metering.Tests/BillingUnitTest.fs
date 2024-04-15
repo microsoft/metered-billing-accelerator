@@ -21,14 +21,13 @@ type SequenceNumberGenerator() =
 let ``checkSequenceNumberGenerator``() =
     let sg1 = SequenceNumberGenerator()
     let sg2 = SequenceNumberGenerator()
+    Assert.That(sg1.Next(), Is.EqualTo(0L));
+    Assert.That(sg1.Next(), Is.EqualTo(1L));
 
-    Assert.AreEqual(0L, sg1.Next())
-    Assert.AreEqual(1L, sg1.Next())
-
-    Assert.AreEqual(0L, sg2.Next())
-    Assert.AreEqual(1L, sg2.Next())
-    Assert.AreEqual(2L, sg2.Next())
-    Assert.AreEqual(3L, sg2.Next())
+    Assert.That(sg2.Next(), Is.EqualTo(0L));
+    Assert.That(sg2.Next(), Is.EqualTo(1L));
+    Assert.That(sg2.Next(), Is.EqualTo(2L));
+    Assert.That(sg2.Next(), Is.EqualTo(3L));
 
 type TimeGenerator(startTime: string) =
     let mutable now = MeteringDateTime.fromStr startTime
@@ -51,10 +50,11 @@ type TimeGenerator(startTime: string) =
 [<Test>]
 let ``CheckTimeGenerator`` () =
     let tg = TimeGenerator("2023-04-15T00:01:00Z")
-    Assert.AreEqual("2023-04-15T00:01:00Z", tg.Now())
-    Assert.AreEqual("2023-04-15T00:01:01Z", tg.InThisHour())
-    Assert.AreEqual("2023-04-15T00:01:02Z", tg.InThisHour())
-    Assert.AreEqual("2023-04-15T01:00:01Z", tg.NextHour())
+
+    Assert.That(tg.Now(), Is.EqualTo("2023-04-15T00:01:00Z"))
+    Assert.That(tg.InThisHour(), Is.EqualTo("2023-04-15T00:01:01Z"))
+    Assert.That(tg.InThisHour(), Is.EqualTo("2023-04-15T00:01:02Z"))
+    Assert.That(tg.NextHour(), Is.EqualTo("2023-04-15T01:00:01Z"))
 
 [<SetUp>]
 let Setup () = ()
@@ -80,7 +80,7 @@ let ``MeterValue.subtractQuantity``() =
     let now =        "2021-10-28T13:38:00" |> MeteringDateTime.fromStr
     let test (idx, testcase) =
         let result = testcase.State |> SimpleMeterLogic.consume now testcase.Quantity
-        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
+        Assert.That(result, Is.EqualTo(testcase.Expected), message = (sprintf "Failure test case %d" idx));
 
     [
         {
@@ -123,7 +123,7 @@ let ``MeterValue.createIncluded``() =
 
     let test (idx, testcase) =
         let result = SimpleMeterLogic.createIncluded now (Quantity.create testcase.Value)
-        Assert.AreEqual(testcase.Expected, result, sprintf "Failure test case %d" idx)
+        Assert.That(result, Is.EqualTo(testcase.Expected), message = (sprintf "Failure test case %d" idx));
 
     [
         {
@@ -140,7 +140,7 @@ let ``Meter.previousBillingIntervalCanBeClosedNewEvent``() =
                 (prev |> MeteringDateTime.fromStr)
                 (curEv |> MeteringDateTime.fromStr)
 
-        Assert.AreEqual(expected, result, sprintf "Failure test case #%d" idx)
+        Assert.That(result, Is.EqualTo(expected), message = (sprintf "Failure test case %d" idx));
 
     [
         ("2021-01-10T11:59:58", "2021-01-10T11:59:59", false) // Even though we're already 10 seconds in the new hour, the given event belongs to the previous hour, so there might be more
@@ -153,28 +153,28 @@ let ``MarketplaceResourceId.equality``() =
     let resourceIdStr1 = "8151a707-467c-4105-df0b-44c3fca5880d"
     let resourceUriStr1 = "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
 
-    Assert.AreNotEqual(
-        MarketplaceResourceId.fromResourceID resourceIdStr1,
-        MarketplaceResourceId.fromResourceURI resourceUriStr1)
-
-    Assert.AreEqual(
-        MarketplaceResourceId.fromResourceID resourceIdStr1,
-        MarketplaceResourceId.fromStr resourceIdStr1)
-
-    Assert.AreEqual(
+    Assert.That(
         MarketplaceResourceId.fromResourceURI resourceUriStr1,
-        MarketplaceResourceId.fromStr resourceUriStr1)
+        Is.Not.EqualTo(MarketplaceResourceId.fromResourceID resourceIdStr1))
+
+    Assert.That(
+        MarketplaceResourceId.fromStr resourceIdStr1,
+        Is.EqualTo(MarketplaceResourceId.fromResourceID resourceIdStr1))
+
+    Assert.That(
+        MarketplaceResourceId.fromStr resourceUriStr1,
+        Is.EqualTo(MarketplaceResourceId.fromResourceURI resourceUriStr1))
 
     let x1 = MarketplaceResourceId.fromResourceURI resourceUriStr1
     let x2 = x1.addResourceId resourceIdStr1
 
-    Assert.IsTrue(x1.Matches(x2))
-    Assert.IsTrue(x2.Matches(x1))
+    Assert.That(x1.Matches(x2), Is.True)
+    Assert.That(x2.Matches(x1), Is.True)
 
 [<Test>]
 let ``Quantity.Serialization`` () =
     let test (idx, v) =
-        Assert.AreEqual(v, v |> Json.toStr 1 |> Json.fromStr<Quantity>, sprintf "Failure testc case #%d" idx)
+        Assert.That(v |> Json.toStr 1 |> Json.fromStr<Quantity>, Is.EqualTo(v), message = sprintf "Failure testc case #%d" idx)
 
     [
         Infinite
@@ -187,17 +187,17 @@ let ``Quantity.Math`` () =
     let q : (int -> Quantity) = uint32 >> Quantity.create
     let f : (float -> Quantity) = float >> Quantity.create
 
-    Assert.AreEqual(q 10, (q 3) + (q 7))
-    Assert.AreEqual(q 7, (q 10) - (q 3))
-    Assert.AreEqual(Infinite, Infinite - (q 3))
-    Assert.AreEqual(Infinite, Infinite + (q 3))
+    Assert.That((q 3) + (q 7), Is.EqualTo(q 10))
+    Assert.That((q 10) - (q 3), Is.EqualTo(q 7))
+    Assert.That(Infinite - (q 3), Is.EqualTo(Infinite))
+    Assert.That(Infinite + (q 3), Is.EqualTo(Infinite))
 
-    Assert.AreEqual(f 10.0, (f 3.0) + (f 7.0))
-    Assert.AreEqual(f 7.0, (f 10.0) - (f 3.0))
-    Assert.AreEqual(Infinite, Infinite - (f 3.0))
-    Assert.AreEqual(Infinite, Infinite + (f 3.0))
+    Assert.That((f 3.0) + (f 7.0), Is.EqualTo(f 10.0))
+    Assert.That((f 10.0) - (f 3.0), Is.EqualTo(f 7.0))
+    Assert.That(Infinite - (f 3.0), Is.EqualTo(Infinite))
+    Assert.That(Infinite + (f 3.0), Is.EqualTo(Infinite))
 
-    Assert.AreEqual(f 11.1, (q 3) + (f 8.1))
+    Assert.That((q 3) + (f 8.1), Is.EqualTo(f 11.1))
 
 let partitionId = "2"
 
@@ -293,13 +293,13 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         // Ensures that the given MeterValue is exactly the given quantity
         match mv with
         | IncludedQuantity iq ->
-            Assert.AreEqual(q, iq.RemainingQuantity)
+            Assert.That(iq.RemainingQuantity, Is.EqualTo(q))
         | _ -> failwith "Not an IncludedQuantity"
 
     let overageOf (q: Quantity) (mv: SimpleMeterValue) : unit =
         match mv with
         | ConsumedQuantity cq ->
-            Assert.AreEqual(q, cq.CurrentHour)
+            Assert.That(cq.CurrentHour, Is.EqualTo(q))
         | _ -> failwith "Not an ConsumedQuantity"
 
     let assertUsageReported (marketplaceResourceId: MarketplaceResourceId)  (dimension: string) (timeSlot: string) (quantity: uint) (mc: MeterCollection) : MeterCollection =
@@ -312,7 +312,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         |> _.UsageToBeReported
         |> List.filter (fun i -> i.DimensionId = dimension && i.EffectiveStartTime = timeSlot && i.MarketplaceResourceId = marketplaceResourceId && i.Quantity = quantity)
         |> List.length
-        |> (fun length -> Assert.AreEqual(1, length))
+        |> (fun length -> Assert.That(length, Is.EqualTo(1)))
 
         mc
 
@@ -326,7 +326,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
             |> Seq.sumBy _.Quantity.AsInt
             |> Quantity.create
 
-        Assert.AreEqual(overallquantity, totalToBeSubmitted)
+        Assert.That(totalToBeSubmitted, Is.EqualTo(overallquantity), message = "Overall quantity to be submitted")
 
         mc
 
@@ -347,7 +347,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
         check (fun m ->
             match m.LastUpdate with
             | None -> Assert.Fail "missing LastUpdate"
-            | Some u -> Assert.AreEqual(sn.Current(), u.SequenceNumber)
+            | Some u -> Assert.That(u.SequenceNumber, Is.EqualTo(sn.Current()))
         )
 
     let inspectJson (header: string) (a: 'a) : 'a =
@@ -365,8 +365,8 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> handle (createSubsc (sn.Next()) "2021-11-29T17:04:00Z" (subCreation sub1 "2021-11-29T17:00:00Z"))
     |> ensureSequenceNumberHasBeenApplied
     // ... all meters should be at their original levels
-    |> check (fun m -> Assert.AreEqual(1, m.Meters.Length))
-    |> check (fun m -> Assert.IsTrue(m |> MeterCollection.contains sub1))
+    |> check (fun m -> Assert.That(m.Meters.Length, Is.EqualTo(1)))
+    |> check (fun m -> Assert.That(m |> MeterCollection.contains sub1, Is.True))
     |> assertIncluded      sub1 "dimension1" (Quantity.create 1000u)
     |> assertIncluded      sub1 "dimension2" Quantity.Infinite
     // Up until now, there should nothing to be reported.
@@ -408,7 +408,7 @@ let ``MeterCollectionLogic.handleMeteringEvent`` () =
     |> handle (createSubsc (sn.Next()) "2021-11-29T19:04:00Z" (subCreation sub2 "2021-11-29T18:58:00Z"))
     |> ensureSequenceNumberHasBeenApplied
     // Now we should have 2 subsriptions
-    |> check (fun m -> Assert.AreEqual(2, m.Meters.Length))
+    |> check (fun m -> Assert.That(m.Meters.Length, Is.EqualTo(2)))
     // Submit usage to sub1 and then an hour later to sub2
     |> newusage            sub1 "2021-11-29T21:00:03Z" 1u "d1"
     |> newusage            sub2 "2021-11-29T22:00:03Z" 1u "d1"
@@ -475,28 +475,28 @@ let ``Quantity.Comparison``() =
     let fiveFloat = Quantity.create 5.0
     let tenFloat = Quantity.create 10.0
 
-    Assert.AreEqual(fiveFloat, fiveInt)
-    Assert.AreEqual(tenFloat, tenInt)
+    Assert.That(fiveFloat, Is.EqualTo(fiveInt))
+    Assert.That(tenInt, Is.EqualTo(tenFloat))
 
-    Assert.IsTrue(fiveFloat < tenFloat)
-    Assert.IsTrue(fiveInt < tenFloat)
-    Assert.IsTrue(fiveFloat < tenInt)
-    Assert.IsTrue(fiveInt < tenInt)
+    Assert.That(fiveFloat < tenFloat, Is.True)
+    Assert.That(fiveInt < tenFloat, Is.True)
+    Assert.That(fiveFloat < tenInt, Is.True)
+    Assert.That(fiveInt < tenInt, Is.True)
 
-    Assert.IsTrue(tenFloat > fiveFloat)
-    Assert.IsTrue(tenFloat > fiveInt)
-    Assert.IsTrue(tenInt > fiveFloat)
-    Assert.IsTrue(tenInt > fiveInt)
+    Assert.That(tenFloat > fiveFloat, Is.True)
+    Assert.That(tenFloat > fiveInt, Is.True)
+    Assert.That(tenInt > fiveFloat, Is.True)
+    Assert.That(tenInt > fiveInt, Is.True)
 
-    Assert.IsTrue(fiveFloat <= tenFloat)
-    Assert.IsTrue(fiveInt <= tenFloat)
-    Assert.IsTrue(fiveFloat <= tenInt)
-    Assert.IsTrue(fiveInt <= tenInt)
+    Assert.That(fiveFloat <= tenFloat, Is.True)
+    Assert.That(fiveInt <= tenFloat, Is.True)
+    Assert.That(fiveFloat <= tenInt, Is.True)
+    Assert.That(fiveInt <= tenInt, Is.True)
 
-    Assert.IsTrue(tenFloat >= fiveFloat)
-    Assert.IsTrue(tenFloat >= fiveInt)
-    Assert.IsTrue(tenInt >= fiveFloat)
-    Assert.IsTrue(tenInt >= fiveInt)
+    Assert.That(tenFloat >= fiveFloat, Is.True)
+    Assert.That(tenFloat >= fiveInt, Is.True)
+    Assert.That(tenInt >= fiveFloat, Is.True)
+    Assert.That(tenInt >= fiveInt, Is.True)
 
 [<Test>]
 let ``CaptureProcessor.isRelevantBlob`` () =
@@ -506,21 +506,25 @@ let ``CaptureProcessor.isRelevantBlob`` () =
             (EventHubName.create "meteringhack-standard" "hub2",  (PartitionID.create "0"))
             blobName
 
-    Assert.IsTrue(isRelevant
-        "meteringhack-standard/hub2/p0--2021-12-08--15-17-12.avro"
-        (MeteringDateTime.create 2021 12 08 15 17 12))
+    Assert.That(
+        isRelevant
+            "meteringhack-standard/hub2/p0--2021-12-08--15-17-12.avro"
+            (MeteringDateTime.create 2021 12 08 15 17 12),
+        Is.True)
 
-    Assert.IsFalse(isRelevant
-        "meteringhack-standard/hub2/p0--2021-12-08--15-17-12.avro"
-        (MeteringDateTime.create 2021 12 08 15 17 13))
+    Assert.That(
+        isRelevant
+            "meteringhack-standard/hub2/p0--2021-12-08--15-17-12.avro"
+            (MeteringDateTime.create 2021 12 08 15 17 13),
+        Is.False)
 
 [<Test>]
 let ``CaptureProcessor.getPrefixForRelevantBlobs`` () =
     let ehContext = (EventHubName.create "meteringhack-standard" "hub2", (PartitionID.create "0"))
 
-    Assert.AreEqual(
-        "meteringhack-standard/hub2/p0--",
-        CaptureProcessor.getPrefixForRelevantBlobs "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}" ehContext)
+    Assert.That(
+        CaptureProcessor.getPrefixForRelevantBlobs "{Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}" ehContext,
+        Is.EqualTo("meteringhack-standard/hub2/p0--"))
 
 module E =
     open System.Collections.Generic
@@ -549,11 +553,11 @@ let ``MarketplaceResourceId.Equal`` () =
     let u = MarketplaceResourceId.fromResourceURI "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription"
     let ui = MarketplaceResourceId.from "/subscriptions/..../resourceGroups/.../providers/Microsoft.SaaS/resources/SaaS Accelerator Test Subscription" "8151a707-467c-4105-df0b-44c3fca5880d"
 
-    Assert.IsTrue(ui.Matches(u))
-    Assert.IsTrue(u.Matches(ui))
-    Assert.IsTrue(i.Matches(ui))
-    Assert.IsTrue(ui.Matches(i))
-    Assert.IsFalse(u.Matches(i))
+    Assert.That(ui.Matches(u), Is.True)
+    Assert.That(u.Matches(ui), Is.True)
+    Assert.That(i.Matches(ui), Is.True)
+    Assert.That(ui.Matches(i), Is.True)
+    Assert.That(u.Matches(i), Is.False)
 
 [<Test>]
 let ``Meter.handleUnsuccessfulMeterSubmission.Expired``() =
@@ -598,11 +602,11 @@ let ``Meter.handleUnsuccessfulMeterSubmission.Expired``() =
             | Some x ->
                 match x with
                 | IncludedQuantity iq -> ()
-                | ConsumedQuantity cq -> Assert.AreEqual(m, cq.CurrentHour)
+                | ConsumedQuantity cq -> Assert.That(cq.CurrentHour, Is.EqualTo(m))
         | WaterfallBillingDimension wbd ->
             match wbd.Meter with
             | None -> ()
-            | Some x -> Assert.AreEqual(m, x.Total)
+            | Some x -> Assert.That(x.Total, Is.EqualTo(m))
 
     let assertUsageToBeReported (expected: bool) expectedRequest (meterCollection: MeterCollection) : MeterCollection =
         let containsElement =
@@ -610,7 +614,7 @@ let ``Meter.handleUnsuccessfulMeterSubmission.Expired``() =
             |> MeterCollectionLogic.usagesToBeReported
             |> List.contains expectedRequest
 
-        Assert.AreEqual(expected, containsElement)
+        Assert.That(containsElement, Is.EqualTo(expected))
 
         meterCollection
 
@@ -725,7 +729,7 @@ let ``RenewalInterval.check``() =
             |> Subscription.areDifferentBillingCycles
                 (MeteringDateTime.fromStr testcase.LastEvent)
                 (MeteringDateTime.fromStr testcase.Now)
-        Assert.AreEqual(testcase.NewIntervalStarted, result, sprintf "Failure test case %d: %A" idx testcase)
+        Assert.That(result, Is.EqualTo(testcase.NewIntervalStarted), message = sprintf "Failure test case %d: %A" idx testcase)
 
     [
         { SubscriptionStarted = "2023-04-15T13:18:00Z"; LastEvent = "2023-05-14T23:23:58Z"; Now = "2023-05-14T23:23:59Z"; NewIntervalStarted = false; Interval = RenewalInterval.Monthly }

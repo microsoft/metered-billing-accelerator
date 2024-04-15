@@ -91,7 +91,7 @@ let ``Comparator works`` () =
         newState "2"
     ]
 
-    Assert.IsTrue((l = List.sort l)) // Ensure the list is already sorted
+    Assert.That((l = List.sort l), Is.True) // Ensure the list is already sorted
 
 let getEvents (files: TestFile seq) = files |> Seq.choose (function | Event e -> Some e | _ -> None)
 
@@ -140,7 +140,7 @@ let private checkFolder folder =
         let actualState = MeterCollectionLogic.handleMeteringEvent initialState event
 
         try
-            Assert.AreEqual(expectedState, actualState)
+            Assert.That(actualState, Is.EqualTo(expectedState))
         with :? Exception ->
             // When the comparison fails, we write the actual state into a file for better inspection
             writeCalculatedState folder (event.MessagePosition.SequenceNumber) actualState
@@ -174,7 +174,7 @@ let private checkOneState folder (initialStateNumber: SequenceNumber) =
     let calculatedTargetState = MeterCollectionLogic.handleMeteringEvent initialState eventMessage
 
     try
-        Assert.AreEqual(expectedTargetState, calculatedTargetState)
+        Assert.That(calculatedTargetState, Is.EqualTo(expectedTargetState))
     with :? Exception ->
         // When the comparison fails, we write the actual state into a file for better inspection
         writeCalculatedState folder (initialStateNumber + 1L) calculatedTargetState
