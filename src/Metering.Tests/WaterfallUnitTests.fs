@@ -14,11 +14,11 @@ let GigaByte (x: uint) = Quantity.create x
 let TeraByte x = GigaByte (1000u * x) // yeah, I know, 1024, but this helps readability
 
 let assertTotal expected meter =
-    Assert.AreEqual(expected, meter.Total)
+    Assert.That(meter.Total, Is.EqualTo(expected))
     meter
 
 let assertConsumption expected (meter: WaterfallMeterValue) =
-    Assert.AreEqual(expected, meter.Consumption)
+    Assert.That(meter.Consumption, Is.EqualTo(expected))
     meter
 
 let tier0_0_99 = "First 100GB / Month" |> DimensionId.create
@@ -64,7 +64,7 @@ let CreateMeterWithIncludedQuantities () =
         Overage { LowerIncluding = (GigaByte 500_100u);                                       DimensionId = tier5_500100_and_more }
     ]
 
-    Assert.AreEqual(expectedModel, model)
+    Assert.That(model, Is.EqualTo(expectedModel))
 
     let dimension =
         { Tiers = incrementalDescription
@@ -126,4 +126,4 @@ let CreateMeterWithOutIncludedQuantities () =
             Overage { LowerIncluding = (GigaByte 500_100u);                                       DimensionId = tier5_500100_and_more }
           ]
 
-    Assert.AreEqual(expectedModel, model)
+    Assert.That(model, Is.EqualTo(expectedModel))
