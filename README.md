@@ -372,6 +372,9 @@ setx.ex AZURE_METERING_MAX_DURATION_BETWEEN_SNAPSHOTS           00:05:00
 setx.exe WSLENV AZURE_METERING_MARKETPLACE_CLIENT_ID/u:AZURE_METERING_MARKETPLACE_CLIENT_SECRET/u:AZURE_METERING_MARKETPLACE_TENANT_ID/u:AZURE_METERING_INFRA_CLIENT_ID/u:AZURE_METERING_INFRA_CLIENT_SECRET/u:AZURE_METERING_INFRA_TENANT_ID/u:AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME/u:AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME/u:AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER/u:AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER/u:AZURE_METERING_INFRA_CAPTURE_CONTAINER/u:AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT/u:AZURE_METERING_MAX_NUMBER_OF_EVENTS_BETWEEN_SNAPSHOTS/u:AZURE_METERING_MAX_DURATION_BETWEEN_SNAPSHOTS/u
 ```
 
+> [!IMPORTANT]  
+> When you create the identity for the `AZURE_METERING_MARKETPLACE_CLIENT_ID`, please ensure that you not only have an 'app registration' here, but that this identity is a 'real' service principal. For example, when you [register a SaaS application](https://learn.microsoft.com/en-us/partner-center/marketplace/partner-center-portal/pc-saas-registration) in Azure marketplace, it must be a service principal (`ad ad sp create` in AZ CLI parlance).
+
 ## Supported deployment models
 
 The metering accelerator is planned for three distinct deployment models:
