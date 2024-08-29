@@ -27,7 +27,7 @@ let private roundTrip<'T> (filename: string) =
         //|> (fun s -> printfn "%s" s; s)
         |> Json.fromStr<'T>
 
-    Assert.AreEqual(t1, t2, message = $"Inputfile: data/{filename}")
+    Assert.That(t1, Is.EqualTo(t2), message = $"Inputfile: data/{filename}")
 
 [<Test>]
 let ``InternalMessages.AllInOne`` () =
@@ -132,7 +132,7 @@ let ``InternalDataStructures.ParsePlan`` () =
         }
         """
         |> Json.fromStr<Plan>
-    Assert.AreEqual("the_plan", p.PlanId.value)
+    Assert.That(p.PlanId.value, Is.EqualTo("the_plan"))
 
     let check (appInternalName: string) (expected: Quantity) =
         let actual =
@@ -142,7 +142,7 @@ let ``InternalDataStructures.ParsePlan`` () =
                 | SimpleBillingDimension dim -> dim.IncludedQuantity
                 | _ -> failwith $"Should have been a {nameof(SimpleBillingDimension)}"
 
-        Assert.AreEqual(expected, actual)
+        Assert.That(actual, Is.EqualTo(expected))
 
     check "infinite" Quantity.Infinite
     check "literal" (Quantity.create 2u)
@@ -209,5 +209,5 @@ let ``EventHub.Avro`` () =
                 e
             )
 
-        Assert.IsTrue(events |> Seq.length > 0)
+        Assert.That(events |> Seq.length > 0, Is.True)
     )

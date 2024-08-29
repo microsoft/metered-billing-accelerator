@@ -8,7 +8,6 @@ param ADObjectID string
 
 @secure()
 param ADApplicationSecret string 
-param tenantID string
 
 resource sa 'Microsoft.Resources/resourceGroups@2021-01-01' = {
   name: '${appNamePrefix}-rg'
@@ -23,10 +22,8 @@ module rgDeployment 'main-existing-rg.bicep' = {
     ADApplicationID: ADApplicationID
     ADApplicationSecret: ADApplicationSecret
     ADObjectID: ADObjectID
-    tenantID: tenantID
   }
   scope: resourceGroup(sa.name)
 }
 
-output eventHubConnectionString string = rgDeployment.outputs.eventHubConnectionString
 output eventHubName string = rgDeployment.outputs.eventHubName

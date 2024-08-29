@@ -80,15 +80,25 @@ module marketplaceMeteringAggregatorApp './modules/container-app.bicep' = {
     containerRegistryUsername: containerRegistryUsername
     containerPort: 80
     env: [
+      // Assumption is we're using a service principal to submit to marketplace
       { name: 'AZURE_METERING_MARKETPLACE_TENANT_ID',         value: subscription().tenantId }
       { name: 'AZURE_METERING_MARKETPLACE_CLIENT_ID',         value: ADApplicationID }
       { name: 'AZURE_METERING_MARKETPLACE_CLIENT_SECRET',     value: ADApplicationSecret }
+
+      // { name: 'AZURE_METERING_INFRA_TENANT_ID',         value: subscription().tenantId }
+      // { name: 'AZURE_METERING_INFRA_CLIENT_ID',         value: ADApplicationID }
+      // { name: 'AZURE_METERING_INFRA_CLIENT_SECRET',     value: ADApplicationSecret }
+
       { name: 'AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME',  value: data.outputs.eventHubNamespaceName }
       { name: 'AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME',   value: data.outputs.eventHubName }
       { name: 'AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER',     value: data.outputs.snapshotsBlobEndpoint }
       { name: 'AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER',   value: data.outputs.checkpointBlobEndpoint }
       { name: 'AZURE_METERING_INFRA_CAPTURE_CONTAINER',       value: data.outputs.captureBlobEndpoint }
       { name: 'AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT', value: AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT }
+
+      // Create only when data changes, but at least every 10 events or once per minute
+      { name: 'AZURE_METERING_MAX_NUMBER_OF_EVENTS_BETWEEN_SNAPSHOTS', value: '10' }
+      { name: 'AZURE_METERING_MAX_DURATION_BETWEEN_SNAPSHOTS',         value: '00:01:00' } 
     ]
   }
 }

@@ -9,4 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Metering.Runtime\Metering.Runtime.fsproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="8.0.200" />
+  </ItemGroup>
 </Project>

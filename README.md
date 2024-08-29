@@ -10,6 +10,7 @@ Check-out these short videos on what metered billing, and what this project is a
 
 - [What is metered billing? ](https://www.youtube.com/watch?v=62KoPN7uICk&list=PLmsFUfdnGr3wSJ-pevi9RR0J-p8gbhE3B&index=2)
 - [An introduction to the Metered Billing Accelerator](https://www.youtube.com/watch?v=OB8dcYvNlCM&list=PLmsFUfdnGr3wSJ-pevi9RR0J-p8gbhE3B&index=3)
+- **Added in January 2024**: The [YouTube video series on the "Metered Billing Accelerator"](https://www.youtube.com/playlist?list=PLZv8EMzB61uVdnelyxIrVel3EXcGgyMNR)
 
 ## Table of contents
 
@@ -365,8 +366,14 @@ setx.exe AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER         https://meteringhack.b
 setx.exe AZURE_METERING_INFRA_CAPTURE_CONTAINER           https://meteringhack.blob.core.windows.net/hub2capture
 setx.exe AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT     {Namespace}/{EventHub}/p{PartitionId}--{Year}-{Month}-{Day}--{Hour}-{Minute}-{Second}
 
-setx.exe WSLENV AZURE_METERING_MARKETPLACE_CLIENT_ID/u:AZURE_METERING_MARKETPLACE_CLIENT_SECRET/u:AZURE_METERING_MARKETPLACE_TENANT_ID/u:AZURE_METERING_INFRA_CLIENT_ID/u:AZURE_METERING_INFRA_CLIENT_SECRET/u:AZURE_METERING_INFRA_TENANT_ID/u:AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME/u:AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME/u:AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER/u:AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER/u:AZURE_METERING_INFRA_CAPTURE_CONTAINER/u:AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT/u:
+setx.ex AZURE_METERING_MAX_NUMBER_OF_EVENTS_BETWEEN_SNAPSHOTS   5
+setx.ex AZURE_METERING_MAX_DURATION_BETWEEN_SNAPSHOTS           00:05:00
+
+setx.exe WSLENV AZURE_METERING_MARKETPLACE_CLIENT_ID/u:AZURE_METERING_MARKETPLACE_CLIENT_SECRET/u:AZURE_METERING_MARKETPLACE_TENANT_ID/u:AZURE_METERING_INFRA_CLIENT_ID/u:AZURE_METERING_INFRA_CLIENT_SECRET/u:AZURE_METERING_INFRA_TENANT_ID/u:AZURE_METERING_INFRA_EVENTHUB_NAMESPACENAME/u:AZURE_METERING_INFRA_EVENTHUB_INSTANCENAME/u:AZURE_METERING_INFRA_CHECKPOINTS_CONTAINER/u:AZURE_METERING_INFRA_SNAPSHOTS_CONTAINER/u:AZURE_METERING_INFRA_CAPTURE_CONTAINER/u:AZURE_METERING_INFRA_CAPTURE_FILENAME_FORMAT/u:AZURE_METERING_MAX_NUMBER_OF_EVENTS_BETWEEN_SNAPSHOTS/u:AZURE_METERING_MAX_DURATION_BETWEEN_SNAPSHOTS/u
 ```
+
+> [!IMPORTANT]  
+> When you create the identity for the `AZURE_METERING_MARKETPLACE_CLIENT_ID`, please ensure that you not only have an 'app registration' here, but that this identity is a 'real' service principal. For example, when you [register a SaaS application](https://learn.microsoft.com/en-us/partner-center/marketplace/partner-center-portal/pc-saas-registration) in Azure marketplace, it must be a service principal (`ad ad sp create` in AZ CLI parlance).
 
 ## Supported deployment models
 

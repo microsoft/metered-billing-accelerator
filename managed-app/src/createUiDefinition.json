@@ -51,8 +51,8 @@
         "toolTip": "Use only allowed characters",
         "constraints": {
           "required": true,
-          "regex": "^[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9]{3, 10}$",
-          "validationMessage": "Only alphanumeric characters are allowed, and the value must be 6-30 characters long."
+          "regex": "^([a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9]){3, 24}$",
+          "validationMessage": "Only alphanumeric characters are allowed, and the value must be 3-24 characters long."
         },
         "visible": true
       },

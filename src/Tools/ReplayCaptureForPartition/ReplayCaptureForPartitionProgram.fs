@@ -13,9 +13,14 @@ open Metering.Integration
 let cancellationToken =CancellationToken.None
 let config = MeteringConnections.getFromEnvironment()
 
+
+
 let writeToFilesystem dirname (msg: EventHubEvent<MeteringUpdateEvent>) (newState: MeterCollection) =
-    File.WriteAllText((sprintf "%s\\%s-%d-%s-msg-%s.json" dirname newState.LastUpdate.Value.PartitionID.value newState.LastUpdate.Value.SequenceNumber (msg.MessagePosition.PartitionTimestamp |> MeteringDateTime.blobName) (msg.EventData.MessageType)), (Json.toStr 1 msg.EventData))
-    File.WriteAllText((sprintf "%s\\%s-%d-%s-state.json"  dirname newState.LastUpdate.Value.PartitionID.value newState.LastUpdate.Value.SequenceNumber (msg.MessagePosition.PartitionTimestamp |> MeteringDateTime.blobName)), (Json.toStr 1 newState))
+    let partitionIdAsInt64 (p: PartitionID) = System.Int64.Parse(p.value)
+    let prefix = sprintf "%s\\%02d-%06d-%s" dirname (partitionIdAsInt64(newState.LastUpdate.Value.PartitionID)) newState.LastUpdate.Value.SequenceNumber (msg.MessagePosition.PartitionTimestamp |> MeteringDateTime.blobName)
+
+    File.WriteAllText((sprintf "%s-msg-%s.json" prefix (msg.EventData.MessageType)), (Json.toStr 1 msg.EventData))
+    File.WriteAllText((sprintf "%s-state.json"  prefix),                             (Json.toStr 1 newState))
     newState
 
 let handle (dirname: string) (state: MeterCollection) (msg: EventHubEvent<MeteringUpdateEvent>) : MeterCollection =
@@ -33,7 +38,9 @@ config.createEventHubConsumerClient().GetPartitionIdsAsync(cancellationToken).Re
 
     events
     |> Seq.fold (handle dirname) MeterCollection.Empty
-    |> printfn "%A"
+    |> (fun state ->
+        if state <> MeterCollection.Empty
+        then printfn "%A" state)
 )
 
 exit 0
