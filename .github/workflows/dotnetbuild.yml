@@ -23,16 +23,16 @@ jobs:
       tagVersion: ${{ steps.nbgv.outputs.SemVer2 }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3.7.0
       with:
         fetch-depth: 0
     - name: Setup .NET
-      uses: actions/setup-dotnet@v2
+      uses: actions/setup-dotnet@8e6bd2905eef86446227f003dda1deb3916c4aaf # v2.2.1
       with:
         dotnet-version: '8.0'
     - name: Setup Semantic version
       id: nbgv
-      uses: dotnet/nbgv@v0.4.0
+      uses: dotnet/nbgv@49d4f35f34d895d282b99855b2e0034f8f608ba5 # v0.4.0
       with:
         setAllVars: true
     - name: Restore dependencies
@@ -55,7 +55,7 @@ jobs:
         cd publishFolder
         zip -r ../zip-deploy-${{ matrix.application }}-win-x64.zip *
     - name: Upload ${{ matrix.application }} build artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@82c141cc518b40d92cc801eee768e7aafc9c2fa2 # v2.3.1
       with:
         path: src/${{ matrix.application }}/zip-deploy-${{ matrix.application }}-win-x64.zip
         name: ${{ matrix.application }}.${{env.NBGV_SemVer2}}
@@ -64,7 +64,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v4.1.7
+    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
     - name: Display structure of downloaded files
       run: | 
         find . -type f
@@ -80,7 +80,7 @@ jobs:
         echo "Created the file $GITHUB_OUTPUT with the following content: "
         cat $GITHUB_OUTPUT
     - name: Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v0.1.15
       with:
         name: Release-${{needs.build.outputs.tagVersion}}
         tag_name: ${{needs.build.outputs.tagVersion}}
